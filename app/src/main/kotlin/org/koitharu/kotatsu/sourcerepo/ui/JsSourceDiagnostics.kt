@@ -6,13 +6,36 @@ import kotlinx.coroutines.withTimeout
 import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.jsext.source.JsExtensionProvider
+import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
 import javax.inject.Inject
 
 /** Temporary, read-only diagnostics. Only installed JS sources can be executed. */
 class JsSourceDiagnostics @Inject constructor(
     private val store: JsSourceStore,
     private val provider: JsExtensionProvider,
+    private val repository: SourceRepoRepository,
 ) {
+    private val attempted = mutableSetOf<Long>()
+
+    /** Install at most ten new sources per batch, preserving existing installations. */
+    suspend fun installBatch(onProgress: (Int, Int) -> Unit): String {
+        val available = repository.fetchAll().jsSources.map { it.entry }
+        val installed = store.list().map { it.id }.toSet()
+        val pending = available.filter { it.id !in installed && it.id !in attempted }.take(10)
+        val lines = mutableListOf("Monogatari batch install", "Available=${available.size} installed=${installed.size} batch=${pending.size}")
+        pending.forEachIndexed { index, source ->
+            attempted += source.id
+            try {
+                withTimeout(30_000) { repository.installJsSource(source) }
+                lines += "${source.id} | ${source.name} | installed"
+            } catch (timeout: TimeoutCancellationException) { lines += "${source.id} | ${source.name} | timeout" }
+            catch (cancel: CancellationException) { throw cancel }
+            catch (error: Exception) { lines += "${source.id} | ${source.name} | ${error.javaClass.simpleName}: ${error.message.orEmpty().take(120)}" }
+            onProgress(index + 1, pending.size)
+        }
+        return lines.joinToString("\n")
+    }
+
     suspend fun run(onProgress: (Int, Int) -> Unit): String {
         val sources = store.list()
         val lines = mutableListOf("Monogatari JS diagnostics v1", "Installed JS sources: ${sources.size}")

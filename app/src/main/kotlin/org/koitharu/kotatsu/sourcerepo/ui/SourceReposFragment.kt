@@ -117,6 +117,27 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		else -> super.onPreferenceTreeClick(preference)
 	}
 
+	private fun installDiagnosticBatch() {
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle("Download test sources?")
+			.setMessage("Download up to 10 JavaScript extensions. These will remain installed until you remove them. Repeat for later batches.")
+			.setNegativeButton("Cancel", null)
+			.setPositiveButton("Download") { _, _ ->
+				viewLifecycleOwner.lifecycleScope.launch {
+					val report = try { diagnostics.installBatch { _, _ -> } }
+					catch (error: Exception) { "Batch failed: ${error.message}" }
+					MaterialAlertDialogBuilder(requireContext())
+						.setTitle("Download report")
+						.setMessage(report.take(2000))
+						.setPositiveButton("Copy report") { _, _ ->
+							val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+							clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari batch", report))
+						}
+						.setNegativeButton("Close", null).show()
+				}
+			}.show()
+	}
+
 	private fun runDiagnostics() {
 		val context = requireContext()
 		val progress = MaterialAlertDialogBuilder(context)
@@ -154,6 +175,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		reposCategory.removeAll()
 		pluginsCategory.removeAll()
 		val context = requireContext()
+		pluginsCategory.addPreference(Preference(context).apply {
+			key = "temporary_js_batch_install"
+			title = "Download next 10 JS sources for testing"
+			summary = "Temporary: download up to 10 uninstalled extensions, then run diagnostics"
+			isPersistent = false
+			setOnPreferenceClickListener { installDiagnosticBatch(); true }
+		})
 		pluginsCategory.addPreference(Preference(context).apply {
 			key = "temporary_js_diagnostics"
 			title = "Test installed JS sources (temporary)"
