@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
@@ -35,7 +36,7 @@ class BookLibraryActivity : AppCompatActivity() {
                         if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "html", "htm")) {
                             return@map "$name: unsupported format"
                         }
-                        val dest = File(dir, "${System.currentTimeMillis()}-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}")
+                        val dest = File.createTempFile("book-", "-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}", dir)
                         contentResolver.openInputStream(uri)?.use { input -> dest.outputStream().use { input.copyTo(it) } }
                             ?: error("Cannot open file")
                         "$name: imported"

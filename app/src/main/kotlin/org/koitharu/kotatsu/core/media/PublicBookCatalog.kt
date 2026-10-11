@@ -4,12 +4,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.json.JSONObject
 import java.net.URLEncoder
 import javax.inject.Inject
 
 /** Public-domain and library catalog discovery; availability is never assumed. */
-class PublicBookCatalog @Inject constructor(private val client: OkHttpClient) {
+class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
     data class Book(
         val title: String,
         val author: String,
