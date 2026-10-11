@@ -2,6 +2,11 @@ name: Publish signed Android release
 on:
   workflow_dispatch:
     inputs:
+      source_ref:
+        description: 'Branch or commit to build (defaults to the development branch)'
+        required: true
+        default: 'claude/mangayomi-kotatsu-features-fb46y2'
+        type: string
       tag:
         description: 'New release tag (for example v2026.10.12)'
         required: true
@@ -14,6 +19,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

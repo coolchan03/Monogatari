@@ -78,6 +78,7 @@ class JsSourceDiagnostics @Inject constructor(
             val status = when {
                 result.any { it.startsWith("error=") } -> "FAIL"
                 result.any { it.startsWith("search_error=") } || result.any { it == "detail=skipped_no_item" } -> "PARTIAL"
+                result.any { it == "popular=0" || it == "search=0" || it == "content=0" } -> "PARTIAL"
                 result.any { it.startsWith("content=") } -> "PASS"
                 else -> "PARTIAL"
             }
@@ -86,7 +87,18 @@ class JsSourceDiagnostics @Inject constructor(
                 "FAIL" -> failed++
                 else -> partial++
             }
-            lines += "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | ${result.joinToString(" ")}"
+            val problem = result.firstOrNull { it.startsWith("error=") || it.startsWith("search_error=") }
+            val category = when {
+                problem == null && result.any { it == "popular=0" || it == "search=0" } -> "EMPTY_RESULTS"
+                problem == null && result.any { it == "content=0" } -> "EMPTY_CONTENT"
+                problem == null -> "NONE"
+                problem.contains("CloudFlare", ignoreCase = true) -> "CLOUDFLARE"
+                problem.contains("TLS packet", ignoreCase = true) || problem.contains("SSL", ignoreCase = true) -> "TLS"
+                problem.contains("Timeout", ignoreCase = true) || problem.contains("timed out", ignoreCase = true) -> "TIMEOUT"
+                problem.contains("TypeError", ignoreCase = true) -> "EXTENSION_SCRIPT"
+                else -> "OTHER"
+            }
+            lines += "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | category=$category | ${result.joinToString(" ")}"
             onProgress(index + 1, sources.size)
         }
         lines.add(2, "Summary: PASS=$working PARTIAL=$partial FAIL=$failed")
