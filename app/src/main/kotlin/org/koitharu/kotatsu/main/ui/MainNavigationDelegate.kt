@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksFragment
+import org.koitharu.kotatsu.core.media.BookLibraryFragment
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.NavItem
@@ -188,6 +189,7 @@ class MainNavigationDelegate(
 
 	private fun onNavigationItemSelected(@IdRes itemId: Int): Boolean {
 		val newFragment = when (itemId) {
+			R.id.nav_books -> BookLibraryFragment::class.java
 			R.id.nav_history -> HistoryListFragment::class.java
 			R.id.nav_favorites -> FavouritesContainerFragment::class.java
 			R.id.nav_explore -> ExploreFragment::class.java
@@ -206,6 +208,7 @@ class MainNavigationDelegate(
 	}
 
 	private fun getItemId(fragment: Fragment) = when (fragment) {
+		is BookLibraryFragment -> R.id.nav_books
 		is HistoryListFragment -> R.id.nav_history
 		is FavouritesContainerFragment -> R.id.nav_favorites
 		is ExploreFragment -> R.id.nav_explore
