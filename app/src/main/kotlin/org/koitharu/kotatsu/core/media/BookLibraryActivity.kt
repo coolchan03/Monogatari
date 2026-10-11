@@ -34,7 +34,7 @@ class BookLibraryActivity : AppCompatActivity() {
                 uris.map { uri ->
                     try {
                         val name = queryDisplayName(uri)
-                        if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "html", "htm")) {
+                        if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml")) {
                             return@map "$name: unsupported format"
                         }
                         val dest = File.createTempFile("book-", "-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}", dir)
@@ -67,6 +67,14 @@ class BookLibraryActivity : AppCompatActivity() {
             setOnClickListener { openOpds(query.text.toString().trim()) }
         })
         root.addView(Button(this).apply {
+            text = "Save OPDS catalog URL"
+            setOnClickListener { saveOpds(query.text.toString().trim()) }
+        })
+        root.addView(Button(this).apply {
+            text = "Saved OPDS catalogs"
+            setOnClickListener { showSavedOpds() }
+        })
+        root.addView(Button(this).apply {
             text = "Import local ebooks"
             setOnClickListener { picker.launch(arrayOf("*/*")) }
         })
@@ -81,6 +89,41 @@ class BookLibraryActivity : AppCompatActivity() {
         results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(results) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
+    }
+
+    private fun saveOpds(url: String) {
+        val parsed = runCatching { java.net.URI(url) }.getOrNull()
+        if (parsed?.scheme !in setOf("http", "https") || parsed?.host.isNullOrBlank()) {
+            showLines(listOf("Enter a valid HTTP(S) OPDS URL."))
+            return
+        }
+        val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
+        val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
+        saved.add(url)
+        prefs.edit().putStringSet("urls", saved).apply()
+        showSavedOpds()
+    }
+
+    private fun showSavedOpds() {
+        results.removeAllViews()
+        val urls = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
+            .getStringSet("urls", emptySet()).orEmpty().sorted()
+        if (urls.isEmpty()) showLines(listOf("No saved OPDS catalogs."))
+        urls.forEach { url ->
+            results.addView(Button(this).apply {
+                text = url
+                isAllCaps = false
+                setOnClickListener { openOpds(url) }
+                setOnLongClickListener {
+                    val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
+                    val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
+                    saved.remove(url)
+                    prefs.edit().putStringSet("urls", saved).apply()
+                    showSavedOpds()
+                    true
+                }
+            })
+        }
     }
 
     private fun openOpds(url: String) {
@@ -146,7 +189,7 @@ class BookLibraryActivity : AppCompatActivity() {
                     val type = when (file.extension.lowercase()) {
                         "pdf" -> "application/pdf"
                         "epub" -> "application/epub+zip"
-                        "html", "htm" -> "text/html"
+                        "html", "htm", "xhtml" -> "text/html"
                         else -> "text/plain"
                     }
                     if (type == "application/epub+zip") {

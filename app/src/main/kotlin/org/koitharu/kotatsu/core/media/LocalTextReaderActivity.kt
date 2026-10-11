@@ -31,7 +31,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
         try {
             if (file.length() > 8L * 1024 * 1024) error("Text file is too large for this reader")
             val contents = file.readText()
-            text.text = if (file.extension.lowercase() in setOf("html", "htm"))
+            text.text = if (file.extension.lowercase() in setOf("html", "htm", "xhtml"))
                 Html.fromHtml(contents, Html.FROM_HTML_MODE_COMPACT) else contents
             val y = getSharedPreferences("book_scroll", MODE_PRIVATE).getInt(file.name, 0)
             scroll.post { scroll.scrollTo(0, y) }
