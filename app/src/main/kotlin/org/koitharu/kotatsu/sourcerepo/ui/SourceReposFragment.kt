@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.sourcerepo.ui
 
 import android.app.DownloadManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -57,6 +59,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	@Inject
 	lateinit var jsExtensions: JsExtensionProvider
 
+	@Inject
+	lateinit var diagnostics: JsSourceDiagnostics
+
 	private val downloadReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context, intent: Intent) {
 			val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
@@ -68,6 +73,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
 		addPreferencesFromResource(R.xml.pref_source_repos)
+
 	}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -111,12 +117,50 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		else -> super.onPreferenceTreeClick(preference)
 	}
 
+	private fun runDiagnostics() {
+		val context = requireContext()
+		val progress = MaterialAlertDialogBuilder(context)
+			.setTitle("Testing installed JS sources")
+			.setMessage("Starting tests...")
+			.setNegativeButton("Close", null)
+			.create()
+		progress.show()
+		viewLifecycleOwner.lifecycleScope.launch {
+			try {
+				val report = diagnostics.run { done, total ->
+					progress.setMessage("Tested $done of $total installed sources")
+				}
+				if (progress.isShowing) progress.dismiss()
+				MaterialAlertDialogBuilder(requireContext())
+					.setTitle("JS source diagnostic report")
+					.setMessage(report.take(1800) + if (report.length > 1800) "\n(Full report available via Copy)" else "")
+					.setPositiveButton("Copy report") { _, _ ->
+						val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+						clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari diagnostics", report))
+					}
+					.setNegativeButton("Close", null)
+					.show()
+			} catch (error: Exception) {
+				if (progress.isShowing) progress.dismiss()
+				MaterialAlertDialogBuilder(requireContext()).setMessage(error.message ?: "Diagnostic failed")
+					.setPositiveButton("Close", null).show()
+			}
+		}
+	}
+
 	private fun render(state: SourceReposViewModel.State) {
 		val reposCategory = findPreference<PreferenceCategory>(KEY_REPOS) ?: return
 		val pluginsCategory = findPreference<PreferenceCategory>(KEY_PLUGINS) ?: return
 		reposCategory.removeAll()
 		pluginsCategory.removeAll()
 		val context = requireContext()
+		pluginsCategory.addPreference(Preference(context).apply {
+			key = "temporary_js_diagnostics"
+			title = "Test installed JS sources (temporary)"
+			summary = "Run sample content checks and copy a diagnostic report"
+			isPersistent = false
+			setOnPreferenceClickListener { runDiagnostics(); true }
+		})
 		if (state.repos.isEmpty()) {
 			reposCategory.addPreference(
 				Preference(context).apply {
