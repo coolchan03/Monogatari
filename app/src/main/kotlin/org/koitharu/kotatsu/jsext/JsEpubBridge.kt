@@ -21,7 +21,7 @@ import java.util.zip.ZipInputStream
  * chapters does not download and unzip the same file repeatedly.
  */
 internal class JsEpubBridge(
-	private val transport: JsHttpTransport,
+	private val transport: JsHttpTransport? = null,
 ) {
 
 	private var cachedUrl: String? = null
@@ -52,7 +52,7 @@ internal class JsEpubBridge(
 			cachedBook?.let { return it }
 		}
 		val headers = args.getOrNull(2).stringMap().orEmpty()
-		val response = transport.execute(
+		val response = requireNotNull(transport) { "EPUB network transport unavailable" }.execute(
 			JsHttpRequest(
 				method = "GET",
 				url = url,

@@ -149,6 +149,11 @@ class BookLibraryActivity : AppCompatActivity() {
                         "html", "htm" -> "text/html"
                         else -> "text/plain"
                     }
+                    if (type == "application/epub+zip") {
+                        startActivity(Intent(this@BookLibraryActivity, LocalEpubReaderActivity::class.java)
+                            .putExtra("local_book_file", file.absolutePath))
+                        return@setOnClickListener
+                    }
                     if (type == "application/pdf") {
                         startActivity(Intent(this@BookLibraryActivity, LocalPdfReaderActivity::class.java)
                             .putExtra("local_book_file", file.absolutePath))
