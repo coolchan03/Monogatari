@@ -55,7 +55,24 @@ class BookLibraryFragment : Fragment() {
         })
         files.forEach { file ->
             list.addView(Button(requireContext()).apply {
-                text = file.name.substringAfter('-', file.name)
+                val title = file.name.substringAfter('-', file.name)
+                val progress = when (file.extension.lowercase()) {
+                    "epub" -> {
+                        val chapter = requireContext().getSharedPreferences("epub_progress", android.content.Context.MODE_PRIVATE)
+                            .getInt(file.name, -1)
+                        if (chapter >= 0) "Chapter ${chapter + 1}" else "Not started"
+                    }
+                    "pdf" -> {
+                        val page = requireContext().getSharedPreferences("pdf_progress", android.content.Context.MODE_PRIVATE)
+                            .getInt(file.name, -1)
+                        if (page >= 0) "Page ${page + 1}" else "Not started"
+                    }
+                    else -> {
+                        val prefs = requireContext().getSharedPreferences("book_scroll", android.content.Context.MODE_PRIVATE)
+                        if (prefs.contains(file.name)) "Continue reading" else "Not started"
+                    }
+                }
+                text = "$title  -  $progress"
                 isAllCaps = false
                 setOnClickListener {
                     val reader = when (file.extension.lowercase()) {
