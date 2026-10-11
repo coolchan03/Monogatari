@@ -8,6 +8,8 @@ on:
 jobs:
   discordNotification:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     steps:
       - name: Build commit description
         id: build
@@ -24,6 +26,7 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
       - name: Send commit embed to Discord
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
