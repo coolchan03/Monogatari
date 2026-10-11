@@ -160,10 +160,13 @@ class SourceRepoRepository @Inject constructor(
 
 	/** Downloads a JS source and stores it. The code only ever runs sandboxed inside QuickJS. */
 	suspend fun installJsSource(entry: JsSourceEntry) = withContext(Dispatchers.IO) {
-		val request = Request.Builder().get().url(entry.sourceCodeUrl).build()
+		// Some third-party indexes accidentally point at the src/ directory rather than a .js file.
+		// Try the predictable language/name path only for that malformed GitHub raw URL shape.
+		val sourceUrl = sourceCodeDownloadUrl(entry)
+		val request = Request.Builder().get().url(sourceUrl).build()
 		val code = client.newCall(request).await().use { response ->
 			if (!response.isSuccessful) {
-				throw java.io.IOException("HTTP ${response.code} from ${entry.sourceCodeUrl}")
+				throw java.io.IOException("HTTP ${response.code} from $sourceUrl")
 			}
 			val body = response.body
 			if (body.contentLength() > MAX_SOURCE_BYTES) {
