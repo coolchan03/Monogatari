@@ -149,6 +149,11 @@ class BookLibraryActivity : AppCompatActivity() {
                         "html", "htm" -> "text/html"
                         else -> "text/plain"
                     }
+                    if (type == "application/pdf") {
+                        startActivity(Intent(this@BookLibraryActivity, LocalPdfReaderActivity::class.java)
+                            .putExtra("local_book_file", file.absolutePath))
+                        return@setOnClickListener
+                    }
                     val uri = androidx.core.content.FileProvider.getUriForFile(
                         this@BookLibraryActivity, "${packageName}.files", file)
                     if (type == "text/plain" || type == "text/html") {

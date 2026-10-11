@@ -90,6 +90,7 @@
 			android:process=":acra"
 			android:theme="@style/Theme.Kotatsu.CrashDialog" />
 
+		<activity android:name="org.koitharu.kotatsu.core.media.LocalPdfReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.LocalTextReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.BookLibraryActivity" android:exported="false" />
 		<activity
