@@ -177,13 +177,11 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun showLocalBooks(filter: String = "") {
         results.removeAllViews()
-        val books = File(filesDir, "imported-books").listFiles().orEmpty()
-            .filter { it.isFile && it.name.contains(filter, ignoreCase = true) }
-            .sortedBy { it.name }
+        val books = BookShelf.list(this, filter)
         if (books.isEmpty()) showLines(listOf("No imported books yet."))
         books.forEach { file ->
             results.addView(Button(this).apply {
-                text = file.name.substringAfter('-')
+                text = "${BookShelf.title(file)}  -  ${BookShelf.progress(this@BookLibraryActivity, file)}"
                 isAllCaps = false
                 setOnClickListener {
                     val type = when (file.extension.lowercase()) {
