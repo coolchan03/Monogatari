@@ -212,7 +212,7 @@ class JsExtension(
 			"evaluateJavascriptViaWebview", "parseEpub", "parseEpubChapter",
 			"sibnetExtractor", "myTvExtractor", "okruExtractor", "voeExtractor", "vidBomExtractor",
 			"quarkVideosExtractor", "ucVideosExtractor", "quarkFilesExtractor", "ucFilesExtractor",
-			"streamlareExtractor", "sendVidExtractor", "yourUploadExtractor", "gogoCdnExtractor",
+			"streamlareExtractor", "sendVidExtractor", "yourUploadExtractor", "mp4UploadExtractor", "gogoCdnExtractor",
 			"doodExtractor", "streamTapeExtractor", "streamWishExtractor", "filemoonExtractor",
 		)
 
