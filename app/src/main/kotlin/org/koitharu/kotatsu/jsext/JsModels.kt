@@ -144,7 +144,9 @@ internal fun JsonObject.toJsPages(): JsPages = JsPages(
 
 internal fun JsonObject.toJsVideo(): JsVideo? {
 	val url = this["url"].str()?.trim() ?: return null
-	val originalUrl = this["originalUrl"].str()?.trim() ?: return null
+	// Many Mangayomi extractors return a playable URL without the optional originalUrl field.
+	// Keep that stream rather than silently discarding it.
+	val originalUrl = this["originalUrl"].str()?.trim()?.takeIf { it.isNotEmpty() } ?: url
 	fun tracks(key: String) = (this[key] as? JsonArray)?.mapNotNull { e ->
 		(e as? JsonObject)?.let { JsTrack(it["file"].str()?.trim(), it["label"].str()?.trim()) }
 	}.orEmpty()
