@@ -34,6 +34,7 @@ class JsExtension(
 
 	private val httpBridge = JsHttpBridge(http)
 	private val epubBridge = JsEpubBridge(http)
+	private val videoBridge = JsVideoExtractorBridge(http)
 	private val dom = JsDomBridge()
 	private val utils = JsUtilsBridge(logger)
 	private val mutex = Mutex()
@@ -163,6 +164,7 @@ class JsExtension(
 	private suspend fun dispatchAsync(name: String, argsJson: String): Any? {
 		val a = Json.parseToJsonElement(argsJson).jsonArray
 		JsHttpBridge.METHODS[name]?.let { return httpBridge.handle(it, a) }
+		if (name == "sendVidExtractor") return videoBridge.handle(name, a)
 		if (name == "parseEpub" || name == "parseEpubChapter") {
 			return epubBridge.handle(name, a)
 		}
