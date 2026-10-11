@@ -38,7 +38,10 @@ class JsSourceDiagnostics @Inject constructor(
 
     suspend fun run(onProgress: (Int, Int) -> Unit): String {
         val sources = store.list()
-        val lines = mutableListOf("Monogatari JS diagnostics v1", "Installed JS sources: ${sources.size}")
+        val lines = mutableListOf("Monogatari JS diagnostics v2", "Installed JS sources: ${sources.size}")
+        var working = 0
+        var partial = 0
+        var failed = 0
         sources.forEachIndexed { index, source ->
             val result = mutableListOf<String>()
             try {
@@ -72,9 +75,22 @@ class JsSourceDiagnostics @Inject constructor(
             catch (error: Exception) {
                 result += "error=${error.javaClass.simpleName}:${error.message.orEmpty().replace('\n', ' ').take(160)}"
             }
-            lines += "${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | ${result.joinToString(" ")}"
+            val status = when {
+                result.any { it.startsWith("error=") } -> "FAIL"
+                result.any { it.startsWith("search_error=") } || result.any { it == "detail=skipped_no_item" } -> "PARTIAL"
+                result.any { it.startsWith("content=") } -> "PASS"
+                else -> "PARTIAL"
+            }
+            when (status) {
+                "PASS" -> working++
+                "FAIL" -> failed++
+                else -> partial++
+            }
+            lines += "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | ${result.joinToString(" ")}"
             onProgress(index + 1, sources.size)
         }
+        lines.add(2, "Summary: PASS=$working PARTIAL=$partial FAIL=$failed")
+        lines += "PASS means sampled listing/detail/content calls returned without throwing; usable content and playback are not verified."
         lines += "Note: search uses a single sample query; content tests use the first popular item. Video streams are listed but not played."
         return lines.joinToString("\n")
     }
