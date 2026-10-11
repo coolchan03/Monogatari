@@ -17,12 +17,14 @@ class JsSourceDiagnostics @Inject constructor(
 ) {
     private val attempted = mutableSetOf<Long>()
 
-    /** Install at most ten new sources per batch, preserving existing installations. */
-    suspend fun installBatch(onProgress: (Int, Int) -> Unit): String {
+    /** Install runnable JS sources in bounded batches or, when explicitly requested, all available sources. */
+    suspend fun installBatch(onProgress: (Int, Int) -> Unit, maxSources: Int = 10): String {
         val available = repository.fetchAll().jsSources.map { it.entry }
+            .filter { it.isRunnable }.distinctBy { it.id }
         val installed = store.list().map { it.id }.toSet()
-        val pending = available.filter { it.id !in installed && it.id !in attempted }.take(10)
-        val lines = mutableListOf("Monogatari batch install", "Available=${available.size} installed=${installed.size} batch=${pending.size}")
+        val pending = available.filter { it.id !in installed && it.id !in attempted }
+            .take(maxSources.coerceIn(1, 1000))
+        val lines = mutableListOf("Monogatari batch install", "Runnable available=${available.size} installed=${installed.size} batch=${pending.size}")
         pending.forEachIndexed { index, source ->
             attempted += source.id
             try {

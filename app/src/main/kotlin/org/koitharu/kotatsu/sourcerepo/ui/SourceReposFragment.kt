@@ -120,12 +120,24 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	private fun installDiagnosticBatch() {
 		MaterialAlertDialogBuilder(requireContext())
 			.setTitle("Download test sources?")
-			.setMessage("Download up to 10 JavaScript extensions. These will remain installed until you remove them. Repeat for later batches.")
+			.setMessage("Install the next 10 sources, or select All to install every remaining runnable JavaScript source. Sources remain installed until removed. Large batches use data and may take a long time.")
 			.setNegativeButton("Cancel", null)
-			.setPositiveButton("Download") { _, _ ->
-				viewLifecycleOwner.lifecycleScope.launch {
-					val report = try { diagnostics.installBatch { _, _ -> } }
+			.setNeutralButton("All") { _, _ -> installDiagnosticSources(1000) }
+			.setPositiveButton("Next 10") { _, _ -> installDiagnosticSources(10) }
+			.show()
+	}
+
+	private fun installDiagnosticSources(maxSources: Int) {
+		viewLifecycleOwner.lifecycleScope.launch {
+					val progress = MaterialAlertDialogBuilder(requireContext())
+						.setTitle("Installing JS sources").setMessage("Preparing source list...")
+						.setNegativeButton("Hide progress", null).create()
+					progress.show()
+					val report = try { diagnostics.installBatch({ done, total ->
+						progress.setMessage("Installed or attempted $done of $total sources")
+					}, maxSources) }
 					catch (error: Exception) { "Batch failed: ${error.message}" }
+					if (progress.isShowing) progress.dismiss()
 					MaterialAlertDialogBuilder(requireContext())
 						.setTitle("Download report")
 						.setMessage(report.take(2000))
@@ -135,7 +147,6 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 						}
 						.setNegativeButton("Close", null).show()
 				}
-			}.show()
 	}
 
 	private fun runDiagnostics() {
@@ -177,8 +188,8 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		val context = requireContext()
 		pluginsCategory.addPreference(Preference(context).apply {
 			key = "temporary_js_batch_install"
-			title = "Download next 10 JS sources for testing"
-			summary = "Temporary: download up to 10 uninstalled extensions, then run diagnostics"
+			title = "Download JS sources for testing (10 or all)"
+			summary = "Install next 10 or all remaining runnable extensions, then run diagnostics"
 			isPersistent = false
 			setOnPreferenceClickListener { installDiagnosticBatch(); true }
 		})
