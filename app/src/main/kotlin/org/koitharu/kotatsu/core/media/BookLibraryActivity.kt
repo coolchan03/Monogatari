@@ -69,6 +69,10 @@ class BookLibraryActivity : AppCompatActivity() {
             text = "My imported books"
             setOnClickListener { showLocalBooks() }
         })
+        root.addView(Button(this).apply {
+            text = "Search imported books"
+            setOnClickListener { showLocalBooks(query.text.toString().trim()) }
+        })
         results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(results) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
@@ -98,9 +102,11 @@ class BookLibraryActivity : AppCompatActivity() {
         }
     }
 
-    private fun showLocalBooks() {
+    private fun showLocalBooks(filter: String = "") {
         results.removeAllViews()
-        val books = File(filesDir, "imported-books").listFiles().orEmpty().sortedBy { it.name }
+        val books = File(filesDir, "imported-books").listFiles().orEmpty()
+            .filter { it.isFile && it.name.contains(filter, ignoreCase = true) }
+            .sortedBy { it.name }
         if (books.isEmpty()) showLines(listOf("No imported books yet."))
         books.forEach { file ->
             results.addView(Button(this).apply {
@@ -115,6 +121,11 @@ class BookLibraryActivity : AppCompatActivity() {
                     }
                     val uri = androidx.core.content.FileProvider.getUriForFile(
                         this@BookLibraryActivity, "${packageName}.files", file)
+                    if (type == "text/plain" || type == "text/html") {
+                        startActivity(Intent(this@BookLibraryActivity, LocalTextReaderActivity::class.java)
+                            .putExtra(LocalTextReaderActivity.EXTRA_FILE, file.absolutePath))
+                        return@setOnClickListener
+                    }
                     val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, type)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     try { startActivity(intent) } catch (e: Exception) {
