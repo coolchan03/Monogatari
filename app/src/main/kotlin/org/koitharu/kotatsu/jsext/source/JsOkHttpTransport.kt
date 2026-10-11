@@ -4,6 +4,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
+import org.koitharu.kotatsu.core.ui.util.ForegroundActivityHolder
 import org.koitharu.kotatsu.jsext.JsHttpRequest
 import org.koitharu.kotatsu.jsext.JsHttpResponse
 import org.koitharu.kotatsu.jsext.JsHttpTransport
@@ -15,9 +17,26 @@ import org.koitharu.kotatsu.parsers.util.await
 class JsOkHttpTransport(
 	private val client: OkHttpClient,
 	private val source: MangaSource? = null,
+	private val captchaCoordinator: CaptchaAutoResolveCoordinator? = null,
+	private val foregroundActivityHolder: ForegroundActivityHolder? = null,
 ) : JsHttpTransport {
 
 	override suspend fun execute(request: JsHttpRequest): JsHttpResponse {
+		// Handle the challenge at the HTTP boundary, before QuickJS can turn its native cause into
+		// a JavaScript error string. Use Kotatsu's existing solver, shared cookie jar and cooldowns.
+		val activeSource = source
+		val coordinator = captchaCoordinator
+		return if (activeSource != null && coordinator != null) {
+			coordinator.runWithVerification(
+				source = activeSource,
+				mayStartVerification = foregroundActivityHolder?.current != null,
+			) { executeOnce(request) }
+		} else {
+			executeOnce(request)
+		}
+	}
+
+	private suspend fun executeOnce(request: JsHttpRequest): JsHttpResponse {
 		val effectiveClient = if (request.options?.get("followRedirects").bool() == false) {
 			client.newBuilder().followRedirects(false).followSslRedirects(false).build()
 		} else {

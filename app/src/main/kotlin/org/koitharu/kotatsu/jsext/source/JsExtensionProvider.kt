@@ -10,7 +10,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.BuildConfig
+import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
 import org.koitharu.kotatsu.core.network.MangaHttpClient
+import org.koitharu.kotatsu.core.ui.util.ForegroundActivityHolder
 import org.koitharu.kotatsu.jsext.JsExtension
 import org.koitharu.kotatsu.jsext.JsPreferenceStore
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
@@ -24,6 +26,8 @@ class JsExtensionProvider @Inject constructor(
 	@ApplicationContext private val context: Context,
 	@MangaHttpClient private val client: OkHttpClient,
 	private val store: JsSourceStore,
+	private val captchaCoordinator: CaptchaAutoResolveCoordinator,
+	private val foregroundActivityHolder: ForegroundActivityHolder,
 ) {
 
 	private class Live(val entry: JsSourceEntry, val codeHash: Int, val extension: JsExtension)
@@ -64,7 +68,12 @@ class JsExtensionProvider @Inject constructor(
 		val extension = JsExtension(
 			info = installed.entry.toSourceInfo(),
 			code = installed.code,
-			http = JsOkHttpTransport(client, JsMangaSource(id)),
+			http = JsOkHttpTransport(
+				client,
+				JsMangaSource(id),
+				captchaCoordinator,
+				foregroundActivityHolder,
+			),
 			preferences = object : JsPreferenceStore {
 				override fun getString(key: String): String? = prefs.getString(key, null)
 				override fun setString(key: String, value: String) = prefs.edit { putString(key, value) }
