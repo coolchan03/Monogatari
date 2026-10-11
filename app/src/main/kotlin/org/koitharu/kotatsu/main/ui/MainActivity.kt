@@ -178,6 +178,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 		if (savedInstanceState == null) {
 			onFirstStart()
+			showTemporarySourceTestPrompt()
 		}
 
 		viewModel.onOpenReader.observeEvent(this, this::onOpenReader)
@@ -197,6 +198,22 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.searchView.addTransitionListener(this)
 		viewBinding.searchView.addTransitionListener(exitCallback)
 		initSearch()
+	}
+
+	/** Temporary QA entry point. Remove once the source catalog is verified. */
+	private fun showTemporarySourceTestPrompt() {
+		val prefs = getSharedPreferences("monogatari_source_qa", MODE_PRIVATE)
+		if (prefs.getBoolean("prompt_seen", false)) return
+		prefs.edit().putBoolean("prompt_seen", true).apply()
+		com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+			.setTitle("Monogatari source tests")
+			.setMessage("Before using the app, would you like to open the temporary source diagnostics? Download test extensions in batches, run the tests, then copy the report to share.")
+			.setNegativeButton("Later", null)
+			.setPositiveButton("Open tests") { _, _ ->
+				startActivity(android.content.Intent(this, org.koitharu.kotatsu.settings.SettingsActivity::class.java)
+					.setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS"))
+			}
+			.show()
 	}
 
 	override fun onRestoreInstanceState(savedInstanceState: Bundle) {
