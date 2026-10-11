@@ -3,6 +3,8 @@ package org.koitharu.kotatsu.settings
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.content.Intent
+import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
@@ -30,6 +32,14 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
 		addPreferencesFromResource(R.xml.pref_root)
+		preferenceScreen.addPreference(Preference(requireContext()).apply {
+			title = "Books: Gutenberg, Open Library, Internet Archive"
+			summary = "Search public catalogs or import local EPUB, PDF, HTML and text files"
+			setOnPreferenceClickListener {
+				startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
+				true
+			}
+		})
 		addPreferencesFromResource(R.xml.pref_root_debug)
 		bindPreferenceSummary("appearance", R.string.theme, R.string.list_mode, R.string.language)
 		bindPreferenceSummary("reader", R.string.read_mode, R.string.scale_mode, R.string.switch_pages)
