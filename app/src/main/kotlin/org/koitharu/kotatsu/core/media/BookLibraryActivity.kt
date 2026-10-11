@@ -24,6 +24,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class BookLibraryActivity : AppCompatActivity() {
     @Inject lateinit var catalog: PublicBookCatalog
+    @Inject lateinit var opds: OpdsCatalog
     private lateinit var results: LinearLayout
     private lateinit var query: EditText
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -62,6 +63,10 @@ class BookLibraryActivity : AppCompatActivity() {
         }
         root.addView(actions)
         root.addView(Button(this).apply {
+            text = "Open OPDS catalog URL"
+            setOnClickListener { openOpds(query.text.toString().trim()) }
+        })
+        root.addView(Button(this).apply {
             text = "Import local ebooks"
             setOnClickListener { picker.launch(arrayOf("*/*")) }
         })
@@ -76,6 +81,31 @@ class BookLibraryActivity : AppCompatActivity() {
         results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(results) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
+    }
+
+    private fun openOpds(url: String) {
+        if (!url.startsWith("https://") && !url.startsWith("http://")) {
+            showLines(listOf("Enter a full HTTP(S) OPDS catalog URL in the search box."))
+            return
+        }
+        showLines(listOf("Loading OPDS catalog..."))
+        lifecycleScope.launch {
+            try {
+                val entries = opds.load(url)
+                results.removeAllViews()
+                if (entries.isEmpty()) showLines(listOf("No OPDS entries found."))
+                entries.forEach { entry ->
+                    results.addView(Button(this@BookLibraryActivity).apply {
+                        text = "${entry.title} - ${entry.author}"
+                        isAllCaps = false
+                        setOnClickListener {
+                            if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
+                            else openOpds(entry.href)
+                        }
+                    })
+                }
+            } catch (error: Exception) { showLines(listOf("OPDS error: ${error.message}")) }
+        }
     }
 
     private fun search(source: String) {
