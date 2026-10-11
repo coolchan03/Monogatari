@@ -149,17 +149,19 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				}
 	}
 
-	private fun runDiagnostics() {
+	private fun runDiagnostics(allSources: Boolean = false) {
 		val context = requireContext()
 		val progress = MaterialAlertDialogBuilder(context)
-			.setTitle("Testing installed JS sources")
+			.setTitle(if (allSources) "Testing all sources" else "Testing installed JS sources")
 			.setMessage("Starting tests...")
 			.setNegativeButton("Close", null)
 			.create()
 		progress.show()
 		viewLifecycleOwner.lifecycleScope.launch {
 			try {
-				val report = diagnostics.run { done, total ->
+				val report = if (allSources) diagnostics.runAll { done, total ->
+					progress.setMessage("Tested $done of $total sources")
+				} else diagnostics.run { done, total ->
 					progress.setMessage("Tested $done of $total installed sources")
 				}
 				if (progress.isShowing) progress.dismiss()
@@ -192,6 +194,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			summary = "Install next 10 or all remaining runnable extensions, then run diagnostics"
 			isPersistent = false
 			setOnPreferenceClickListener { installDiagnosticBatch(); true }
+		})
+		pluginsCategory.addPreference(Preference(context).apply {
+			key = "full_source_diagnostics"
+			title = "Test all Kotatsu and installed JS sources"
+			summary = "Full website sweep with progress and copyable report; install missing JS sources separately"
+			isPersistent = false
+			setOnPreferenceClickListener { runDiagnostics(allSources = true); true }
 		})
 		pluginsCategory.addPreference(Preference(context).apply {
 			key = "temporary_js_diagnostics"

@@ -4,6 +4,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.koitharu.kotatsu.jsext.JsItemType
+import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.jsext.source.JsExtensionProvider
 import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
@@ -14,6 +16,7 @@ class JsSourceDiagnostics @Inject constructor(
     private val store: JsSourceStore,
     private val provider: JsExtensionProvider,
     private val repository: SourceRepoRepository,
+    private val mangaRepositories: MangaRepository.Factory,
 ) {
     private val attempted = mutableSetOf<Long>()
 
@@ -35,6 +38,60 @@ class JsSourceDiagnostics @Inject constructor(
             catch (error: Exception) { lines += "${source.id} | ${source.name} | ${error.javaClass.simpleName}: ${error.message.orEmpty().take(120)}" }
             onProgress(index + 1, pending.size)
         }
+        return lines.joinToString("\n")
+    }
+
+    /** Exercises every Kotatsu built-in parser and every installed JS extension.
+     *  Uninstalled JS entries are reported separately; executing those requires installation.
+     *  Per-source timeouts prevent one dead website from blocking the entire sweep.
+     */
+    suspend fun runAll(onProgress: (Int, Int) -> Unit): String {
+        val builtins = MangaParserSource.entries.toList()
+        val installed = store.list()
+        val available = repository.fetchAll().jsSources
+            .map { it.entry }.filter { it.isRunnable }.distinctBy { it.id }
+        val missingJs = available.count { candidate -> installed.none { it.id == candidate.id } }
+        val lines = mutableListOf(
+            "Monogatari full source diagnostics",
+            "Kotatsu built-ins=${builtins.size} installed JS=${installed.size} uninstalled JS=$missingJs",
+        )
+        var pass = 0
+        var partial = 0
+        var fail = 0
+        builtins.forEachIndexed { index, source ->
+            try {
+                val repo = mangaRepositories.create(source)
+                val popular = withTimeout(20_000) { repo.getList(0, null, null) }
+                val status = if (popular.isEmpty()) "PARTIAL" else "PASS"
+                if (status == "PASS") pass++ else partial++
+                lines += "$status | KOTATSU | ${source.name} | popular=${popular.size}"
+            } catch (timeout: TimeoutCancellationException) {
+                fail++
+                lines += "FAIL | KOTATSU | ${source.name} | category=TIMEOUT"
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                fail++
+                lines += "FAIL | KOTATSU | ${source.name} | ${error.javaClass.simpleName}: ${error.message.orEmpty().replace('\n', ' ').take(160)}"
+            }
+            onProgress(index + 1, builtins.size + installed.size)
+        }
+        // Reuse the installed-JS diagnostic checks instead of maintaining a second copy.
+        val jsReport = run { done, _ -> onProgress(builtins.size + done, builtins.size + installed.size) }
+        val jsLines = jsReport.lines().filter {
+            it.startsWith("PASS |") || it.startsWith("PARTIAL |") || it.startsWith("FAIL |")
+        }
+        lines += jsLines.map { "JS | $it" }
+        val jsSummary = Regex("Summary: PASS=(\\d+) PARTIAL=(\\d+) FAIL=(\\d+)")
+            .find(jsReport)
+        if (jsSummary != null) {
+            pass += jsSummary.groupValues[1].toInt()
+            partial += jsSummary.groupValues[2].toInt()
+            fail += jsSummary.groupValues[3].toInt()
+        }
+        lines.add(2, "Summary: PASS=$pass PARTIAL=$partial FAIL=$fail NOT_INSTALLED=$missingJs")
+        lines += "Kotatsu probes test the first popular listing only. JS probes sample listing/search/detail/content. Playback is NOT verified."
+        lines += "Uninstalled JS sources were counted, not tested. Install them with the All option for full coverage."
         return lines.joinToString("\n")
     }
 
