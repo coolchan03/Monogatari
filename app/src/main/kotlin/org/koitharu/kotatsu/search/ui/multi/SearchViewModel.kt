@@ -239,7 +239,6 @@ class SearchViewModel @Inject constructor(
 			catalogJob = viewModelScope.launch(Dispatchers.IO) {
 				val publicResults = supervisorScope {
 					listOf(
-						async { safeCatalogSearch { publicBookCatalog.searchOpenLibrary(query) } },
 						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
 						async { searchSavedOpds(query) },
 					).awaitAll().flatten()
