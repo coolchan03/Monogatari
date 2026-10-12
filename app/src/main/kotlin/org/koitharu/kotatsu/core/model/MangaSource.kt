@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.text.inSpans
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.parser.external.ExternalMangaSource
 import org.koitharu.kotatsu.core.util.ext.getDisplayName
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -102,7 +103,12 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 		context.getString(R.string.source_summary_pattern, type, locale)
 	}
 
-	is BuiltinSource -> context.getString(R.string.media_type_book)
+	is BuiltinSource -> context.getString(when (source.type) {
+		MediaType.MANGA -> R.string.media_type_manga
+		MediaType.BOOK -> R.string.media_type_book
+		MediaType.VIDEO -> R.string.media_type_video
+		MediaType.AUDIO -> R.string.media_type_audio
+	})
 	is ExternalMangaSource -> context.getString(R.string.external_source)
 
 	is JsMangaSource -> JsSourceRegistry.get(source.id)?.let { e ->

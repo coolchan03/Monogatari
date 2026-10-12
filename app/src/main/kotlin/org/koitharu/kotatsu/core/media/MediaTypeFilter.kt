@@ -25,7 +25,7 @@ fun MangaSource.isContinuousMedia(): Boolean =
 /** Parser sources report a [org.koitharu.kotatsu.parsers.model.ContentType]; everything else is treated as manga. */
 fun MangaSource.mediaType(): MediaType {
 	val source = unwrapped()
-	if (source is BuiltinSource) return MediaType.BOOK
+	if (source is BuiltinSource) return source.type
 	if (source is JsMangaSource) {
 		return when (JsSourceRegistry.get(source.id)?.itemType) {
 			JsItemType.NOVEL -> MediaType.BOOK
@@ -41,7 +41,7 @@ fun <T : MangaSource> List<T>.filterByMediaType(type: MediaType?): List<T> =
 
 /** Source names persisted in the manga table that currently belong to this media kind. */
 fun MediaType.persistedSourceNames(): Set<String> = buildSet {
-	if (this@persistedSourceNames == MediaType.BOOK) add(BuiltinSource.GUTENBERG.name)
+	BuiltinSource.entries.filter { it.type == this@persistedSourceNames }.mapTo(this) { it.name }
 	MangaParserSource.entries
 		.filter { it.contentType.toMediaType() == this@persistedSourceNames }
 		.mapTo(this) { it.name }
