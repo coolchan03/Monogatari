@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -23,6 +24,7 @@ fun MangaSource.isContinuousMedia(): Boolean = asJsSource() != null && mediaType
 /** Parser sources report a [org.koitharu.kotatsu.parsers.model.ContentType]; everything else is treated as manga. */
 fun MangaSource.mediaType(): MediaType {
 	val source = unwrapped()
+	if (source is BuiltinSource) return MediaType.BOOK
 	if (source is JsMangaSource) {
 		return when (JsSourceRegistry.get(source.id)?.itemType) {
 			JsItemType.NOVEL -> MediaType.BOOK
@@ -38,6 +40,7 @@ fun <T : MangaSource> List<T>.filterByMediaType(type: MediaType?): List<T> =
 
 /** Source names persisted in the manga table that currently belong to this media kind. */
 fun MediaType.persistedSourceNames(): Set<String> = buildSet {
+	if (this@persistedSourceNames == MediaType.BOOK) add(BuiltinSource.GUTENBERG.name)
 	MangaParserSource.entries
 		.filter { it.contentType.toMediaType() == this@persistedSourceNames }
 		.mapTo(this) { it.name }

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.annotation.AnyThread
 import androidx.collection.ArrayMap
 import dagger.hilt.android.qualifiers.ApplicationContext
+import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.builtin.BuiltinRepositoryFactory
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
@@ -64,6 +66,7 @@ interface MangaRepository {
 		private val contentCache: MemoryContentCache,
 		private val mirrorSwitcher: MirrorSwitcher,
 		private val jsExtensions: JsExtensionProvider,
+		private val builtinFactory: BuiltinRepositoryFactory,
 	) {
 
 		private val cache = ArrayMap<MangaSource, WeakReference<MangaRepository>>()
@@ -89,6 +92,7 @@ interface MangaRepository {
 		}
 
 		private fun createRepository(source: MangaSource): MangaRepository? = when (source) {
+			is BuiltinSource -> builtinFactory.create(source)
 			is MangaParserSource -> ParserMangaRepository(
 				parser = loaderContext.newParserInstance(source),
 				cache = contentCache,

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import org.koitharu.kotatsu.BuildConfig
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.LocalizedAppContext
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.dao.MangaSourcesDao
@@ -80,6 +81,7 @@ class MangaSourcesRepository @Inject constructor(
 				val list = ArrayList<MangaSourceInfo>(enabled.size + external.size)
 				external.mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
 				getJsSources().mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
+				BuiltinSource.entries.mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
 				list.addAll(enabled)
 				list
 			}
@@ -94,6 +96,7 @@ class MangaSourcesRepository @Inject constructor(
 		// Installed external/JS sources are intentionally always enabled and displayed as pinned.
 		// Pinned-only search must therefore include them too.
 		getExternalSources().filterTo(result) { !skipNsfw || !it.isNsfw() }
+		result.addAll(BuiltinSource.entries)
 		result.addAll(getJsSources())
 		return result
 	}

@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.core.text.inSpans
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.parser.external.ExternalMangaSource
 import org.koitharu.kotatsu.core.util.ext.getDisplayName
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -45,6 +46,7 @@ fun MangaSource(name: String?): MangaSource {
 		val parts = name.substringAfter(':').splitTwoParts('/') ?: return UnknownMangaSource
 		return ExternalMangaSource(packageName = parts.first, authority = parts.second)
 	}
+	BuiltinSource.fromName(name)?.let { return it }
 	JsMangaSource.fromName(name)?.let { return it }
 	MangaParserSource.entries.forEach {
 		if (it.name == name) return it
@@ -86,6 +88,7 @@ tailrec fun MangaSource.unwrap(): MangaSource = if (this is MangaSourceInfo) {
 
 fun MangaSource.getLocale(): Locale? = when (val source = unwrap()) {
 	is MangaParserSource -> source.locale.toLocaleOrNull()
+	is BuiltinSource -> java.util.Locale.ENGLISH
 	is JsMangaSource -> JsSourceRegistry.get(source.id)?.lang
 		?.takeUnless { it.isBlank() || it == "all" }
 		?.toLocaleOrNull()
@@ -99,6 +102,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 		context.getString(R.string.source_summary_pattern, type, locale)
 	}
 
+	is BuiltinSource -> context.getString(R.string.media_type_book)
 	is ExternalMangaSource -> context.getString(R.string.external_source)
 
 	is JsMangaSource -> JsSourceRegistry.get(source.id)?.let { e ->
@@ -119,6 +123,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 
 fun MangaSource.getTitle(context: Context): String = when (val source = unwrap()) {
 	is MangaParserSource -> source.title
+	is BuiltinSource -> source.title
 	LocalMangaSource -> context.getString(R.string.local_storage)
 	TestMangaSource -> context.getString(R.string.test_parser)
 	is ExternalMangaSource -> source.resolveName(context)
