@@ -8,6 +8,8 @@ given in brackets, e.g. [audit K1].
 Paths are relative to `app/src/main/kotlin/org/koitharu/kotatsu/` unless they start with `app/`, `docs/` or `.github/`.
 Line numbers are from `cb5e722`.
 
+> **For ChatGPT, use `docs/MONOGATARI_MASTER_STEPS.md`.** It turns this document into numbered steps with ready-to-paste prompts. This file is background detail.
+
 ### How to use this with ChatGPT (or Claude)
 1. **First merge PR #1 into your default branch** and tag `cb5e722` (`git tag v0.9-base cb5e722`). Otherwise new
    sessions start from plain Kotatsu, which happened during the audit.

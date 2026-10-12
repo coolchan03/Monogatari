@@ -7,6 +7,8 @@ change or which files to copy from another project, what to do, and how to check
 
 Paths are relative to `app/src/main/kotlin/org/koitharu/kotatsu/` unless they start with `app/`, `gradle/` or `.github/`.
 
+> **For ChatGPT, use `docs/MONOGATARI_MASTER_STEPS.md`.** It turns this document into numbered steps with ready-to-paste prompts. This file is background detail.
+
 **Companion:** `docs/MONOGATARI_SOURCES_PLAN.md` is the focused action plan for sources (AO3, Open Library, Gutenberg, Internet Archive, YouTube, every other source rated) and the current-issue fixes they need. Start there.
 
 ### Contents
