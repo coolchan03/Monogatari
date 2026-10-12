@@ -10,6 +10,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaChapter
 import org.koitharu.kotatsu.parsers.model.MangaListFilter
@@ -23,6 +24,7 @@ class OpenLibraryRepository(
     cache: MemoryContentCache,
     private val client: OkHttpClient,
     context: Context,
+    private val settings: AppSettings,
 ) : CachingMangaRepository(cache), ContinuousMediaProvider {
     private val archive = ArchiveRepository(BuiltinSource.IA_BOOKS, cache, client, context)
     override val source = BuiltinSource.OPEN_LIBRARY
@@ -41,7 +43,7 @@ class OpenLibraryRepository(
                 "&fields=key,title,author_name,first_publish_year,cover_i,ebook_access,ia,subject,ratings_average,number_of_pages_median" +
                 "&limit=30&page=$page"
         }
-        return OpenLibraryMapping.map(fetch(url), readableNowOnly = query.isNotEmpty())
+        return OpenLibraryMapping.map(fetch(url), readableNowOnly = settings.openLibraryReadableNowOnly)
     }
 
     override suspend fun getDetailsImpl(manga: Manga): Manga {

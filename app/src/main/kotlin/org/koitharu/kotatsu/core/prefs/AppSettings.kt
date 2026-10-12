@@ -144,6 +144,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getString(KEY_CONTENT_LEVEL, null)
 			?: if (isNsfwContentDisabled) "SUGGESTIVE" else "EVERYTHING"
 
+	val openLibraryReadableNowOnly: Boolean
+		get() = prefs.getBoolean(KEY_OPEN_LIBRARY_READABLE_ONLY, true)
+
 	/** Source catalog visibility is separate from title-level content controls. */
 	val hideAdultOnlySources: Boolean
 		get() = prefs.getBoolean(KEY_HIDE_ADULT_SOURCES, false)
@@ -945,6 +948,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_DISABLE_NSFW = "no_nsfw"
 		const val KEY_HIDDEN_TAGS = "monogatari_hidden_tags"
 		const val KEY_CONTENT_LEVEL = "monogatari_content_level"
+		const val KEY_OPEN_LIBRARY_READABLE_ONLY = "monogatari_open_library_readable_only"
 		const val KEY_HIDE_ADULT_SOURCES = "monogatari_hide_adult_sources"
 		const val KEY_RELATED_MANGA = "related_manga"
 		const val KEY_NAV_MAIN = "nav_main"

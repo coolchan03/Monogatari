@@ -51,6 +51,12 @@
 		android:summary="@string/exclude_nsfw_from_suggestions_summary"
 		android:title="@string/exclude_nsfw_from_suggestions" />
 
+	<SwitchPreferenceCompat
+		android:key="monogatari_open_library_readable_only"
+		android:defaultValue="true"
+		android:title="@string/monogatari_open_library_readable_only_title"
+		android:summary="@string/monogatari_open_library_readable_only_summary" />
+
 	<ListPreference
 		android:key="monogatari_content_level"
 		android:title="@string/monogatari_content_level_title"

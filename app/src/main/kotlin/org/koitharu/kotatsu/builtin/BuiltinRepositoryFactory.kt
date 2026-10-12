@@ -7,11 +7,13 @@ import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.core.network.MangaHttpClient
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.prefs.AppSettings
 
 class BuiltinRepositoryFactory @Inject constructor(
     private val cache: MemoryContentCache,
     @MangaHttpClient private val mangaClient: OkHttpClient,
     @ApplicationContext private val context: Context,
+    private val settings: AppSettings,
 ) {
     fun create(source: BuiltinSource): MangaRepository {
         val client = mangaClient.newBuilder()
@@ -19,7 +21,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             .build()
         return when (source) {
             BuiltinSource.GUTENBERG -> GutenbergRepository(cache, client, context)
-            BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client, context)
+            BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client, context, settings)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }
