@@ -31,7 +31,7 @@ class AppPinHasherTest {
 
     @Test fun invalidHashesFailClosed() {
         assertFalse(AppPinHasher.verify("1234", "").matches)
-        assertFalse(AppPinHasher.verify("1234", "pbkdf2$bad").matches)
+        assertFalse(AppPinHasher.verify("1234", "pbkdf2\$bad").matches)
         assertFalse(AppPinHasher.verify("1234", "pbkdf2$%%%$%%%").matches)
     }
 }
