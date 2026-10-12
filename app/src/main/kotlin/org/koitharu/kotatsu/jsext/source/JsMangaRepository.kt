@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.jsext.source
 
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
+import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
+import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
 import org.koitharu.kotatsu.jsext.JsChapter
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -28,7 +30,7 @@ class JsMangaRepository(
 	override val source: JsMangaSource,
 	cache: MemoryContentCache,
 	private val extensions: JsExtensionProvider,
-) : CachingMangaRepository(cache) {
+) : CachingMangaRepository(cache), ContinuousMediaProvider {
 
 	private class PageState(val lastPage: Int, val hasNext: Boolean)
 
@@ -95,6 +97,16 @@ class JsMangaRepository(
 	override suspend fun getPageUrl(page: MangaPage): String = page.url
 
 	override suspend fun getRelatedMangaImpl(seed: Manga): List<Manga> = emptyList()
+
+	override suspend fun getChapterHtml(title: String, chapter: MangaChapter): String =
+		extensions.get(source.id).getHtmlContent(title, chapter.url)
+
+	override suspend fun getStreams(chapter: MangaChapter): List<MediaStream> =
+		extensions.get(source.id).getVideoList(chapter.url).mapNotNull { video ->
+		video.url.takeIf { it.isNotBlank() }?.let { url ->
+			MediaStream(url, video.quality, video.headers.orEmpty())
+		}
+	}
 
 	// --- mapping ---
 
