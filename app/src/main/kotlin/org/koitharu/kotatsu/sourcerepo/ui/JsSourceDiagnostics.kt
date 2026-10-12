@@ -45,7 +45,11 @@ class JsSourceDiagnostics @Inject constructor(
      *  Uninstalled JS entries are reported separately; executing those requires installation.
      *  Per-source timeouts prevent one dead website from blocking the entire sweep.
      */
-    suspend fun runAll(onProgress: (Int, Int) -> Unit): String {
+    suspend fun runAll(
+        onProgress: (Int, Int) -> Unit,
+        completed: Map<String, String> = emptyMap(),
+        onResult: (String, String) -> Unit = { _, _ -> },
+    ): String {
         val builtins = MangaParserSource.entries.toList()
         val installed = store.list()
         val available = repository.fetchAll().jsSources
@@ -59,25 +63,38 @@ class JsSourceDiagnostics @Inject constructor(
         var partial = 0
         var fail = 0
         builtins.forEachIndexed { index, source ->
-            try {
+            val key = "KOTATSU:${source.name}"
+            val line = completed[key] ?: try {
                 val repo = mangaRepositories.create(source)
                 val popular = withTimeout(20_000) { repo.getList(0, null, null) }
-                val status = if (popular.isEmpty()) "PARTIAL" else "PASS"
-                if (status == "PASS") pass++ else partial++
-                lines += "$status | KOTATSU | ${source.name} | popular=${popular.size}"
+                if (popular.isEmpty()) {
+                    "PARTIAL | KOTATSU | ${source.name} | category=EMPTY_RESULTS | popular=0"
+                } else {
+                    "PASS | KOTATSU | ${source.name} | popular=${popular.size}"
+                }
             } catch (timeout: TimeoutCancellationException) {
-                fail++
-                lines += "FAIL | KOTATSU | ${source.name} | category=TIMEOUT"
+                "FAIL | KOTATSU | ${source.name} | category=TIMEOUT"
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
-                fail++
-                lines += "FAIL | KOTATSU | ${source.name} | ${error.javaClass.simpleName}: ${error.message.orEmpty().replace('\n', ' ').take(160)}"
+                val description = "${error.javaClass.simpleName}: ${error.message.orEmpty().replace('\n', ' ').take(160)}"
+                "FAIL | KOTATSU | ${source.name} | category=${sourceFailureCategory(description)} | $description"
             }
+            when {
+                line.startsWith("PASS |") -> pass++
+                line.startsWith("PARTIAL |") -> partial++
+                else -> fail++
+            }
+            lines += line
+            if (key !in completed) onResult(key, line)
             onProgress(index + 1, builtins.size + installed.size)
         }
         // Reuse the installed-JS diagnostic checks instead of maintaining a second copy.
-        val jsReport = run { done, _ -> onProgress(builtins.size + done, builtins.size + installed.size) }
+        val jsReport = run(
+            onProgress = { done, _ -> onProgress(builtins.size + done, builtins.size + installed.size) },
+            completed = completed,
+            onResult = onResult,
+        )
         val jsLines = jsReport.lines().filter {
             it.startsWith("PASS |") || it.startsWith("PARTIAL |") || it.startsWith("FAIL |")
         }
@@ -95,13 +112,28 @@ class JsSourceDiagnostics @Inject constructor(
         return lines.joinToString("\n")
     }
 
-    suspend fun run(onProgress: (Int, Int) -> Unit): String {
+    suspend fun run(
+        onProgress: (Int, Int) -> Unit,
+        completed: Map<String, String> = emptyMap(),
+        onResult: (String, String) -> Unit = { _, _ -> },
+    ): String {
         val sources = store.list()
         val lines = mutableListOf("Monogatari JS diagnostics v2", "Installed JS sources: ${sources.size}")
         var working = 0
         var partial = 0
         var failed = 0
         sources.forEachIndexed { index, source ->
+            val key = "JS:${source.id}"
+            completed[key]?.let { cached ->
+                lines += cached
+                when {
+                    cached.startsWith("PASS |") -> working++
+                    cached.startsWith("FAIL |") -> failed++
+                    else -> partial++
+                }
+                onProgress(index + 1, sources.size)
+                return@forEachIndexed
+            }
             val result = mutableListOf<String>()
             try {
                 val extension = withTimeout(20_000) { provider.get(source.id) }
@@ -151,13 +183,11 @@ class JsSourceDiagnostics @Inject constructor(
                 problem == null && result.any { it == "popular=0" || it == "search=0" } -> "EMPTY_RESULTS"
                 problem == null && result.any { it == "content=0" } -> "EMPTY_CONTENT"
                 problem == null -> "NONE"
-                problem.contains("CloudFlare", ignoreCase = true) -> "CLOUDFLARE"
-                problem.contains("TLS packet", ignoreCase = true) || problem.contains("SSL", ignoreCase = true) -> "TLS"
-                problem.contains("Timeout", ignoreCase = true) || problem.contains("timed out", ignoreCase = true) -> "TIMEOUT"
-                problem.contains("TypeError", ignoreCase = true) -> "EXTENSION_SCRIPT"
-                else -> "OTHER"
+                else -> sourceFailureCategory(problem)
             }
-            lines += "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | category=$category | ${result.joinToString(" ")}"
+            val line = "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | category=$category | ${result.joinToString(" ")}"
+            lines += line
+            onResult(key, line)
             onProgress(index + 1, sources.size)
         }
         lines.add(2, "Summary: PASS=$working PARTIAL=$partial FAIL=$failed")

@@ -19,6 +19,7 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -27,6 +28,7 @@ import androidx.preference.PreferenceCategory
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -62,6 +64,11 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	@Inject
 	lateinit var diagnostics: JsSourceDiagnostics
 
+	@Inject
+	lateinit var scanManager: SourceScanManager
+
+	private var scanProgressDialog: AlertDialog? = null
+
 	private val downloadReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context, intent: Intent) {
 			val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
@@ -79,6 +86,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 		viewModel.state.observe(viewLifecycleOwner, ::render)
+		viewLifecycleOwner.lifecycleScope.launch {
+			scanManager.status.collectLatest { state ->
+				scanProgressDialog?.takeIf { it.isShowing }?.setMessage(
+					"${state.message}\n\nChecked ${state.done} of ${state.total} sources",
+				)
+			}
+		}
 		viewModel.onInstall.observeEvent(viewLifecycleOwner) { startActivity(it) }
 		viewModel.onMessage.observeEvent(viewLifecycleOwner) {
 			Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
@@ -150,36 +164,68 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	}
 
 	private fun runDiagnostics(allSources: Boolean = false) {
-		val context = requireContext()
-		val progress = MaterialAlertDialogBuilder(context)
-			.setTitle(if (allSources) "Testing all sources" else "Testing installed JS sources")
-			.setMessage("Starting tests...")
-			.setNegativeButton("Close", null)
-			.create()
-		progress.show()
-		viewLifecycleOwner.lifecycleScope.launch {
-			try {
-				val report = if (allSources) diagnostics.runAll { done, total ->
-					progress.setMessage("Tested $done of $total sources")
-				} else diagnostics.run { done, total ->
-					progress.setMessage("Tested $done of $total installed sources")
-				}
-				if (progress.isShowing) progress.dismiss()
-				MaterialAlertDialogBuilder(requireContext())
-					.setTitle("JS source diagnostic report")
-					.setMessage(report.take(1800) + if (report.length > 1800) "\n(Full report available via Copy)" else "")
-					.setPositiveButton("Copy report") { _, _ ->
-						val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-						clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari diagnostics", report))
-					}
-					.setNegativeButton("Close", null)
-					.show()
-			} catch (error: Exception) {
-				if (progress.isShowing) progress.dismiss()
-				MaterialAlertDialogBuilder(requireContext()).setMessage(error.message ?: "Diagnostic failed")
-					.setPositiveButton("Close", null).show()
-			}
+		if (scanManager.status.value.running) {
+			showScanProgress()
+			return
 		}
+		if (!scanManager.hasSavedResults(allSources)) {
+			launchScan(allSources, restart = false)
+			return
+		}
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle("Saved source diagnostics")
+			.setMessage("Previous results are saved. Resume skips sources already checked. Start new discards only the saved test results, not your extensions or library.")
+			.setPositiveButton("Resume") { _, _ -> launchScan(allSources, restart = false) }
+			.setNeutralButton("Start new") { _, _ -> launchScan(allSources, restart = true) }
+			.setNegativeButton("View report") { _, _ -> showSavedScanReport(allSources) }
+			.show()
+	}
+
+	private fun launchScan(allSources: Boolean, restart: Boolean) {
+		if (scanManager.start(allSources, restart)) {
+			showScanProgress()
+		} else {
+			Toast.makeText(requireContext(), scanManager.status.value.message, Toast.LENGTH_LONG).show()
+		}
+	}
+
+	private fun showScanProgress() {
+		scanProgressDialog?.dismiss()
+		val current = scanManager.status.value
+		val dialog = MaterialAlertDialogBuilder(requireContext())
+			.setTitle(if (current.mode == "all") "All-source diagnostics" else "JS-source diagnostics")
+			.setMessage(current.message)
+			.setPositiveButton("Copy report") { _, _ ->
+				copyScanReport(current.mode == "all")
+			}
+			.setNeutralButton("Stop scan") { _, _ -> scanManager.stop() }
+			.setNegativeButton("Hide", null)
+			.create()
+		scanProgressDialog = dialog
+		dialog.setOnDismissListener { if (scanProgressDialog === dialog) scanProgressDialog = null }
+		dialog.show()
+	}
+
+	private fun showSavedScanReport(allSources: Boolean) {
+		val report = scanManager.report(allSources)
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle("Saved diagnostic report")
+			.setMessage(report.take(1800) + if (report.length > 1800) "\n(Full report available via Copy)" else "")
+			.setPositiveButton("Copy report") { _, _ -> copyScanReport(allSources) }
+			.setNegativeButton("Close", null)
+			.show()
+	}
+
+	private fun copyScanReport(allSources: Boolean) {
+		val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+		clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari diagnostics", scanManager.report(allSources)))
+		Toast.makeText(requireContext(), "Diagnostic report copied", Toast.LENGTH_SHORT).show()
+	}
+
+	override fun onDestroyView() {
+		scanProgressDialog?.dismiss()
+		scanProgressDialog = null
+		super.onDestroyView()
 	}
 
 	private fun render(state: SourceReposViewModel.State) {
