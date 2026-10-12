@@ -7,12 +7,12 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import org.koitharu.kotatsu.jsext.JsEpubBridge
+import org.koitharu.kotatsu.core.media.epub.EpubBook
 import java.io.File
 
 /** Reuses Monogatari's existing Mangayomi-compatible EPUB spine/TOC parser. */
 class LocalEpubReaderActivity : AppCompatActivity() {
-    private var book: JsEpubBridge.ParsedEpub? = null
+    private var book: EpubBook? = null
     private var index = 0
     private var fileKey = ""
     private var chapterScrollY = 0
@@ -63,7 +63,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         setContentView(layout)
         try {
             if (file.length() > 128L * 1024 * 1024) error("EPUB exceeds 128 MB limit")
-            book = JsEpubBridge().parse(file.readBytes())
+            book = EpubBook.open(file)
             title = book?.title ?: file.name
             body.textSize = preferences.getFloat("font_size", 18f)
             index = preferences.getInt(fileKey, 0)

@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.jsext
 
 import kotlinx.coroutines.runBlocking
+import org.koitharu.kotatsu.core.media.epub.EpubBook
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -53,6 +54,15 @@ class JsEpubBridgeTest {
 		val chapter = bridge.handle("parseEpubChapter", chapterArgs)
 		assertTrue(chapter.contains("Goodbye"))
 		assertEquals(1, requests)
+	}
+
+	@Test
+	fun sharedEngineOpensSpineAndChapterHtml() {
+		val book = EpubBook.fromBytes(makeEpub())
+		assertEquals("Fixture Book", book.title)
+		assertEquals("Alex Author", book.author)
+		assertEquals(listOf("Opening", "The End"), book.chapters.map { it.title })
+		assertTrue(book.chapterHtml(book.chapters[1].href).contains("Goodbye"))
 	}
 
 	@Test
