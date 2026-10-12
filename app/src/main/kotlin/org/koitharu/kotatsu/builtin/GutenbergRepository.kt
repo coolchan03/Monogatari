@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.builtin
 
+import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
 import org.koitharu.kotatsu.parsers.model.Manga
@@ -11,7 +12,7 @@ import org.koitharu.kotatsu.parsers.model.MangaPage
 import org.koitharu.kotatsu.parsers.model.SortOrder
 
 /** Source registration stub. A working Gutendex parser is the following milestone. */
-class GutenbergRepository(cache: MemoryContentCache) : CachingMangaRepository(cache) {
+class GutenbergRepository(cache: MemoryContentCache, private val client: OkHttpClient) : CachingMangaRepository(cache) {
     override val source = BuiltinSource.GUTENBERG
     override val sortOrders = setOf(SortOrder.POPULARITY)
     override var defaultSortOrder = SortOrder.POPULARITY
