@@ -19,7 +19,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             .build()
         return when (source) {
             BuiltinSource.GUTENBERG -> GutenbergRepository(cache, client, context)
-            BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client)
+            BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client, context)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }
