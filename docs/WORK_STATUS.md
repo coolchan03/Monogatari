@@ -1,13 +1,12 @@
 # Monogatari work checkpoint
 
-- Date: 2026-10-12, America/Chicago
-- Current branch: batch-08-10-extension-security.
-- Last completed milestone: Steps 4-5 passed GitHub Actions run 38292011053 and fast-forwarded to default devel at e497d88de. Verified by git ls-remote.
-- Current operation: Step 8 partial, replacing hardcoded JS source index list with BuildConfig.DEFAULT_REPOS, configured from monogatari.repos or MONOGATARI_REPOS. Existing 15 URLs set through tunnel as GitHub Actions secret (confirmed by gh secret list).
-- Files edited: app/build.gradle, SourceRepoStore.kt, .github/workflows/build-check.yml, .github/workflows/publish-release.yml.
-- Remaining Step 8 tasks: Implement and test monogatari://setup?repos= handler, verify workflows and Gradle compile; do not claim completion until these pass.
-- Steps 9-10 not started, despite batch branch name.
-- Next exact action: git diff/code QA, commit and push Step 8 partial; inspect CI. If failure, diagnose and fix before default-branch merge. Then implement deep link and scope JS extension cookie access.
-- Important: Only edit/push GitHub through Tunnel to Surface. On every new turn, call Tunnel to Surface FIRST.
-- Safety: Existing untracked .release-temp/ and source-audit/ left untouched. Installed old app backup/restore still requires manual test. Signed releases require keystore; do not publish unsigned APK as signed.
-- Timeout behavior: Cannot detect exact ChatGPT timeout moment; use this file and Git/CI timestamps for last durable checkpoint.
+Last observed: 2026-10-12 14:44:27 CDT. This is the last observation, NOT a detected timeout.
+Tunnel access required FIRST in every new turn. Repository writes, Git operations, Actions and releases only via Tunnel to Surface.
+
+Default devel: verified Steps 8-16 fast-forward merged at 68cceeac1. Original CI run 38297511275 passed, with debug and unsigned R8 APKs. A new devel CI run 38299405008 is in progress.
+Steps 17-18: branch batch-17-18-content-filters, tip da2e12b5b. CI run 38298920743 in progress with debug artifact, unsigned release pending. Not merged.
+Step 19: branch batch-19-continuous-media, tip ad78c6f27. 44782f890 added ContinuousMediaProvider and JS repository implementation; ad78c6f27 updated MediaReaderActivity to fetch through repository, carrying subtitles. CI run 38299628344 pending. Step 19 is implementation IN PROGRESS and not device verified; ReaderIntent and ReaderViewModel routing still use old isJsContinuousMedia() and need update after type/callsite audit.
+New files/edits: core/media/ContinuousMediaProvider.kt, jsext/source/JsMangaRepository.kt, reader/ui/MediaReaderActivity.kt.
+Current working branch: batch-19-continuous-media in C:\Users\coolc\Codex Projects\Manga-Reader. Preserve untracked .release-temp/ and source-audit/.
+NEXT EXACT ACTION: Through tunnel first, inspect run 38299628344 for Kotlin compile issues; patch and rerun until green. Inspect run 38298920743; if passing, fast-forward da2e12b5b to devel; only merge Step19 after passing complete CI. Then finish ReaderIntent/ReaderViewModel routing, and start Step20 audio type across UI/reader. Do not claim completion without builds/device checks.
+No signed release; signing secrets, backup/restore and device tests remain gates.
