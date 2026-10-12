@@ -1,40 +1,50 @@
-# Monogatari live batch checkpoint — October 12, 2026
+# Monogatari live development and release checkpoint
 
-Last observed: 18:24 CDT, America/Chicago (NOT an automatically detected timeout).
+**Last verified:** October 12, 2026, 6:42 PM CDT (America/Chicago). This is the last observed operation, not an automatically detected timeout.
 
-## DONE — committed and pushed using Tunnel to Surface
-- PeerTube + SoundCloud NewPipe native adapters, CI 38314916790 SUCCESS, fast-forward merged to default devel at 58fd81b3c. Post-merge CI 38320483011 SUCCESS.
-- 32f source-scoped search modes / pagination keys: e014419f8, CI 38320551815 SUCCESS.
-- 32g visual video search mode menu + saved selection: 8ed0c391a, CI 38321019662 pending.
-- 32h bounded continuation page fetch/dedup for channels/playlists: 7becaae3d, CI 38321082002 pending.
-- 32i official YouTube channel RSS feed parser + tracker refresh: 714eb5b6e, CI 38321338999 pending; public RSS smoke tested and returned 15 entries.
-- 32j Android versionCode 2 / versionName 0.10.0, 5 new guided QA cases, release notes: d01b3ae70, CI 38321448613 pending.
-- 32k retain chapters if later continuation fails: 8c9bba8fe, CI 38321533655 pending.
-- 32l consistent video search mode prefix selection: 94c277ac0, CI 38321664527 pending.
-- 32m unified search ranking uses title query not internal mode prefix: 686ce5e1c, CI 38321914456 pending.
-- 32n search filter visibility correctly applied to its submenu (not all manga/book screens): f17f3d855, CI 38322296940 pending. Branch: batch-32n-video-submenu-fix. This branch includes all earlier 32f-32n changes in linear ancestry.
+## DONE — fully verified build, merge, and published testing release
+- Final preview branch `batch-32n-video-submenu-fix` at commit `f17f3d855071a8fb23999a97430d211d80a6e396`.
+- GitHub Actions `Build check` run `38322296940` **SUCCESS**: unit tests, debug APK, unsigned R8 release APK.
+- Fast-forwarded `devel` to `f17f3d855071a8fb23999a97430d211d80a6e396`; remote SHA verified.
+- Public GitHub Release `v0.10.0-source-preview` **PUBLISHED and marked Latest**:
+  https://github.com/coolchan03/Monogatari/releases/tag/v0.10.0-source-preview
+- Verified release APK:
+  https://github.com/coolchan03/Monogatari/releases/download/v0.10.0-source-preview/Monogatari-v0.10.0-debug.apk
+  - 46,909,752 bytes; archive inspected (1,999 entries).
+  - SHA-256 `f8214c1403bd47b13eab0bfa3751dddd6ca72e258ce61079e2385b0731eff541`.
+  - Checksum file also attached: `SHA256SUMS.txt`.
+- New implementation milestones from this batched session:
+  1. `e014419f8` service-specific NewPipe search defaults and unique page cache keys.
+  2. `8ed0c391a` visible video / channel / playlist selection in unified video search.
+  3. `7becaae3d` bounded continuation pages (up to 8 pages / 240 items) with deduplication.
+  4. `714eb5b6e` YouTube RSS recent uploads for tracked channels; live RSS test gave 15 valid unique entries.
+  5. `d01b3ae70` versionCode 2, versionName 0.10.0, five new guided QA questions.
+  6. `8c9bba8fe` preserve earlier chapters when later network pages fail.
+  7. `94c277ac0` consistent search mode prefix selection.
+  8. `686ce5e1c` rank video search results by title query rather than internal prefix.
+  9. `f17f3d855` hide video-only menu options outside the video submenu.
+- Earlier related CI builds all passed; full final cumulative run is the release gate and passed.
+- PeerTube and SoundCloud integrated previously, verified CI, now included in this test version.
+- User folders `.release-temp/` and `source-audit/` preserved untouched and untracked.
 
-## New public testing release requested
-- RELEASE TAG TO CREATE ONLY AFTER FULL CI SUCCESS: v0.10.0-source-preview
-- Current exact final candidate branch: batch-32n-video-submenu-fix, tip f17f3d855.
-- Verify CI 38322296940 fully green (unit tests, debug APK, unsigned R8 APK). Repair and rerun if red.
-- Fast-forward passing candidate into devel through tunnel; verify ls-remote remote SHA.
-- Publish public GitHub Release with debug APK from that EXACT successful CI run, SHA256SUMS and docs/RELEASE_0_10_0_NOTES.md. Do NOT mislabel as production signed.
-- Prepared publishing script on Windows tunnel: C:\Users\coolc\AppData\Local\Temp\monogatari_publish_v010.py
-- Intended command AFTER CI green and merge: python <script path> --run <green_run_id> --expected-sha <commit prefix>
-- Script guards against CI failure, mismatched commit or preexisting release tag; release title prominently says Test APK. GitHub CLI --latest is supported.
-- Production signing secrets RELEASE_KEYSTORE_BASE64, RELEASE_KEY_ALIAS, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_PASSWORD are NOT configured (gh secret list showed only MONOGATARI_REPOS), so do NOT dispatch production signing workflow.
+## IN PROGRESS — feature acceptance, NOT falsely counted as finished
+- Real Android device tests: YouTube/PeerTube video picture and sound, SoundCloud and LibriVox background audio/notification/position, manga/novel chapter reading, source installs, backup/restore, and UI filters.
+- Test Center is available; user should mark pass/fail and copy full report after installing the test APK.
+- More Stage G features (Steps 35–40 source health, self-repair, updates, website deduplication, presets) remain to be built.
+- Actual Wattpad endpoints in Step 33 need verified/public APIs; don't invent scrape endpoints.
 
-## NEXT EXACT OPERATION
-1. Tunnel to Surface FIRST for all code/repo/GitHub actions.
-2. Check GitHub Actions run 38322296940 on final candidate (earlier run g 38321019662 and h 38321082002 have passed). Fix any compiler/R8 errors on latest candidate branch. Do not merge or release unverified code.
-3. After green, fast-forward devel and publish public APK release from exact CI job artifact with checksum, then verify Release URL + asset list and give link.
-4. Update this status file on a notes branch (to avoid triggering a new build).
-5. Preserve .release-temp/ and source-audit/ as untracked user folders, do not delete.
-6. User requests substantial 20–30 minute batches, one explicit DONE/IN PROGRESS/BLOCKED finish; no background coding after final answer.
-7. Device smoke tests are still required for player / updates / source compatibility, and debug APK signing may differ from earlier debug releases.
+## BLOCKED / user-dependent
+- Production-signed APK requires signing credentials. GitHub secret listing showed ONLY `MONOGATARI_REPOS`, no `RELEASE_KEYSTORE_BASE64`, `RELEASE_KEY_ALIAS`, `RELEASE_KEYSTORE_PASSWORD`, or `RELEASE_KEY_PASSWORD`.
+- Step 7 external developer verification requires user action.
+- Debug APK signature may differ from a prior testing APK. Back up first, and do not promise in-place installation will work.
 
-## Beyond this preview
-- Full source stability and Stage G health/auto-update steps 35-40 remain unfinished.
-- Signed releases Step 6 and external developer verification Step 7 require user credentials/actions.
-- No accurate total of fully accepted 75 steps without required device test evidence; code milestones have progressed through 32 with later stages outstanding.
+## Step accounting
+- 75 numbered steps in master guide; code implementation has reached Step 32 with some incomplete acceptance gates (not 32 fully accepted). Steps 6 and 7 are explicitly outstanding. Many later steps 33–75 not completed.
+- Do not claim complete Kotatsu/Mangayomi parity, actual on-device success, or production signing based only on CI.
+
+## NEXT BATCH — Tunnel to Surface must be FIRST
+1. Confirm final GitHub Release assets and SHA, branch SHA, latest status if requested.
+2. Audit Test Center report from Android user; repair real crashes/site issues.
+3. Plan Stage G steps 35–40 (source health, automatic repair, rollback) in 20–30 minute batches.
+4. Preserve user data and untracked folders; GitHub operations exclusively through Tunnel.
+5. End with DONE / IN PROGRESS / BLOCKED and exact commits/CI/release links.
