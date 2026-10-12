@@ -15,6 +15,18 @@
 
 	<androidx.preference.PreferenceCategory
 		android:key="source_plugins_list"
-		android:title="@string/source_plugins" />
+		android:title="@string/monogatari_source_tools" />
+
+	<androidx.preference.PreferenceCategory
+		android:key="monogatari_source_manga"
+		android:title="@string/monogatari_source_manga" />
+
+	<androidx.preference.PreferenceCategory
+		android:key="monogatari_source_novels"
+		android:title="@string/monogatari_source_novels" />
+
+	<androidx.preference.PreferenceCategory
+		android:key="monogatari_source_anime"
+		android:title="@string/monogatari_source_anime" />
 
 </androidx.preference.PreferenceScreen>

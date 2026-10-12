@@ -3,14 +3,16 @@ package org.koitharu.kotatsu.core.media
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Button
+import android.view.LayoutInflater
+import com.google.android.material.card.MaterialCardView
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
+import org.koitharu.kotatsu.R
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -50,45 +52,28 @@ class BookLibraryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "Monogatari Books"
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 24, 24, 12) }
-        query = EditText(this).apply { hint = "Search books by title or author"; setSingleLine(true) }
-        root.addView(query)
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("Gutenberg", "Open Library", "Archive").forEach { source ->
-            actions.addView(Button(this).apply {
-                text = source
-                setOnClickListener { search(source) }
-            }, LinearLayout.LayoutParams(0, -2, 1f))
-        }
-        root.addView(actions)
-        root.addView(Button(this).apply {
-            text = "Open OPDS catalog URL"
-            setOnClickListener { openOpds(query.text.toString().trim()) }
-        })
-        root.addView(Button(this).apply {
-            text = "Save OPDS catalog URL"
-            setOnClickListener { saveOpds(query.text.toString().trim()) }
-        })
-        root.addView(Button(this).apply {
-            text = "Saved OPDS catalogs"
-            setOnClickListener { showSavedOpds() }
-        })
-        root.addView(Button(this).apply {
-            text = "Import local ebooks"
-            setOnClickListener { picker.launch(arrayOf("*/*")) }
-        })
-        root.addView(Button(this).apply {
-            text = "My imported books"
-            setOnClickListener { showLocalBooks() }
-        })
-        root.addView(Button(this).apply {
-            text = "Search imported books"
-            setOnClickListener { showLocalBooks(query.text.toString().trim()) }
-        })
-        results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(ScrollView(this).apply { addView(results) }, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
+        title = getString(R.string.monogatari_catalog_title)
+        setContentView(R.layout.activity_monogatari_book_catalog)
+        query = findViewById(R.id.monogatari_catalog_query)
+        results = findViewById(R.id.monogatari_catalog_results)
+        findViewById<MaterialButton>(R.id.monogatari_catalog_gutenberg)
+            .setOnClickListener { search("Gutenberg") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_openlibrary)
+            .setOnClickListener { search("Open Library") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_archive)
+            .setOnClickListener { search("Archive") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_open)
+            .setOnClickListener { openOpds(query.text.toString().trim()) }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_save)
+            .setOnClickListener { saveOpds(query.text.toString().trim()) }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_saved)
+            .setOnClickListener { showSavedOpds() }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_import)
+            .setOnClickListener { picker.launch(arrayOf("*/*")) }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_mybooks)
+            .setOnClickListener { showLocalBooks() }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_filter)
+            .setOnClickListener { showLocalBooks(query.text.toString().trim()) }
     }
 
     private fun saveOpds(url: String) {
@@ -110,10 +95,9 @@ class BookLibraryActivity : AppCompatActivity() {
             .getStringSet("urls", emptySet()).orEmpty().sorted()
         if (urls.isEmpty()) showLines(listOf("No saved OPDS catalogs."))
         urls.forEach { url ->
-            results.addView(Button(this).apply {
-                text = url
-                isAllCaps = false
-                setOnClickListener { openOpds(url) }
+            results.addView(catalogCard(url, getString(R.string.monogatari_catalog_opds_saved)) {
+                openOpds(url)
+            }.apply {
                 setOnLongClickListener {
                     val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
                     val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
@@ -138,13 +122,9 @@ class BookLibraryActivity : AppCompatActivity() {
                 results.removeAllViews()
                 if (entries.isEmpty()) showLines(listOf("No OPDS entries found."))
                 entries.forEach { entry ->
-                    results.addView(Button(this@BookLibraryActivity).apply {
-                        text = "${entry.title} - ${entry.author}"
-                        isAllCaps = false
-                        setOnClickListener {
-                            if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
-                            else openOpds(entry.href)
-                        }
+                    results.addView(catalogCard(entry.title, entry.author) {
+                        if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
+                        else openOpds(entry.href)
                     })
                 }
             } catch (error: Exception) { showLines(listOf("OPDS error: ${error.message}")) }
@@ -165,10 +145,8 @@ class BookLibraryActivity : AppCompatActivity() {
                 results.removeAllViews()
                 if (books.isEmpty()) showLines(listOf("No matches."))
                 books.forEach { book ->
-                    results.addView(Button(this@BookLibraryActivity).apply {
-                        text = "${book.title}\n${book.author} · ${book.catalog}"
-                        isAllCaps = false
-                        setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, book.url.toUri())) }
+                    results.addView(catalogCard(book.title, "${book.author} · ${book.catalog}") {
+                        startActivity(Intent(Intent.ACTION_VIEW, book.url.toUri()))
                     })
                 }
             } catch (e: Exception) { showLines(listOf("Search failed: ${e.message}")) }
@@ -180,41 +158,20 @@ class BookLibraryActivity : AppCompatActivity() {
         val books = BookShelf.list(this, filter)
         if (books.isEmpty()) showLines(listOf("No imported books yet."))
         books.forEach { file ->
-            results.addView(Button(this).apply {
-                text = "${BookShelf.title(file)}  -  ${BookShelf.progress(this@BookLibraryActivity, file)}"
-                isAllCaps = false
-                setOnClickListener {
-                    val type = when (file.extension.lowercase()) {
-                        "pdf" -> "application/pdf"
-                        "epub" -> "application/epub+zip"
-                        "html", "htm", "xhtml" -> "text/html"
-                        else -> "text/plain"
-                    }
-                    if (type == "application/epub+zip") {
-                        startActivity(Intent(this@BookLibraryActivity, LocalEpubReaderActivity::class.java)
-                            .putExtra("local_book_file", file.absolutePath))
-                        return@setOnClickListener
-                    }
-                    if (type == "application/pdf") {
-                        startActivity(Intent(this@BookLibraryActivity, LocalPdfReaderActivity::class.java)
-                            .putExtra("local_book_file", file.absolutePath))
-                        return@setOnClickListener
-                    }
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@BookLibraryActivity, "${packageName}.files", file)
-                    if (type == "text/plain" || type == "text/html") {
-                        startActivity(Intent(this@BookLibraryActivity, LocalTextReaderActivity::class.java)
-                            .putExtra(LocalTextReaderActivity.EXTRA_FILE, file.absolutePath))
-                        return@setOnClickListener
-                    }
-                    val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, type)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    try { startActivity(intent) } catch (e: Exception) {
-                        showLines(listOf("No compatible reader installed: ${e.message}"))
-                    }
-                }
+            results.addView(BookShelfCard.create(results, file) { selected ->
+                startActivity(BookShelf.readerIntent(this, selected))
             })
         }
+    }
+
+    private fun catalogCard(title: String, subtitle: String, onOpen: () -> Unit): MaterialCardView {
+        val card = LayoutInflater.from(this).inflate(R.layout.item_monogatari_catalog, results, false)
+            as MaterialCardView
+        card.findViewById<TextView>(R.id.monogatari_catalog_item_title).text = title
+        card.findViewById<TextView>(R.id.monogatari_catalog_item_summary).text = subtitle
+        card.contentDescription = "$title, $subtitle"
+        card.setOnClickListener { onOpen() }
+        return card
     }
 
     private fun queryDisplayName(uri: Uri): String {

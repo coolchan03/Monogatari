@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original Monogatari navigation glyph: books. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M12,5 C9,3.6 5.8,3 2.5,4.7 L2.5,19 C6.5,17.1 9.8,18.1 12,19.6 C14.2,18.1 17.5,17.1 21.5,19 L21.5,4.7 C18.2,3 15,3.6 12,5Z"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="1.9"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M12,5 L12,19.6 M5.5,8.2 Q8,7.6 10,8.7 M14,8.7 Q16.5,7.6 19,8.2"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="1.9"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

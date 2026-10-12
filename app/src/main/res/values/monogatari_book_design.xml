@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_books_shelf">Your story shelf</string>
+    <string name="monogatari_books_shelf_subtitle">Your ebooks, ready whenever you are</string>
+    <string name="monogatari_books_discover">Discover and import books</string>
+    <string name="monogatari_books_filter">Find a book on this device</string>
+    <string name="monogatari_books_empty">No books on your shelf yet. Explore catalogs or import an EPUB, PDF, or text file.</string>
+    <string name="monogatari_books_count">%1$d imported books</string>
+    <string name="monogatari_catalog_title">Discover stories</string>
+    <string name="monogatari_catalog_subtitle">Search public collections, connect OPDS catalogs, or bring your own files.</string>
+    <string name="monogatari_catalog_query">Title, author, or catalog URL</string>
+    <string name="monogatari_catalog_gutenberg">Gutenberg</string>
+    <string name="monogatari_catalog_open_library">Open Library</string>
+    <string name="monogatari_catalog_archive">Internet Archive</string>
+    <string name="monogatari_catalog_opds_open">Open OPDS</string>
+    <string name="monogatari_catalog_opds_save">Save OPDS</string>
+    <string name="monogatari_catalog_opds_saved">Saved catalogs</string>
+    <string name="monogatari_catalog_import">Import ebooks</string>
+    <string name="monogatari_catalog_local">My books</string>
+    <string name="monogatari_catalog_filter">Find imported</string>
+    <string name="monogatari_catalog_results">Books and catalogs</string>
+</resources>

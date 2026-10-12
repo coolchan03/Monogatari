@@ -2,63 +2,65 @@ package org.koitharu.kotatsu.core.media
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.google.android.material.button.MaterialButton
-import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
+import org.koitharu.kotatsu.R
 
-/** Embedded local book shelf, using the same imported files as BookLibraryActivity. */
+/** Monogatari's unified local book shelf, using the shared imported-book index. */
 class BookLibraryFragment : Fragment() {
-    private lateinit var list: LinearLayout
-    private lateinit var filter: EditText
+    private var shelfView: View? = null
 
-    override fun onCreateView(inflater: android.view.LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 16, 20, 16)
-            addView(TextView(context).apply { text = "Books and novels"; textSize = 22f })
-            filter = EditText(context).apply {
-                hint = "Filter imported books"
-                setSingleLine(true)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = inflater.inflate(R.layout.fragment_monogatari_books, container, false).also {
+        shelfView = it
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        view.findViewById<MaterialButton>(R.id.monogatari_book_discover)
+            .setOnClickListener {
+                startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
             }
-            addView(filter)
-            addView(MaterialButton(context).apply {
-                text = "Search local books"
-                setOnClickListener { refresh() }
-            })
-            addView(MaterialButton(context).apply {
-                text = "Import books / Browse catalogs"
-                setOnClickListener { startActivity(Intent(requireContext(), BookLibraryActivity::class.java)) }
-            })
-            list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-            addView(ScrollView(context).apply { addView(list) }, LinearLayout.LayoutParams(-1, 0, 1f))
-        }
+        view.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
+            .doAfterTextChanged { refresh() }
+        refresh()
     }
 
     override fun onResume() {
         super.onResume()
-        if (::list.isInitialized) refresh()
+        refresh()
+    }
+
+    override fun onDestroyView() {
+        shelfView = null
+        super.onDestroyView()
     }
 
     private fun refresh() {
+        val root = shelfView ?: return
+        val term = root.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
+            .text?.toString().orEmpty()
+        val files = BookShelf.list(requireContext(), term)
+        val list = root.findViewById<LinearLayout>(R.id.monogatari_book_list)
+        val empty = root.findViewById<View>(R.id.monogatari_book_empty)
         list.removeAllViews()
-        val files = BookShelf.list(requireContext(), filter.text.toString())
-        if (files.isEmpty()) list.addView(TextView(requireContext()).apply {
-            text = "No matching imported books. Use Import books to add EPUB, PDF, or text files."
-        })
-        files.forEach { file ->
-            list.addView(MaterialButton(requireContext()).apply {
-                val title = BookShelf.title(file)
-                val progress = BookShelf.progress(requireContext(), file)
-                text = "$title  -  $progress"
-                isAllCaps = false
-                setOnClickListener {
-                    startActivity(BookShelf.readerIntent(requireContext(), file))
-                }
+        empty.isVisible = files.isEmpty()
+        root.findViewById<TextView>(R.id.monogatari_book_count).text =
+            getString(R.string.monogatari_books_count, files.size)
+        for (file in files) {
+            list.addView(BookShelfCard.create(list, file) {
+                startActivity(BookShelf.readerIntent(requireContext(), it))
             })
         }
     }

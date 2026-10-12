@@ -11,7 +11,10 @@ internal object BookShelf {
             .filter { it.isFile && it.name.contains(filter.trim(), ignoreCase = true) }
             .sortedBy { it.name.lowercase() }
 
-    fun title(file: File): String = file.name.substringAfter('-', file.name)
+    /** Display the original filename, not the temporary import prefix or file extension. */
+    fun title(file: File): String = file.name
+        .replaceFirst(Regex("^book-[A-Za-z0-9]+-"), "")
+        .substringBeforeLast('.', file.name)
 
     fun readerIntent(context: Context, file: File): Intent {
         val reader = when (file.extension.lowercase()) {

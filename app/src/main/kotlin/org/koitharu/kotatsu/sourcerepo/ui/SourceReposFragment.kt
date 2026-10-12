@@ -231,9 +231,21 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	private fun render(state: SourceReposViewModel.State) {
 		val reposCategory = findPreference<PreferenceCategory>(KEY_REPOS) ?: return
 		val pluginsCategory = findPreference<PreferenceCategory>(KEY_PLUGINS) ?: return
+		val mangaCategory = findPreference<PreferenceCategory>("monogatari_source_manga") ?: return
+		val novelCategory = findPreference<PreferenceCategory>("monogatari_source_novels") ?: return
+		val animeCategory = findPreference<PreferenceCategory>("monogatari_source_anime") ?: return
 		reposCategory.removeAll()
 		pluginsCategory.removeAll()
+		mangaCategory.removeAll()
+		novelCategory.removeAll()
+		animeCategory.removeAll()
 		val context = requireContext()
+		pluginsCategory.addPreference(Preference(context).apply {
+			isPersistent = false
+			isSelectable = false
+			setIcon(R.drawable.ic_monogatari_nav_explore)
+			summary = getString(R.string.monogatari_source_overview)
+		})
 		pluginsCategory.addPreference(Preference(context).apply {
 			key = "temporary_js_batch_install"
 			title = "Download JS sources for testing (10 or all)"
@@ -268,8 +280,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			reposCategory.addPreference(
 				Preference(context).apply {
 					isPersistent = false
-					title = url
-					summary = state.errors[url]?.getDisplayMessage(resources)
+					setIcon(R.drawable.ic_monogatari_nav_explore)
+					title = runCatching { java.net.URI(url).host?.removePrefix("www.") }.getOrNull() ?: url
+					summary = listOfNotNull(url, state.errors[url]?.getDisplayMessage(resources)).joinToString("\n")
 					setOnPreferenceClickListener {
 						confirmRemove(url)
 						true
@@ -286,10 +299,35 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				},
 			)
 		}
-		for (item in state.jsSources) {
-			pluginsCategory.addPreference(
+		val groups = mapOf(
+			JsItemType.MANGA to mangaCategory,
+			JsItemType.NOVEL to novelCategory,
+			JsItemType.ANIME to animeCategory,
+		)
+		for ((type, category) in groups) {
+			val count = state.jsSources.count { it.entry.itemType == type }
+			category.isVisible = count > 0
+			category.title = getString(
+				when (type) {
+					JsItemType.MANGA -> R.string.monogatari_source_manga_count
+					JsItemType.NOVEL -> R.string.monogatari_source_novels_count
+					JsItemType.ANIME -> R.string.monogatari_source_anime_count
+				}, count,
+			)
+		}
+		for (item in state.jsSources.sortedWith(
+			compareBy<JsSourceItem> { it.state == PluginState.NOT_INSTALLED }
+				.thenBy { it.entry.name.lowercase() },
+		)) {
+			groups.getValue(item.entry.itemType).addPreference(
 				Preference(context).apply {
 					isPersistent = false
+					key = "monogatari_js_source_${item.entry.id}"
+					setIcon(when (item.entry.itemType) {
+						JsItemType.MANGA -> R.drawable.ic_monogatari_nav_explore
+						JsItemType.NOVEL -> R.drawable.ic_monogatari_nav_books
+						JsItemType.ANIME -> R.drawable.ic_monogatari_nav_feed
+					})
 					title = item.entry.name
 					summary = describeJs(item)
 					setOnPreferenceClickListener {
@@ -344,7 +382,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			PluginState.INSTALLED -> getString(R.string.plugin_installed)
 			PluginState.UPDATE_AVAILABLE -> getString(R.string.plugin_update_available)
 		}
-		return listOfNotNull("v${e.version}", e.lang.takeIf { it.isNotEmpty() }, type, status, "Site availability not verified").joinToString(" · ")
+		return listOfNotNull("v${e.version}", e.lang.takeIf { it.isNotEmpty() }, type, status).joinToString(" · ")
 	}
 
 	private fun onJsSourceClick(item: JsSourceItem) {

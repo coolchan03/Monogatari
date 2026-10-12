@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_source_tools">Source health and management</string>
+    <string name="monogatari_source_manga">Manga sources</string>
+    <string name="monogatari_source_novels">Books and novels</string>
+    <string name="monogatari_source_anime">Anime and video</string>
+    <string name="monogatari_source_manga_count">Manga sources · %1$d</string>
+    <string name="monogatari_source_novels_count">Book sources · %1$d</string>
+    <string name="monogatari_source_anime_count">Video sources · %1$d</string>
+    <string name="monogatari_source_overview">JavaScript sources can be installed, configured or updated here. A successful install does not guarantee that the website or video stream works.</string>
+    <string name="monogatari_source_version">Version %1$s</string>
+    <string name="monogatari_source_repository">Repository · %1$s</string>
+</resources>
