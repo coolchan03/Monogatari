@@ -1,10 +1,15 @@
-# Monogatari progress
+# Monogatari progress summary
 
-- Steps 1-2: complete.
-- Step 3: CI debug and unsigned R8 build verified, run 38289292970.
-- Steps 4-5: Android identity/branding CI verified, run 38292011053. Merged to default devel as commit e497d88de on 2026-10-12. User backup/restore and device test not verified.
-- Step 6: signed release pending signing key and secrets.
-- Step 7: external developer verification pending.
-- Step 8: IN PROGRESS on batch-08-10-extension-security. Existing 15 repo URLs configured as GitHub Actions MONOGATARI_REPOS secret. BuildConfig-based source defaults and both CI workflows modified. Deep-link setup still outstanding; build unverified.
-- Steps 9-10: not started.
-- Resume at docs/WORK_STATUS.md. Only Tunnel to Surface may edit/push.
+- Steps 1-5: implementation/build verified earlier, except signing/device gates.
+- Steps 6-7: signing credentials and external developer/device tests pending.
+- Steps 8-16: cumulative build 38297511275 passed and merged to devel.
+- Steps 17-18: cumulative build 38298920743 passed and merged to devel.
+- Step 19: shared continuous-media repository/reader interface, navigation/history; CI run 38300397563 passed.
+- Step 20: AUDIO media type, Explore/History/Favourites UI and reader dispatch; CI run 38300577106 passed; merged to devel at 3814b2c02. Cover artwork commit 2ab3320e7 still under CI.
+- Steps 21-22: built-in source registration and host request pacing. Original compiler issue fixed by sealed BuiltinSource in step 24.
+- Step 23: shared EpubBook parser for JS bridge and local reader with tests; cumulative build 38301501700 passed.
+- Step 24: Gutenberg JSON mapper, search, cached EPUB, chapters and media reader; cumulative build 38301501700 passed. Compatible User-Agent added afterward in a00b2786b, pending cumulative CI.
+- Step 25: Internet Archive books, audio, video and CBZ adapters with mapping tests and header updates on branch batch-25-internet-archive tip a00b2786b. Latest cumulative CI 38302529735 in progress. PDF fallback and device playback tests pending.
+- Steps 26-74: not started.
+- Current default devel: 3814b2c02, updated after verified Step 20.
+- Latest checkpoint: docs/WORK_STATUS.md. All GitHub changes exclusively via Tunnel to Surface.
