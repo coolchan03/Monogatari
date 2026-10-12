@@ -7,6 +7,8 @@ change or which files to copy from another project, what to do, and how to check
 
 Paths are relative to `app/src/main/kotlin/org/koitharu/kotatsu/` unless they start with `app/`, `gradle/` or `.github/`.
 
+**Companion:** `docs/MONOGATARI_SOURCES_PLAN.md` is the focused action plan for sources (AO3, Open Library, Gutenberg, Internet Archive, YouTube, every other source rated) and the current-issue fixes they need. Start there.
+
 ### Contents
 - **Part 0**: Where your branch stands, how not to lose work, borrowing from Kototoro/Mangayomi, task status table
 - **A**: Fork hygiene: parser library, app identity, dead and unsafe servers
