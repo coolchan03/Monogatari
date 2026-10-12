@@ -57,8 +57,9 @@ class SearchV2Helper @AssistedInject constructor(
 			return null
 		}
 		val result = list.toMutableList()
-		result.postFilter(query, kind)
-		result.sortByRelevance(query, kind)
+        val matchQuery = source.searchTextForResults(query)
+		result.postFilter(matchQuery, kind)
+		result.sortByRelevance(matchQuery, kind)
 		return SearchResults(listFilter = listFilter, sortOrder = sortOrder, manga = result)
 	}
 
