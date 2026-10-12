@@ -47,11 +47,11 @@ android {
     }
 
     defaultConfig {
-		applicationId 'io.github.kotatsuredo.kotatsu'
+		applicationId 'io.github.coolchan03.monogatari'
 		minSdk = 23
 		targetSdk = 37
-		versionCode = 2044
-        versionName = '9.8.5'
+		versionCode = 1
+        versionName = '0.9.0'
 		generatedDensities = []
 		testInstrumentationRunner 'org.koitharu.kotatsu.HiltTestRunner'
 		ksp {
