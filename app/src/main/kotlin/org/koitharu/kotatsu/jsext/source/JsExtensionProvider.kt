@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
 import org.koitharu.kotatsu.core.network.MangaHttpClient
@@ -71,6 +72,8 @@ class JsExtensionProvider @Inject constructor(
 			http = JsOkHttpTransport(
 				client,
 				JsMangaSource(id),
+				setOf(installed.entry.baseUrl, installed.entry.apiUrl)
+					.mapNotNull { it.toHttpUrlOrNull()?.host }.toSet(),
 				captchaCoordinator,
 				foregroundActivityHolder,
 			),

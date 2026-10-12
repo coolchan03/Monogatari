@@ -17,9 +17,13 @@ import org.koitharu.kotatsu.parsers.util.await
 class JsOkHttpTransport(
 	private val client: OkHttpClient,
 	private val source: MangaSource? = null,
+	allowedHosts: Set<String> = emptySet(),
 	private val captchaCoordinator: CaptchaAutoResolveCoordinator? = null,
 	private val foregroundActivityHolder: ForegroundActivityHolder? = null,
 ) : JsHttpTransport {
+
+	private val cookieScope = ScopedCookieJar(client.cookieJar, allowedHosts)
+	private val scopedClient = client.newBuilder().cookieJar(cookieScope).build()
 
 	override suspend fun execute(request: JsHttpRequest): JsHttpResponse {
 		// Handle the challenge at the HTTP boundary, before QuickJS can turn its native cause into
@@ -38,9 +42,9 @@ class JsOkHttpTransport(
 
 	private suspend fun executeOnce(request: JsHttpRequest): JsHttpResponse {
 		val effectiveClient = if (request.options?.get("followRedirects").bool() == false) {
-			client.newBuilder().followRedirects(false).followSslRedirects(false).build()
+			scopedClient.newBuilder().followRedirects(false).followSslRedirects(false).build()
 		} else {
-			client
+			scopedClient
 		}
 		val effectiveUrl = compatibleJsSourceUrl(request.url)
 		val builder = Request.Builder().url(effectiveUrl)
@@ -50,6 +54,8 @@ class JsOkHttpTransport(
 			builder.tag(MangaSource::class.java, source)
 		}
 		request.headers.forEach { (name, value) ->
+			// Never forward an extension-supplied cookie to a host outside its own scope.
+			if (name.equals("Cookie", ignoreCase = true) && !cookieScope.allows(builder.build().url.host)) return@forEach
 			// Let OkHttp provide the new Host header when an obsolete Comick API host is remapped.
 			if (effectiveUrl != request.url && name.equals("Host", ignoreCase = true) &&
 				value.equals("api.comick.fun", ignoreCase = true)) return@forEach
