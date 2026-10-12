@@ -34,6 +34,14 @@
 
 			</group>
 
+            <group
+                android:id="@+id/group_video_search_modes"
+                android:checkableBehavior="single">
+                <item android:id="@+id/action_video_results" android:title="@string/video_results_videos" />
+                <item android:id="@+id/action_channel_results" android:title="@string/video_results_channels" />
+                <item android:id="@+id/action_playlist_results" android:title="@string/video_results_playlists" />
+            </group>
+
 			<group android:id="@+id/group_search_filters">
 
 				<item

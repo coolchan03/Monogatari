@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="video_results_videos">Videos</string>
+    <string name="video_results_channels">Channels (YouTube)</string>
+    <string name="video_results_playlists">Playlists (YouTube)</string>
     <string name="monogatari_open_library_readable_only_title">Open Library: readable now only</string>
     <string name="monogatari_open_library_readable_only_summary">Hide borrowable and unavailable books in Open Library search and trending</string>
     <string name="media_type_audio">Audio</string>

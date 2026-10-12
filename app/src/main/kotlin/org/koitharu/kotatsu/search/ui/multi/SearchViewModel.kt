@@ -31,6 +31,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
 import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
@@ -68,7 +69,7 @@ private const val MAX_LOCALE_PRIORITY = 2.0
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-	savedStateHandle: SavedStateHandle,
+	private val savedStateHandle: SavedStateHandle,
 	@ApplicationContext private val applicationContext: Context,
 	private val publicBookCatalog: PublicBookCatalog,
 	private val opdsCatalog: OpdsCatalog,
@@ -97,6 +98,21 @@ class SearchViewModel @Inject constructor(
 	private var hideEmpty = MutableStateFlow(true)
 	private var yearFrom = MutableStateFlow<Int?>(null)
 	private var yearTo = MutableStateFlow<Int?>(null)
+    val isVideoModeSearch: Boolean
+        get() = effectiveMediaType == MediaType.VIDEO
+
+    var videoResultMode: VideoResultMode = savedStateHandle.get<String>("video_result_mode")
+        ?.let { raw -> VideoResultMode.entries.firstOrNull { it.name == raw } }
+        ?: VideoResultMode.VIDEOS
+        private set
+
+    fun setVideoResultMode(mode: VideoResultMode) {
+        if (videoResultMode == mode) return
+        videoResultMode = mode
+        savedStateHandle["video_result_mode"] = mode.name
+        retry()
+    }
+
 	private val results = MutableStateFlow<List<SearchResultsListModel>>(emptyList())
 	/** Public catalog links use real URLs rather than invented Manga parser entries. */
 	private data class CatalogState(
@@ -321,7 +337,7 @@ class SearchViewModel @Inject constructor(
 
 	private suspend fun searchSource(source: MangaSource): SearchResultsListModel? = runCatchingCancellable {
 		val searchHelper = searchHelperFactory.create(source)
-		searchHelper(query, kind, yearFrom.value, yearTo.value)
+		searchHelper(if (isVideoModeSearch) videoResultMode.queryFor(source, query) else query, kind, yearFrom.value, yearTo.value)
 	}.fold(
 		onSuccess = { result ->
 			if (result == null || result.manga.isEmpty()) {

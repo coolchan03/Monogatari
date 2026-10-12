@@ -37,11 +37,30 @@ class SearchMenuProvider(
 		)?.isChecked = true
 		menu.findItem(R.id.action_filter_hide_empty)?.isChecked = viewModel.isHideEmptyEnabled
 		menu.findItem(R.id.action_filter_pinned_only)?.isChecked = viewModel.isPinnedOnly
+        menu.setGroupVisible(R.id.group_video_search_modes, viewModel.isVideoModeSearch)
+        menu.findItem(
+            when (viewModel.videoResultMode) {
+                VideoResultMode.VIDEOS -> R.id.action_video_results
+                VideoResultMode.CHANNELS -> R.id.action_channel_results
+                VideoResultMode.PLAYLISTS -> R.id.action_playlist_results
+            },
+        )?.isChecked = true
+
 	}
 
 	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-		when (menuItem.itemId) {
-			R.id.action_filter_pinned_only -> {
+        when (menuItem.itemId) {
+            R.id.action_video_results, R.id.action_channel_results, R.id.action_playlist_results -> {
+                val mode = when (menuItem.itemId) {
+                    R.id.action_channel_results -> VideoResultMode.CHANNELS
+                    R.id.action_playlist_results -> VideoResultMode.PLAYLISTS
+                    else -> VideoResultMode.VIDEOS
+                }
+                menuItem.isChecked = true
+                viewModel.setVideoResultMode(mode)
+                return true
+            }
+            R.id.action_filter_pinned_only -> {
 				menuItem.isChecked = !menuItem.isChecked
 				viewModel.setPinnedOnly(menuItem.isChecked)
 				return true
