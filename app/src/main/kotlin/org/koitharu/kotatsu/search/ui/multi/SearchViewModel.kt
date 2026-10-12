@@ -20,6 +20,7 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
@@ -70,6 +71,11 @@ class SearchViewModel @Inject constructor(
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
 	val kind = savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE
+	val mediaTypeOverride: MediaType? = savedStateHandle.get<String>(SearchActivity.EXTRA_MEDIA_TYPE)
+		?.let { raw -> MediaType.entries.firstOrNull { it.name == raw } }
+
+	private val effectiveMediaType: MediaType?
+		get() = mediaTypeOverride ?: settings.mediaTypeFilter
 
 	private var includeDisabledSources = MutableStateFlow(false)
 	private var pinnedOnly = MutableStateFlow(false)
@@ -188,7 +194,7 @@ class SearchViewModel @Inject constructor(
 				emptyList()
 			} else {
 				sourcesRepository.getDisabledSources().toList()
-					.filterByMediaType(settings.mediaTypeFilter)
+					.filterByMediaType(effectiveMediaType)
 					.rankedForSweep(batch = 1)
 			}
 			val semaphore = Semaphore(MAX_PARALLELISM)
@@ -208,7 +214,9 @@ class SearchViewModel @Inject constructor(
 			prevJob?.cancelAndJoin()
 			// History/favourites/local rows do not carry a trustworthy publication year, so omit them
 			// while a year filter is active instead of pretending they matched it.
-			if (!hasPublicationYearFilter) {
+			// A book-only sweep must not accidentally show manga favourites/history/local manga.
+			// We will include those collections once they carry reliable cross-media metadata.
+			if (!hasPublicationYearFilter && mediaTypeOverride == null) {
 				appendResult(searchHistory())
 				appendResult(searchFavorites())
 				appendResult(searchLocal())
@@ -419,8 +427,16 @@ class SearchViewModel @Inject constructor(
 		val composite: Double,
 	)
 
-	private suspend fun getPresetSourcesOrDefault(): List<MangaSource> =
-		getSourcesBeforeMediaFilter().filterByMediaType(settings.mediaTypeFilter)
+	private suspend fun getPresetSourcesOrDefault(): List<MangaSource> {
+		// An explicit Books/Anime search uses all enabled sources of that kind, even when
+		// the user's current manga source preset contains no novel or video websites.
+		val sources = when {
+			pinnedOnly.value -> sourcesRepository.getPinnedSources().toList()
+			mediaTypeOverride != null -> sourcesRepository.getEnabledSources()
+			else -> getSourcesBeforeMediaFilter()
+		}
+		return sources.filterByMediaType(effectiveMediaType)
+	}
 
 	private suspend fun getSourcesBeforeMediaFilter(): List<MangaSource> {
 		val presetId = settings.activeSourcePresetId

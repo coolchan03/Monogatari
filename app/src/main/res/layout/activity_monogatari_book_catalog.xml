@@ -25,9 +25,18 @@
             android:id="@+id/monogatari_catalog_query"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textUri"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/monogatari_catalog_search_sources"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="6dp"
+        android:minHeight="48dp"
+        android:text="@string/monogatari_catalog_search_sources" />
     <HorizontalScrollView android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none">

@@ -32,14 +32,10 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
 		addPreferencesFromResource(R.xml.pref_root)
-		preferenceScreen.addPreference(Preference(requireContext()).apply {
-			title = "Books: Gutenberg, Open Library, Internet Archive"
-			summary = "Search public catalogs or import local EPUB, PDF, HTML and text files"
-			setOnPreferenceClickListener {
-				startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
-				true
-			}
-		})
+		findPreference<Preference>("monogatari_books_entry")?.setOnPreferenceClickListener {
+			startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
+			true
+		}
 		addPreferencesFromResource(R.xml.pref_root_debug)
 		bindPreferenceSummary("appearance", R.string.theme, R.string.list_mode, R.string.language)
 		bindPreferenceSummary("reader", R.string.read_mode, R.string.scale_mode, R.string.switch_pages)
@@ -85,6 +81,7 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 		val iconColors = arrayOf(
 			"appearance" to R.color.settings_icon_appearance,
 			AppSettings.KEY_REMOTE_SOURCES to R.color.settings_icon_sources,
+			"monogatari_books_entry" to R.color.settings_icon_reader,
 			"reader" to R.color.settings_icon_reader,
 			"network" to R.color.settings_icon_network,
 			"downloads" to R.color.settings_icon_downloads,

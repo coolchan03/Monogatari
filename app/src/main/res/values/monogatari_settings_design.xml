@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_settings_intro_title">Make Monogatari yours</string>
+    <string name="monogatari_settings_intro_summary">A home for manga, novels and anime. Personalize reading, sources and your collection.</string>
+    <string name="monogatari_settings_customize">Your reading space</string>
+    <string name="monogatari_settings_discover">Discover &amp; read</string>
+    <string name="monogatari_settings_manage">Storage, updates &amp; services</string>
+    <string name="monogatari_settings_books_title">Books &amp; novels</string>
+    <string name="monogatari_settings_books_summary">Import EPUB, PDF or text, discover books and manage OPDS catalogs</string>
+</resources>

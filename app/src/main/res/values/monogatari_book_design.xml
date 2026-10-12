@@ -6,6 +6,9 @@
     <string name="monogatari_books_filter">Find a book on this device</string>
     <string name="monogatari_books_empty">No books on your shelf yet. Explore catalogs or import an EPUB, PDF, or text file.</string>
     <string name="monogatari_books_count">%1$d imported books</string>
+    <string name="monogatari_catalog_search_sources">Search book and novel sources</string>
+    <string name="monogatari_catalog_online_search_title">Books: %1$s</string>
+    <string name="monogatari_catalog_search_empty">Enter a title or author to search book sources</string>
     <string name="monogatari_catalog_title">Discover stories</string>
     <string name="monogatari_catalog_subtitle">Search public collections, connect OPDS catalogs, or bring your own files.</string>
     <string name="monogatari_catalog_query">Title, author, or catalog URL</string>

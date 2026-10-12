@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -44,6 +45,11 @@ class SearchActivity :
 	MangaListListener,
 	ListSelectionController.Callback {
 
+	companion object {
+		/** Intent scope for a one-off book search; never mutates the global media filter. */
+		const val EXTRA_MEDIA_TYPE = "monogatari.search.media_type"
+	}
+
 	@Inject
 	lateinit var settings: AppSettings
 
@@ -64,6 +70,10 @@ class SearchActivity :
 			)
 
 			SearchKind.TAG -> getString(R.string.inline_preference_pattern, getString(R.string.genre), viewModel.query)
+		}
+
+		if (viewModel.mediaTypeOverride == MediaType.BOOK) {
+			title = getString(R.string.monogatari_catalog_online_search_title, viewModel.query)
 		}
 
 		val itemClickListener = OnListItemClickListener<SearchResultsListModel> { item, view ->

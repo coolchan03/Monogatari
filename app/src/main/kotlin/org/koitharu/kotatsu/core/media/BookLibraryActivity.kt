@@ -3,6 +3,10 @@ package org.koitharu.kotatsu.core.media
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.inputmethod.EditorInfo
+import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.search.domain.SearchKind
+import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import android.view.LayoutInflater
 import com.google.android.material.card.MaterialCardView
 import android.widget.EditText
@@ -56,6 +60,14 @@ class BookLibraryActivity : AppCompatActivity() {
         setContentView(R.layout.activity_monogatari_book_catalog)
         query = findViewById(R.id.monogatari_catalog_query)
         results = findViewById(R.id.monogatari_catalog_results)
+        findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources)
+            .setOnClickListener { searchInstalledBookSources() }
+        query.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchInstalledBookSources()
+                true
+            } else false
+        }
         findViewById<MaterialButton>(R.id.monogatari_catalog_gutenberg)
             .setOnClickListener { search("Gutenberg") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_openlibrary)
@@ -74,6 +86,20 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { showLocalBooks() }
         findViewById<MaterialButton>(R.id.monogatari_catalog_filter)
             .setOnClickListener { showLocalBooks(query.text.toString().trim()) }
+    }
+
+    /** Uses the exact same multi-source search UI as manga, scoped only to book sources. */
+    private fun searchInstalledBookSources() {
+        val term = query.text?.toString()?.trim().orEmpty()
+        if (term.isEmpty()) {
+            query.error = getString(R.string.monogatari_catalog_search_empty)
+            query.requestFocus()
+            return
+        }
+        startActivity(Intent(this, SearchActivity::class.java)
+            .putExtra(AppRouter.KEY_QUERY, term)
+            .putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
+            .putExtra(SearchActivity.EXTRA_MEDIA_TYPE, MediaType.BOOK.name))
     }
 
     private fun saveOpds(url: String) {

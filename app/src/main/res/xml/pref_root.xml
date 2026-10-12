@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Flat preference hierarchy deliberately preserves settings-search navigation. -->
+    <Preference
+        android:key="monogatari_settings_intro"
+        android:layout="@layout/preference_monogatari_settings_header"
+        android:selectable="false"
+        app:iconSpaceReserved="false"
+        android:title="@string/monogatari_settings_intro_title"
+        android:summary="@string/monogatari_settings_intro_summary" />
+
+    <Preference
+        android:layout="@layout/preference_monogatari_settings_section"
+        android:selectable="false"
+        app:iconSpaceReserved="false"
+        android:title="@string/monogatari_settings_customize" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.AppearanceSettingsFragment"
@@ -8,17 +24,35 @@
         android:key="appearance"
         android:title="@string/appearance" />
 
+    <Preference
+        android:layout="@layout/preference_monogatari_settings_section"
+        android:selectable="false"
+        app:iconSpaceReserved="false"
+        android:title="@string/monogatari_settings_discover" />
+
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.sources.SourcesSettingsFragment"
-        android:icon="@drawable/ic_manga_source"
+        android:icon="@drawable/ic_monogatari_nav_explore"
         android:key="remote_sources"
         android:title="@string/remote_sources" />
+
+    <Preference
+        android:key="monogatari_books_entry"
+        android:icon="@drawable/ic_monogatari_nav_books"
+        android:title="@string/monogatari_settings_books_title"
+        android:summary="@string/monogatari_settings_books_summary" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.ReaderSettingsFragment"
         android:icon="@drawable/ic_book_page"
         android:key="reader"
         android:title="@string/reader_settings" />
+
+    <Preference
+        android:layout="@layout/preference_monogatari_settings_section"
+        android:selectable="false"
+        app:iconSpaceReserved="false"
+        android:title="@string/monogatari_settings_manage" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment"
@@ -34,7 +68,7 @@
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.tracker.TrackerSettingsFragment"
-        android:icon="@drawable/ic_feed"
+        android:icon="@drawable/ic_monogatari_nav_updated"
         android:key="tracker"
         android:title="@string/check_for_new_chapters" />
 
