@@ -34,7 +34,7 @@ class LibriVoxRepository(cache: MemoryContentCache, private val client: OkHttpCl
             Manga(
                 id = ArchiveMapping.uid(source, "/audiobook/$id"),
                 title = title, altTitles = emptySet(), url = "/audiobook/$id",
-                publicUrl = book.optString("url_librivox").takeIf { it.startsWith("https://") },
+                publicUrl = book.optString("url_librivox").takeIf { it.startsWith("https://") } ?: "https://librivox.org/",
                 rating = RATING_UNKNOWN, contentRating = ContentRating.SAFE,
                 coverUrl = archiveId.takeIf(String::isNotBlank)?.let { "https://archive.org/services/img/$it" },
                 tags = emptySet(), state = null, authors = emptySet(), largeCoverUrl = null,
