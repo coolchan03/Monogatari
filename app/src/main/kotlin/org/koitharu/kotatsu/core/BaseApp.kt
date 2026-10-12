@@ -22,6 +22,10 @@ import org.conscrypt.Conscrypt
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
+import org.koitharu.kotatsu.builtin.newpipe.NewPipeDownloader
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.localization.Localization
+import org.schabi.newpipe.extractor.localization.ContentCountry
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.os.AppValidator
 import org.koitharu.kotatsu.core.os.RomCompat
@@ -54,6 +58,9 @@ open class BaseApp : Application(), Configuration.Provider {
 	lateinit var settings: AppSettings
 
 	@Inject
+	lateinit var newPipeDownloader: NewPipeDownloader
+
+	@Inject
 	lateinit var workerFactory: HiltWorkerFactory
 
 	@Inject
@@ -81,6 +88,7 @@ open class BaseApp : Application(), Configuration.Provider {
 		if (ACRA.isACRASenderServiceProcess()) {
 			return
 		}
+		NewPipe.init(newPipeDownloader, Localization("en", "US"), ContentCountry("US"))
 		// The app process is the one that can hang, so ANR reporting is armed here. Everything else
 		// Sentry could do stays off; see SentryInitializer.
 		SentryInitializer.ensureInitialized(this, enableAnr = true)

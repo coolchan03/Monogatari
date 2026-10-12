@@ -16,6 +16,13 @@
 -dontwarn com.google.j2objc.annotations.**
 -dontwarn coil3.PlatformContext
 
+# NewPipeExtractor uses reflection and Rhino when resolving video services.
+-keep class org.schabi.newpipe.extractor.** { *; }
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.**
+-dontwarn java.beans.**
+-dontwarn javax.script.**
+
 -keep class org.koitharu.kotatsu.settings.NotificationSettingsLegacyFragment
 -keep class org.koitharu.kotatsu.settings.about.changelog.ChangelogFragment
 

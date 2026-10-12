@@ -281,6 +281,7 @@ dependencies {
 	implementation libs.media3.exoplayer.hls
 	implementation libs.media3.ui
 	implementation libs.media3.session
+	implementation libs.newpipe.extractor
 	implementation libs.kizzyrpc
 
 	implementation libs.acra.dialog
