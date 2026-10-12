@@ -5,6 +5,13 @@ import androidx.annotation.AnyThread
 import androidx.collection.ArrayMap
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSource
+import org.koitharu.kotatsu.builtin.opds.OpdsRepository
+import org.koitharu.kotatsu.core.media.OpdsCatalog
+import org.koitharu.kotatsu.core.network.MangaHttpClient
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.builtin.BuiltinRepositoryFactory
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.model.LocalMangaSource
@@ -67,6 +74,8 @@ interface MangaRepository {
 		private val mirrorSwitcher: MirrorSwitcher,
 		private val jsExtensions: JsExtensionProvider,
 		private val builtinFactory: BuiltinRepositoryFactory,
+		private val opdsCatalog: OpdsCatalog,
+		@MangaHttpClient private val opdsClient: OkHttpClient,
 	) {
 
 		private val cache = ArrayMap<MangaSource, WeakReference<MangaRepository>>()
@@ -93,6 +102,7 @@ interface MangaRepository {
 
 		private fun createRepository(source: MangaSource): MangaRepository? = when (source) {
 			is BuiltinSource -> builtinFactory.create(source)
+			is OpdsSource -> OpdsRepository(source, contentCache, opdsCatalog, opdsClient, context)
 			is MangaParserSource -> ParserMangaRepository(
 				parser = loaderContext.newParserInstance(source),
 				cache = contentCache,

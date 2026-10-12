@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.LocalizedAppContext
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.dao.MangaSourcesDao
@@ -83,6 +84,7 @@ class MangaSourcesRepository @Inject constructor(
 				external.mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
 				getJsSources().mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
 				BuiltinSource.entries.mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
+				OpdsSourceRegistry.list().mapTo(list) { MangaSourceInfo(it, isEnabled = true, isPinned = true) }
 				list.addAll(enabled)
 				list
 			}
@@ -98,6 +100,7 @@ class MangaSourcesRepository @Inject constructor(
 		// Pinned-only search must therefore include them too.
 		getExternalSources().filterTo(result) { !skipNsfw || !it.isNsfw() }
 		result.addAll(BuiltinSource.entries)
+		result.addAll(OpdsSourceRegistry.list())
 		result.addAll(getJsSources())
 		return result
 	}
@@ -434,6 +437,7 @@ class MangaSourcesRepository @Inject constructor(
 				if (source.name in names && (!skipNsfw || !source.isNsfw())) add(source)
 			}
 			BuiltinSource.entries.forEach { source -> if (source.name in names) add(source) }
+			OpdsSourceRegistry.list().forEach { source -> if (source.name in names) add(source) }
 			getJsSources().forEach { source -> if (source.name in names) add(source) }
 		}
 	}

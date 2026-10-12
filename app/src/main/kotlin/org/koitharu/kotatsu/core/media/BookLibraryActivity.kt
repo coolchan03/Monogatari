@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
+import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
@@ -111,6 +112,7 @@ class BookLibraryActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
         val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
         saved.add(url)
+        OpdsSourceRegistry.register(url)
         prefs.edit().putStringSet("urls", saved).apply()
         showSavedOpds()
     }
@@ -128,6 +130,7 @@ class BookLibraryActivity : AppCompatActivity() {
                     val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
                     val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
                     saved.remove(url)
+                    OpdsSourceRegistry.unregister(url)
                     prefs.edit().putStringSet("urls", saved).apply()
                     showSavedOpds()
                     true

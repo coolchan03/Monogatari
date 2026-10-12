@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.builtin
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.koitharu.kotatsu.builtin.opds.OpdsSource
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.parsers.model.RATING_UNKNOWN
@@ -40,6 +41,13 @@ internal object ArchiveMapping {
         is String -> listOf(value)
         is JSONArray -> (0 until value.length()).mapNotNull { value.optString(it).takeIf(String::isNotBlank) }
         else -> emptyList()
+    }
+
+    fun uid(source: OpdsSource, url: String): Long {
+        var hash = 1125899906842597L
+        source.name.forEach { hash = 31 * hash + it.code }
+        url.forEach { hash = 31 * hash + it.code }
+        return hash
     }
 
     fun uid(source: BuiltinSource, url: String): Long {

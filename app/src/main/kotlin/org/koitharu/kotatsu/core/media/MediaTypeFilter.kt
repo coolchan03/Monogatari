@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.core.media
 
 import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -20,11 +22,12 @@ fun MangaSource.asJsSource(): JsMangaSource? = unwrapped() as? JsMangaSource
 
 /** True only for Mangayomi JS books/anime that need the dedicated media reader. */
 fun MangaSource.isContinuousMedia(): Boolean =
-    mediaType() != MediaType.MANGA && (asJsSource() != null || unwrapped() is BuiltinSource)
+    mediaType() != MediaType.MANGA && (asJsSource() != null || unwrapped() is BuiltinSource || unwrapped() is OpdsSource)
 
 /** Parser sources report a [org.koitharu.kotatsu.parsers.model.ContentType]; everything else is treated as manga. */
 fun MangaSource.mediaType(): MediaType {
 	val source = unwrapped()
+	if (source is OpdsSource) return MediaType.BOOK
 	if (source is BuiltinSource) return source.type
 	if (source is JsMangaSource) {
 		return when (JsSourceRegistry.get(source.id)?.itemType) {
@@ -41,6 +44,7 @@ fun <T : MangaSource> List<T>.filterByMediaType(type: MediaType?): List<T> =
 
 /** Source names persisted in the manga table that currently belong to this media kind. */
 fun MediaType.persistedSourceNames(): Set<String> = buildSet {
+	if (this@persistedSourceNames == MediaType.BOOK) OpdsSourceRegistry.list().mapTo(this) { it.name }
 	BuiltinSource.entries.filter { it.type == this@persistedSourceNames }.mapTo(this) { it.name }
 	MangaParserSource.entries
 		.filter { it.contentType.toMediaType() == this@persistedSourceNames }

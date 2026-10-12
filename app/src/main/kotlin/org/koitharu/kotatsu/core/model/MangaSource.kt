@@ -11,6 +11,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.text.inSpans
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSource
+import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.parser.external.ExternalMangaSource
 import org.koitharu.kotatsu.core.util.ext.getDisplayName
@@ -47,6 +49,7 @@ fun MangaSource(name: String?): MangaSource {
 		val parts = name.substringAfter(':').splitTwoParts('/') ?: return UnknownMangaSource
 		return ExternalMangaSource(packageName = parts.first, authority = parts.second)
 	}
+	OpdsSourceRegistry.fromName(name)?.let { return it }
 	BuiltinSource.fromName(name)?.let { return it }
 	JsMangaSource.fromName(name)?.let { return it }
 	MangaParserSource.entries.forEach {
@@ -103,6 +106,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 		context.getString(R.string.source_summary_pattern, type, locale)
 	}
 
+	is OpdsSource -> context.getString(R.string.media_type_book)
 	is BuiltinSource -> context.getString(when (source.type) {
 		MediaType.MANGA -> R.string.media_type_manga
 		MediaType.BOOK -> R.string.media_type_book
@@ -129,6 +133,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 
 fun MangaSource.getTitle(context: Context): String = when (val source = unwrap()) {
 	is MangaParserSource -> source.title
+	is OpdsSource -> source.url
 	is BuiltinSource -> source.title
 	LocalMangaSource -> context.getString(R.string.local_storage)
 	TestMangaSource -> context.getString(R.string.test_parser)
