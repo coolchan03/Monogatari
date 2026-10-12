@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.search.domain
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import org.koitharu.kotatsu.core.model.ContentLevelFilter
 import org.koitharu.kotatsu.core.model.isNsfw
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.MangaRepository
@@ -35,7 +36,7 @@ class SearchV2Helper @AssistedInject constructor(
 		yearFrom: Int? = null,
 		yearTo: Int? = null,
 	): SearchResults? {
-		if (settings.isNsfwContentDisabled && source.isNsfw()) {
+		if (settings.hideAdultOnlySources && source.isNsfw()) {
 			return null
 		}
 		val repository = mangaRepositoryFactory.create(source)
@@ -108,9 +109,11 @@ class SearchV2Helper @AssistedInject constructor(
 	}
 
 	private fun MutableList<Manga>.postFilter(query: String, kind: SearchKind) {
-		if (settings.isNsfwContentDisabled) {
-			removeAll { it.isNsfw() }
+		val hidden = settings.hiddenTags
+		if (hidden.isNotEmpty()) {
+			removeAll { manga -> TagSynonyms.isHidden(manga.tags.map { it.title }, hidden) }
 		}
+		removeAll { !ContentLevelFilter.allows(settings.contentLevel, it) }
 		when (kind) {
 			SearchKind.TITLE -> retainAll { m ->
 				m.matches(query, MATCH_THRESHOLD_DEFAULT)

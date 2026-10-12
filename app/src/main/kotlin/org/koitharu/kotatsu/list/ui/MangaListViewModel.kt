@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
+import org.koitharu.kotatsu.core.model.ContentLevelFilter
 import org.koitharu.kotatsu.core.model.isNsfw
+import org.koitharu.kotatsu.search.domain.TagSynonyms
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.ListMode
@@ -50,10 +52,12 @@ abstract class MangaListViewModel(
 
 	abstract fun onRetry()
 
-	protected fun List<Manga>.skipNsfwIfNeeded() = if (settings.isNsfwContentDisabled) {
-		filterNot { it.isNsfw() }
-	} else {
-		this
+	protected fun List<Manga>.skipNsfwIfNeeded(): List<Manga> {
+		val hidden = settings.hiddenTags
+		return filterNot { manga ->
+			!ContentLevelFilter.allows(settings.contentLevel, manga) ||
+			TagSynonyms.isHidden(manga.tags.map { it.title }, hidden)
+		}
 	}
 
 	protected fun Flow<Set<ListFilterOption>>.combineWithSettings(): Flow<Set<ListFilterOption>> = combine(

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="monogatari_content_levels">
+        <item>Safe</item><item>Suggestive</item><item>Everything</item>
+    </string-array>
+    <string-array name="monogatari_content_level_values">
+        <item>SAFE</item><item>SUGGESTIVE</item><item>EVERYTHING</item>
+    </string-array>
 	<string-array name="themes" translatable="false">
 		<item>@string/follow_system</item>
 		<item>@string/light</item>

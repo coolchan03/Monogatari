@@ -13,6 +13,12 @@ class TagSynonymsTest {
         assertTrue(TagSynonyms.matches("yuri", "F/F"))
     }
 
+    @Test fun hiddenTagsUseSynonymsWithoutFalsePositives() {
+        assertTrue(TagSynonyms.isHidden(listOf("Boys' Love"), setOf("yaoi")))
+        assertTrue(TagSynonyms.isHidden(listOf("Girls' Love"), setOf("gl")))
+        assertFalse(TagSynonyms.isHidden(listOf("Action"), setOf("yaoi")))
+    }
+
     @Test fun unrelatedTagsAreNotEqual() {
         assertTrue(TagSynonyms.matches("action", "action"))
         assertFalse(TagSynonyms.matches("action", "romance"))

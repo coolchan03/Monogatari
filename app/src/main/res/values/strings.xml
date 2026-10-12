@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="monogatari_content_level_title">Content level</string>
+    <string name="monogatari_hide_adult_sources_title">Hide adult-only sources</string>
+    <string name="monogatari_hidden_tags_title">Hidden tags</string>
+    <string name="monogatari_hidden_tags_summary">Comma-separated genres to hide in lists and searches (including similar BL/GL terms)</string>
     <string name="monogatari_advanced_title">Advanced</string>
     <string name="monogatari_source_diagnostics_title">Source diagnostics</string>
     <string name="monogatari_source_diagnostics_summary">Extension health checks, source compatibility and troubleshooting</string>

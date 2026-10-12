@@ -134,6 +134,20 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		set(value) = prefs.edit { putEnumValue(KEY_LIST_MODE_FAVORITES, value) }
 
 
+	/** Comma-delimited normalized tag names, configurable in Settings. */
+	val hiddenTags: Set<String>
+		get() = prefs.getString(KEY_HIDDEN_TAGS, "").orEmpty()
+			.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+	/** Title-level visibility; an unset value follows the existing adult-content choice. */
+	val contentLevel: String
+		get() = prefs.getString(KEY_CONTENT_LEVEL, null)
+			?: if (isNsfwContentDisabled) "SUGGESTIVE" else "EVERYTHING"
+
+	/** Source catalog visibility is separate from title-level content controls. */
+	val hideAdultOnlySources: Boolean
+		get() = prefs.getBoolean(KEY_HIDE_ADULT_SOURCES, false)
+
 	var isNsfwContentDisabled: Boolean
 		get() = prefs.getBoolean(KEY_DISABLE_NSFW, false)
 		set(value) = prefs.edit { putBoolean(KEY_DISABLE_NSFW, value) }
@@ -929,6 +943,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_IMAGES_PROXY = "images_proxy_2"
 		const val KEY_LOCAL_MANGA_DIRS = "local_manga_dirs"
 		const val KEY_DISABLE_NSFW = "no_nsfw"
+		const val KEY_HIDDEN_TAGS = "monogatari_hidden_tags"
+		const val KEY_CONTENT_LEVEL = "monogatari_content_level"
+		const val KEY_HIDE_ADULT_SOURCES = "monogatari_hide_adult_sources"
 		const val KEY_RELATED_MANGA = "related_manga"
 		const val KEY_NAV_MAIN = "nav_main"
 		const val KEY_NAV_LABELS = "nav_labels"

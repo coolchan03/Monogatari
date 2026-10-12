@@ -51,6 +51,24 @@
 		android:summary="@string/exclude_nsfw_from_suggestions_summary"
 		android:title="@string/exclude_nsfw_from_suggestions" />
 
+	<ListPreference
+		android:key="monogatari_content_level"
+		android:title="@string/monogatari_content_level_title"
+		android:entries="@array/monogatari_content_levels"
+		android:entryValues="@array/monogatari_content_level_values"
+		android:summary="%s" />
+
+	<SwitchPreferenceCompat
+		android:key="monogatari_hide_adult_sources"
+		android:defaultValue="false"
+		android:title="@string/monogatari_hide_adult_sources_title" />
+
+	<org.koitharu.kotatsu.settings.utils.MultiAutoCompleteTextViewPreference
+		android:icon="@drawable/ic_tag"
+		android:key="monogatari_hidden_tags"
+		android:title="@string/monogatari_hidden_tags_title"
+		android:summary="@string/monogatari_hidden_tags_summary" />
+
 	<Preference
 		android:icon="@drawable/ic_info_outline"
 		android:key="track_warning"

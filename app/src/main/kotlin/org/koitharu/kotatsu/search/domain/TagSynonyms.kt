@@ -22,6 +22,9 @@ object TagSynonyms {
             ?: setOf(query.trim().lowercase())
     }
 
+    fun isHidden(tags: Iterable<String>, hidden: Set<String>): Boolean =
+        tags.any { title -> hidden.any { matches(it, title) } }
+
     fun matches(query: String, title: String): Boolean {
         val normalizedTitle = normalize(title)
         return expand(query).any { normalize(it) == normalizedTitle }
