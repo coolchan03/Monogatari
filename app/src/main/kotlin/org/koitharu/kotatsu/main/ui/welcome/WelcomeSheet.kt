@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowInsetsCompat
@@ -50,7 +51,7 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
 	override fun onViewBindingCreated(binding: SheetWelcomeBinding, savedInstanceState: Bundle?) {
 		super.onViewBindingCreated(binding, savedInstanceState)
 		// Keep Monogatari's own welcome heading visible on tablets as well as phones.
-		binding.buttonStartExploring.setOnClickListener { dismiss() }
+		binding.buttonStartExploring.setOnClickListener { showAdultContentChoice() }
 		binding.chipsLocales.onChipClickListener = this
 		binding.chipsType.onChipClickListener = this
 		binding.chipBackup.setOnClickListener(this)
@@ -59,6 +60,22 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
 
 		viewModel.locales.observe(viewLifecycleOwner, ::onLocalesChanged)
 		viewModel.types.observe(viewLifecycleOwner, ::onTypesChanged)
+	}
+
+	private fun showAdultContentChoice() {
+		AlertDialog.Builder(requireContext())
+			.setTitle(R.string.welcome_adult_content_title)
+			.setMessage(R.string.welcome_adult_content_description)
+			.setNegativeButton(R.string.welcome_adult_content_no) { _, _ ->
+				viewModel.setAdultContentEnabled(false)
+				dismiss()
+			}
+			.setPositiveButton(R.string.welcome_adult_content_yes) { _, _ ->
+				viewModel.setAdultContentEnabled(true)
+				dismiss()
+			}
+			.setCancelable(false)
+			.show()
 	}
 
 	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {

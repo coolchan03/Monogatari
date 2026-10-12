@@ -322,7 +322,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		set(value) = prefs.edit { putBoolean(KEY_PROTECT_APP_BIOMETRIC, value) }
 
 	val isMirrorSwitchingEnabled: Boolean
-		get() = prefs.getBoolean(KEY_MIRROR_SWITCHING, false)
+		get() = prefs.getBoolean(KEY_MIRROR_SWITCHING, true)
 
 	val isExitConfirmationEnabled: Boolean
 		get() = prefs.getBoolean(KEY_EXIT_CONFIRM, false)
@@ -509,7 +509,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		}
 
 	val dnsOverHttps: DoHProvider
-		get() = prefs.getEnumValue(KEY_DOH, DoHProvider.NONE)
+		get() = prefs.getEnumValue(KEY_DOH, DoHProvider.CLOUDFLARE)
 
 	var isSSLBypassEnabled: Boolean
 		get() = prefs.getBoolean(KEY_SSL_BYPASS, false)
@@ -596,7 +596,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_DISCORD_RPC, false)
 
 	val isDiscordRpcSkipNsfw: Boolean
-		get() = prefs.getBoolean(KEY_DISCORD_RPC_SKIP_NSFW, false)
+		get() = prefs.getBoolean(KEY_DISCORD_RPC_SKIP_NSFW, true)
 
 	var discordToken: String?
 		get() = prefs.getString(KEY_DISCORD_TOKEN, null)?.trim()?.nullIfEmpty()
@@ -635,7 +635,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_PAGES_SAVE_ASK, true)
 
 	val isStatsEnabled: Boolean
-		get() = prefs.getBoolean(KEY_STATS_ENABLED, false)
+		get() = prefs.getBoolean(KEY_STATS_ENABLED, true)
 
 	val isAutoLocalChaptersCleanupEnabled: Boolean
 		get() = prefs.getBoolean(KEY_CHAPTERS_CLEAR_AUTO, false)

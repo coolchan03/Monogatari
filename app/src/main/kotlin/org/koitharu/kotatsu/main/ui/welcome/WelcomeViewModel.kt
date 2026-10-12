@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koitharu.kotatsu.core.LocalizedAppContext
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.LocaleComparator
 import org.koitharu.kotatsu.core.util.ext.mapSortedByCount
@@ -25,6 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class WelcomeViewModel @Inject constructor(
 	private val repository: MangaSourcesRepository,
+	private val appSettings: AppSettings,
 	@LocalizedAppContext context: Context,
 ) : BaseViewModel() {
 
@@ -104,6 +106,11 @@ class WelcomeViewModel @Inject constructor(
 			prevJob.join()
 			commit()
 		}
+	}
+
+	/** The welcome choice is explicit; leave existing users' stored choice untouched. */
+	fun setAdultContentEnabled(enabled: Boolean) {
+		appSettings.isNsfwContentDisabled = !enabled
 	}
 
 	private suspend fun commit() {

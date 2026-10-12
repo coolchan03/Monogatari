@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="welcome_adult_content_title">Show adult (18+) content?</string>
+    <string name="welcome_adult_content_description">Choose whether to include adult content in searches and source lists. You can change this later in Settings.</string>
+    <string name="welcome_adult_content_no">No</string>
+    <string name="welcome_adult_content_yes">Yes, I\'m 18+</string>
     <string name="source_repo_setup_title">Add extension repositories?</string>
     <string name="source_repo_setup_confirmation">This link requests adding %1$d source catalogs from: %2$s. Only accept catalogs you trust.</string>
     <string name="source_repo_setup_add">Add repositories</string>
