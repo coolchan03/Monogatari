@@ -73,6 +73,8 @@ import org.koitharu.kotatsu.local.ui.LocalStorageCleanupWorker
 import org.koitharu.kotatsu.main.ui.owners.AppBarOwner
 import org.koitharu.kotatsu.main.ui.owners.BottomNavOwner
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.sourcerepo.ui.FirstRunHealthChecks
+import org.koitharu.kotatsu.sourcerepo.ui.SourceScanManager
 import org.koitharu.kotatsu.remotelist.ui.MangaSearchMenuProvider
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionItemCallback
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionListenerImpl
@@ -107,6 +109,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 	@Inject
 	lateinit var settings: AppSettings
+
+	@Inject
+	lateinit var healthChecks: FirstRunHealthChecks
+
+	@Inject
+	lateinit var sourceScanManager: SourceScanManager
 
 	private val viewModel by viewModels<MainViewModel>()
 	private val searchSuggestionViewModel by viewModels<SearchSuggestionViewModel>()
@@ -200,20 +208,33 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		initSearch()
 	}
 
-	/** Temporary QA entry point. Remove once the source catalog is verified. */
+	/** A one-time bounded preflight; the 1,500+ network probes are optional and resumable. */
 	private fun showTemporarySourceTestPrompt() {
 		val prefs = getSharedPreferences("monogatari_source_qa", MODE_PRIVATE)
-		if (prefs.getBoolean("prompt_seen", false)) return
-		prefs.edit().putBoolean("prompt_seen", true).apply()
-		com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-			.setTitle("Monogatari source tests")
-			.setMessage("Before using the app, would you like to open the temporary source diagnostics? Download test extensions in batches, run the tests, then copy the report to share.")
-			.setNegativeButton("Later", null)
-			.setPositiveButton("Open tests") { _, _ ->
-				startActivity(android.content.Intent(this, org.koitharu.kotatsu.settings.SettingsActivity::class.java)
-					.setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS"))
-			}
-			.show()
+		if (prefs.getBoolean("first_run_checks_v2", false)) return
+		prefs.edit().putBoolean("first_run_checks_v2", true).apply()
+		lifecycleScope.launch {
+			val report = withContext(Dispatchers.IO) { healthChecks.run() }
+			if (isFinishing || isDestroyed) return@launch
+			val details = report.summary() +
+				"\n\nTest every website? This runs in the background, uses data, " +
+				"and can take a long time. Progress is saved; resume from Source Repositories."
+			com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+				.setTitle("Monogatari first-start checks")
+				.setMessage(details)
+				.setNegativeButton("Later", null)
+				.setNeutralButton("Source settings") { _, _ -> openSourceDiagnosticsSettings() }
+				.setPositiveButton("Test all sources") { _, _ ->
+					sourceScanManager.start(allSources = true)
+					openSourceDiagnosticsSettings()
+				}
+				.show()
+		}
+	}
+
+	private fun openSourceDiagnosticsSettings() {
+		startActivity(Intent(this, org.koitharu.kotatsu.settings.SettingsActivity::class.java)
+			.setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS"))
 	}
 
 	override fun onRestoreInstanceState(savedInstanceState: Bundle) {

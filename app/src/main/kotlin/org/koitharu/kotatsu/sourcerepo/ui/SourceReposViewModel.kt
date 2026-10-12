@@ -28,11 +28,12 @@ class SourceReposViewModel @Inject constructor(
 		val repos: List<String>,
 		val plugins: List<PluginEntry>,
 		val jsSources: List<JsSourceItem>,
+		val dartSources: List<JsSourceEntry>,
 		val skippedDartCount: Int,
 		val errors: Map<String, Throwable>,
 	)
 
-	val state = MutableStateFlow(State(repository.getRepos(), emptyList(), emptyList(), 0, emptyMap()))
+	val state = MutableStateFlow(State(repository.getRepos(), emptyList(), emptyList(), emptyList(), 0, emptyMap()))
 
 	/** A verified APK is ready: the fragment launches the system installer. */
 	val onInstall = MutableEventFlow<Intent>()
@@ -59,6 +60,7 @@ class SourceReposViewModel @Inject constructor(
 				repos = repository.getRepos(),
 				plugins = result.plugins,
 				jsSources = result.jsSources,
+				dartSources = result.dartSources,
 				skippedDartCount = result.skippedDartCount,
 				errors = result.errors,
 			)

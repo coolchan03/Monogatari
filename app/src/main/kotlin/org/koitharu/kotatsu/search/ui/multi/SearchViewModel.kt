@@ -1,10 +1,18 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import android.content.Context
 import androidx.collection.ArraySet
 import androidx.collection.LongSet
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -20,6 +28,8 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.PublicBookCatalog
+import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
@@ -59,6 +69,9 @@ private const val MAX_LOCALE_PRIORITY = 2.0
 @HiltViewModel
 class SearchViewModel @Inject constructor(
 	savedStateHandle: SavedStateHandle,
+	@ApplicationContext private val applicationContext: Context,
+	private val publicBookCatalog: PublicBookCatalog,
+	private val opdsCatalog: OpdsCatalog,
 	private val mangaListMapper: MangaListMapper,
 	private val searchHelperFactory: SearchV2Helper.Factory,
 	private val sourcesRepository: MangaSourcesRepository,
@@ -85,6 +98,13 @@ class SearchViewModel @Inject constructor(
 	private var yearFrom = MutableStateFlow<Int?>(null)
 	private var yearTo = MutableStateFlow<Int?>(null)
 	private val results = MutableStateFlow<List<SearchResultsListModel>>(emptyList())
+	/** Public catalog links use real URLs rather than invented Manga parser entries. */
+	private data class CatalogState(
+		val items: List<BookCatalogListModel> = emptyList(),
+		val loading: Boolean = false,
+	)
+	private val catalogState = MutableStateFlow(CatalogState(loading = mediaTypeOverride == MediaType.BOOK))
+	private var catalogJob: Job? = null
 
 	/**
 	 * Where each source's results belong on screen, keyed by source name. Sources answer in whatever
@@ -100,16 +120,18 @@ class SearchViewModel @Inject constructor(
 		isLoading.dropWhile { !it },
 		includeDisabledSources,
 		hideEmpty,
-	) { list, loading, includeDisabled, hideEmptyVal ->
+		catalogState,
+	) { list, loading, includeDisabled, hideEmptyVal, catalog ->
 		val filteredList = if (hideEmptyVal) {
 			list.filter { it.list.isNotEmpty() }
 		} else {
 			list
 		}.sortedForDisplay()
+		val combined: List<ListModel> = filteredList + catalog.items
 		when {
-			filteredList.isEmpty() -> listOf(
+			combined.isEmpty() -> listOf(
 				when {
-					loading -> LoadingState()
+					loading || catalog.loading -> LoadingState()
 					else -> EmptyState(
 						icon = R.drawable.ic_empty_common,
 						textPrimary = R.string.nothing_found,
@@ -119,9 +141,9 @@ class SearchViewModel @Inject constructor(
 				},
 			)
 
-			loading -> filteredList + LoadingFooter()
-			includeDisabled -> filteredList
-			else -> filteredList + ButtonFooter(R.string.search_disabled_sources)
+			loading || catalog.loading -> combined + LoadingFooter()
+			includeDisabled -> combined
+			else -> combined + ButtonFooter(R.string.search_disabled_sources)
 		}
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, listOf(LoadingState()))
 
@@ -144,6 +166,8 @@ class SearchViewModel @Inject constructor(
 
 	fun retry() {
 		searchJob?.cancel()
+		catalogJob?.cancel()
+		catalogState.value = CatalogState(loading = mediaTypeOverride == MediaType.BOOK && !hasPublicationYearFilter)
 		results.value = emptyList()
 		displayRanks.clear()
 		includeDisabledSources.value = false
@@ -209,6 +233,21 @@ class SearchViewModel @Inject constructor(
 	}
 
 	private fun doSearch() {
+		if (mediaTypeOverride == MediaType.BOOK && !hasPublicationYearFilter) {
+			catalogJob = viewModelScope.launch(Dispatchers.IO) {
+				val publicResults = supervisorScope {
+					listOf(
+						async { safeCatalogSearch { publicBookCatalog.searchGutenberg(query) } },
+						async { safeCatalogSearch { publicBookCatalog.searchOpenLibrary(query) } },
+						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
+						async { searchSavedOpds(query) },
+					).awaitAll().flatten()
+				}
+				catalogState.value = CatalogState(publicResults.distinctBy { it.url })
+			}
+		} else {
+			catalogState.value = CatalogState()
+		}
 		val prevJob = searchJob
 		searchJob = launchLoadingJob(Dispatchers.Default) {
 			prevJob?.cancelAndJoin()
@@ -230,6 +269,49 @@ class SearchViewModel @Inject constructor(
 					}
 				}
 			}.joinAll()
+		}
+	}
+
+	/** Public catalogs share the Books search list without masquerading as manga parsers. */
+	private suspend fun safeCatalogSearch(
+		block: suspend () -> List<PublicBookCatalog.Book>,
+	): List<BookCatalogListModel> = try {
+		withTimeout(15_000) {
+			block().map { BookCatalogListModel(it.title, it.author, it.catalog, it.url) }
+		}
+	} catch (_: TimeoutCancellationException) {
+		emptyList()
+	} catch (cancel: CancellationException) {
+		throw cancel
+	} catch (_: Exception) {
+		emptyList()
+	}
+
+	/** Saved OPDS feeds can be searched within their first page; full remote OPDS search is not assumed. */
+	private suspend fun searchSavedOpds(term: String): List<BookCatalogListModel> {
+		val saved = applicationContext.getSharedPreferences("opds_catalogs", Context.MODE_PRIVATE)
+			.getStringSet("urls", emptySet()).orEmpty().take(3)
+		return supervisorScope {
+			saved.map { url ->
+				async {
+					try {
+						withTimeout(15_000) {
+							opdsCatalog.load(url).asSequence()
+								.filter { it.title.contains(term, ignoreCase = true) ||
+									it.author.contains(term, ignoreCase = true) }
+								.take(35)
+								.map { BookCatalogListModel(it.title, it.author, "Saved OPDS", it.href) }
+								.toList()
+						}
+					} catch (_: TimeoutCancellationException) {
+						emptyList()
+					} catch (cancel: CancellationException) {
+						throw cancel
+					} catch (_: Exception) {
+						emptyList()
+					}
+				}
+			}.awaitAll().flatten()
 		}
 	}
 

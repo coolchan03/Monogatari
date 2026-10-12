@@ -39,6 +39,8 @@ import kotlinx.serialization.json.intOrNull
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.jsext.repo.DartSourceCompatibility
 import org.koitharu.kotatsu.core.ui.BasePreferenceFragment
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.core.util.ext.observe
@@ -66,6 +68,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 	@Inject
 	lateinit var scanManager: SourceScanManager
+
+	@Inject
+	lateinit var healthChecks: FirstRunHealthChecks
 
 	private var scanProgressDialog: AlertDialog? = null
 
@@ -254,9 +259,26 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			setOnPreferenceClickListener { installDiagnosticBatch(); true }
 		})
 		pluginsCategory.addPreference(Preference(context).apply {
+			key = "monogatari_quick_health"
+			title = "Run quick device checks"
+			summary = "Check storage, network and installed source registry without contacting websites"
+			isPersistent = false
+			setOnPreferenceClickListener {
+				viewLifecycleOwner.lifecycleScope.launch {
+					val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { healthChecks.run() }
+					MaterialAlertDialogBuilder(requireContext())
+						.setTitle("Monogatari device checks")
+						.setMessage(result.summary() + "\n\nFull source checks are available below. Neither test verifies actual video playback.")
+						.setPositiveButton(android.R.string.ok, null)
+						.show()
+				}
+				true
+			}
+		})
+		pluginsCategory.addPreference(Preference(context).apply {
 			key = "full_source_diagnostics"
 			title = "Test all Kotatsu and installed JS sources"
-			summary = "Full website sweep with progress and copyable report; install missing JS sources separately"
+			summary = "Resumable background sweep of all 1,370+ built-ins and installed JS sources. Network/data-intensive; may hit rate limits."
 			isPersistent = false
 			setOnPreferenceClickListener { runDiagnostics(allSources = true); true }
 		})
@@ -291,13 +313,22 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			)
 		}
 		if (state.skippedDartCount > 0) {
-			pluginsCategory.addPreference(
-				Preference(context).apply {
-					isPersistent = false
-					isSelectable = false
-					summary = getString(R.string.dart_sources_skipped, state.skippedDartCount)
-				},
-			)
+			val runnableJs = state.jsSources.map { it.entry }
+			val alternatives = state.dartSources.mapNotNull { dart ->
+				DartSourceCompatibility.candidate(dart, runnableJs)?.let { dart to it }
+			}
+			pluginsCategory.addPreference(Preference(context).apply {
+				isPersistent = false
+				isSelectable = alternatives.isNotEmpty()
+				title = "Dart alternatives: ${alternatives.size} candidates"
+				summary = "${state.skippedDartCount} source entries cannot execute directly. " +
+					"Open an existing Kotatsu parser or install matching JavaScript where available. " +
+					"Candidates still need live testing."
+				if (alternatives.isNotEmpty()) setOnPreferenceClickListener {
+					showDartAlternatives(alternatives, state)
+					true
+				}
+			})
 		}
 		val groups = mapOf(
 			JsItemType.MANGA to mangaCategory,
@@ -350,6 +381,46 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				},
 			)
 		}
+	}
+
+	private fun showDartAlternatives(
+		alternatives: List<Pair<JsSourceEntry, DartSourceCompatibility.Alternative>>,
+		state: SourceReposViewModel.State,
+	) {
+		val display = alternatives.take(75)
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle("Dart compatibility candidates")
+			.setMessage("These are alternatives for the same named website, not converted Dart parsers. Availability and reading must still be tested.")
+			.setItems(display.map { (dart, alternative) ->
+				"${dart.name} → ${alternative.description}"
+			}.toTypedArray()) { _, position ->
+				val (dart, alternative) = display[position]
+				val target = alternative.parser
+				if (target != null) {
+					MaterialAlertDialogBuilder(requireContext())
+						.setTitle(dart.name)
+						.setMessage("Open the existing Kotatsu parser ${target.name}? This does not run the Dart extension.")
+						.setNegativeButton(android.R.string.cancel, null)
+						.setPositiveButton("Open") { _, _ -> router.openList(target, null, null) }
+						.show()
+				} else {
+					val js = alternative.js ?: return@setItems
+					val isInstalled = state.jsSources.any {
+						it.entry.id == js.id && it.state != PluginState.NOT_INSTALLED
+					}
+					MaterialAlertDialogBuilder(requireContext())
+						.setTitle(dart.name)
+						.setMessage("A matching JavaScript source exists: ${js.name}. This does not execute Dart.")
+						.setNegativeButton(android.R.string.cancel, null)
+						.setPositiveButton(if (isInstalled) "Open" else "Install") { _, _ ->
+							if (isInstalled) router.openList(JsMangaSource(js.id), null, null)
+							else viewModel.installJs(js)
+						}
+						.show()
+				}
+			}
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
 	}
 
 	private fun describe(entry: PluginEntry): String {

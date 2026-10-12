@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
@@ -96,6 +98,9 @@ class SearchActivity :
 			itemClickListener = itemClickListener,
 			sizeResolver = sizeResolver,
 			selectionDecoration = selectionDecoration,
+			onBookOpen = { url ->
+				startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+			},
 		)
 		viewBinding.recyclerView.adapter = adapter
 		viewBinding.recyclerView.setHasFixedSize(true)

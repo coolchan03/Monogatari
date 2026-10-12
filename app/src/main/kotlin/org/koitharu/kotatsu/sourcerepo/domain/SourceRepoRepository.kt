@@ -36,7 +36,9 @@ data class JsSourceItem(
 data class RepoFetchResult(
 	val plugins: List<PluginEntry>,
 	val jsSources: List<JsSourceItem>,
-	/** Dart sources found in Mangayomi-format repos; they need Mangayomi's own runtime. */
+	/** Dart extensions; candidates can be routed to equivalent installed engines. */
+	val dartSources: List<JsSourceEntry>,
+	/** Sources in repo indexes with no runnable JavaScript implementation. */
 	val skippedDartCount: Int,
 	/** Repo URL -> failure, so one dead repo does not hide the others. */
 	val errors: Map<String, Throwable>,
@@ -101,9 +103,14 @@ class SourceRepoRepository @Inject constructor(
 			group.filter { it.isRunnable }
 				.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
 		}.sortedBy { it.name.lowercase() }
+		val dartSources = groupedSources.values.mapNotNull { group ->
+			group.filter { it.language == org.koitharu.kotatsu.jsext.repo.SourceCodeLanguage.DART }
+				.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
+		}.sortedBy { it.name.lowercase() }
 		RepoFetchResult(
 			plugins = plugins.mergeNewest().map { PluginEntry(it, it.stateFor(installedVersionCode(it.packageName))) },
 			jsSources = runnable.map { JsSourceItem(it, jsStateOf(it)) },
+			dartSources = dartSources,
 			skippedDartCount = groupedSources.size - runnable.size,
 			errors = errors,
 		)

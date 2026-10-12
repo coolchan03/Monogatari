@@ -15,6 +15,7 @@ import org.koitharu.kotatsu.list.ui.adapter.loadingFooterAD
 import org.koitharu.kotatsu.list.ui.adapter.loadingStateAD
 import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.list.ui.size.ItemSizeResolver
+import org.koitharu.kotatsu.search.ui.multi.BookCatalogListModel
 import org.koitharu.kotatsu.search.ui.multi.SearchResultsListModel
 
 class SearchAdapter(
@@ -22,6 +23,7 @@ class SearchAdapter(
 	itemClickListener: OnListItemClickListener<SearchResultsListModel>,
 	sizeResolver: ItemSizeResolver,
 	selectionDecoration: MangaSelectionDecoration,
+	onBookOpen: (String) -> Unit,
 ) : BaseListAdapter<ListModel>(), FastScroller.SectionIndexer {
 
 	init {
@@ -36,6 +38,7 @@ class SearchAdapter(
 				itemClickListener = itemClickListener,
 			),
 		)
+		addDelegate(ListItemType.BOOK_CATALOG, bookCatalogAD(onBookOpen))
 		addDelegate(ListItemType.STATE_LOADING, loadingStateAD())
 		addDelegate(ListItemType.FOOTER_LOADING, loadingFooterAD())
 		addDelegate(ListItemType.STATE_EMPTY, emptyStateListAD(listener))
@@ -44,6 +47,10 @@ class SearchAdapter(
 	}
 
 	override fun getSectionText(context: Context, position: Int): CharSequence? {
-		return (items.getOrNull(position) as? SearchResultsListModel)?.getTitle(context)
+		return when (val model = items.getOrNull(position)) {
+			is SearchResultsListModel -> model.getTitle(context)
+			is BookCatalogListModel -> model.catalog
+			else -> null
+		}
 	}
 }
