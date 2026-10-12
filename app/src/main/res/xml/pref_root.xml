@@ -54,12 +54,6 @@
         app:iconSpaceReserved="false"
         android:title="@string/monogatari_settings_manage" />
 
-    <Preference
-        android:key="monogatari_qa_entry"
-        android:icon="@drawable/ic_monogatari_nav_explore"
-        android:title="@string/monogatari_qa_title"
-        android:summary="@string/monogatari_qa_settings_summary" />
-
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment"
         android:icon="@drawable/ic_usage"
@@ -89,6 +83,12 @@
         android:icon="@drawable/ic_backup_restore"
         android:key="userdata"
         android:title="@string/backup_restore" />
+
+    <PreferenceScreen
+        android:fragment="org.koitharu.kotatsu.settings.AdvancedSettingsFragment"
+        android:icon="@drawable/ic_monogatari_nav_explore"
+        android:key="monogatari_advanced_entry"
+        android:title="@string/monogatari_advanced_title" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.about.AboutSettingsFragment"

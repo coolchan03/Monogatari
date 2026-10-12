@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="monogatari_advanced_title">Advanced</string>
+    <string name="monogatari_source_diagnostics_title">Source diagnostics</string>
+    <string name="monogatari_source_diagnostics_summary">Extension health checks, source compatibility and troubleshooting</string>
     <string name="welcome_adult_content_title">Show adult (18+) content?</string>
     <string name="welcome_adult_content_description">Choose whether to include adult content in searches and source lists. You can change this later in Settings.</string>
     <string name="welcome_adult_content_no">No</string>

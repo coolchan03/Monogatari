@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceScreen
+        android:fragment="org.koitharu.kotatsu.sourcerepo.ui.SourceReposFragment"
+        android:key="monogatari_advanced_source_diagnostics"
+        android:title="@string/monogatari_source_diagnostics_title"
+        android:summary="@string/monogatari_source_diagnostics_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="monogatari_qa_entry"
+        android:title="@string/monogatari_qa_title"
+        android:summary="@string/monogatari_qa_settings_summary"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

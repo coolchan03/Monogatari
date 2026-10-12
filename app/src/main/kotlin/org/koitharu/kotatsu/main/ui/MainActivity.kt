@@ -252,10 +252,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		if (prefs.getBoolean("guided_test_offer_v1", false)) return
 		prefs.edit().putBoolean("guided_test_offer_v1", true).apply()
 		lifecycleScope.launch {
-			val quick = withContext(Dispatchers.IO) {
-				runCatching { healthChecks.run().summary() }
-					.getOrElse { "Device preflight unavailable: ${it.javaClass.simpleName}" }
-			}
+			val report = withContext(Dispatchers.IO) { runCatching { healthChecks.run() }.getOrNull() } ?: return@launch
+			// The offline check is diagnostic only; a disconnected device or no JS sources is normal.
+			if (report.storageWritable) return@launch
+			val quick = report.summary()
 			withResumed {
 				if (isFinishing || isDestroyed) return@withResumed
 				com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)

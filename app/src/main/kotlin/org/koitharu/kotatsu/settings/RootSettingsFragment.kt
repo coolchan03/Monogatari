@@ -5,7 +5,6 @@ import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.content.Intent
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
-import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
@@ -35,10 +34,6 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 		addPreferencesFromResource(R.xml.pref_root)
 		findPreference<Preference>("monogatari_books_entry")?.setOnPreferenceClickListener {
 			startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
-			true
-		}
-		findPreference<Preference>("monogatari_qa_entry")?.setOnPreferenceClickListener {
-			startActivity(Intent(requireContext(), MonogatariTestCenterActivity::class.java))
 			true
 		}
 		addPreferencesFromResource(R.xml.pref_root_debug)
@@ -87,7 +82,7 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 			"appearance" to R.color.settings_icon_appearance,
 			AppSettings.KEY_REMOTE_SOURCES to R.color.settings_icon_sources,
 			"monogatari_books_entry" to R.color.settings_icon_reader,
-			"monogatari_qa_entry" to R.color.settings_icon_services,
+			"monogatari_advanced_entry" to R.color.settings_icon_services,
 			"reader" to R.color.settings_icon_reader,
 			"network" to R.color.settings_icon_network,
 			"downloads" to R.color.settings_icon_downloads,
