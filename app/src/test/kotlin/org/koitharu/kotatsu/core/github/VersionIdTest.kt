@@ -45,8 +45,10 @@ class VersionIdTest {
 
 	@Test
 	fun testCurrentVersion() {
-		val version1 = VersionId("2.4.6")
-		val version2 = VersionId(BuildConfig.VERSION_NAME)
-		assertTrue(version1 < version2)
+		// Monogatari starts at 0.9.0; Kotatsu-Redo's previous version floor does not apply.
+		val firstMonogatariVersion = VersionId("0.9.0")
+		val currentVersion = VersionId(BuildConfig.VERSION_NAME)
+		assertTrue(currentVersion >= firstMonogatariVersion)
+		assertTrue(BuildConfig.VERSION_CODE > 0)
 	}
 }
