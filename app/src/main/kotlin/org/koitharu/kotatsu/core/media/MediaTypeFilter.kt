@@ -18,7 +18,7 @@ private fun MangaSource.unwrapped(): MangaSource =
 fun MangaSource.asJsSource(): JsMangaSource? = unwrapped() as? JsMangaSource
 
 /** True only for Mangayomi JS books/anime that need the dedicated media reader. */
-fun MangaSource.isJsContinuousMedia(): Boolean = asJsSource() != null && mediaType() != MediaType.MANGA
+fun MangaSource.isContinuousMedia(): Boolean = asJsSource() != null && mediaType() != MediaType.MANGA
 
 /** Parser sources report a [org.koitharu.kotatsu.parsers.model.ContentType]; everything else is treated as manga. */
 fun MangaSource.mediaType(): MediaType {

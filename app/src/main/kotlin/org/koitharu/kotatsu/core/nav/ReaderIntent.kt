@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.bookmarks.domain.Bookmark
-import org.koitharu.kotatsu.core.media.isJsContinuousMedia
+import org.koitharu.kotatsu.core.media.isContinuousMedia
 import org.koitharu.kotatsu.core.model.parcelable.ParcelableManga
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.reader.ui.MediaReaderActivity
@@ -30,7 +30,7 @@ value class ReaderIntent private constructor(
 		fun targetFor(manga: Manga) = apply {
 			intent.setClass(
 				context,
-				if (manga.source.isJsContinuousMedia()) MediaReaderActivity::class.java else ReaderActivity::class.java,
+				if (manga.source.isContinuousMedia()) MediaReaderActivity::class.java else ReaderActivity::class.java,
 			)
 		}
 

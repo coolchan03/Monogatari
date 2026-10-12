@@ -34,7 +34,7 @@ import org.koitharu.kotatsu.bookmarks.domain.BookmarksRepository
 import org.koitharu.kotatsu.core.exceptions.EmptyMangaException
 import org.koitharu.kotatsu.core.exceptions.CloudFlareProtectedException
 import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
-import org.koitharu.kotatsu.core.media.isJsContinuousMedia
+import org.koitharu.kotatsu.core.media.isContinuousMedia
 import org.koitharu.kotatsu.core.model.getPreferredBranch
 import org.koitharu.kotatsu.core.nav.MangaIntent
 import org.koitharu.kotatsu.core.nav.ReaderIntent
@@ -265,7 +265,7 @@ class ReaderViewModel @Inject constructor(
         }
         val readerState = state ?: readingState.value ?: return
         val manga = getMangaOrNull() ?: return
-        val progress = if (!manga.source.isJsContinuousMedia()) {
+        val progress = if (!manga.source.isContinuousMedia()) {
             computePercent(readerState.chapterId, readerState.page)
         } else {
             computePercent(readerState.chapterId, readerState.page, chapterProgress = 0f)
@@ -480,7 +480,7 @@ class ReaderViewModel @Inject constructor(
                         // save state
                         if (!isIncognitoMode.firstNotNull()) {
                             readingState.value?.let { state ->
-                                val percent = if (!manga.source.isJsContinuousMedia()) {
+                                val percent = if (!manga.source.isContinuousMedia()) {
                                     computePercent(state.chapterId, state.page)
                                 } else {
                                     val existing = historyRepository.getOne(manga)?.percent
@@ -562,7 +562,7 @@ class ReaderViewModel @Inject constructor(
             chaptersTotal = m.chapters[chapter.branch].sizeOrZero(),
             totalPages = chaptersLoader.getPagesCount(chapter.id),
             currentPage = state.page,
-            percent = if (!currentManga.source.isJsContinuousMedia()) {
+            percent = if (!currentManga.source.isContinuousMedia()) {
                 computePercent(state.chapterId, state.page)
             } else {
                 computePercent(state.chapterId, state.page, chapterProgress = 0f)
