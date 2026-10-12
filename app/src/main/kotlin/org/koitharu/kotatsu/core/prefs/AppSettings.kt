@@ -51,6 +51,14 @@ import javax.inject.Singleton
 class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 
 	private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+	init {
+		// Previous versions could disable TLS verification for the entire app.
+		// Never preserve that unsafe setting on upgrade.
+		if (prefs.getBoolean(KEY_SSL_BYPASS, false)) {
+			prefs.edit { remove(KEY_SSL_BYPASS) }
+		}
+	}
+
 	private val connectivityManager = context.connectivityManager
 	private val mangaListBadgesDefault = ArraySet(context.resources.getStringArray(R.array.values_list_badges))
 
@@ -511,9 +519,12 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val dnsOverHttps: DoHProvider
 		get() = prefs.getEnumValue(KEY_DOH, DoHProvider.CLOUDFLARE)
 
-	var isSSLBypassEnabled: Boolean
-		get() = prefs.getBoolean(KEY_SSL_BYPASS, false)
-		set(value) = prefs.edit { putBoolean(KEY_SSL_BYPASS, value) }
+	/** Deprecated whole-app bypass is discarded, never migrated into a global exception. */
+	var sslBypassHosts: Set<String>
+		get() = prefs.getStringSet(KEY_SSL_BYPASS_HOSTS, emptySet()).orEmpty().toSet()
+		set(value) = prefs.edit {
+			putStringSet(KEY_SSL_BYPASS_HOSTS, value.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet())
+		}
 
 	val proxyType: Proxy.Type
 		get() {
@@ -904,6 +915,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_UPDATES_UNSTABLE = "updates_unstable"
 		const val KEY_TIPS_CLOSED = "tips_closed"
 		const val KEY_SSL_BYPASS = "ssl_bypass"
+		const val KEY_SSL_BYPASS_HOSTS = "ssl_bypass_hosts"
 		const val KEY_READER_AUTOSCROLL_SPEED = "as_speed"
 		const val KEY_READER_AUTOSCROLL_FAB = "as_fab"
 		const val KEY_MIRROR_SWITCHING = "mirror_switching"

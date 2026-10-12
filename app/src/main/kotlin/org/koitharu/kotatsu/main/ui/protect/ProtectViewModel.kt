@@ -37,7 +37,7 @@ class ProtectViewModel @Inject constructor(
 		}
 		job = launchLoadingJob {
 			val checked = withContext(Dispatchers.Default) {
-				AppPinHasher.verify(password, settings.appPassword)
+				AppPinHasher.verify(password, settings.appPassword.orEmpty())
 			}
 			if (checked.matches) {
 				checked.upgradedHash?.let { settings.appPassword = it }

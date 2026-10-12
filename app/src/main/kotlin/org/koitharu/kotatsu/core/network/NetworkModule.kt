@@ -73,11 +73,8 @@ interface NetworkModule {
 			proxySelector(proxyProvider.selector)
 			proxyAuthenticator(proxyProvider.authenticator)
 			dns(DoHManager(cache, settings))
-			if (settings.isSSLBypassEnabled) {
-				disableCertificateVerification()
-			} else {
-				installExtraCertificates(contextProvider.get())
-			}
+			// All core traffic must always retain certificate verification.
+			installExtraCertificates(contextProvider.get())
 			cache(cache)
 			//addInterceptor(GZipInterceptor())
 			addInterceptor(CloudFlareInterceptor())
@@ -93,10 +90,21 @@ interface NetworkModule {
 		fun provideMangaHttpClient(
 			@BaseHttpClient baseClient: OkHttpClient,
 			commonHeadersInterceptor: CommonHeadersInterceptor,
-		): OkHttpClient = baseClient.newBuilder().apply {
-			addNetworkInterceptor(CacheLimitInterceptor())
-			addInterceptor(commonHeadersInterceptor)
-		}.build()
+			settings: AppSettings,
+		): OkHttpClient {
+			// This client is ONLY reachable from the manga client interceptor, never account/sync/update calls.
+			// Insecure redirects are disabled so approved hosts cannot redirect to unapproved origins.
+			val unsafeClient = baseClient.newBuilder()
+				.followRedirects(false)
+				.followSslRedirects(false)
+				.disableCertificateVerification()
+				.build()
+			return baseClient.newBuilder().apply {
+				addNetworkInterceptor(CacheLimitInterceptor())
+				addInterceptor(commonHeadersInterceptor)
+				addInterceptor(HostScopedTlsInterceptor(settings, unsafeClient))
+			}.build()
+		}
 
 	}
 }

@@ -23,6 +23,7 @@ import org.koitharu.kotatsu.core.exceptions.UnsupportedSourceException
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.network.SourceSslException
 import org.koitharu.kotatsu.core.ui.dialog.buildAlertDialog
 import org.koitharu.kotatsu.core.util.ext.isHttpUrl
 import org.koitharu.kotatsu.core.util.ext.restartApplication
@@ -71,7 +72,7 @@ class ExceptionResolver private constructor(
             is AuthRequiredException -> resolveAuthException(e.source)
             is SSLException,
             is CertPathValidatorException -> {
-                showSslErrorDialog()
+                showSslErrorDialog(e)
                 false
             }
 
@@ -159,19 +160,19 @@ class ExceptionResolver private constructor(
         continuations.remove(tag)?.resume(result)
     }
 
-    private fun showSslErrorDialog() {
+    private fun showSslErrorDialog(error: Throwable) {
         val ctx = host.context ?: return
-        if (settings.isSSLBypassEnabled) {
+        // Only scraping requests have a verified failing host; do not offer a global bypass.
+        val failedHost = (error as? SourceSslException)?.requestHost ?: return
+        if (failedHost in settings.sslBypassHosts) {
             Toast.makeText(ctx, R.string.operation_not_supported, Toast.LENGTH_SHORT).show()
             return
         }
         buildAlertDialog(ctx) {
             setTitle(R.string.ignore_ssl_errors)
-            setMessage(R.string.ignore_ssl_errors_summary)
+            setMessage("$failedHost\n\n" + ctx.getString(R.string.ignore_ssl_errors_summary))
             setPositiveButton(R.string.apply) { _, _ ->
-                settings.isSSLBypassEnabled = true
-                Toast.makeText(ctx, R.string.settings_apply_restart_required, Toast.LENGTH_LONG).show()
-                ctx.restartApplication()
+                settings.sslBypassHosts = settings.sslBypassHosts + failedHost
             }
             setNegativeButton(android.R.string.cancel, null)
         }.show()
