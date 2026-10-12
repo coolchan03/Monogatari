@@ -9,6 +9,7 @@ import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.media.BookMetadataProvider
 import org.koitharu.kotatsu.builtin.ao3.Ao3Repository
+import org.koitharu.kotatsu.builtin.royalroad.RoyalRoadRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 
 class BuiltinRepositoryFactory @Inject constructor(
@@ -26,6 +27,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.GUTENBERG -> GutenbergRepository(cache, client, context, bookMetadata)
             BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client, context, settings, bookMetadata)
             BuiltinSource.AO3 -> Ao3Repository(cache, client, settings)
+            BuiltinSource.ROYAL_ROAD -> RoyalRoadRepository(cache, client)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }
