@@ -104,7 +104,7 @@ class GutenbergRepository(
         target.parentFile?.mkdirs()
         val temp = File(target.parentFile, "$id.epub.tmp")
         try {
-            client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            client.newCall(Request.Builder().url(url).header("User-Agent", "Mozilla/5.0 (compatible; Monogatari/0.9)").build()).execute().use { response ->
                 if (!response.isSuccessful) error("EPUB download HTTP ${response.code}")
                 val body = response.body ?: error("Empty EPUB download")
                 body.byteStream().use { input ->
@@ -129,7 +129,7 @@ class GutenbergRepository(
     }
 
     private suspend fun fetch(url: String): JSONObject = withContext(Dispatchers.IO) {
-        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+        client.newCall(Request.Builder().url(url).header("User-Agent", "Mozilla/5.0 (compatible; Monogatari/0.9)").build()).execute().use { response ->
             if (!response.isSuccessful) error("Gutendex HTTP ${response.code}")
             JSONObject(response.body?.string() ?: error("Empty Gutendex response"))
         }

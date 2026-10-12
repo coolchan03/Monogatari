@@ -25,6 +25,7 @@ import org.koitharu.kotatsu.core.db.dao.MangaSourcesDao
 import org.koitharu.kotatsu.core.db.entity.MangaSourceEntity
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
 import org.koitharu.kotatsu.core.model.getTitle
+import org.koitharu.kotatsu.core.model.getLocale
 import org.koitharu.kotatsu.core.model.isNsfw
 import org.koitharu.kotatsu.core.parser.external.ExternalMangaSource
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
@@ -409,6 +410,9 @@ class MangaSourcesRepository @Inject constructor(
 		return buildSet {
 			allMangaSources.forEach { source ->
 				if (source.locale in languages && (!skipNsfw || !source.isNsfw())) add(source.name)
+			}
+			BuiltinSource.entries.forEach { source ->
+				if (source.getLocale()?.language in languages) add(source.name)
 			}
 			jsStore?.list().orEmpty().forEach { entry ->
 				if (!(skipNsfw && entry.isNsfw) && (entry.lang == "all" || entry.lang in languages)) {

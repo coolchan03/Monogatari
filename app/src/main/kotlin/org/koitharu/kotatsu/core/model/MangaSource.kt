@@ -89,7 +89,7 @@ tailrec fun MangaSource.unwrap(): MangaSource = if (this is MangaSourceInfo) {
 
 fun MangaSource.getLocale(): Locale? = when (val source = unwrap()) {
 	is MangaParserSource -> source.locale.toLocaleOrNull()
-	is BuiltinSource -> java.util.Locale.ENGLISH
+	is BuiltinSource -> if (source == BuiltinSource.GUTENBERG || source == BuiltinSource.IA_BOOKS) java.util.Locale.ENGLISH else null
 	is JsMangaSource -> JsSourceRegistry.get(source.id)?.lang
 		?.takeUnless { it.isBlank() || it == "all" }
 		?.toLocaleOrNull()
