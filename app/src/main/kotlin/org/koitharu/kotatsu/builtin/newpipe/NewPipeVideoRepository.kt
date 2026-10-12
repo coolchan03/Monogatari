@@ -81,10 +81,19 @@ class NewPipeVideoRepository(cache: MemoryContentCache, override val source: Bui
     override suspend fun getDetailsImpl(manga: Manga): Manga = withContext(Dispatchers.IO) {
         if (manga.tags.any { it.title == "channel" }) {
             val channel = ChannelInfo.getInfo(service, manga.url)
-            val firstTab = channel.tabs.firstOrNull() ?: return@withContext manga.copy(chapters = emptyList())
+            val firstTab = channel.tabs.firstOrNull { it.url.contains("/videos", ignoreCase = true) }
+                ?: channel.tabs.firstOrNull() ?: return@withContext manga.copy(chapters = emptyList())
             val tab = ChannelTabInfo.getInfo(service, firstTab)
-            val chapters = tab.relatedItems.filterIsInstance<StreamInfoItem>()
-                .mapIndexed { index, item ->
+            val videoItems = NewPipePageCollector.collect(
+                first = tab.relatedItems.filterIsInstance<StreamInfoItem>(),
+                next = tab.nextPage,
+                key = { item: StreamInfoItem -> item.url },
+                fetch = { page ->
+                    val more = ChannelTabInfo.getMoreItems(service, firstTab, page)
+                    more.items.filterIsInstance<StreamInfoItem>() to more.nextPage
+                },
+            )
+            val chapters = videoItems.mapIndexed { index, item ->
                     MangaChapter(
                         id = ArchiveMapping.uid(source, item.url),
                         title = item.name,
@@ -101,8 +110,16 @@ class NewPipeVideoRepository(cache: MemoryContentCache, override val source: Bui
         }
         if (manga.url.contains("list=") || manga.url.contains("/playlist")) {
             val info = PlaylistInfo.getInfo(service, manga.url)
-            val chapters = info.relatedItems.filterIsInstance<StreamInfoItem>()
-                .mapIndexed { index, item ->
+            val videoItems = NewPipePageCollector.collect(
+                first = info.relatedItems.filterIsInstance<StreamInfoItem>(),
+                next = info.nextPage,
+                key = { item: StreamInfoItem -> item.url },
+                fetch = { page ->
+                    val more = PlaylistInfo.getMoreItems(service, manga.url, page)
+                    more.items.filterIsInstance<StreamInfoItem>() to more.nextPage
+                },
+            )
+            val chapters = videoItems.mapIndexed { index, item ->
                     MangaChapter(
                         id = ArchiveMapping.uid(source, item.url),
                         title = item.name,
