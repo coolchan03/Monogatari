@@ -5,7 +5,10 @@
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="wrap_content"
-	android:background="@drawable/list_selector"
+	android:background="@drawable/bg_monogatari_tile"
+	android:layout_marginHorizontal="6dp"
+	android:layout_marginVertical="3dp"
+	android:paddingVertical="3dp"
 	android:clipChildren="false">
 
 	<org.koitharu.kotatsu.image.ui.CoverImageView
