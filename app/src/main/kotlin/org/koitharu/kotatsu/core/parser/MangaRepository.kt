@@ -9,8 +9,6 @@ import org.koitharu.kotatsu.builtin.opds.OpdsSource
 import org.koitharu.kotatsu.builtin.opds.OpdsRepository
 import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.network.MangaHttpClient
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.builtin.BuiltinRepositoryFactory
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
