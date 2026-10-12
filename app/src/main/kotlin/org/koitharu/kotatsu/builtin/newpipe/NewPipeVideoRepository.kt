@@ -1,7 +1,9 @@
 package org.koitharu.kotatsu.builtin.newpipe
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.builtin.ArchiveMapping
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
@@ -23,7 +25,11 @@ import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import java.util.concurrent.ConcurrentHashMap
 
 /** Video search and compatible combined/HLS playback. Channels and playlists are a later stage. */
-class NewPipeVideoRepository(cache: MemoryContentCache, override val source: BuiltinSource = BuiltinSource.YOUTUBE) :
+class NewPipeVideoRepository(
+    cache: MemoryContentCache,
+    override val source: BuiltinSource = BuiltinSource.YOUTUBE,
+    private val client: OkHttpClient,
+) :
     CachingMangaRepository(cache), ContinuousMediaProvider {
     override val sortOrders = setOf(SortOrder.POPULARITY)
     override var defaultSortOrder = SortOrder.POPULARITY
@@ -36,6 +42,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache, override val source: Bui
         else -> ServiceList.YouTube
     }
     private val nextPage = ConcurrentHashMap<String, Page>()
+    private val rssFeed = YouTubeChannelFeed(client)
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> =
         withContext(Dispatchers.IO) {
@@ -93,15 +100,30 @@ class NewPipeVideoRepository(cache: MemoryContentCache, override val source: Bui
                     more.items.filterIsInstance<StreamInfoItem>() to more.nextPage
                 },
             )
-            val chapters = videoItems.mapIndexed { index, item ->
+            val published = if (source == BuiltinSource.YOUTUBE) {
+                try {
+                    rssFeed.fetch(channel.id.orEmpty())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            } else emptyList()
+            val merged = LinkedHashMap<String, Pair<String, Long>>()
+            published.forEach { item -> merged[item.id] = item.url to item.publishedAt }
+            videoItems.forEach { item ->
+                val id = YouTubeChannelFeed.videoId(item.url) ?: item.url
+                merged.putIfAbsent(id, item.url to 0L)
+            }
+            val chapters = merged.values.toList().asReversed().mapIndexed { index, (url, posted) ->
                     MangaChapter(
-                        id = ArchiveMapping.uid(source, item.url),
-                        title = item.name,
+                        id = ArchiveMapping.uid(source, url),
+                        title = published.firstOrNull { it.url == url }?.title ?: videoItems.firstOrNull { it.url == url }?.name.orEmpty(),
                         number = (index + 1).toFloat(),
                         volume = 0,
-                        url = item.url,
+                        url = url,
                         scanlator = null,
-                        uploadDate = 0L,
+                        uploadDate = posted,
                         branch = null,
                         source = source,
                     )

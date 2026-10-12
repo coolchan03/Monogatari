@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.tracker.domain
 
 import android.util.Log
 import coil3.request.CachePolicy
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.model.getPreferredBranch
 import org.koitharu.kotatsu.core.model.isLocal
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
@@ -132,6 +133,8 @@ class CheckNewChaptersUseCase @Inject constructor(
 			},
 		)
 
+		// A saved YouTube channel must refresh, even when its previous video list is cached.
+        manga.source == BuiltinSource.YOUTUBE && manga.tags.any { it.title == "channel" } -> fetchDetails(manga)
 		manga.chapters.isNullOrEmpty() -> fetchDetails(manga)
 		else -> manga
 	}
