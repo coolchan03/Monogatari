@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
+import org.koitharu.kotatsu.core.media.AudioResumeStore
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.MediaSubtitle
@@ -345,7 +346,9 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 					.setArtworkUri(manga?.coverUrl?.takeIf { it.startsWith("https://") }?.let(Uri::parse))
 					.build())
 				.build()
-			controller.setMediaItem(item, restorePosition.toLong().coerceAtLeast(0L))
+			val saved = AudioResumeStore.read(this, stream.url)
+			val position = restorePosition.toLong().takeIf { it > 0L } ?: saved
+			controller.setMediaItem(item, position.coerceAtLeast(0L))
 			restorePosition = 0
 			controller.prepare()
 			controller.play()
