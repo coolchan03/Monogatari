@@ -1,25 +1,24 @@
-# Monogatari live work status
+# Monogatari live work checkpoint
+Last observed: 2026-10-12 16:25:15 CDT (last observation, NOT a detected timeout).
 
-Last observed: 2026-10-12 16:22:24 CDT (this is NOT a model timeout timestamp).
+## DONE — CI verified and merged
+- Saved OPDS first-class sources and bounded OPDS navigation: cumulative CI 38307899863 success; merged to devel as d51c64012.
+- LibriVox basic source plus Media3 background playback, Android foreground media service, lock-screen media session, audiobook artwork and local hashed-URL resume positions: cumulative CI 38309024466 SUCCESS, with debug APK and unsigned R8. Merged to default devel at e8344e8a4 (remote verified). Real Android device smoke testing not yet done.
+- Earlier Steps 1–30 code milestones have passed CI and are merged, subject to device testing.
 
-## Verified DONE
-- Step 30 saved OPDS sources: CI 38306030991 passed; merged earlier.
-- Step 31 LibriVox basic catalog + Step 32-style OPDS navigation: combined CI 38307899863 SUCCESS (unit tests, debug APK and unsigned R8 APK). Default devel fast-forwarded to d51c64012 via tunnel; remote confirmed.
-- Devel previous CI 38307931064 SUCCESS. Latest devel post-merge run 38309624801 IN PROGRESS.
-- Preserved untracked .release-temp/ and source-audit/.
+## IN PROGRESS — pushed but still CI testing
+- Step 32a: official NewPipeExtractor v0.26.5, OkHttp downloader, initialization, ProGuard rules: commit a994f3e13, branch batch-32a-newpipe-dependency, CI 38309305378 R8 in progress at last observation. Do NOT merge without green.
+- Step 32b/c partial: YouTube VIDEO search/pagination, stream resolution with HLS, DASH, merged video-only/audio, and subtitles; guided test cases for LibriVox/OPDS/YouTube. Current branch batch-32b-newpipe-youtube at 40a2d1ace, CI 38310462619 IN PROGRESS. Initial CI 38310057317 FAILED because NewPipe URL fields are nullable; fixed in 40a2d1ace. Do NOT merge until latest cumulative build passes.
+- Devel post-audio-merge CI 38310322371 IN PROGRESS.
+- YouTube channels/playlists, PeerTube and SoundCloud, RSS and real playback tests remain incomplete.
+- Signed release still needs keystore/secrets, no signed release claimed.
 
-## Pushed; awaiting full CI / device verification
-- LibriVox Media3 background playback service, lock-screen notification/session controllers, audio artwork, audio position persistence. Branch batch-33-background-audio tip e8344e8a4. CI 38309024466 IN PROGRESS; unit tests/debug APK passed, R8 still running. Commits 40c294ca5, c6e99b889, cbfec0e9a, e8344e8a4. LibriVox real API smoke showed 128 sections for a test book, working https MP3 URLs, author and genre fields. Device playback NOT tested.
-- NewPipeExtractor v0.26.5 and okhttp downloader (Step 32a): commit a994f3e13, CI 38309305378 IN PROGRESS; unit tests/debug APK passed, R8 running.
-- First YouTube built-in VIDEO source search, pagination and basic streams: commit 6b869e02b, test center guidance ecd358997, DASH + separate audio/video merging 3dbfea20e. Branch batch-32b-newpipe-youtube at 3dbfea20e, latest CI 38310057317 IN PROGRESS. Not merged. PeerTube, SoundCloud, channels/playlists, YouTube device playback remain incomplete.
-- Guided QA report has new LibriVox, OPDS and YouTube cases, but no device user results yet.
+## NEXT EXACT ACTION
+1. Tunnel to Surface access FIRST, and ALL GitHub changes via tunnel.
+2. Inspect CI runs 38309305378, 38310462619 and 38310322371; diagnose errors via gh run view <id> --log-failed.
+3. If NewPipe dependency passes, the latest cumulative YouTube branch still needs to pass before merging it into devel. Check merge ancestry and ls-remote after fast-forward.
+4. Test on device: LibriVox screen-off playback, notification/lock-screen, resume; OPDS nested feeds; YouTube video with picture+sound, HLS/DASH and external subtitles. Use Advanced > Test Center and Copy report.
+5. Preserve local user folders .release-temp/ and source-audit/.
+6. End each batch with explicit DONE / IN PROGRESS / BLOCKED and latest commit+run references. A pushed commit alone does not count as DONE. Cannot detect exact timeout instant.
 
-## Next exact task (TUNNEL FIRST, GitHub writes only through tunnel)
-1. Inspect CI 38309024466 (audio), 38309305378 (NewPipe dependency), 38310057317 (YouTube), and devel 38309624801.
-2. If failures: get `gh run view <id> --log-failed` and repair on current cumulative branch batch-32b-newpipe-youtube; push and rerun until green.
-3. Merge only passing commits into devel in ancestry order. If audio passes, fast-forward e8344e8a4; if NewPipe and YouTube pass, fast-forward 3dbfea20e. Check ls-remote.
-4. Device smoke test remains required; do not claim functionality on hardware without installing/debugging it.
-5. Remaining Step 32 work: channels/playlists, PeerTube, SoundCloud, RSS, and DRM/age/failing host handling.
-6. Update this LIVE_BATCH_STATUS.md plus user-visible DONE/IN PROGRESS/BLOCKED report.
-
-Timing: user asks ~20–30-minute batches and visible completion. Record operation and exact last observed time; an unexpected timeout cannot be detected exactly.
+The user prefers 20–30-minute substantive batches and explicit completion updates.
