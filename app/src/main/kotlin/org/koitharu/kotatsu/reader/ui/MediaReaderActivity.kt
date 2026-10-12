@@ -19,6 +19,14 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import androidx.core.content.ContextCompat
+import androidx.media3.common.util.UnstableApi
+import android.content.ComponentName
+import com.google.common.util.concurrent.ListenableFuture
 import androidx.media3.common.MimeTypes
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -72,7 +80,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private var loadJob: Job? = null
 	private var artworkJob: Job? = null
 	private var artworkUrl: String? = null
-	private var player: ExoPlayer? = null
+	private var player: Player? = null
+	private var audioControllerFuture: ListenableFuture<MediaController>? = null
+	private var audioController: MediaController? = null
+	private var audioGeneration = 0
 	private var currentChapterId: Long? = null
 	private var currentMediaType: MediaType? = null
 	private var restorePosition = 0
@@ -127,7 +138,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	override fun onStop() {
-		player?.pause()
+		if (currentMediaType != MediaType.AUDIO) player?.pause()
 		viewModel.onStop()
 		super.onStop()
 	}
@@ -283,6 +294,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		} ?: videos.firstOrNull()
 
 	private fun startPlayer(video: MediaStream) {
+		if (currentMediaType == MediaType.AUDIO && video.headers.isEmpty()) {
+			startBackgroundAudio(video)
+			return
+		}
 		releasePlayer()
 		val dataSourceFactory = DefaultHttpDataSource.Factory()
 			.setAllowCrossProtocolRedirects(true)
@@ -302,6 +317,37 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		restorePosition = 0
 		exoPlayer.prepare()
 		exoPlayer.playWhenReady = true
+	}
+
+	private fun startBackgroundAudio(stream: MediaStream) {
+		releasePlayer()
+		val generation = ++audioGeneration
+		val token = SessionToken(this, ComponentName(this, org.koitharu.kotatsu.core.media.AudioPlaybackService::class.java))
+		val future = MediaController.Builder(this, token).buildAsync()
+		audioControllerFuture = future
+		future.addListener({
+			val controller = runCatching { future.get() }.getOrNull() ?: return@addListener
+			if (isDestroyed || generation != audioGeneration) {
+				MediaController.releaseFuture(future)
+				return@addListener
+			}
+			audioController = controller
+			player = controller
+			viewBinding.playerView.player = controller
+			val manga = viewModel.getMangaOrNull()
+			val item = MediaItem.Builder()
+				.setUri(stream.url)
+				.setMediaMetadata(MediaMetadata.Builder()
+					.setTitle(supportActionBar?.subtitle?.toString() ?: manga?.title)
+					.setArtist(manga?.title)
+					.setArtworkUri(manga?.coverUrl?.takeIf { it.startsWith("https://") }?.let(Uri::parse))
+					.build())
+				.build()
+			controller.setMediaItem(item, restorePosition.toLong().coerceAtLeast(0L))
+			restorePosition = 0
+			controller.prepare()
+			controller.play()
+		}, ContextCompat.getMainExecutor(this))
 	}
 
 	private fun subtitleConfiguration(track: MediaSubtitle): MediaItem.SubtitleConfiguration? {
@@ -355,8 +401,16 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	private fun releasePlayer() {
+		audioGeneration++
 		viewBinding.playerView.player = null
-		player?.release()
+		if (audioController != null) {
+			audioControllerFuture?.let(MediaController::releaseFuture)
+			audioController = null
+		} else {
+			(player as? ExoPlayer)?.release()
+			audioControllerFuture?.let(MediaController::releaseFuture)
+		}
+		audioControllerFuture = null
 		player = null
 	}
 
