@@ -32,7 +32,7 @@
 				android:layout_marginTop="12dp"
 				android:contentDescription="@string/monogatari_welcome_art_content_description"
 				android:scaleType="fitCenter"
-				android:src="@drawable/illustration_monogatari_bears" />
+				android:src="@drawable/illustration_monogatari_stories" />
 
 			<TextView
 				android:id="@+id/textView_welcome_title"
