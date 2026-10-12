@@ -39,23 +39,17 @@ class NewPipeVideoRepository(cache: MemoryContentCache, override val source: Bui
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> =
         withContext(Dispatchers.IO) {
-            val raw = filter?.query?.trim().orEmpty().ifEmpty { "BL drama" }
-            val kind = when {
-                raw.startsWith("playlist:", true) -> "playlists"
-                raw.startsWith("channel:", true) -> "channels"
-                else -> "videos"
-            }
-            val query = if (kind == "videos") raw else raw.substringAfter(':').trim()
-            val handler = service.searchQHFactory.fromQuery(query, if (source == BuiltinSource.YOUTUBE) listOf(kind) else emptyList(), "")
+            val plan = NewPipeSearchPlan.create(source, filter?.query)
+            val handler = service.searchQHFactory.fromQuery(plan.query, plan.filter, "")
             val (items, next) = if (offset <= 0) {
                 val info = SearchInfo.getInfo(service, handler)
                 info.relatedItems to info.nextPage
             } else {
-                val page = nextPage[raw] ?: return@withContext emptyList()
+                val page = nextPage[plan.cacheKey] ?: return@withContext emptyList()
                 val response = SearchInfo.getMoreItems(service, handler, page)
                 response.items to response.nextPage
             }
-            if (next == null) nextPage.remove(raw) else nextPage[raw] = next
+            if (next == null) nextPage.remove(plan.cacheKey) else nextPage[plan.cacheKey] = next
             items.mapNotNull { item ->
                 val entryKind = when (item) {
                     is StreamInfoItem -> "video"
