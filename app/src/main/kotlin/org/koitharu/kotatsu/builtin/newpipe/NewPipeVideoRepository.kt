@@ -87,10 +87,21 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
         val info = StreamInfo.getInfo(ServiceList.YouTube, chapter.url)
         val subtitles = info.subtitles.map { MediaSubtitle(it.url, it.languageTag) }
         val hls = info.hlsUrl?.takeIf(String::isNotBlank)
-        val streams = info.videoStreams.filter { it.url.isNotBlank() }.map {
+        val dash = info.dashMpdUrl?.takeIf(String::isNotBlank)
+        val muxed = info.videoStreams.filter { it.url.isNotBlank() }.map {
             MediaStream(it.url, it.resolution, subtitles = subtitles)
         }
-        if (hls != null) listOf(MediaStream(hls, "HLS", subtitles = subtitles)) + streams else streams
+        val audio = info.audioStreams.filter { it.url.isNotBlank() }
+            .maxByOrNull { it.averageBitrate }
+        val separated = if (audio == null) emptyList() else info.videoOnlyStreams
+            .filter { it.url.isNotBlank() }
+            .map { MediaStream(it.url, it.resolution, subtitles = subtitles, audioUrl = audio.url) }
+        buildList {
+            if (hls != null) add(MediaStream(hls, "HLS", subtitles = subtitles, mimeType = "application/x-mpegURL"))
+            if (dash != null) add(MediaStream(dash, "DASH", subtitles = subtitles, mimeType = "application/dash+xml"))
+            addAll(muxed)
+            addAll(separated)
+        }
     }
 
     override suspend fun getChapterHtml(title: String, chapter: MangaChapter): String = ""

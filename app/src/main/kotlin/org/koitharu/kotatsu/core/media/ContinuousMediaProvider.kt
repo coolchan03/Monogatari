@@ -13,6 +13,8 @@ data class MediaStream(
     val quality: String,
     val headers: Map<String, String> = emptyMap(),
     val subtitles: List<MediaSubtitle> = emptyList(),
+    val audioUrl: String? = null,
+    val mimeType: String? = null,
 )
 
 data class MediaSubtitle(val url: String, val label: String? = null)

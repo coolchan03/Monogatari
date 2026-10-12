@@ -31,6 +31,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MergingMediaSource
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -295,6 +296,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			QUALITY_NUMBER.find(video.quality)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 		} ?: videos.firstOrNull()
 
+	@OptIn(UnstableApi::class)
 	private fun startPlayer(video: MediaStream) {
 		if (currentMediaType == MediaType.AUDIO && video.headers.isEmpty()) {
 			startBackgroundAudio(video)
@@ -312,11 +314,19 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		val subtitles = video.subtitles.mapNotNull(::subtitleConfiguration)
 		val item = MediaItem.Builder()
 			.setUri(video.url)
+			.setMimeType(video.mimeType)
 			.setSubtitleConfigurations(subtitles)
 			.build()
 		player = exoPlayer
 		viewBinding.playerView.player = exoPlayer
-		exoPlayer.setMediaItem(item, restorePosition.toLong().coerceAtLeast(0L))
+		val position = restorePosition.toLong().coerceAtLeast(0L)
+		if (video.audioUrl != null) {
+			val videoSource = mediaSourceFactory.createMediaSource(item)
+			val audioSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(video.audioUrl))
+			exoPlayer.setMediaSource(MergingMediaSource(videoSource, audioSource), position)
+		} else {
+			exoPlayer.setMediaItem(item, position)
+		}
 		restorePosition = 0
 		exoPlayer.prepare()
 		exoPlayer.playWhenReady = true
