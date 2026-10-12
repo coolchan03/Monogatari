@@ -28,6 +28,7 @@ class ExploreMenuProvider(
 				MediaType.MANGA -> R.id.action_media_manga
 				MediaType.BOOK -> R.id.action_media_book
 				MediaType.VIDEO -> R.id.action_media_video
+				MediaType.AUDIO -> R.id.action_media_audio
 			},
 		)?.isChecked = true
 	}
@@ -48,6 +49,7 @@ class ExploreMenuProvider(
 			R.id.action_media_manga -> setMediaType(menuItem, MediaType.MANGA)
 			R.id.action_media_book -> setMediaType(menuItem, MediaType.BOOK)
 			R.id.action_media_video -> setMediaType(menuItem, MediaType.VIDEO)
+			R.id.action_media_audio -> setMediaType(menuItem, MediaType.AUDIO)
 
 			else -> false
 		}

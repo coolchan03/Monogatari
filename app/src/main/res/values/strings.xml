@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="media_type_audio">Audio</string>
     <string name="monogatari_content_level_title">Content level</string>
     <string name="monogatari_hide_adult_sources_title">Hide adult-only sources</string>
     <string name="monogatari_hidden_tags_title">Hidden tags</string>

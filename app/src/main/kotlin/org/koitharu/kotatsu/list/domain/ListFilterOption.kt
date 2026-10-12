@@ -162,6 +162,7 @@ sealed interface ListFilterOption {
 				AppMediaType.MANGA -> R.string.media_type_manga
 				AppMediaType.BOOK -> R.string.media_type_book
 				AppMediaType.VIDEO -> R.string.media_type_video
+				AppMediaType.AUDIO -> R.string.media_type_audio
 			}
 
 		override val iconResId: Int

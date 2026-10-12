@@ -429,6 +429,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				MediaType.MANGA -> R.string.media_type_manga
 				MediaType.BOOK -> R.string.media_type_book
 				MediaType.VIDEO -> R.string.media_type_video
+				MediaType.AUDIO -> R.string.media_type_audio
 			},
 		)
 		val status = when (entry.state) {

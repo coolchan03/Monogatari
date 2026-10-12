@@ -319,7 +319,7 @@ abstract class FavouritesDao : MangaQueryBuilder.ConditionCallback {
 
 	private fun mediaTypeCondition(type: MediaType): String {
 		val names = if (type == MediaType.MANGA) {
-			MediaType.BOOK.persistedSourceNames() + MediaType.VIDEO.persistedSourceNames()
+			MediaType.BOOK.persistedSourceNames() + MediaType.VIDEO.persistedSourceNames() + MediaType.AUDIO.persistedSourceNames()
 		} else {
 			type.persistedSourceNames()
 		}

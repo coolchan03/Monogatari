@@ -67,6 +67,7 @@ object SourceRepoIndexParser {
 	private fun parseMediaType(value: String?): MediaType = when (value?.trim()?.lowercase()) {
 		"book", "books", "novel" -> MediaType.BOOK
 		"video", "anime" -> MediaType.VIDEO
+		"audio", "music", "podcast" -> MediaType.AUDIO
 		else -> MediaType.MANGA
 	}
 

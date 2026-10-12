@@ -30,6 +30,7 @@ class FavoritesListQuickFilter @AssistedInject constructor(
 		add(ListFilterOption.MediaType(MediaType.MANGA))
 		add(ListFilterOption.MediaType(MediaType.BOOK))
 		add(ListFilterOption.MediaType(MediaType.VIDEO))
+		add(ListFilterOption.MediaType(MediaType.AUDIO))
 		add(ListFilterOption.ContentType(ContentType.MANGA))
 		add(ListFilterOption.ContentType(ContentType.MANHWA))
 		add(ListFilterOption.ContentType(ContentType.MANHUA))

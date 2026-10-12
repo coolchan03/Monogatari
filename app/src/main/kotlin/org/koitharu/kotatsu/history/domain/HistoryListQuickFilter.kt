@@ -27,6 +27,7 @@ class HistoryListQuickFilter @Inject constructor(
 		add(ListFilterOption.MediaType(MediaType.MANGA))
 		add(ListFilterOption.MediaType(MediaType.BOOK))
 		add(ListFilterOption.MediaType(MediaType.VIDEO))
+		add(ListFilterOption.MediaType(MediaType.AUDIO))
 		add(ListFilterOption.Macro.FAVORITE)
 		add(ListFilterOption.NOT_FAVORITE)
 		if (!settings.isNsfwContentDisabled) {

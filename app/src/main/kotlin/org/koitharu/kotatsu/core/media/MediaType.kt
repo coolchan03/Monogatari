@@ -11,6 +11,7 @@ enum class MediaType {
 	MANGA,
 	BOOK,
 	VIDEO,
+	AUDIO,
 }
 
 /**

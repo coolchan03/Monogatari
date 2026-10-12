@@ -181,7 +181,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		viewBinding.buttonTextSmaller.isVisible = isBook
 		viewBinding.buttonTextLarger.isVisible = isBook
 		viewBinding.webView.isVisible = isBook
-		viewBinding.playerView.isVisible = mediaType == MediaType.VIDEO
+		viewBinding.playerView.isVisible = mediaType == MediaType.VIDEO || mediaType == MediaType.AUDIO
 
 		if (currentChapterId != state.chapter.id) {
 			saveProgress()
@@ -189,7 +189,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			restorePosition = viewModel.getCurrentState()?.scroll ?: 0
 			when (mediaType) {
 				MediaType.BOOK -> loadNovel(state)
-				MediaType.VIDEO -> loadVideo(state)
+				MediaType.VIDEO, MediaType.AUDIO -> loadVideo(state)
 				MediaType.MANGA -> Unit
 			}
 		}
@@ -328,7 +328,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 				viewModel.saveContinuousState(webView.scrollY, progress)
 			}
 
-			MediaType.VIDEO -> player?.let { current ->
+			MediaType.VIDEO, MediaType.AUDIO -> player?.let { current ->
 				val duration = current.duration
 				val position = current.currentPosition.coerceAtLeast(0L)
 				val progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
@@ -395,7 +395,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 				bar.setAction(R.string.retry) {
 					when (currentMediaType) {
 						MediaType.BOOK -> loadNovel(state)
-						MediaType.VIDEO -> loadVideo(state)
+						MediaType.VIDEO, MediaType.AUDIO -> loadVideo(state)
 						else -> Unit
 					}
 				}
