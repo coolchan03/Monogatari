@@ -37,7 +37,8 @@ class LibriVoxRepository(cache: MemoryContentCache, private val client: OkHttpCl
                 publicUrl = book.optString("url_librivox").takeIf { it.startsWith("https://") } ?: "https://librivox.org/",
                 rating = RATING_UNKNOWN, contentRating = ContentRating.SAFE,
                 coverUrl = archiveId.takeIf(String::isNotBlank)?.let { "https://archive.org/services/img/$it" },
-                tags = emptySet(), state = null, authors = emptySet(), largeCoverUrl = null,
+                tags = LibriVoxMetadata.genres(book).map { MangaTag(it, it, source) }.toSet(),
+                state = null, authors = LibriVoxMetadata.authors(book), largeCoverUrl = null,
                 description = book.optString("description").orEmpty(), chapters = null, source = source,
             )
         }
