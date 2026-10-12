@@ -40,7 +40,11 @@ class OpdsRepository(
         if (offset > 0) return emptyList()
         val query = filter?.query?.trim().orEmpty()
         return catalog.load(source.url)
-            .filter { it.acquisition && (query.isEmpty() || it.title.contains(query, ignoreCase = true)) }
+            .filter { entry ->
+                entry.acquisition &&
+                    isEpubAcquisition(entry) &&
+                    (query.isEmpty() || entry.title.contains(query, ignoreCase = true))
+            }
             .map { entry ->
                 Manga(
                     id = ArchiveMapping.uid(source, entry.href),
@@ -91,6 +95,12 @@ class OpdsRepository(
         listOf(MangaPage(ArchiveMapping.uid(source, chapter.url), chapter.url, null, source))
     override suspend fun getPageUrl(page: MangaPage): String = page.url
     override suspend fun getRelatedMangaImpl(seed: Manga): List<Manga> = emptyList()
+
+    companion object {
+        internal fun isEpubAcquisition(entry: OpdsCatalog.Entry): Boolean =
+            entry.mediaType?.contains("epub", ignoreCase = true) == true ||
+                (entry.mediaType == null && entry.href.substringBefore('?').endsWith(".epub", true))
+    }
 
     private suspend fun download(url: String): File = withContext(Dispatchers.IO) {
         require(url.startsWith("https://") || url.startsWith("http://"))

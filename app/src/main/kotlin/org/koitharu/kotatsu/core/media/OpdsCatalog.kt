@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 /** OPDS 1.x Atom catalog reader. Links remain restricted to HTTP(S). */
 class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
-    data class Entry(val title: String, val author: String, val href: String, val acquisition: Boolean)
+    data class Entry(val title: String, val author: String, val href: String, val acquisition: Boolean, val mediaType: String? = null)
 
     suspend fun load(url: String): List<Entry> = withContext(Dispatchers.IO) {
         require(url.startsWith("https://") || url.startsWith("http://")) { "Use an HTTP(S) catalog URL" }
@@ -33,7 +33,7 @@ class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttp
             val href = runCatching { base.resolve(selected.attr("href")).toString() }.getOrNull()
                 ?: return@mapNotNull null
             if (!href.startsWith("https://") && !href.startsWith("http://")) return@mapNotNull null
-            Entry(title, author, href, acquisition != null)
+            Entry(title, author, href, acquisition != null, selected.attr("type").takeIf { it.isNotBlank() })
         }
     }
 }
