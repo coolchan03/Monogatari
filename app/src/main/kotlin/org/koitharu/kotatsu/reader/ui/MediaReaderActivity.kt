@@ -3,6 +3,8 @@ package org.koitharu.kotatsu.reader.ui
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -25,6 +27,8 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
@@ -34,6 +38,10 @@ import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.MediaSubtitle
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.network.MangaHttpClient
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.ByteArrayOutputStream
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.asJsSource
 import org.koitharu.kotatsu.core.media.mediaType
@@ -54,10 +62,16 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	lateinit var repositoryFactory: MangaRepository.Factory
 
 	@Inject
+	@MangaHttpClient
+	lateinit var artworkClient: OkHttpClient
+
+	@Inject
 	lateinit var captchaAutoResolveCoordinator: CaptchaAutoResolveCoordinator
 
 	private val viewModel: ReaderViewModel by viewModels()
 	private var loadJob: Job? = null
+	private var artworkJob: Job? = null
+	private var artworkUrl: String? = null
 	private var player: ExoPlayer? = null
 	private var currentChapterId: Long? = null
 	private var currentMediaType: MediaType? = null
@@ -120,6 +134,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 
 	override fun onDestroy() {
 		loadJob?.cancel()
+		artworkJob?.cancel()
 		releasePlayer()
 		viewBinding.webView.stopLoading()
 		viewBinding.webView.destroy()
@@ -168,6 +183,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			return
 		}
 		currentMediaType = mediaType
+		updateAudioArtwork(mediaType, manga.coverUrl)
 		supportActionBar?.title = state.mangaName
 		supportActionBar?.subtitle = state.getChapterTitle(resources)
 		viewBinding.chapterStatus.text = getString(
@@ -302,6 +318,39 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		url.substringBefore('?').endsWith(".ttml", ignoreCase = true) ||
 			url.substringBefore('?').endsWith(".xml", ignoreCase = true) -> MimeTypes.APPLICATION_TTML
 		else -> MimeTypes.APPLICATION_SUBRIP
+	}
+
+	/** Audio has no video track; use the book/album cover as PlayerView artwork. */
+	private fun updateAudioArtwork(mediaType: MediaType, coverUrl: String?) {
+		val url = if (mediaType == MediaType.AUDIO) coverUrl?.takeIf { it.startsWith("https://") } else null
+		if (artworkUrl == url) return
+		artworkUrl = url
+		artworkJob?.cancel()
+		viewBinding.playerView.setDefaultArtwork(null)
+		if (url == null) return
+		artworkJob = lifecycleScope.launch {
+			val bytes = withContext(Dispatchers.IO) {
+				runCatching {
+					artworkClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
+						if (!response.isSuccessful) return@use null
+						val stream = response.body?.byteStream() ?: return@use null
+						val output = ByteArrayOutputStream()
+						val buffer = ByteArray(8192)
+						while (true) {
+							val read = stream.read(buffer)
+							if (read < 0) break
+							if (output.size() + read > 2_000_000) return@use null
+							output.write(buffer, 0, read)
+						}
+						output.toByteArray()
+					}
+				}.getOrNull()
+			}
+			if (artworkUrl == url && bytes != null) {
+				val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+				if (bitmap != null) viewBinding.playerView.setDefaultArtwork(BitmapDrawable(resources, bitmap))
+			}
+		}
 	}
 
 	private fun releasePlayer() {
