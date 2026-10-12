@@ -89,8 +89,7 @@ class SearchV2Helper @AssistedInject constructor(
 			}.onFailure { e ->
 				e.printStackTraceDebug()
 			}.getOrDefault(emptySet())
-			val wanted = query.normalizedTag()
-			val tag = tags.find { x -> x.title.normalizedTag() == wanted }
+			val tag = tags.find { x -> TagSynonyms.matches(query, x.title) }
 			if (tag != null) MangaListFilter(tags = setOf(tag)) else null
 		}
 		}
@@ -138,7 +137,7 @@ class SearchV2Helper @AssistedInject constructor(
 			}
 
 			SearchKind.TAG -> sortByDescending { m ->
-				m.tags.any { tag -> tag.title.normalizedTag() == query.normalizedTag() }
+				m.tags.any { tag -> TagSynonyms.matches(query, tag.title) }
 			}
 		}
 	}

@@ -36,6 +36,7 @@ class SearchMenuProvider(
 			},
 		)?.isChecked = true
 		menu.findItem(R.id.action_filter_hide_empty)?.isChecked = viewModel.isHideEmptyEnabled
+		menu.findItem(R.id.action_filter_pinned_only)?.isChecked = viewModel.isPinnedOnly
 	}
 
 	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {

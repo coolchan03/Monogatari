@@ -61,7 +61,7 @@ import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import java.util.Locale
 import javax.inject.Inject
 
-private const val MAX_PARALLELISM = 4
+private const val MAX_PARALLELISM = 8
 
 /** Highest value [SearchViewModel.priority] returns: +2 for a locale match. */
 private const val MAX_LOCALE_PRIORITY = 2.0
@@ -168,8 +168,7 @@ class SearchViewModel @Inject constructor(
 		searchJob?.cancel()
 		catalogJob?.cancel()
 		catalogState.value = CatalogState(loading = mediaTypeOverride == MediaType.BOOK && !hasPublicationYearFilter)
-		results.value = emptyList()
-		displayRanks.clear()
+
 		includeDisabledSources.value = false
 		doSearch()
 	}
@@ -187,6 +186,9 @@ class SearchViewModel @Inject constructor(
 
 	val isHideEmptyEnabled: Boolean
 		get() = hideEmpty.value
+
+	val isPinnedOnly: Boolean
+		get() = pinnedOnly.value
 
 	val publicationYearFrom: Int?
 		get() = yearFrom.value
@@ -251,6 +253,8 @@ class SearchViewModel @Inject constructor(
 		val prevJob = searchJob
 		searchJob = launchLoadingJob(Dispatchers.Default) {
 			prevJob?.cancelAndJoin()
+			results.value = emptyList()
+			displayRanks.clear()
 			// History/favourites/local rows do not carry a trustworthy publication year, so omit them
 			// while a year filter is active instead of pretending they matched it.
 			// A book-only sweep must not accidentally show manga favourites/history/local manga.
