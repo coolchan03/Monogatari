@@ -74,7 +74,7 @@ class MangaSourcesRepository @Inject constructor(
 	suspend fun getEnabledSources(): List<MangaSource> {
 		assimilateNewSources()
 		val order = settings.sourcesSortOrder
-		return dao.findAll(!settings.isAllSourcesEnabled, order).toSources(settings.isNsfwContentDisabled, order)
+		return dao.findAll(!settings.isAllSourcesEnabled, order).toSources(settings.hideAdultOnlySources, order)
 			.let { enabled ->
 				val external = getExternalSources()
 				val list = ArrayList<MangaSourceInfo>(enabled.size + external.size)
@@ -87,7 +87,7 @@ class MangaSourcesRepository @Inject constructor(
 
 	suspend fun getPinnedSources(): Set<MangaSource> {
 		assimilateNewSources()
-		val skipNsfw = settings.isNsfwContentDisabled
+		val skipNsfw = settings.hideAdultOnlySources
 		val result = dao.findAllPinned().mapNotNullTo(LinkedHashSet<MangaSource>()) {
 			it.source.toMangaSourceOrNull()?.takeUnless { x -> skipNsfw && x.isNsfw() }
 		}
@@ -100,7 +100,7 @@ class MangaSourcesRepository @Inject constructor(
 
 	suspend fun getTopSources(limit: Int): List<MangaSource> {
 		assimilateNewSources()
-		return dao.findLastUsed(limit).toSources(settings.isNsfwContentDisabled, null)
+		return dao.findLastUsed(limit).toSources(settings.hideAdultOnlySources, null)
 	}
 
 	suspend fun getDisabledSources(): Set<MangaSource> {
@@ -135,7 +135,7 @@ class MangaSourcesRepository @Inject constructor(
 			entities.retainAll { it.addedIn == BuildConfig.VERSION_CODE }
 		}
 		val sources = entities.toSources(
-			skipNsfwSources = settings.isNsfwContentDisabled,
+			skipNsfwSources = settings.hideAdultOnlySources,
 			sortOrder = sortOrder,
 		).run {
 			mapNotNullTo(ArrayList(size)) { it.mangaSource as? MangaParserSource }
@@ -382,7 +382,7 @@ class MangaSourcesRepository @Inject constructor(
 
 	/** Installed Mangayomi JS sources. Installing one is what enables it; NSFW ones honour the NSFW setting. */
 	fun getJsSources(): List<JsMangaSource> {
-		val skipNsfw = settings.isNsfwContentDisabled
+		val skipNsfw = settings.hideAdultOnlySources
 		return jsStore?.list().orEmpty()
 			.filter { !(skipNsfw && it.isNsfw) }
 			.map { JsMangaSource(it.id) }
@@ -391,7 +391,7 @@ class MangaSourcesRepository @Inject constructor(
 	/** Language chips used when creating a source preset, including installed JS sources. */
 	fun getPresetLanguages(): Set<String> = buildSet {
 		allMangaSources.mapNotNullTo(this) { source -> source.locale.takeIf { it.isNotEmpty() } }
-		val skipNsfw = settings.isNsfwContentDisabled
+		val skipNsfw = settings.hideAdultOnlySources
 		jsStore?.list().orEmpty().forEach { entry ->
 			if (!(skipNsfw && entry.isNsfw) && entry.lang.isNotBlank() && entry.lang != "all") {
 				add(entry.lang)
@@ -402,7 +402,7 @@ class MangaSourcesRepository @Inject constructor(
 	/** Source names a language-based preset should contain. `all` JS sources apply to every language. */
 	fun getSourceNamesForPresetLanguages(languages: Set<String>): Set<String> {
 		if (languages.isEmpty()) return emptySet()
-		val skipNsfw = settings.isNsfwContentDisabled
+		val skipNsfw = settings.hideAdultOnlySources
 		return buildSet {
 			allMangaSources.forEach { source ->
 				if (source.locale in languages && (!skipNsfw || !source.isNsfw())) add(source.name)
@@ -418,7 +418,7 @@ class MangaSourcesRepository @Inject constructor(
 	/** Resolve a preset's persisted source names across built-in, external and JS source types. */
 	fun getSourcesByNames(names: Set<String>): List<MangaSource> {
 		if (names.isEmpty()) return emptyList()
-		val skipNsfw = settings.isNsfwContentDisabled
+		val skipNsfw = settings.hideAdultOnlySources
 		return buildList {
 			allMangaSources.forEach { source ->
 				if (source.name in names && (!skipNsfw || !source.isNsfw())) add(source)
@@ -524,8 +524,8 @@ class MangaSourcesRepository @Inject constructor(
 	fun observeScoreUpdates(): Flow<Unit> =
 		sourceRanker?.observeScores()?.map { } ?: flowOf(Unit)
 
-	private fun observeIsNsfwDisabled() = settings.observeAsFlow(AppSettings.KEY_DISABLE_NSFW) {
-		isNsfwContentDisabled
+	private fun observeIsNsfwDisabled() = settings.observeAsFlow(AppSettings.KEY_HIDE_ADULT_SOURCES) {
+		hideAdultOnlySources
 	}
 
 	private fun observeSortOrder() = settings.observeAsFlow(AppSettings.KEY_SOURCES_ORDER) {
