@@ -70,6 +70,8 @@ android {
 		// Crash reporting endpoint. Empty unless a `sentry_dsn` is set in local.properties (or the
 		// SENTRY_DSN environment variable, for CI); an empty DSN disables reporting entirely, so a
 		// plain clone still builds and simply never asks the user to send anything.
+		def repoList = readSecret('monogatari.repos', 'MONOGATARI_REPOS')
+		buildConfigField 'String', 'DEFAULT_REPOS', '\"' + repoList + '\"'
 		def sentryDsn = readSecret('sentry_dsn', 'SENTRY_DSN')
 		buildConfigField 'String', 'SENTRY_DSN', "\"${sentryDsn}\""
 

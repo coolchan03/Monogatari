@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.sourcerepo.data
 
 import android.content.Context
+import org.koitharu.kotatsu.BuildConfig
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl
@@ -19,7 +20,7 @@ class SourceRepoStore @Inject constructor(
 	private val prefs = context.getSharedPreferences("source_repos", Context.MODE_PRIVATE)
 
 	/** Seed compatible JS indexes once; never re-add a repo after the user removes it. */
-	fun getAll(): List<String> = (prefs.getStringSet(KEY_URLS, null) ?: DEFAULT_REPOS).sorted()
+	fun getAll(): List<String> = (prefs.getStringSet(KEY_URLS, null) ?: defaultRepos()).sorted()
 
 	/** @return `false` if [url] is not a valid https URL. Adding an existing one is a no-op success. */
 	fun add(url: String): Boolean {
@@ -32,25 +33,12 @@ class SourceRepoStore @Inject constructor(
 		prefs.edit { putStringSet(KEY_URLS, getAll().toSet() - url) }
 	}
 
+	private fun defaultRepos(): Set<String> = BuildConfig.DEFAULT_REPOS.split(',')
+		.map { it.trim() }.filter { normalizeRepoUrl(it) != null }.toSet()
+
 	private companion object {
 
 		const val KEY_URLS = "urls"
-		val DEFAULT_REPOS = setOf(
-			"https://raw.githubusercontent.com/m2k3a/mangayomi-extensions/main/index.json",
-			"https://raw.githubusercontent.com/m2k3a/mangayomi-extensions/main/novel_index.json",
-			"https://raw.githubusercontent.com/m2k3a/mangayomi-extensions/main/anime_index.json",
-			"https://raw.githubusercontent.com/coolchan03/Best-BL-Mangayomi-Extensions/main/index.json",
-			"https://raw.githubusercontent.com/coolchan03/Best-BL-Mangayomi-Extensions/main/novel_index.json",
-			"https://raw.githubusercontent.com/coolchan03/Best-BL-Mangayomi-Extensions/main/anime_index.json",
-			"https://raw.githubusercontent.com/kodjodevf/mangayomi-extensions/refs/heads/main/index.json",
-			"https://raw.githubusercontent.com/kodjodevf/mangayomi-extensions/refs/heads/main/novel_index.json",
-			"https://raw.githubusercontent.com/Swakshan/mangayomi-swak-extensions/refs/heads/main/index.json",
-			"https://raw.githubusercontent.com/Swakshan/mangayomi-swak-extensions/refs/heads/main/anime_index.json",
-			"https://raw.githubusercontent.com/Swakshan/mangayomi-swak-extensions/refs/heads/main/novel_index.json",
-			"https://raw.githubusercontent.com/Schnitzel5/sugoi-modules/refs/heads/main/index.json",
-			"https://raw.githubusercontent.com/Schnitzel5/sugoi-modules/refs/heads/main/anime_index.json",
-			"https://raw.githubusercontent.com/Schnitzel5/sugoi-modules/refs/heads/main/novel_index.json",
-			"https://raw.githubusercontent.com/gato404/kegareta-sauces/refs/heads/main/anime_index.json",
-		)
+
 	}
 }

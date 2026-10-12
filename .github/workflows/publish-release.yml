@@ -5,7 +5,7 @@ on:
       source_ref:
         description: 'Branch or commit to build (defaults to the development branch)'
         required: true
-        default: 'claude/mangayomi-kotatsu-features-fb46y2'
+        default: 'devel'
         type: string
       tag:
         description: 'New release tag (for example v2026.10.12)'
@@ -25,6 +25,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Set extension repository defaults
+        env:
+          MONOGATARI_REPOS: ${{ secrets.MONOGATARI_REPOS }}
+        shell: bash
+        run: printf 'monogatari.repos=%s\n' "$MONOGATARI_REPOS" >> local.properties
       - uses: gradle/actions/setup-gradle@v4
       - name: Validate release inputs and credentials
         env:
