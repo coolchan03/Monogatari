@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="source_repo_setup_title">Add extension repositories?</string>
+    <string name="source_repo_setup_confirmation">This link requests adding %1$d source catalogs from: %2$s. Only accept catalogs you trust.</string>
+    <string name="source_repo_setup_add">Add repositories</string>
+    <string name="source_repo_setup_saved">%1$d repository entries saved</string>
     <string name="app_name" translatable="false">Monogatari</string>
     <string name="local_storage">Local storage</string>
     <string name="favourites">Favorites</string>

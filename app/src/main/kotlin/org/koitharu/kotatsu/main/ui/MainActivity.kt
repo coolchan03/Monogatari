@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.view.ActionMode
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -75,6 +76,8 @@ import org.koitharu.kotatsu.main.ui.owners.BottomNavOwner
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import org.koitharu.kotatsu.sourcerepo.ui.FirstRunHealthChecks
+import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
+import org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl
 import org.koitharu.kotatsu.remotelist.ui.MangaSearchMenuProvider
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionItemCallback
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionListenerImpl
@@ -112,6 +115,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 	@Inject
 	lateinit var healthChecks: FirstRunHealthChecks
+
+	@Inject
+	lateinit var sourceRepoRepository: SourceRepoRepository
 
 	private val viewModel by viewModels<MainViewModel>()
 	private val searchSuggestionViewModel by viewModels<SearchSuggestionViewModel>()
@@ -203,6 +209,38 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.searchView.addTransitionListener(this)
 		viewBinding.searchView.addTransitionListener(exitCallback)
 		initSearch()
+		if (savedInstanceState == null) handleRepositorySetupLink(intent)
+	}
+
+	override fun onNewIntent(intent: Intent) {
+		super.onNewIntent(intent)
+		setIntent(intent)
+		handleRepositorySetupLink(intent)
+	}
+
+	/** External repo links need explicit user consent; never silently trust install sources. */
+	private fun handleRepositorySetupLink(incoming: Intent?) {
+		if (incoming?.action != Intent.ACTION_VIEW) return
+		val uri = incoming.data ?: return
+		if (uri.scheme != "monogatari" || uri.host != "setup") return
+		val encoded = uri.getQueryParameter("repos") ?: return
+		val repositories = encoded.split(',')
+			.mapNotNull { normalizeRepoUrl(it.trim()) }
+			.distinct()
+			.take(30)
+		if (repositories.isEmpty()) return
+		val hosts = repositories.mapNotNull { android.net.Uri.parse(it).host }.distinct()
+		AlertDialog.Builder(this)
+			.setTitle(R.string.source_repo_setup_title)
+			.setMessage(getString(R.string.source_repo_setup_confirmation, repositories.size, hosts.joinToString(", ")))
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(R.string.source_repo_setup_add) { _, _ ->
+				val added = repositories.count { sourceRepoRepository.addRepo(it) }
+				android.widget.Toast.makeText(this,
+					getString(R.string.source_repo_setup_saved, added),
+					android.widget.Toast.LENGTH_LONG).show()
+			}
+			.show()
 	}
 
 	/**
