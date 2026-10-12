@@ -22,6 +22,8 @@ import org.koitharu.kotatsu.parsers.model.MangaPage
 import org.koitharu.kotatsu.parsers.model.RATING_UNKNOWN
 import org.koitharu.kotatsu.parsers.model.SortOrder
 import java.io.File
+import java.net.URI
+import java.util.ArrayDeque
 
 /** Saved OPDS catalog as a persistent BOOK source; EPUB acquisitions read locally. */
 class OpdsRepository(
@@ -39,7 +41,7 @@ class OpdsRepository(
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
         if (offset > 0) return emptyList()
         val query = filter?.query?.trim().orEmpty()
-        return catalog.load(source.url)
+        return loadNestedCatalogs()
             .filter { entry ->
                 entry.acquisition &&
                     isEpubAcquisition(entry) &&
@@ -64,6 +66,43 @@ class OpdsRepository(
                     source = source,
                 )
             }
+    }
+
+    /** Breadth-first navigation with a hard limit; never follow off-site subcatalogs. */
+    private suspend fun loadNestedCatalogs(): List<OpdsCatalog.Entry> {
+        val root = URI(source.url)
+        val pending = ArrayDeque<Pair<String, Int>>()
+        val visited = mutableSetOf<String>()
+        val found = linkedMapOf<String, OpdsCatalog.Entry>()
+        pending.add(source.url to 0)
+        while (pending.isNotEmpty() && visited.size < 12 && found.size < 300) {
+            val (url, depth) = pending.removeFirst()
+            if (!visited.add(url)) continue
+            val entries = if (depth == 0) catalog.load(url) else runCatching { catalog.load(url) }.getOrDefault(emptyList())
+            entries.forEach { entry ->
+                if (entry.acquisition) {
+                    if (isEpubAcquisition(entry)) found.putIfAbsent(entry.href, entry)
+                } else if (depth < 2 && canFollow(root, entry.href) && entry.href !in visited) {
+                    pending.add(entry.href to depth + 1)
+                }
+            }
+        }
+        return found.values.take(300)
+    }
+
+    companion object {
+        internal fun isEpubAcquisition(entry: OpdsCatalog.Entry): Boolean =
+            entry.mediaType?.contains("epub", ignoreCase = true) == true ||
+                (entry.mediaType == null && entry.href.substringBefore('?').endsWith(".epub", true))
+
+        internal fun canFollow(root: URI, candidate: String): Boolean = runCatching {
+            val target = URI(candidate)
+            (target.scheme == "https" || target.scheme == "http") &&
+                target.scheme.equals(root.scheme, true) &&
+                target.host.equals(root.host, true) &&
+                target.port == root.port &&
+                target.userInfo == null
+        }.getOrDefault(false)
     }
 
     override suspend fun getDetailsImpl(manga: Manga): Manga {
@@ -95,12 +134,6 @@ class OpdsRepository(
         listOf(MangaPage(ArchiveMapping.uid(source, chapter.url), chapter.url, null, source))
     override suspend fun getPageUrl(page: MangaPage): String = page.url
     override suspend fun getRelatedMangaImpl(seed: Manga): List<Manga> = emptyList()
-
-    companion object {
-        internal fun isEpubAcquisition(entry: OpdsCatalog.Entry): Boolean =
-            entry.mediaType?.contains("epub", ignoreCase = true) == true ||
-                (entry.mediaType == null && entry.href.substringBefore('?').endsWith(".epub", true))
-    }
 
     private suspend fun download(url: String): File = withContext(Dispatchers.IO) {
         require(url.startsWith("https://") || url.startsWith("http://"))

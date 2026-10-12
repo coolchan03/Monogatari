@@ -26,6 +26,14 @@ class OpdsSourceTest {
         assertFalse(navigation.acquisition)
     }
 
+    @Test fun limitsNavigationToSameOrigin() {
+        val base = java.net.URI("https://catalog.example.org/books/feed.xml")
+        assertTrue(OpdsRepository.canFollow(base, "https://catalog.example.org/fiction.xml"))
+        assertFalse(OpdsRepository.canFollow(base, "http://catalog.example.org/fiction.xml"))
+        assertFalse(OpdsRepository.canFollow(base, "https://other.example.org/fiction.xml"))
+        assertFalse(OpdsRepository.canFollow(base, "https://catalog.example.org.evil.test/fiction.xml"))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsNonHttpCatalogs() {
         OpdsSource.fromUrl("file:///private/catalog.xml")
