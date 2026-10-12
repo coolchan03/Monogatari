@@ -26,7 +26,7 @@ object Ao3Parser {
         val doc = Jsoup.parse(html, "https://archiveofourown.org")
         val works = doc.select("li.work.blurb").mapNotNull { li ->
             val link = li.selectFirst("h4.heading a[href^=/works/]") ?: return@mapNotNull null
-            val id = Regex("^/works/(\d+)").find(link.attr("href"))?.groupValues?.get(1)
+            val id = Regex("""^/works/(\d+)""").find(link.attr("href"))?.groupValues?.get(1)
                 ?: return@mapNotNull null
             val title = link.text().trim().takeIf { it.isNotEmpty() } ?: return@mapNotNull null
             fun list(css: String) = li.select(css).map { it.text().trim() }.filter { it.isNotBlank() }
