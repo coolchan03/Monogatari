@@ -15,6 +15,9 @@ import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import org.schabi.newpipe.extractor.playlist.PlaylistInfo
+import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
+import org.schabi.newpipe.extractor.channel.ChannelInfoItem
 import java.util.concurrent.ConcurrentHashMap
 
 /** Video search and compatible combined/HLS playback. Channels and playlists are a later stage. */
@@ -30,19 +33,29 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> =
         withContext(Dispatchers.IO) {
-            val query = filter?.query?.trim().orEmpty().ifEmpty { "BL drama" }
+            val raw = filter?.query?.trim().orEmpty().ifEmpty { "BL drama" }
+            val kind = when {
+                raw.startsWith("playlist:", true) -> "playlists"
+                else -> "videos"
+            }
+            val query = if (kind == "videos") raw else raw.substringAfter(':').trim()
             val service = ServiceList.YouTube
-            val handler = service.searchQHFactory.fromQuery(query, listOf("videos"), "")
+            val handler = service.searchQHFactory.fromQuery(query, listOf(kind), "")
             val (items, next) = if (offset <= 0) {
                 val info = SearchInfo.getInfo(service, handler)
                 info.relatedItems to info.nextPage
             } else {
-                val page = nextPage[query] ?: return@withContext emptyList()
+                val page = nextPage[raw] ?: return@withContext emptyList()
                 val response = SearchInfo.getMoreItems(service, handler, page)
                 response.items to response.nextPage
             }
-            if (next == null) nextPage.remove(query) else nextPage[query] = next
-            items.filterIsInstance<StreamInfoItem>().map { item ->
+            if (next == null) nextPage.remove(raw) else nextPage[raw] = next
+            items.mapNotNull { item ->
+                val entryKind = when (item) {
+                    is StreamInfoItem -> "video"
+                    is PlaylistInfoItem -> "playlist"
+                    else -> return@mapNotNull null
+                }
                 Manga(
                     id = ArchiveMapping.uid(source, item.url),
                     title = item.name,
@@ -52,11 +65,12 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
                     rating = RATING_UNKNOWN,
                     contentRating = ContentRating.SUGGESTIVE,
                     coverUrl = item.thumbnails.firstOrNull()?.url,
-                    tags = emptySet(),
+                    tags = setOf(MangaTag(entryKind, entryKind, source)),
                     state = null,
-                    authors = item.uploaderName?.takeIf(String::isNotBlank)?.let(::setOf) ?: emptySet(),
+                    authors = (item as? StreamInfoItem)?.uploaderName
+                        ?.takeIf(String::isNotBlank)?.let(::setOf) ?: emptySet(),
                     largeCoverUrl = null,
-                    description = item.shortDescription,
+                    description = (item as? StreamInfoItem)?.shortDescription.orEmpty(),
                     chapters = null,
                     source = source,
                 )
@@ -64,6 +78,24 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
         }
 
     override suspend fun getDetailsImpl(manga: Manga): Manga = withContext(Dispatchers.IO) {
+        if (manga.url.contains("list=") || manga.url.contains("/playlist")) {
+            val info = PlaylistInfo.getInfo(ServiceList.YouTube, manga.url)
+            val chapters = info.relatedItems.filterIsInstance<StreamInfoItem>()
+                .mapIndexed { index, item ->
+                    MangaChapter(
+                        id = ArchiveMapping.uid(source, item.url),
+                        title = item.name,
+                        number = (index + 1).toFloat(),
+                        volume = 0,
+                        url = item.url,
+                        scanlator = null,
+                        uploadDate = 0L,
+                        branch = null,
+                        source = source,
+                    )
+                }
+            return@withContext manga.copy(chapters = chapters)
+        }
         val info = StreamInfo.getInfo(ServiceList.YouTube, manga.url)
         val chapter = MangaChapter(
             id = ArchiveMapping.uid(source, manga.url),
