@@ -223,6 +223,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	private fun loadNovel(state: ReaderUiState) {
+		audioController?.stop()
 		releasePlayer()
 		val manga = viewModel.getMangaOrNull() ?: return
 		val provider = repositoryFactory.create(manga.source) as? ContinuousMediaProvider ?: return showError(
@@ -298,6 +299,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			startBackgroundAudio(video)
 			return
 		}
+		audioController?.stop()
 		releasePlayer()
 		val dataSourceFactory = DefaultHttpDataSource.Factory()
 			.setAllowCrossProtocolRedirects(true)
