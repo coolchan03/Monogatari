@@ -429,6 +429,7 @@ class MangaSourcesRepository @Inject constructor(
 			getExternalSources().forEach { source ->
 				if (source.name in names && (!skipNsfw || !source.isNsfw())) add(source)
 			}
+			BuiltinSource.entries.forEach { source -> if (source.name in names) add(source) }
 			getJsSources().forEach { source -> if (source.name in names) add(source) }
 		}
 	}

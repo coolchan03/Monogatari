@@ -2,10 +2,15 @@ package org.koitharu.kotatsu.builtin
 
 import org.koitharu.kotatsu.parsers.model.MangaSource
 
-/** Built-in non-parser catalogs, persisted by stable name. */
-enum class BuiltinSource(override val name: String, val title: String) : MangaSource {
-    GUTENBERG("builtin:gutenberg", "Project Gutenberg");
+/** Stable persisted source IDs; not an enum because Enum.name cannot be overridden. */
+sealed class BuiltinSource(
+    override val name: String,
+    val title: String,
+) : MangaSource {
+    data object GUTENBERG : BuiltinSource("builtin:gutenberg", "Project Gutenberg")
+
     companion object {
-        fun fromName(name: String) = entries.firstOrNull { it.name == name }
+        val entries: List<BuiltinSource> = listOf(GUTENBERG)
+        fun fromName(name: String): BuiltinSource? = entries.firstOrNull { it.name == name }
     }
 }

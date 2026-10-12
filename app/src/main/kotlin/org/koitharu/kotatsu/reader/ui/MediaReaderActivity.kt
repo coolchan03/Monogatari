@@ -206,12 +206,13 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		loadJob?.cancel()
 		loadJob = lifecycleScope.launch {
 			try {
-				val html = captchaAutoResolveCoordinator.runWithVerification(
-					source = manga.source.asJsSource() ?: throw IllegalStateException(getString(R.string.media_reader_source_unsupported)),
-					mayStartVerification = true,
-				) {
+				val jsSource = manga.source.asJsSource()
+				val html = if (jsSource == null) {
 					provider.getChapterHtml(manga.title, state.chapter)
-				}
+				} else captchaAutoResolveCoordinator.runWithVerification(
+					source = jsSource,
+					mayStartVerification = true,
+				) { provider.getChapterHtml(manga.title, state.chapter) }
 				viewBinding.webView.loadDataWithBaseURL(
 					state.chapter.url,
 					wrapHtml(html),
