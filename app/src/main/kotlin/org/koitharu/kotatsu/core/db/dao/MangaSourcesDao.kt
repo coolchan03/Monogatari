@@ -25,6 +25,18 @@ abstract class MangaSourcesDao {
 	@Query("SELECT * FROM sources ORDER BY pinned DESC, sort_key")
 	abstract suspend fun findAll(): List<MangaSourceEntity>
 
+    @Query("UPDATE sources SET fail_count = 0, last_success_at = :timestamp WHERE source = :source")
+    abstract suspend fun recordHealthSuccess(source: String, timestamp: Long): Int
+
+    @Query("UPDATE sources SET fail_count = MIN(fail_count + 1, 1000000) WHERE source = :source")
+    abstract suspend fun recordHealthFailure(source: String): Int
+
+    @Query("SELECT source FROM sources WHERE fail_count >= :threshold AND last_success_at < :cutoff")
+    abstract suspend fun findUnhealthyNames(threshold: Int, cutoff: Long): List<String>
+
+    @Query("SELECT * FROM sources WHERE source = :source LIMIT 1")
+    abstract suspend fun findOne(source: String): MangaSourceEntity?
+
 	@Query("SELECT source FROM sources WHERE enabled = 1")
 	abstract suspend fun findAllEnabledNames(): List<String>
 

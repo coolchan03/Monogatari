@@ -52,6 +52,7 @@ import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.util.sizeOrZero
+import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
 import javax.inject.Inject
 
 private const val FILTER_MIN_INTERVAL = 250L
@@ -67,7 +68,8 @@ open class RemoteListViewModel @Inject constructor(
 	sourcesRepository: MangaSourcesRepository,
 	mangaDataRepository: MangaDataRepository,
 	@ApplicationContext private val appContext: Context,
-	@LocalStorageChanges localStorageChanges: SharedFlow<LocalManga?>
+	@LocalStorageChanges localStorageChanges: SharedFlow<LocalManga?>,
+    private val sourceHealth: SourceHealthRecorder? = null,
 ) : MangaListViewModel(settings, mangaDataRepository, localStorageChanges), FilterCoordinator.Owner {
 
 	val source = MangaSource(savedStateHandle[RemoteListFragment.ARG_SOURCE])
@@ -172,6 +174,7 @@ open class RemoteListViewModel @Inject constructor(
 			try {
 				listError.value = null
 				val list = getListResolvingCaptcha(filterState, append, mayStartVerification)
+                sourceHealth?.success(source)
 				val prevList = mangaList.value.orEmpty()
 				if (!append) {
 					mangaList.value = list.distinctById()
@@ -186,6 +189,7 @@ open class RemoteListViewModel @Inject constructor(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Throwable) {
+                sourceHealth?.failure(source, e)
 				e.printStackTraceDebug()
 				listError.value = e
 				if (!mangaList.value.isNullOrEmpty()) {

@@ -42,6 +42,7 @@ import org.koitharu.kotatsu.list.ui.model.MangaCompactListModel
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
+import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.suggestions.domain.SuggestionRepository
 import javax.inject.Inject
@@ -55,6 +56,7 @@ class ExploreViewModel @Inject constructor(
 	private val presetsRepository: SourcePresetsRepository,
 	private val shortcutManager: AppShortcutManager,
 	private val sourceRanker: SourceRanker,
+    private val sourceHealth: SourceHealthRecorder,
 ) : BaseViewModel() {
 
 	val isGrid = settings.observeAsStateFlow(
@@ -238,7 +240,12 @@ class ExploreViewModel @Inject constructor(
 			val trending = runCatchingCancellable {
 				sourceRanker.trendingSources(sources.map { it.mangaSource })
 			}.getOrDefault(emptySet())
-			sources.mapTo(result) { MangaSourceItem(it, isGrid, it.name in trending) }
+            val unhealthy = runCatchingCancellable {
+                sourceHealth.unhealthyNames()
+            }.getOrDefault(emptySet())
+            sources.sortedBy { it.name in unhealthy }.mapTo(result) {
+                MangaSourceItem(it, isGrid, it.name in trending && it.name !in unhealthy, it.name in unhealthy)
+            }
 		} else {
 			result += EmptyHint(
 				icon = R.drawable.ic_empty_common,

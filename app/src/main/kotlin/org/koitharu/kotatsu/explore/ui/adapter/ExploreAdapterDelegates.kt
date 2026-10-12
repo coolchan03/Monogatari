@@ -111,7 +111,9 @@ fun exploreSourceListItemAD(
 	val hotMarker = HotSourceMarker(context)
 
 	bind {
-		binding.textViewTitle.text = hotMarker.decorate(item.source.getTitle(context), item.isTrending, atStart = true)
+		binding.textViewTitle.text = if (item.isUnhealthy) {
+            "⚠ " + item.source.getTitle(context)
+        } else hotMarker.decorate(item.source.getTitle(context), item.isTrending, atStart = true)
 		binding.textViewTitle.drawableStart = if (item.source.isPinned) iconPinned else null
 		binding.textViewSubtitle.text = item.source.getSummary(context)
 		binding.imageViewIcon.setImageAsync(item.source)
@@ -146,7 +148,8 @@ fun exploreSourceGridItemAD(
 				append(item.source.getSummary(context))
 			},
 		)
-		binding.textViewTitle.text = hotMarker.decorate(title, item.isTrending, atStart = true)
+		binding.textViewTitle.text = if (item.isUnhealthy) "⚠ " + title
+        else hotMarker.decorate(title, item.isTrending, atStart = true)
 		binding.textViewTitle.drawableStart = if (item.source.isPinned) iconPinned else null
 		binding.imageViewIcon.setImageAsync(item.source)
 	}

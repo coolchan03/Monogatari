@@ -18,4 +18,6 @@ data class MangaSourceEntity(
 	@ColumnInfo(name = "used_at") val lastUsedAt: Long,
 	@ColumnInfo(name = "pinned") val isPinned: Boolean,
 	@ColumnInfo(name = "cf_state") val cfState: Int,
+    @ColumnInfo(name = "fail_count", defaultValue = "0") val failCount: Int = 0,
+    @ColumnInfo(name = "last_success_at", defaultValue = "0") val lastSuccessAt: Long = 0,
 )

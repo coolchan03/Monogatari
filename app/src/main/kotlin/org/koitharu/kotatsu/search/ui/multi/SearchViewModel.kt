@@ -59,6 +59,7 @@ import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.domain.SearchV2Helper
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
+import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
 import java.util.Locale
 import javax.inject.Inject
 
@@ -81,6 +82,7 @@ class SearchViewModel @Inject constructor(
 	private val settings: AppSettings,
 	private val presetsRepository: SourcePresetsRepository,
 	private val sourceRanker: SourceRanker,
+    private val sourceHealth: SourceHealthRecorder,
 ) : BaseViewModel() {
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
@@ -239,8 +241,9 @@ class SearchViewModel @Inject constructor(
 					.filterByMediaType(effectiveMediaType)
 					.rankedForSweep(batch = 1)
 			}
+            val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-			sources.map { source ->
+            sources.filterNot { it.name in excluded }.map { source ->
 				launch {
 					semaphore.withPermit {
 						appendResult(searchSource(source))
@@ -279,8 +282,9 @@ class SearchViewModel @Inject constructor(
 				appendResult(searchLocal())
 			}
 			val sources = getPresetSourcesOrDefault().rankedForSweep(batch = 0)
+            val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-			sources.map { source ->
+            sources.filterNot { it.name in excluded }.map { source ->
 				launch {
 					semaphore.withPermit {
 						appendResult(searchSource(source))
@@ -535,7 +539,8 @@ class SearchViewModel @Inject constructor(
 			mediaTypeOverride != null -> sourcesRepository.getEnabledSources()
 			else -> getSourcesBeforeMediaFilter()
 		}
-		return sources.filterByMediaType(effectiveMediaType)
+        val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
+		return sources.filterByMediaType(effectiveMediaType).filterNot { it.name in excluded }
 	}
 
 	private suspend fun getSourcesBeforeMediaFilter(): List<MangaSource> {

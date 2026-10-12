@@ -19,6 +19,8 @@ import org.koitharu.kotatsu.parsers.util.levenshteinDistance
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.sourcescore.domain.ProbeOp
 import org.koitharu.kotatsu.sourcescore.domain.SourceProbeRecorder
+import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
+import kotlinx.coroutines.CancellationException
 
 private const val MATCH_THRESHOLD_DEFAULT = 0.2f
 
@@ -28,6 +30,7 @@ class SearchV2Helper @AssistedInject constructor(
 	private val dataRepository: MangaDataRepository,
 	private val settings: AppSettings,
 	private val probeRecorder: SourceProbeRecorder,
+    private val sourceHealth: SourceHealthRecorder,
 ) {
 
 	suspend operator fun invoke(
@@ -46,13 +49,17 @@ class SearchV2Helper @AssistedInject constructor(
 		// here instead of being scattered across call sites. An empty result is recorded as a success
 		// that returned nothing: a broken parser answers 200 OK with zero items, and without that
 		// distinction it would look perfectly healthy forever.
-		val list = probeRecorder.measure(
-			source = source,
-			op = ProbeOp.SEARCH,
-			isEmpty = { it.isEmpty() },
-		) {
-			repository.getList(0, sortOrder, listFilter)
-		}
+        val list = try {
+            probeRecorder.measure(source = source, op = ProbeOp.SEARCH, isEmpty = { it.isEmpty() }) {
+                repository.getList(0, sortOrder, listFilter)
+            }
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (error: Exception) {
+            runCatchingCancellable { sourceHealth.failure(source, error) }
+            throw error
+        }
+        runCatchingCancellable { sourceHealth.success(source) }
 		if (list.isEmpty()) {
 			return null
 		}

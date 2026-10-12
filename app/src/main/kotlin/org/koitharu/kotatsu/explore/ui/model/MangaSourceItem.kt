@@ -9,6 +9,7 @@ data class MangaSourceItem(
 	val isGrid: Boolean,
 	/** Among the most-used sources for this user's language - see SourceRanker.trendingSources. */
 	val isTrending: Boolean = false,
+    val isUnhealthy: Boolean = false,
 ) : ListModel {
 
 	val id: Long = source.name.longHashCode()
