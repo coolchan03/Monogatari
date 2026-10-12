@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_home_subtitle">Manga · Books · Anime</string>
+    <string name="monogatari_search_everywhere">Find manga, books and anime</string>
+    <string name="monogatari_welcome_title">Welcome to Monogatari</string>
+    <string name="monogatari_welcome_caption">Every story deserves a place on your shelf.</string>
+</resources>

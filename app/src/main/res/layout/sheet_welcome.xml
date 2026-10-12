@@ -41,10 +41,20 @@
 				android:layout_height="wrap_content"
 				android:layout_marginHorizontal="@dimen/margin_normal"
 				android:drawablePadding="16dp"
-				android:singleLine="true"
-				android:text="@string/welcome"
+				android:maxLines="2"
+				android:text="@string/monogatari_welcome_title"
 				android:textAppearance="?textAppearanceTitleLarge"
 				android:gravity="center" />
+
+			<TextView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="24dp"
+				android:layout_marginTop="6dp"
+				android:gravity="center"
+				android:text="@string/monogatari_welcome_caption"
+				android:textAppearance="?attr/textAppearanceBodyMedium"
+				android:textColor="?attr/colorOnSurfaceVariant" />
 
 			<HorizontalScrollView
 				android:layout_width="match_parent"

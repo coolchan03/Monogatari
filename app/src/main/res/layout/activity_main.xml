@@ -35,11 +35,56 @@
 			android:fitsSystemWindows="true"
 			app:layout_scrollFlags="scroll|enterAlways|snap" />
 
+		<!-- The Monogatari library masthead scrolls away with the search bar. -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center_vertical"
+			android:orientation="horizontal"
+			android:paddingStart="20dp"
+			android:paddingTop="8dp"
+			android:paddingEnd="20dp"
+			android:paddingBottom="2dp"
+			app:layout_scrollFlags="scroll|enterAlways|snap">
+
+			<ImageView
+				android:layout_width="50dp"
+				android:layout_height="50dp"
+				android:background="@drawable/bg_onboarding_hero"
+				android:importantForAccessibility="no"
+				android:padding="4dp"
+				android:src="@drawable/monogatari_icon" />
+
+			<LinearLayout
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="12dp"
+				android:layout_weight="1"
+				android:orientation="vertical">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="@string/app_name"
+					android:textAppearance="?attr/textAppearanceTitleLarge"
+					android:textStyle="bold" />
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:ellipsize="end"
+					android:maxLines="1"
+					android:text="@string/monogatari_home_subtitle"
+					android:textAppearance="?attr/textAppearanceBodySmall"
+					android:textColor="?attr/colorOnSurfaceVariant" />
+			</LinearLayout>
+		</LinearLayout>
+
 		<com.google.android.material.search.SearchBar
 			android:id="@+id/search_bar"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:hint="@string/search_manga"
+			android:hint="@string/monogatari_search_everywhere"
 			app:forceDefaultNavigationOnClickListener="true"
 			app:layout_scrollFlags="scroll|enterAlways|snap" />
 
@@ -49,7 +94,7 @@
 		android:id="@+id/search_view"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
-		android:hint="@string/search_hint"
+		android:hint="@string/monogatari_search_everywhere"
 		app:layout_anchor="@id/search_bar">
 
 		<androidx.recyclerview.widget.RecyclerView
