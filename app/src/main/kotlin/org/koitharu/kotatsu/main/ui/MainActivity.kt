@@ -73,8 +73,8 @@ import org.koitharu.kotatsu.local.ui.LocalStorageCleanupWorker
 import org.koitharu.kotatsu.main.ui.owners.AppBarOwner
 import org.koitharu.kotatsu.main.ui.owners.BottomNavOwner
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import org.koitharu.kotatsu.sourcerepo.ui.FirstRunHealthChecks
-import org.koitharu.kotatsu.sourcerepo.ui.SourceScanManager
 import org.koitharu.kotatsu.remotelist.ui.MangaSearchMenuProvider
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionItemCallback
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionListenerImpl
@@ -112,9 +112,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 	@Inject
 	lateinit var healthChecks: FirstRunHealthChecks
-
-	@Inject
-	lateinit var sourceScanManager: SourceScanManager
 
 	private val viewModel by viewModels<MainViewModel>()
 	private val searchSuggestionViewModel by viewModels<SearchSuggestionViewModel>()
@@ -186,7 +183,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 		if (savedInstanceState == null) {
 			onFirstStart()
-			showTemporarySourceTestPrompt()
+			showGuidedTestPrompt()
 		}
 
 		viewModel.onOpenReader.observeEvent(this, this::onOpenReader)
@@ -208,27 +205,33 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		initSearch()
 	}
 
-	/** A one-time bounded preflight; the 1,500+ network probes are optional and resumable. */
-	private fun showTemporarySourceTestPrompt() {
+	/**
+	 * Offer the guided QA flow once to new installs and upgrading testers.
+	 * Starting a 1,500+ website sweep requires a separate explicit confirmation.
+	 */
+	private fun showGuidedTestPrompt() {
 		val prefs = getSharedPreferences("monogatari_source_qa", MODE_PRIVATE)
-		if (prefs.getBoolean("first_run_checks_v2", false)) return
-		prefs.edit().putBoolean("first_run_checks_v2", true).apply()
+		if (prefs.getBoolean("guided_test_offer_v1", false)) return
+		prefs.edit().putBoolean("guided_test_offer_v1", true).apply()
 		lifecycleScope.launch {
-			val report = withContext(Dispatchers.IO) { healthChecks.run() }
-			if (isFinishing || isDestroyed) return@launch
-			val details = report.summary() +
-				"\n\nTest every website? This runs in the background, uses data, " +
-				"and can take a long time. Progress is saved; resume from Source Repositories."
-			com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
-				.setTitle("Monogatari first-start checks")
-				.setMessage(details)
-				.setNegativeButton("Later", null)
-				.setNeutralButton("Source settings") { _, _ -> openSourceDiagnosticsSettings() }
-				.setPositiveButton("Test all sources") { _, _ ->
-					sourceScanManager.start(allSources = true)
-					openSourceDiagnosticsSettings()
-				}
-				.show()
+			val quick = withContext(Dispatchers.IO) {
+				runCatching { healthChecks.run().summary() }
+					.getOrElse { "Device preflight unavailable: ${it.javaClass.simpleName}" }
+			}
+			withResumed {
+				if (isFinishing || isDestroyed) return@withResumed
+				com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+					.setTitle("Monogatari setup & testing")
+					.setMessage(quick + "\n\nWould you like to test the app feature by feature? " +
+						"You can mark what looks right, describe any problems, then copy a report " +
+						"to share. Full website testing is optional.")
+					.setNegativeButton("Later", null)
+					.setNeutralButton("Sources only") { _, _ -> openSourceDiagnosticsSettings() }
+					.setPositiveButton("Open Test Center") { _, _ ->
+						startActivity(Intent(this@MainActivity, MonogatariTestCenterActivity::class.java))
+					}
+					.show()
+			}
 		}
 	}
 

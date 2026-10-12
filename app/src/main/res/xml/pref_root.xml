@@ -54,6 +54,12 @@
         app:iconSpaceReserved="false"
         android:title="@string/monogatari_settings_manage" />
 
+    <Preference
+        android:key="monogatari_qa_entry"
+        android:icon="@drawable/ic_monogatari_nav_explore"
+        android:title="@string/monogatari_qa_title"
+        android:summary="@string/monogatari_qa_settings_summary" />
+
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment"
         android:icon="@drawable/ic_usage"

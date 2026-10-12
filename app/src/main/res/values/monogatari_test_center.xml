@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_qa_title">Monogatari Test Center</string>
+    <string name="monogatari_qa_intro">Check the app one feature at a time. Mark what works, describe any problems, then copy one report to share. Answers are saved on this device. No report is sent automatically.</string>
+    <string name="monogatari_qa_open_feature">Open this feature to test</string>
+    <string name="monogatari_qa_pass">Looks good</string>
+    <string name="monogatari_qa_fail">Problem</string>
+    <string name="monogatari_qa_untested">Not yet</string>
+    <string name="monogatari_qa_notes">What happened? Expected behavior, steps, error text</string>
+    <string name="monogatari_qa_previous">Previous</string>
+    <string name="monogatari_qa_next">Next</string>
+    <string name="monogatari_qa_automatic">Automatic device checks</string>
+    <string name="monogatari_qa_preflight_loading">Checking device, connection and installed sources…</string>
+    <string name="monogatari_qa_rerun_quick">Rerun quick checks</string>
+    <string name="monogatari_qa_source_heading">Website and source diagnostics</string>
+    <string name="monogatari_qa_run_sources">Run / resume all</string>
+    <string name="monogatari_qa_pause_sources">Pause scan</string>
+    <string name="monogatari_qa_copy_sources">Copy full source log</string>
+    <string name="monogatari_qa_copy_report">Copy full test report to clipboard</string>
+    <string name="monogatari_qa_privacy">No automatic upload. The copied report may include your notes, source URLs and device model. Review it before pasting. Full source scans can take hours, use data and stop if Android kills the app; saved progress can be resumed.</string>
+    <string name="monogatari_qa_settings_summary">Guided feature checklist, automatic diagnostics and a copyable bug report</string>
+</resources>
