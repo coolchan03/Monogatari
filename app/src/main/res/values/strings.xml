@@ -553,7 +553,7 @@
 
     <!-- Onboarding -->
     <string name="community_intro_title">Comments and ratings</string>
-    <string name="community_intro_body">Kotatsu-Redo can now show comments and ratings from other readers, and use what everyone learns to put the sources that actually work at the top of your searches.\n\nThere is no account. No email, no password. Your device makes a random key and that is your whole identity â€” you can back it up and move it to a new phone.</string>
+    <string name="community_intro_body">Monogatari can now show comments and ratings from other readers, and use what everyone learns to put the sources that actually work at the top of your searches.\n\nThere is no account. No email, no password. Your device makes a random key and that is your whole identity â€” you can back it up and move it to a new phone.</string>
     <string name="community_recover">Restore</string>
     <string name="community_recover_title">Restore your account</string>
     <string name="community_recover_body">Paste the recovery key from your other device. You will find it there under Settings, Services, Community.
