@@ -11,6 +11,7 @@ import org.koitharu.kotatsu.core.media.BookMetadataProvider
 import org.koitharu.kotatsu.builtin.ao3.Ao3Repository
 import org.koitharu.kotatsu.builtin.royalroad.RoyalRoadRepository
 import org.koitharu.kotatsu.builtin.scribblehub.ScribbleHubRepository
+import org.koitharu.kotatsu.builtin.librivox.LibriVoxRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 
 class BuiltinRepositoryFactory @Inject constructor(
@@ -30,6 +31,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.AO3 -> Ao3Repository(cache, client, settings)
             BuiltinSource.ROYAL_ROAD -> RoyalRoadRepository(cache, client)
             BuiltinSource.SCRIBBLE_HUB -> ScribbleHubRepository(cache, client)
+            BuiltinSource.LIBRIVOX -> LibriVoxRepository(cache, client)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }
