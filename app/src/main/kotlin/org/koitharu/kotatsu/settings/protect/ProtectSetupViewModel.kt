@@ -13,7 +13,7 @@ import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
 import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.parsers.util.isNumeric
-import org.koitharu.kotatsu.parsers.util.md5
+import org.koitharu.kotatsu.core.security.AppPinHasher
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,7 +39,7 @@ class ProtectSetupViewModel @Inject constructor(
 			onClearText.call(Unit)
 		} else {
 			if (firstPassword.value == password) {
-				settings.appPassword = password.md5()
+				settings.appPassword = AppPinHasher.hash(password)
 				settings.isAppPasswordNumeric = password.isNumeric()
 				onPasswordSet.call(Unit)
 			} else {
