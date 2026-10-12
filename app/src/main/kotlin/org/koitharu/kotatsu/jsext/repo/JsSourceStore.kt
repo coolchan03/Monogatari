@@ -83,6 +83,7 @@ class JsSourceStore(private val dir: File) {
 		put("additionalParams", e.additionalParams)
 		put("notes", e.notes)
 		put("repoUrl", e.repoUrl)
+		e.sha256?.let { put("sha256", it) }
 	}
 
 	private fun fromJson(text: String): JsSourceEntry {
@@ -107,6 +108,7 @@ class JsSourceStore(private val dir: File) {
 			additionalParams = s("additionalParams"),
 			notes = s("notes"),
 			repoUrl = s("repoUrl"),
+			sha256 = s("sha256").ifEmpty { null },
 		)
 	}
 }

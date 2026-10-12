@@ -15,6 +15,7 @@ import org.koitharu.kotatsu.parsers.util.await
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
+import org.koitharu.kotatsu.jsext.repo.JsSourceIntegrity
 import org.koitharu.kotatsu.jsext.repo.MangayomiIndexParser
 import org.koitharu.kotatsu.jsext.repo.compareVersions
 import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
@@ -184,6 +185,14 @@ class SourceRepoRepository @Inject constructor(
 		if (code.length > MAX_SOURCE_BYTES || !code.contains("DefaultExtension")) {
 			throw java.io.IOException("Not a Mangayomi JavaScript source: ${entry.name}")
 		}
+		val installed = jsStore.get(entry.id)
+		JsSourceIntegrity.validate(
+			version = entry.version,
+			contentHash = JsSourceIntegrity.sha256(code),
+			installedVersion = installed?.entry?.version,
+			installedHash = installed?.let { JsSourceIntegrity.sha256(it.code) },
+			declaredHash = entry.sha256,
+		)
 		jsStore.install(entry, code)
 	}
 

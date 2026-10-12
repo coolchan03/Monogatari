@@ -29,6 +29,8 @@ data class JsSourceEntry(
 	val notes: String,
 	/** The index it came from. */
 	val repoUrl: String,
+	/** Optional SHA-256 supplied by the source repository index. */
+	val sha256: String? = null,
 ) {
 
 	val isRunnable: Boolean

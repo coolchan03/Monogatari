@@ -67,6 +67,7 @@ object MangayomiIndexParser {
 			additionalParams = o.string("additionalParams").orEmpty(),
 			notes = o.string("notes").orEmpty(),
 			repoUrl = repoUrl,
+			sha256 = o.string("sha256"),
 		)
 	}
 
