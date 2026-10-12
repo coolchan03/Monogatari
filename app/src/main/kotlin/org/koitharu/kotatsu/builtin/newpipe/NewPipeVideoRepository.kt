@@ -18,6 +18,8 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.channel.ChannelInfoItem
+import org.schabi.newpipe.extractor.channel.ChannelInfo
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import java.util.concurrent.ConcurrentHashMap
 
 /** Video search and compatible combined/HLS playback. Channels and playlists are a later stage. */
@@ -36,6 +38,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
             val raw = filter?.query?.trim().orEmpty().ifEmpty { "BL drama" }
             val kind = when {
                 raw.startsWith("playlist:", true) -> "playlists"
+                raw.startsWith("channel:", true) -> "channels"
                 else -> "videos"
             }
             val query = if (kind == "videos") raw else raw.substringAfter(':').trim()
@@ -54,6 +57,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
                 val entryKind = when (item) {
                     is StreamInfoItem -> "video"
                     is PlaylistInfoItem -> "playlist"
+                    is ChannelInfoItem -> "channel"
                     else -> return@mapNotNull null
                 }
                 Manga(
@@ -78,6 +82,26 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
         }
 
     override suspend fun getDetailsImpl(manga: Manga): Manga = withContext(Dispatchers.IO) {
+        if (manga.tags.any { it.title == "channel" }) {
+            val channel = ChannelInfo.getInfo(ServiceList.YouTube, manga.url)
+            val firstTab = channel.tabs.firstOrNull() ?: return@withContext manga.copy(chapters = emptyList())
+            val tab = ChannelTabInfo.getInfo(ServiceList.YouTube, firstTab)
+            val chapters = tab.relatedItems.filterIsInstance<StreamInfoItem>()
+                .mapIndexed { index, item ->
+                    MangaChapter(
+                        id = ArchiveMapping.uid(source, item.url),
+                        title = item.name,
+                        number = (index + 1).toFloat(),
+                        volume = 0,
+                        url = item.url,
+                        scanlator = null,
+                        uploadDate = 0L,
+                        branch = null,
+                        source = source,
+                    )
+                }
+            return@withContext manga.copy(chapters = chapters)
+        }
         if (manga.url.contains("list=") || manga.url.contains("/playlist")) {
             val info = PlaylistInfo.getInfo(ServiceList.YouTube, manga.url)
             val chapters = info.relatedItems.filterIsInstance<StreamInfoItem>()
