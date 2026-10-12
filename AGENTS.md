@@ -20,3 +20,11 @@ RULES FOR YOU (ChatGPT):
    and app/build.gradle.
 6. If you are unsure how an existing class works, ASK me to paste it instead of guessing.
 7. Add or update a unit test when the step says "test".
+
+MONOGATARI ASSISTANT WORKFLOW (user preference, 2026-10-12):
+- FIRST tool call in any new Monogatari work session must request Tunnel to Surface access; if denied, ask for authorization.
+- Never use the GitHub connector to write, merge, change branches, or publish. Edit locally and commit/push exclusively via Tunnel to Surface.
+- Combine adjacent compatible steps into substantial work batches rather than stopping after every small change; preserve step-level traceability.
+- Before long/risky commands, record the precise current operation in docs/WORK_STATUS.md; after each verified milestone record resulting commit, push and test outcome.
+- Report exactly which step(s), files, operation and test are active; do not claim to detect an unexpected timeout in real time.
+- Protect user data and existing untracked local work; never install a renamed-package APK before backup/restore instructions are satisfied.

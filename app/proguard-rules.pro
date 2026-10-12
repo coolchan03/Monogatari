@@ -31,3 +31,13 @@
 -keep class org.acra.sender.JobSenderService
 # Loaded by ACRA through ServiceLoader (META-INF/services), so nothing references it directly.
 -keep class org.koitharu.kotatsu.core.util.SentryReportSenderFactory { *; }
+
+# QuickJS engine: JNI may access these classes by name.
+-keep class com.dokar.quickjs.** { *; }
+-keepclasseswithmembernames class * { native <methods>; }
+# Extension host bridge methods are invoked by JavaScript.
+-keep class org.koitharu.kotatsu.jsext.** { *; }
+# Preserve annotations and generated Kotlin serialization metadata.
+-keepattributes *Annotation*, InnerClasses, Signature, EnclosingMethod
+-keepclassmembers class org.koitharu.kotatsu.jsext.** { *** Companion; }
+-keepclassmembers class **$$serializer { *; }

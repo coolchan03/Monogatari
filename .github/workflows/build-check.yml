@@ -3,7 +3,10 @@ name: Build check
 on:
   push:
     branches:
+      - 'devel'
       - 'claude/**'
+      - 'step-*'
+      - 'batch-*'
   workflow_dispatch:
 
 concurrency:
@@ -29,3 +32,11 @@ jobs:
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - name: Build release (unsigned, R8)
+        run: ./gradlew assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monogatari-release-unsigned
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
