@@ -38,7 +38,7 @@ class LibriVoxRepository(cache: MemoryContentCache, private val client: OkHttpCl
                 rating = RATING_UNKNOWN, contentRating = ContentRating.SAFE,
                 coverUrl = archiveId.takeIf(String::isNotBlank)?.let { "https://archive.org/services/img/$it" },
                 tags = emptySet(), state = null, authors = emptySet(), largeCoverUrl = null,
-                description = book.optString("description"), chapters = null, source = source,
+                description = book.optString("description").orEmpty(), chapters = null, source = source,
             )
         }
     }
