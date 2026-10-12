@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.builtin.newpipe
 
+import kotlinx.coroutines.CancellationException
+
 /**
  * Bounded pagination for a channel or playlist detail screen.
  * Deduplicates items by stable video URL and stops on empty or repeated pages.
@@ -19,7 +21,14 @@ internal object NewPipePageCollector {
         var token = next
         var pageCount = 1
         while (token != null && pageCount < MAX_PAGES && unique.size < MAX_ITEMS) {
-            val (batch, following) = fetch(token)
+            val (batch, following) = try {
+                fetch(token)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Keep the already retrieved chapters when a continuation page expires or fails.
+                break
+            }
             if (batch.isEmpty()) break
             var added = 0
             batch.forEach { item ->

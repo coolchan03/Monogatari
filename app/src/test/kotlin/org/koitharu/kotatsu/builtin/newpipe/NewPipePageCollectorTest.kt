@@ -36,6 +36,19 @@ class NewPipePageCollectorTest {
         assertEquals(1, attempts)
     }
 
+    @Test fun preservesEarlierPagesWhenContinuationFails() = runBlocking {
+        val result = NewPipePageCollector.collect(
+            first = listOf("first"),
+            next = 1,
+            key = { it },
+            fetch = { page: Int ->
+                if (page == 1) listOf("second") to 2
+                else throw java.io.IOException("offline while loading older chapters")
+            },
+        )
+        assertEquals(listOf("first", "second"), result)
+    }
+
     @Test fun stopsAtPageLimit() = runBlocking {
         var fetched = 0
         val output = NewPipePageCollector.collect(
