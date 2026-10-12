@@ -1,7 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-<path android:fillColor="#C2E8E2" android:pathData="M54,29 A15,15 0,1 0,69 44 A17,17 0,1 1,54 29Z"/>
-<path android:fillColor="#80CBC4" android:pathData="M54,73 L54,51 Q43,41 27,47 L27,69 Q43,64 54,73Z"/>
-<path android:fillColor="#B2DFDB" android:pathData="M54,73 L54,51 Q65,41 81,47 L81,69 Q65,64 54,73Z"/>
-<path android:fillColor="#FFFFFF" android:pathData="M73,31 L75,36 L80,38 L75,40 L73,45 L71,40 L66,38 L71,36Z"/>
+<!-- The Monogatari mark: two original reading bears, a shared book and a story star. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F6D896"
+        android:pathData="M82,14 L84,20 L90,22 L84,24 L82,30 L80,24 L74,22 L80,20Z"/>
+    <path android:fillColor="#8ACFC5"
+        android:pathData="M25,17 L27,22 L32,24 L27,26 L25,31 L23,26 L18,24 L23,22Z"/>
+    <!-- Cinnamon bear -->
+    <path android:fillColor="#B97958"
+        android:pathData="M20,43 C16,34 20,29 27,30 C34,31 35,39 30,44Z M47,42 C42,34 47,28 53,30 C62,33 59,41 54,47Z"/>
+    <path android:fillColor="#D6A27A"
+        android:pathData="M20,47 C20,34 30,32 40,32 C53,32 60,41 60,51 C60,64 52,71 40,71 C26,71 20,63 20,47Z"/>
+    <path android:fillColor="#F0C5A0"
+        android:pathData="M30,57 C29,50 34,47 41,47 C48,47 53,51 53,57 C52,65 46,67 41,67 C35,67 30,63 30,57Z"/>
+    <path android:fillColor="#213A48"
+        android:pathData="M29,49 A2,2 0,1 0,33 49 A2,2 0,1 0,29 49Z M48,49 A2,2 0,1 0,52 49 A2,2 0,1 0,48 49Z"/>
+    <path android:fillColor="#384550"
+        android:pathData="M37,55 Q41,52 45,55 Q45,59 41,59 Q38,59 37,55Z"/>
+    <!-- Sea-glass bear -->
+    <path android:fillColor="#457970"
+        android:pathData="M55,43 C52,34 56,29 62,30 C69,31 70,39 65,45Z M83,44 C78,35 83,29 89,31 C96,33 96,41 90,47Z"/>
+    <path android:fillColor="#79ACA2"
+        android:pathData="M54,47 C54,35 64,32 75,32 C87,32 95,41 95,51 C95,63 87,71 75,71 C62,71 54,62 54,47Z"/>
+    <path android:fillColor="#C7E4D6"
+        android:pathData="M65,57 C65,50 70,47 76,47 C84,47 88,52 87,58 C85,65 81,67 76,67 C69,67 65,63 65,57Z"/>
+    <path android:fillColor="#213A48"
+        android:pathData="M64,49 A2,2 0,1 0,68 49 A2,2 0,1 0,64 49Z M83,49 A2,2 0,1 0,87 49 A2,2 0,1 0,83 49Z"/>
+    <path android:fillColor="#384550"
+        android:pathData="M72,55 Q76,52 80,55 Q80,59 76,59 Q72,59 72,55Z"/>
+    <!-- Open volume -->
+    <path android:fillColor="#102C3A"
+        android:pathData="M13,64 Q34,57 54,67 Q76,57 95,64 L95,91 Q76,85 54,96 Q33,86 13,91Z"/>
+    <path android:fillColor="#F6E6C6"
+        android:pathData="M18,62 Q36,58 52,66 L52,89 Q36,81 18,86Z"/>
+    <path android:fillColor="#B8E4DB"
+        android:pathData="M56,66 Q74,58 90,62 L90,86 Q72,81 56,89Z"/>
+    <path android:fillColor="#F6D896"
+        android:pathData="M52,66 L56,66 L56,92 L54,95 L52,92Z"/>
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#8E977C" android:strokeWidth="1.2" android:strokeLineCap="round"
+        android:pathData="M24,70 Q36,67 47,73 M24,77 Q36,74 47,80 M62,73 Q74,67 84,70 M62,80 Q74,74 84,77"/>
 </vector>

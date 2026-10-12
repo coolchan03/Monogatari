@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.isGone
 import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
 import com.google.android.material.chip.Chip
@@ -50,7 +49,8 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
 
 	override fun onViewBindingCreated(binding: SheetWelcomeBinding, savedInstanceState: Bundle?) {
 		super.onViewBindingCreated(binding, savedInstanceState)
-		binding.textViewWelcomeTitle.isGone = resources.getBoolean(R.bool.is_tablet)
+		// Keep Monogatari's own welcome heading visible on tablets as well as phones.
+		binding.buttonStartExploring.setOnClickListener { dismiss() }
 		binding.chipsLocales.onChipClickListener = this
 		binding.chipsType.onChipClickListener = this
 		binding.chipBackup.setOnClickListener(this)

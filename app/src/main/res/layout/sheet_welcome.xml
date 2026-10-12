@@ -27,13 +27,12 @@
 
 			<ImageView
 				android:layout_width="match_parent"
-				android:layout_height="176dp"
-				android:layout_marginHorizontal="24dp"
+				android:layout_height="200dp"
+				android:layout_marginHorizontal="16dp"
 				android:layout_marginTop="12dp"
-				android:background="@drawable/bg_onboarding_hero"
-				android:contentDescription="@string/welcome"
+				android:contentDescription="@string/monogatari_welcome_art_content_description"
 				android:scaleType="fitCenter"
-				android:src="@drawable/ic_empty_common" />
+				android:src="@drawable/illustration_monogatari_bears" />
 
 			<TextView
 				android:id="@+id/textView_welcome_title"
@@ -55,6 +54,51 @@
 				android:text="@string/monogatari_welcome_caption"
 				android:textAppearance="?attr/textAppearanceBodyMedium"
 				android:textColor="?attr/colorOnSurfaceVariant" />
+
+			<!-- The three media libraries share one Monogatari welcome; these are labels, not buttons. -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="20dp"
+				android:layout_marginTop="14dp"
+				android:orientation="horizontal">
+				<TextView
+					android:layout_width="0dp"
+					android:layout_height="76dp"
+					android:layout_weight="1"
+					android:layout_marginEnd="6dp"
+					android:background="@drawable/bg_monogatari_tile"
+					android:drawableTop="@drawable/ic_monogatari_nav_explore"
+					android:drawablePadding="6dp"
+					android:gravity="center"
+					android:padding="9dp"
+					android:text="@string/media_type_manga"
+					android:textAppearance="?attr/textAppearanceLabelMedium" />
+				<TextView
+					android:layout_width="0dp"
+					android:layout_height="76dp"
+					android:layout_weight="1"
+					android:layout_marginHorizontal="3dp"
+					android:background="@drawable/bg_monogatari_tile"
+					android:drawableTop="@drawable/ic_monogatari_nav_books"
+					android:drawablePadding="6dp"
+					android:gravity="center"
+					android:padding="9dp"
+					android:text="@string/media_type_book"
+					android:textAppearance="?attr/textAppearanceLabelMedium" />
+				<TextView
+					android:layout_width="0dp"
+					android:layout_height="76dp"
+					android:layout_weight="1"
+					android:layout_marginStart="6dp"
+					android:background="@drawable/bg_monogatari_tile"
+					android:drawableTop="@drawable/ic_monogatari_nav_feed"
+					android:drawablePadding="6dp"
+					android:gravity="center"
+					android:padding="9dp"
+					android:text="@string/media_type_video"
+					android:textAppearance="?attr/textAppearanceLabelMedium" />
+			</LinearLayout>
 
 			<HorizontalScrollView
 				android:layout_width="match_parent"
@@ -140,6 +184,15 @@
 				android:layout_marginHorizontal="@dimen/margin_normal"
 				android:layout_marginTop="@dimen/margin_normal"
 				app:chipStyle="@style/Widget.Kotatsu.Chip.Filter" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/button_start_exploring"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="24dp"
+				android:layout_marginTop="20dp"
+				android:minHeight="48dp"
+				android:text="@string/monogatari_welcome_start" />
 
 		</LinearLayout>
 	</androidx.core.widget.NestedScrollView>
