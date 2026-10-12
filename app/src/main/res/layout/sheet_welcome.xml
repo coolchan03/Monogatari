@@ -25,6 +25,16 @@
 			android:orientation="vertical"
 			android:paddingBottom="@dimen/margin_normal">
 
+			<ImageView
+				android:layout_width="match_parent"
+				android:layout_height="176dp"
+				android:layout_marginHorizontal="24dp"
+				android:layout_marginTop="12dp"
+				android:background="@drawable/bg_onboarding_hero"
+				android:contentDescription="@string/welcome"
+				android:scaleType="fitCenter"
+				android:src="@drawable/ic_empty_common" />
+
 			<TextView
 				android:id="@+id/textView_welcome_title"
 				android:layout_width="match_parent"
@@ -34,7 +44,7 @@
 				android:singleLine="true"
 				android:text="@string/welcome"
 				android:textAppearance="?textAppearanceTitleLarge"
-				app:drawableStartCompat="@drawable/ic_welcome" />
+				android:gravity="center" />
 
 			<HorizontalScrollView
 				android:layout_width="match_parent"
