@@ -7,12 +7,14 @@ import org.koitharu.kotatsu.parsers.model.MangaSource
 enum class VideoResultMode { VIDEOS, CHANNELS, PLAYLISTS }
 
 internal fun VideoResultMode.queryFor(source: MangaSource, query: String): String {
-    if (source != BuiltinSource.YOUTUBE || this == VideoResultMode.VIDEOS) return query
+    if (source != BuiltinSource.YOUTUBE) return query
     val normalized = query.trim()
-    if (normalized.startsWith("channel:", true) || normalized.startsWith("playlist:", true)) {
-        return normalized.substringAfter(':').let { term ->
-            (if (this == VideoResultMode.CHANNELS) "channel:" else "playlist:") + term
-        }
+    val term = if (normalized.startsWith("channel:", true) || normalized.startsWith("playlist:", true)) {
+        normalized.substringAfter(':').trim()
+    } else normalized
+    return when (this) {
+        VideoResultMode.VIDEOS -> term
+        VideoResultMode.CHANNELS -> "channel:" + term
+        VideoResultMode.PLAYLISTS -> "playlist:" + term
     }
-    return (if (this == VideoResultMode.CHANNELS) "channel:" else "playlist:") + normalized
 }

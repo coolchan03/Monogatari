@@ -15,5 +15,6 @@ class VideoResultModeTest {
     }
     @Test fun changesModeWithoutStackingPrefixes() {
         assertEquals("playlist:cats", VideoResultMode.PLAYLISTS.queryFor(BuiltinSource.YOUTUBE, "channel:cats"))
+        assertEquals("cats", VideoResultMode.VIDEOS.queryFor(BuiltinSource.YOUTUBE, "playlist:cats"))
     }
 }
