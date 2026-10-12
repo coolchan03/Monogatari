@@ -212,17 +212,19 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             TestDestination.SETTINGS -> Intent(this, SettingsActivity::class.java)
             TestDestination.DOWNLOADS -> Intent(this, SettingsActivity::class.java)
                 .setAction(AppRouter.ACTION_MANAGE_DOWNLOADS)
-            TestDestination.MANGA_SEARCH, TestDestination.BOOK_SEARCH, TestDestination.ANIME_SEARCH ->
+            TestDestination.MANGA_SEARCH, TestDestination.BOOK_SEARCH, TestDestination.ANIME_SEARCH, TestDestination.AUDIO_SEARCH ->
                 Intent(this, SearchActivity::class.java)
                     .putExtra(AppRouter.KEY_QUERY, when (destination) {
                         TestDestination.MANGA_SEARCH -> "Naruto"
                         TestDestination.BOOK_SEARCH -> "Pride and Prejudice"
-                        else -> "One Piece"
+                        TestDestination.AUDIO_SEARCH -> "The Count of Monte Cristo"
+                        else -> "BL drama"
                     })
                     .putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
                     .putExtra(SearchActivity.EXTRA_MEDIA_TYPE, when (destination) {
                         TestDestination.MANGA_SEARCH -> MediaType.MANGA.name
                         TestDestination.BOOK_SEARCH -> MediaType.BOOK.name
+                        TestDestination.AUDIO_SEARCH -> MediaType.AUDIO.name
                         else -> MediaType.VIDEO.name
                     })
         }

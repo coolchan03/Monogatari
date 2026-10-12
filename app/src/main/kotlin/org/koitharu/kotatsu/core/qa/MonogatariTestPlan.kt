@@ -6,7 +6,7 @@ enum class CheckResult(val label: String) {
 }
 
 enum class TestDestination {
-    HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, SOURCES, SETTINGS, DOWNLOADS, NONE,
+    HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS, NONE,
 }
 
 data class TestCase(
@@ -55,6 +55,15 @@ object MonogatariTestPlan {
             TestDestination.ANIME_SEARCH),
         TestCase("video_playback", "Actual video playback",
             "Play, seek, pause and rotate a video. Test subtitles if offered. Stream listings alone are not a pass.",
+            TestDestination.ANIME_SEARCH),
+        TestCase("librivox_audio", "LibriVox background audio",
+            "Search LibriVox, play an audiobook, turn the screen off, use lock-screen play/pause, then reopen the reader. Is the position restored and the notification correct?",
+            TestDestination.AUDIO_SEARCH),
+        TestCase("opds_navigation", "Saved OPDS catalog navigation",
+            "Add an OPDS feed with nested sections. Find an EPUB, open it and test progress. Check that off-host navigation does not load unexpectedly.",
+            TestDestination.BOOK_SEARCH),
+        TestCase("youtube_extractor", "YouTube extraction and playback",
+            "Search BL drama on the YouTube source, open a video and confirm picture plus sound. Note age restrictions, captions, and loading errors.",
             TestDestination.ANIME_SEARCH),
         TestCase("extensions", "JavaScript extension management",
             "Install, configure, update and remove a test source. Are settings saved and searches working?",
