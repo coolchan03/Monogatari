@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.builtin
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
+import org.koitharu.kotatsu.core.media.BookMetadataProvider
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import kotlinx.coroutines.withContext
@@ -25,6 +26,7 @@ class OpenLibraryRepository(
     private val client: OkHttpClient,
     context: Context,
     private val settings: AppSettings,
+    private val bookMetadata: BookMetadataProvider,
 ) : CachingMangaRepository(cache), ContinuousMediaProvider {
     private val archive = ArchiveRepository(BuiltinSource.IA_BOOKS, cache, client, context)
     override val source = BuiltinSource.OPEN_LIBRARY
@@ -67,9 +69,9 @@ class OpenLibraryRepository(
             val archiveManga = manga.copy(url = "/details/$ia", source = BuiltinSource.IA_BOOKS)
             val archiveDetails = archive.getDetails(archiveManga)
             val chapters = archiveDetails.chapters?.map { it.copy(source = source) }
-            if (!chapters.isNullOrEmpty()) return manga.copy(description = description, chapters = chapters)
+            if (!chapters.isNullOrEmpty()) return bookMetadata.enrich(manga.copy(description = description, chapters = chapters))
         }
-        return manga.copy(description = description)
+        return bookMetadata.enrich(manga.copy(description = description))
     }
     override suspend fun getChapterHtml(title: String, chapter: MangaChapter): String =
         archive.getChapterHtml(title, chapter)

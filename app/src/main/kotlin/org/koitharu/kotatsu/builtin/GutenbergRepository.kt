@@ -7,6 +7,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
+import org.koitharu.kotatsu.core.media.BookMetadataProvider
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.epub.EpubBook
@@ -29,6 +30,7 @@ class GutenbergRepository(
     cache: MemoryContentCache,
     private val client: OkHttpClient,
     private val context: Context,
+    private val bookMetadata: BookMetadataProvider,
 ) : CachingMangaRepository(cache), ContinuousMediaProvider {
     override val source = BuiltinSource.GUTENBERG
     override val sortOrders = setOf(SortOrder.POPULARITY, SortOrder.UPDATED)
@@ -71,7 +73,7 @@ class GutenbergRepository(
                 source = source,
             )
         }
-        return manga.copy(chapters = chapters, description = manga.description ?: book.author)
+        return bookMetadata.enrich(manga.copy(chapters = chapters, description = manga.description ?: book.author))
     }
 
     override suspend fun getPagesImpl(chapter: MangaChapter): List<MangaPage> = listOf(
