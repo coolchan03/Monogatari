@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.jsext.source
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
+import org.koitharu.kotatsu.core.media.MediaSubtitle
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
 import org.koitharu.kotatsu.jsext.JsChapter
 import org.koitharu.kotatsu.jsext.JsItemType
@@ -104,7 +105,9 @@ class JsMangaRepository(
 	override suspend fun getStreams(chapter: MangaChapter): List<MediaStream> =
 		extensions.get(source.id).getVideoList(chapter.url).mapNotNull { video ->
 		video.url.takeIf { it.isNotBlank() }?.let { url ->
-			MediaStream(url, video.quality, video.headers.orEmpty())
+			MediaStream(url, video.quality, video.headers.orEmpty(), video.subtitles.mapNotNull { track ->
+				track.file?.takeIf { it.isNotBlank() }?.let { MediaSubtitle(it, track.label) }
+			})
 		}
 	}
 

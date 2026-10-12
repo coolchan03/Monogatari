@@ -12,4 +12,7 @@ data class MediaStream(
     val url: String,
     val quality: String,
     val headers: Map<String, String> = emptyMap(),
+    val subtitles: List<MediaSubtitle> = emptyList(),
 )
+
+data class MediaSubtitle(val url: String, val label: String? = null)

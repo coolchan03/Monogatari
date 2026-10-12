@@ -30,6 +30,10 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.exceptions.resolve.CaptchaAutoResolveCoordinator
+import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
+import org.koitharu.kotatsu.core.media.MediaStream
+import org.koitharu.kotatsu.core.media.MediaSubtitle
+import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.asJsSource
 import org.koitharu.kotatsu.core.media.mediaType
@@ -40,9 +44,6 @@ import org.koitharu.kotatsu.core.ui.dialog.setCheckbox
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.databinding.ActivityMediaReaderBinding
-import org.koitharu.kotatsu.jsext.JsTrack
-import org.koitharu.kotatsu.jsext.JsVideo
-import org.koitharu.kotatsu.jsext.source.JsExtensionProvider
 import org.koitharu.kotatsu.reader.ui.pager.ReaderUiState
 import javax.inject.Inject
 
@@ -50,7 +51,7 @@ import javax.inject.Inject
 class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 
 	@Inject
-	lateinit var extensions: JsExtensionProvider
+	lateinit var repositoryFactory: MangaRepository.Factory
 
 	@Inject
 	lateinit var captchaAutoResolveCoordinator: CaptchaAutoResolveCoordinator
@@ -197,7 +198,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private fun loadNovel(state: ReaderUiState) {
 		releasePlayer()
 		val manga = viewModel.getMangaOrNull() ?: return
-		val jsSource = manga.source.asJsSource() ?: return showError(
+		val provider = repositoryFactory.create(manga.source) as? ContinuousMediaProvider ?: return showError(
 			getString(R.string.media_reader_source_unsupported),
 			reload = false,
 		)
@@ -206,10 +207,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		loadJob = lifecycleScope.launch {
 			try {
 				val html = captchaAutoResolveCoordinator.runWithVerification(
-					source = jsSource,
+					source = manga.source.asJsSource() ?: throw IllegalStateException(getString(R.string.media_reader_source_unsupported)),
 					mayStartVerification = true,
 				) {
-					extensions.get(jsSource.id).getHtmlContent(manga.title, state.chapter.url)
+					provider.getChapterHtml(manga.title, state.chapter)
 				}
 				viewBinding.webView.loadDataWithBaseURL(
 					state.chapter.url,
@@ -231,7 +232,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private fun loadVideo(state: ReaderUiState) {
 		viewBinding.webView.stopLoading()
 		val manga = viewModel.getMangaOrNull() ?: return
-		val jsSource = manga.source.asJsSource() ?: return showError(
+		val provider = repositoryFactory.create(manga.source) as? ContinuousMediaProvider ?: return showError(
 			getString(R.string.media_reader_source_unsupported),
 			reload = false,
 		)
@@ -240,10 +241,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		loadJob = lifecycleScope.launch {
 			try {
 				val videos = captchaAutoResolveCoordinator.runWithVerification(
-					source = jsSource,
+					source = manga.source.asJsSource() ?: throw IllegalStateException(getString(R.string.media_reader_source_unsupported)),
 					mayStartVerification = true,
 				) {
-					extensions.get(jsSource.id).getVideoList(state.chapter.url)
+					provider.getStreams(state.chapter)
 				}
 				val selected = chooseVideo(videos)
 					?: throw IllegalStateException(getString(R.string.media_reader_no_streams))
@@ -258,12 +259,12 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		}
 	}
 
-	private fun chooseVideo(videos: List<JsVideo>): JsVideo? =
+	private fun chooseVideo(videos: List<MediaStream>): MediaStream? =
 		videos.maxByOrNull { video ->
 			QUALITY_NUMBER.find(video.quality)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 		} ?: videos.firstOrNull()
 
-	private fun startPlayer(video: JsVideo) {
+	private fun startPlayer(video: MediaStream) {
 		releasePlayer()
 		val dataSourceFactory = DefaultHttpDataSource.Factory()
 			.setAllowCrossProtocolRedirects(true)
@@ -285,8 +286,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		exoPlayer.playWhenReady = true
 	}
 
-	private fun subtitleConfiguration(track: JsTrack): MediaItem.SubtitleConfiguration? {
-		val file = track.file?.takeIf { it.isNotBlank() } ?: return null
+	private fun subtitleConfiguration(track: MediaSubtitle): MediaItem.SubtitleConfiguration? {
+		val file = track.url.takeIf { it.isNotBlank() } ?: return null
 		return MediaItem.SubtitleConfiguration.Builder(Uri.parse(file))
 			.setLabel(track.label)
 			.setMimeType(subtitleMimeType(file))
