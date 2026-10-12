@@ -1,13 +1,27 @@
-# Monogatari work checkpoint
+# Monogatari live work checkpoint
 
-- Date: 2026-10-12, America/Chicago
-- Current branch: batch-08-10-extension-security.
-- Last completed milestone: Steps 4-5 passed GitHub Actions run 38292011053 and fast-forwarded to default devel at e497d88de. Verified by git ls-remote.
-- Current operation: Step 8 partial, replacing hardcoded JS source index list with BuildConfig.DEFAULT_REPOS, configured from monogatari.repos or MONOGATARI_REPOS. Existing 15 URLs set through tunnel as GitHub Actions secret (confirmed by gh secret list).
-- Files edited: app/build.gradle, SourceRepoStore.kt, .github/workflows/build-check.yml, .github/workflows/publish-release.yml.
-- Remaining Step 8 tasks: Implement and test monogatari://setup?repos= handler, verify workflows and Gradle compile; do not claim completion until these pass.
-- Steps 9-10 not started, despite batch branch name.
-- Next exact action: git diff/code QA, commit and push Step 8 partial; inspect CI. If failure, diagnose and fix before default-branch merge. Then implement deep link and scope JS extension cookie access.
-- Important: Only edit/push GitHub through Tunnel to Surface. On every new turn, call Tunnel to Surface FIRST.
-- Safety: Existing untracked .release-temp/ and source-audit/ left untouched. Installed old app backup/restore still requires manual test. Signed releases require keystore; do not publish unsigned APK as signed.
-- Timeout behavior: Cannot detect exact ChatGPT timeout moment; use this file and Git/CI timestamps for last durable checkpoint.
+**Last observed local time:** 2026-10-12 14:26 CDT. This is NOT the instant of a model timeout; an unexpected timeout cannot be detected directly.
+
+**Latest verified operation:** Via Tunnel to Surface, queried GitHub Actions and local status. CI run 38297511275 was in progress for cumulative branch batch-15-16-search-quality, commit 68cceeac1. Branch working tree had only this checkpoint file modified plus pre-existing untracked .release-temp/ and source-audit/ (must be preserved).
+
+**Default:** devel = e497d88de (Steps 1-5, verified); devel CI run 38295603277 passed.
+
+**Stage C-D cumulative commits:**
+- 32358643e: 15 repo defaults moved to MONOGATARI_REPOS Actions secret and BuildConfig.
+- e6d1901ab: ScopedCookieJar and tests.
+- ec9c9c384: confirmed monogatari://setup?repos= deep link.
+- e096ee9a2: JS source file SHA-256/version checks and tests.
+- 446582cfd: PBKDF2 PIN/MD5 migration.
+- 76271d673: privacy defaults/18+ welcome selection.
+- 91990813e: exact-host TLS exception restrictions and nullable PIN compiler fix.
+- 3531e32cc: diagnostics under Advanced.
+- 72849c90a: search concurrency/retry state and BL/GL synonyms.
+- 68cceeac1: escaped Kotlin PIN test fixture delimiter.
+
+**Failure history:** CI 38296362859 and 38296556311 failed due nullable appPassword compile error; repaired in 91990813e. CI 38296936767 failed due literal `"pbkdf2$bad"` unescaped in test source; repaired in 68cceeac1. Older branches inherit these errors and do not need individual repair; cumulative tip does.
+
+**Current task / next exact operation:** Request Tunnel to Surface access FIRST at the start of next user turn. Check the latest cumulative CI run 38297511275, including unit tests, debug APK and unsigned R8 APK artifacts. If failed, retrieve logs via gh, repair the latest cumulative branch, and rerun. If succeeded, fast-forward latest cumulative tip to devel, verify git ls-remote, update progress and inspect default-branch CI. Do NOT merge before green.
+
+**Outstanding gates:** Step 6 signed release requires keystore and secrets; Step 7 external verification; Android device app-backup/restore, extension browsing, cookies, TLS tests; Step 10 extension-repository index hash generation action; Steps 17+.
+
+**Rules:** Only Tunnel to Surface may edit/push/release GitHub content. Use target 20-30-minute batches and record exact operation, branch, commit, CI run, last observed time. Preserve local user folders .release-temp/ and source-audit/. Do not claim successful CI, device tests or signed releases without evidence.
