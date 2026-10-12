@@ -33,7 +33,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.ROYAL_ROAD -> RoyalRoadRepository(cache, client)
             BuiltinSource.SCRIBBLE_HUB -> ScribbleHubRepository(cache, client)
             BuiltinSource.LIBRIVOX -> LibriVoxRepository(cache, client)
-            BuiltinSource.YOUTUBE -> NewPipeVideoRepository(cache)
+            BuiltinSource.YOUTUBE, BuiltinSource.PEERTUBE, BuiltinSource.SOUNDCLOUD -> NewPipeVideoRepository(cache, source)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }

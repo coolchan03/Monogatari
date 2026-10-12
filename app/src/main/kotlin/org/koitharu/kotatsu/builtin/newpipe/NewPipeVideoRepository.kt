@@ -23,14 +23,18 @@ import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import java.util.concurrent.ConcurrentHashMap
 
 /** Video search and compatible combined/HLS playback. Channels and playlists are a later stage. */
-class NewPipeVideoRepository(cache: MemoryContentCache) :
+class NewPipeVideoRepository(cache: MemoryContentCache, override val source: BuiltinSource = BuiltinSource.YOUTUBE) :
     CachingMangaRepository(cache), ContinuousMediaProvider {
-    override val source = BuiltinSource.YOUTUBE
     override val sortOrders = setOf(SortOrder.POPULARITY)
     override var defaultSortOrder = SortOrder.POPULARITY
     override val filterCapabilities = MangaListFilterCapabilities(isSearchSupported = true)
     override suspend fun getFilterOptions() = MangaListFilterOptions()
 
+    private val service = when (source) {
+        BuiltinSource.PEERTUBE -> ServiceList.PeerTube
+        BuiltinSource.SOUNDCLOUD -> ServiceList.SoundCloud
+        else -> ServiceList.YouTube
+    }
     private val nextPage = ConcurrentHashMap<String, Page>()
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> =
@@ -42,8 +46,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
                 else -> "videos"
             }
             val query = if (kind == "videos") raw else raw.substringAfter(':').trim()
-            val service = ServiceList.YouTube
-            val handler = service.searchQHFactory.fromQuery(query, listOf(kind), "")
+            val handler = service.searchQHFactory.fromQuery(query, if (source == BuiltinSource.YOUTUBE) listOf(kind) else emptyList(), "")
             val (items, next) = if (offset <= 0) {
                 val info = SearchInfo.getInfo(service, handler)
                 info.relatedItems to info.nextPage
@@ -83,9 +86,9 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
 
     override suspend fun getDetailsImpl(manga: Manga): Manga = withContext(Dispatchers.IO) {
         if (manga.tags.any { it.title == "channel" }) {
-            val channel = ChannelInfo.getInfo(ServiceList.YouTube, manga.url)
+            val channel = ChannelInfo.getInfo(service, manga.url)
             val firstTab = channel.tabs.firstOrNull() ?: return@withContext manga.copy(chapters = emptyList())
-            val tab = ChannelTabInfo.getInfo(ServiceList.YouTube, firstTab)
+            val tab = ChannelTabInfo.getInfo(service, firstTab)
             val chapters = tab.relatedItems.filterIsInstance<StreamInfoItem>()
                 .mapIndexed { index, item ->
                     MangaChapter(
@@ -103,7 +106,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
             return@withContext manga.copy(chapters = chapters)
         }
         if (manga.url.contains("list=") || manga.url.contains("/playlist")) {
-            val info = PlaylistInfo.getInfo(ServiceList.YouTube, manga.url)
+            val info = PlaylistInfo.getInfo(service, manga.url)
             val chapters = info.relatedItems.filterIsInstance<StreamInfoItem>()
                 .mapIndexed { index, item ->
                     MangaChapter(
@@ -120,7 +123,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
                 }
             return@withContext manga.copy(chapters = chapters)
         }
-        val info = StreamInfo.getInfo(ServiceList.YouTube, manga.url)
+        val info = StreamInfo.getInfo(service, manga.url)
         val chapter = MangaChapter(
             id = ArchiveMapping.uid(source, manga.url),
             title = manga.title,
@@ -140,7 +143,7 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
     }
 
     override suspend fun getStreams(chapter: MangaChapter): List<MediaStream> = withContext(Dispatchers.IO) {
-        val info = StreamInfo.getInfo(ServiceList.YouTube, chapter.url)
+        val info = StreamInfo.getInfo(service, chapter.url)
         val subtitles = info.subtitles.mapNotNull { track ->
             track.url?.takeIf(String::isNotBlank)?.let { MediaSubtitle(it, track.languageTag) }
         }
@@ -159,6 +162,11 @@ class NewPipeVideoRepository(cache: MemoryContentCache) :
                 MediaStream(url, stream.resolution.orEmpty(), subtitles = subtitles, audioUrl = audioUrl)
             }
         buildList {
+            if (source == BuiltinSource.SOUNDCLOUD) {
+                info.audioStreams.mapNotNull { audio ->
+                    audio.url?.takeIf(String::isNotBlank)?.let { MediaStream(it, "Audio") }
+                }.also(::addAll)
+            }
             if (hls != null) add(MediaStream(hls, "HLS", subtitles = subtitles, mimeType = "application/x-mpegURL"))
             if (dash != null) add(MediaStream(dash, "DASH", subtitles = subtitles, mimeType = "application/dash+xml"))
             addAll(muxed)
