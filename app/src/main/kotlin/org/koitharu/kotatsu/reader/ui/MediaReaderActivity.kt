@@ -257,12 +257,13 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		loadJob?.cancel()
 		loadJob = lifecycleScope.launch {
 			try {
-				val videos = captchaAutoResolveCoordinator.runWithVerification(
-					source = manga.source.asJsSource() ?: throw IllegalStateException(getString(R.string.media_reader_source_unsupported)),
-					mayStartVerification = true,
-				) {
+				val jsSource = manga.source.asJsSource()
+				val videos = if (jsSource == null) {
 					provider.getStreams(state.chapter)
-				}
+				} else captchaAutoResolveCoordinator.runWithVerification(
+					source = jsSource,
+					mayStartVerification = true,
+				) { provider.getStreams(state.chapter) }
 				val selected = chooseVideo(videos)
 					?: throw IllegalStateException(getString(R.string.media_reader_no_streams))
 				startPlayer(selected)

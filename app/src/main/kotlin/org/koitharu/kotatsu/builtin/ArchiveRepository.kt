@@ -35,7 +35,7 @@ class ArchiveRepository(
     override suspend fun getFilterOptions() = MangaListFilterOptions()
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
-        val term = filter?.query?.replace(Regex("[^\p{L}\p{N} ]"), " ")?.trim().orEmpty()
+        val term = filter?.query?.replace(Regex("""[^\p{L}\p{N} ]"""), " ")?.trim().orEmpty()
         val expression = listOfNotNull(
             term.takeIf { it.isNotBlank() }?.let { "($it)" },
             when (source) {
