@@ -42,13 +42,19 @@ class JsOkHttpTransport(
 		} else {
 			client
 		}
-		val builder = Request.Builder().url(request.url)
+		val effectiveUrl = compatibleJsSourceUrl(request.url)
+		val builder = Request.Builder().url(effectiveUrl)
 		if (source != null) {
 			// Kotatsu's CloudFlareInterceptor reads this tag and routes CAPTCHA challenges through
 			// the same resolver used by built-in parser sources.
 			builder.tag(MangaSource::class.java, source)
 		}
-		request.headers.forEach { (name, value) -> builder.header(name, value) }
+		request.headers.forEach { (name, value) ->
+			// Let OkHttp provide the new Host header when an obsolete Comick API host is remapped.
+			if (effectiveUrl != request.url && name.equals("Host", ignoreCase = true) &&
+				value.equals("api.comick.fun", ignoreCase = true)) return@forEach
+			builder.header(name, value)
+		}
 		val contentType = request.headers.entries
 			.firstOrNull { it.key.equals("content-type", ignoreCase = true) }?.value?.toMediaTypeOrNull()
 		val needsBody = request.method == "POST" || request.method == "PUT" || request.method == "PATCH"
