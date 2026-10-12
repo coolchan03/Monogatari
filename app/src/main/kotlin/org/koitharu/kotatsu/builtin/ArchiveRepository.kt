@@ -108,6 +108,7 @@ class ArchiveRepository(
         return withContext(Dispatchers.IO) {
             val output = File(context.cacheDir, "archive-pages/${ArchiveMapping.uid(source, chapter.url)}")
             output.mkdirs()
+            var extractedBytes = 0L
             ZipFile(cbz).use { zip ->
                 zip.entries().asSequence()
                     .filter { !it.isDirectory && it.name.substringAfterLast('.').lowercase() in setOf("jpg","jpeg","png","webp","gif") }
@@ -115,21 +116,33 @@ class ArchiveRepository(
                     .take(500)
                     .mapIndexed { index, entry ->
                         val page = File(output, "$index.${entry.name.substringAfterLast('.').lowercase()}")
-                        if (!page.exists()) {
-                            zip.getInputStream(entry).use { input ->
-                                page.outputStream().use { out ->
-                                    val buffer = ByteArray(8192)
-                                    var size = 0L
-                                    while (true) {
-                                        val n = input.read(buffer)
-                                        if (n < 0) break
-                                        size += n
-                                        if (size > 30L * 1024 * 1024) error("CBZ page too large")
-                                        out.write(buffer, 0, n)
+                        if (page.exists()) {
+                            extractedBytes += page.length()
+                        } else {
+                            val temp = File(output, page.name + ".part")
+                            try {
+                                zip.getInputStream(entry).use { input ->
+                                    temp.outputStream().use { out ->
+                                        val buffer = ByteArray(8192)
+                                        var size = 0L
+                                        while (true) {
+                                            val n = input.read(buffer)
+                                            if (n < 0) break
+                                            size += n
+                                            extractedBytes += n
+                                            if (size > 30L * 1024 * 1024 || extractedBytes > 256L * 1024 * 1024) {
+                                                error("CBZ expands beyond size limit")
+                                            }
+                                            out.write(buffer, 0, n)
+                                        }
                                     }
                                 }
+                                if (!temp.renameTo(page)) error("Cannot save extracted page")
+                            } finally {
+                                temp.delete()
                             }
                         }
+                        if (extractedBytes > 256L * 1024 * 1024) error("CBZ expands beyond size limit")
                         MangaPage(ArchiveMapping.uid(source, "$index:${chapter.url}"), page.toURI().toString(), null, source)
                     }.toList()
             }
