@@ -11,12 +11,13 @@ Last observed: 18:24 CDT, America/Chicago (NOT an automatically detected timeout
 - 32j Android versionCode 2 / versionName 0.10.0, 5 new guided QA cases, release notes: d01b3ae70, CI 38321448613 pending.
 - 32k retain chapters if later continuation fails: 8c9bba8fe, CI 38321533655 pending.
 - 32l consistent video search mode prefix selection: 94c277ac0, CI 38321664527 pending.
-- 32m unified search ranking uses title query not internal mode prefix: 686ce5e1c, CI 38321914456 pending. Branch: batch-32m-mode-search-relevance. This branch includes all the earlier 32f-32m changes in linear ancestry.
+- 32m unified search ranking uses title query not internal mode prefix: 686ce5e1c, CI 38321914456 pending.
+- 32n search filter visibility correctly applied to its submenu (not all manga/book screens): f17f3d855, CI 38322296940 pending. Branch: batch-32n-video-submenu-fix. This branch includes all earlier 32f-32n changes in linear ancestry.
 
 ## New public testing release requested
 - RELEASE TAG TO CREATE ONLY AFTER FULL CI SUCCESS: v0.10.0-source-preview
-- Current exact final candidate branch: batch-32m-mode-search-relevance, tip 686ce5e1c.
-- Verify CI 38321914456 fully green (unit tests, debug APK, unsigned R8 APK). Repair and rerun if red.
+- Current exact final candidate branch: batch-32n-video-submenu-fix, tip f17f3d855.
+- Verify CI 38322296940 fully green (unit tests, debug APK, unsigned R8 APK). Repair and rerun if red.
 - Fast-forward passing candidate into devel through tunnel; verify ls-remote remote SHA.
 - Publish public GitHub Release with debug APK from that EXACT successful CI run, SHA256SUMS and docs/RELEASE_0_10_0_NOTES.md. Do NOT mislabel as production signed.
 - Prepared publishing script on Windows tunnel: C:\Users\coolc\AppData\Local\Temp\monogatari_publish_v010.py
@@ -26,7 +27,7 @@ Last observed: 18:24 CDT, America/Chicago (NOT an automatically detected timeout
 
 ## NEXT EXACT OPERATION
 1. Tunnel to Surface FIRST for all code/repo/GitHub actions.
-2. Check GitHub Actions runs newest 38321914456 plus intermediate f..l. Fix any compiler/R8 errors on latest cumulative candidate branch. Do not merge or release unverified code.
+2. Check GitHub Actions run 38322296940 on final candidate (earlier run g 38321019662 and h 38321082002 have passed). Fix any compiler/R8 errors on latest candidate branch. Do not merge or release unverified code.
 3. After green, fast-forward devel and publish public APK release from exact CI job artifact with checksum, then verify Release URL + asset list and give link.
 4. Update this status file on a notes branch (to avoid triggering a new build).
 5. Preserve .release-temp/ and source-audit/ as untracked user folders, do not delete.
