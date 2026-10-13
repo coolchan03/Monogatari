@@ -20,6 +20,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
     private var spokenParagraphs = emptyList<String>()
     private var paragraphIndex = 0
     private var ttsReady = false
+    private var speechGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,14 +40,15 @@ class LocalTextReaderActivity : AppCompatActivity() {
         try {
             if (file.length() > 8L * 1024 * 1024) error("Text file is too large for this reader")
             val contents = file.readText()
-            spokenParagraphs = contents.split(Regex("\\n\\s*\\n")).map { it.trim() }
+            val readable = if (file.extension.lowercase() in setOf("html", "htm", "xhtml"))
+                Html.fromHtml(contents, Html.FROM_HTML_MODE_COMPACT).toString() else contents
+            spokenParagraphs = readable.split(Regex("\\n\\s*\\n")).map { it.trim() }
                 .filter { it.isNotEmpty() }.take(2000)
             tts = TextToSpeech(this) { status ->
                 ttsReady = status == TextToSpeech.SUCCESS
                 if (ttsReady) tts?.language = Locale.getDefault()
             }
-            text.text = if (file.extension.lowercase() in setOf("html", "htm", "xhtml"))
-                Html.fromHtml(contents, Html.FROM_HTML_MODE_COMPACT) else contents
+            text.text = readable
             val y = getSharedPreferences("book_scroll", MODE_PRIVATE).getInt(file.name, 0)
             scroll.post { scroll.scrollTo(0, y) }
         } catch (error: Exception) {
@@ -62,14 +64,16 @@ class LocalTextReaderActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId != 6701) return super.onOptionsItemSelected(item)
         val engine = tts ?: return true
-        if (engine.isSpeaking) { engine.stop(); return true }
+        if (engine.isSpeaking) { speechGeneration++; engine.stop(); return true }
         if (!ttsReady || spokenParagraphs.isEmpty()) return true
         paragraphIndex = 0
+        val generation = ++speechGeneration
         engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) = Unit
             override fun onError(utteranceId: String?) = Unit
             override fun onDone(utteranceId: String?) {
                 runOnUiThread {
+                    if (generation != speechGeneration || isFinishing || isDestroyed) return@runOnUiThread
                     paragraphIndex++
                     if (paragraphIndex < spokenParagraphs.size) speakNext()
                 }
@@ -84,6 +88,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        speechGeneration++
         tts?.stop()
         tts?.shutdown()
         super.onDestroy()
