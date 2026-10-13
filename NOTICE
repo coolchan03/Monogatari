@@ -1,0 +1,18 @@
+Monogatari — third-party attribution and license review
+
+This project includes or adapts code from upstream open-source projects. Refer to the
+individual bundled source files, dependency metadata and license texts for precise
+copyright ownership and conditions. This NOTICE is supplemental, not a replacement
+for their original notices or complete license texts.
+
+* Kotatsu / Kotatsu-Redo — original manga reader foundation; GPL-3.0 family.
+* Mangayomi — JavaScript extension compatibility and source-format references;
+  upstream Apache-2.0 notices must be preserved for adapted code.
+* NewPipe — components are GPL-3.0 licensed where incorporated.
+* Mihon / Tachiyomi — backup and source compatibility references; check each
+  reused component's license and copyright header before distribution.
+* Kototoro — OCR and translation architecture referenced for future work;
+  Apache-2.0. The full translation engine has NOT been ported.
+
+Before a public release, regenerate the full dependency-license list and verify
+any source-copied assets and code, including original attribution headers.

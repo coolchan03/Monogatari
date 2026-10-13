@@ -1,11 +1,11 @@
-# Monogatari Steps 62–66 checkpoint — 2026-10-13
+# Monogatari Step 62–66 recovery batch — October 13, 2026
 
-This batch adds conservative reusable policies, not finished screens or background workers.
+The interrupted network session left five untracked source/test files on disk. They have been inspected and preserved, not overwritten.
 
-- 62 — Discovery: added `DiscoveryQueryPolicy` to normalize bounded Find a copy title queries and select followed tags. No AniList API or discovery tab yet.
-- 63 — Follow tags: `FollowedTagPolicy` performs exact case-insensitive tag matching to avoid substring false positives. No persistent tag selection, worker or notifications.
-- 64 — News: `NewsFeedPolicy` validates explicit HTTPS RSS origins; no fetching, parsing, subscriptions or UI.
-- 65 — Private categories: fail-closed `PrivateCategoryPolicy` prohibits secondary exposure, even when unlocked. No biometric lock, data model, or actual category integration; do NOT claim functional privacy protection.
-- 66 — Open-source licence notices: a complete notice requires checking exact upstream imports and licences. No unsupported licence assertions were published in this patch.
+- **62 Discover:** `DiscoveryQueryPolicy` provides bounded text normalization and matching followed tags; no AniList GraphQL fetch or user-facing discovery screen. PARTIAL.
+- **63 Followed tags:** `FollowedTagPolicy` uses case-insensitive whole-tag matching. No persistent tag subscriptions, worker, notification, or consent UI. PARTIAL.
+- **64 RSS:** `NewsFeedPolicy` restricts network endpoint URLs to HTTPS and a small known host allow-list. No actual RSS fetching, polling, cache or integrated feed. PARTIAL.
+- **65 Private categories:** `PrivateCategoryPolicy` defaults to excluding private, locked categories from secondary surfaces, even when unlocked except for the library. No persisted private flag, biometric unlock, or enforcement in widgets/Discord/sharing. It must not be enabled as a user-facing privacy feature yet. PARTIAL.
+- **66 Licenses:** added root `NOTICE` containing provisional third-party attribution and instructions to retain original copyright/license texts. Needs final dependency/license audit and in-app About screen before full acceptance. PARTIAL.
 
-Four JUnit tests cover these domain guards. New helpers are not wired to app features. Exact-commit CI and real device acceptance remain required before any finished-feature claim.
+`DiscoverySafetyTest` covers discovery query normalization, exact tag matching, trusted RSS URL checks and private-category policy. These are JVM tests pending exact-commit CI. No network requests, private storage modifications, credential access, feed workers or tracking are enabled by these helpers.
