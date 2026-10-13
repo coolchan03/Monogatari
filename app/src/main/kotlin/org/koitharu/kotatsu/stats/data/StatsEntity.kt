@@ -3,14 +3,14 @@ package org.koitharu.kotatsu.stats.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
-import org.koitharu.kotatsu.history.data.HistoryEntity
+import org.koitharu.kotatsu.core.db.entity.MangaEntity
 
 @Entity(
 	tableName = "stats",
 	primaryKeys = ["manga_id", "started_at"],
 	foreignKeys = [
 		ForeignKey(
-			entity = HistoryEntity::class,
+			entity = MangaEntity::class,
 			parentColumns = ["manga_id"],
 			childColumns = ["manga_id"],
 			onDelete = ForeignKey.CASCADE,
@@ -22,4 +22,7 @@ data class StatsEntity(
 	@ColumnInfo(name = "started_at") val startedAt: Long,
 	@ColumnInfo(name = "duration") val duration: Long,
 	@ColumnInfo(name = "pages") val pages: Int,
+	@ColumnInfo(name = "chapter_id") val chapterId: Long? = null,
+	@ColumnInfo(name = "words", defaultValue = "0") val words: Int = 0,
+	@ColumnInfo(name = "media_ms", defaultValue = "0") val mediaMs: Long = 0,
 )

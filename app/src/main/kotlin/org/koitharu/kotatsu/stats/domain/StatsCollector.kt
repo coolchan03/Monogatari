@@ -41,6 +41,7 @@ class StatsCollector @Inject constructor(
 					startedAt = now,
 					duration = 0,
 					pages = 0,
+					chapterId = state.chapterId,
 				),
 			)
 			return
@@ -53,6 +54,9 @@ class StatsCollector @Inject constructor(
 				startedAt = entry.stats.startedAt,
 				duration = entry.stats.duration + ReadingActivityTime.activeInterval(entry.lastEventAt, now),
 				pages = entry.stats.pages + pagesDelta,
+				chapterId = state.chapterId,
+				words = entry.stats.words,
+				mediaMs = entry.stats.mediaMs,
 			),
 		)
 		stats[mangaId] = newEntry

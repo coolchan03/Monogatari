@@ -48,6 +48,7 @@ import org.koitharu.kotatsu.core.db.migrations.Migration26To27
 import org.koitharu.kotatsu.core.db.migrations.Migration27To28
 import org.koitharu.kotatsu.core.db.migrations.Migration28To29
 import org.koitharu.kotatsu.core.db.migrations.Migration29To30
+import org.koitharu.kotatsu.core.db.migrations.Migration30To31
 import org.koitharu.kotatsu.core.db.migrations.Migration2To3
 import org.koitharu.kotatsu.core.db.migrations.Migration3To4
 import org.koitharu.kotatsu.core.db.migrations.Migration4To5
@@ -69,6 +70,7 @@ import org.koitharu.kotatsu.local.data.index.LocalMangaIndexDao
 import org.koitharu.kotatsu.local.data.index.LocalMangaIndexEntity
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingDao
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
+import org.koitharu.kotatsu.stats.data.ChapterMetaEntity
 import org.koitharu.kotatsu.stats.data.StatsDao
 import org.koitharu.kotatsu.stats.data.StatsEntity
 import org.koitharu.kotatsu.suggestions.data.SuggestionDao
@@ -77,7 +79,7 @@ import org.koitharu.kotatsu.tracker.data.TrackEntity
 import org.koitharu.kotatsu.tracker.data.TrackLogEntity
 import org.koitharu.kotatsu.tracker.data.TracksDao
 
-const val DATABASE_VERSION = 30
+const val DATABASE_VERSION = 31
 
 @Database(
 	entities = [
@@ -85,7 +87,7 @@ const val DATABASE_VERSION = 30
 		FavouriteCategoryEntity::class, FavouriteEntity::class, MangaPrefsEntity::class, TrackEntity::class,
 		TrackLogEntity::class, SuggestionEntity::class, BookmarkEntity::class, ScrobblingEntity::class,
 		MangaSourceEntity::class, StatsEntity::class, LocalMangaIndexEntity::class,
-		SourcePresetEntity::class, BookMetadataEntity::class,
+		SourcePresetEntity::class, BookMetadataEntity::class, ChapterMetaEntity::class,
 	],
 	version = DATABASE_VERSION,
 )
@@ -157,6 +159,7 @@ fun getDatabaseMigrations(context: Context): Array<Migration> = arrayOf(
 	Migration27To28(),
 	Migration28To29(),
     Migration29To30(),
+    Migration30To31(),
 )
 
 fun MangaDatabase(context: Context): MangaDatabase = Room
