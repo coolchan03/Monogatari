@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
+import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
@@ -86,6 +87,8 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 
 	private var scanProgressDialog: AlertDialog? = null
+	private var screenAwakeForScan = false
+	private var scanScreenResumed = false
 
 	private val downloadReceiver = object : BroadcastReceiver() {
 		override fun onReceive(context: Context, intent: Intent) {
@@ -106,6 +109,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		viewModel.state.observe(viewLifecycleOwner, ::render)
 		viewLifecycleOwner.lifecycleScope.launch {
 			scanManager.status.collectLatest { state ->
+				updateScanScreenAwake(state.running)
 				scanProgressDialog?.takeIf { it.isShowing }?.setMessage(
 					"${state.message}\n\nChecked ${state.done} of ${state.total} sources",
 				)
@@ -123,6 +127,28 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				Toast.LENGTH_LONG,
 			).show()
 		}
+	}
+
+	// Hold the screen awake only while the active scan UI is visible.
+	// The scan itself may continue with a sleeping display if the user leaves this screen.
+	private fun updateScanScreenAwake(running: Boolean) {
+		val shouldStayAwake = running && scanScreenResumed
+		if (screenAwakeForScan == shouldStayAwake || !isAdded) return
+		screenAwakeForScan = shouldStayAwake
+		if (shouldStayAwake) requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+		else requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+	}
+
+	override fun onResume() {
+		super.onResume()
+		scanScreenResumed = true
+		updateScanScreenAwake(scanManager.status.value.running)
+	}
+
+	override fun onPause() {
+		scanScreenResumed = false
+		updateScanScreenAwake(false)
+		super.onPause()
 	}
 
 	override fun onStart() {
@@ -241,6 +267,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	}
 
 	override fun onDestroyView() {
+		updateScanScreenAwake(false)
 		scanProgressDialog?.dismiss()
 		scanProgressDialog = null
 		super.onDestroyView()

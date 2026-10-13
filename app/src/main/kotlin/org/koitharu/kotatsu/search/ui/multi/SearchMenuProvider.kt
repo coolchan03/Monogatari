@@ -7,6 +7,8 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.EditText
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.MenuProvider
@@ -129,12 +131,37 @@ class SearchMenuProvider(
 		container.addView(hint)
 		container.addView(from)
 		container.addView(to)
+		val ordering = PublicationYearOrder.entries.toList()
+		container.addView(TextView(activity).apply {
+			setText(R.string.publication_year_sort_label)
+			setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+		})
+		val sortPicker = Spinner(activity).apply {
+			adapter = ArrayAdapter(
+				activity, android.R.layout.simple_spinner_item,
+				listOf(
+					activity.getString(R.string.publication_year_sort_relevance),
+					activity.getString(R.string.publication_year_sort_ascending),
+					activity.getString(R.string.publication_year_sort_descending),
+				),
+			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+			setSelection(ordering.indexOf(viewModel.publicationYearOrder).coerceAtLeast(0))
+		}
+		container.addView(sortPicker)
+		container.addView(TextView(activity).apply {
+			setText(R.string.publication_year_sort_hint)
+			setPadding(0, (6 * density).toInt(), 0, 0)
+		})
 		MaterialAlertDialogBuilder(activity)
 			.setTitle(R.string.publication_years)
 			.setView(container)
-			.setNeutralButton(R.string.any) { _, _ -> viewModel.setPublicationYearRange(null, null) }
+			.setNeutralButton(R.string.any) { _, _ ->
+				viewModel.setPublicationYearOrder(PublicationYearOrder.RELEVANCE)
+				viewModel.setPublicationYearRange(null, null)
+			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
+				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedItemPosition])
 				viewModel.setPublicationYearRange(
 					from.text?.toString()?.trim()?.toIntOrNull(),
 					to.text?.toString()?.trim()?.toIntOrNull(),

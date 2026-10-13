@@ -50,8 +50,8 @@ android {
 		applicationId 'io.github.coolchan03.monogatari'
 		minSdk = 23
 		targetSdk = 37
-		versionCode = 6
-        versionName = '0.13.1'
+		versionCode = 7
+        versionName = '0.13.2'
 		generatedDensities = []
 		testInstrumentationRunner 'org.koitharu.kotatsu.HiltTestRunner'
 		ksp {

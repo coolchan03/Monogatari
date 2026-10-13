@@ -122,6 +122,17 @@ class SearchViewModel @Inject constructor(
     }
 
 	private val results = MutableStateFlow<List<SearchResultsListModel>>(emptyList())
+	private val publicationSort = MutableStateFlow(
+		savedStateHandle.get<String>("publication_sort")
+			?.let { code -> PublicationYearOrder.entries.firstOrNull { it.name == code } }
+			?: PublicationYearOrder.RELEVANCE,
+	)
+	private val displayResults = combine(results, publicationSort) { sections, order ->
+		if (order == PublicationYearOrder.RELEVANCE) sections
+		else sections.map { section ->
+			section.copy(list = PublicationYearSorter.sorted(section.list, order))
+		}
+	}
 	/** Public catalog links use real URLs rather than invented Manga parser entries. */
 	private data class CatalogState(
 		val items: List<BookCatalogListModel> = emptyList(),
@@ -140,7 +151,7 @@ class SearchViewModel @Inject constructor(
 	private var searchJob: Job? = null
 
 	val list: StateFlow<List<ListModel>> = combine(
-		results,
+		displayResults,
 		isLoading.dropWhile { !it },
 		includeDisabledSources,
 		hideEmpty,
@@ -213,6 +224,14 @@ class SearchViewModel @Inject constructor(
 
 	val isPinnedOnly: Boolean
 		get() = pinnedOnly.value
+
+	val publicationYearOrder: PublicationYearOrder
+		get() = publicationSort.value
+
+	fun setPublicationYearOrder(order: PublicationYearOrder) {
+		publicationSort.value = order
+		savedStateHandle["publication_sort"] = order.name
+	}
 
 	val publicationYearFrom: Int?
 		get() = yearFrom.value

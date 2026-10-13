@@ -64,7 +64,4 @@
 		android:summary="@string/community_intro_replay_summary"
 		android:title="@string/community_intro_replay" />
 
-	<Preference
-		android:key="sponsor"
-		android:title="@string/community_sponsor" />
 </PreferenceScreen>

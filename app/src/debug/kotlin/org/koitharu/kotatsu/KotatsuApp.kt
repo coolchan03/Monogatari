@@ -43,7 +43,6 @@ class KotatsuApp : BaseApp() {
 				detectCustomSlowCalls()
 				detectResourceMismatches()
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) detectUnbufferedIo()
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) detectExplicitGc()
 				penaltyLog()
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && notifier != null) {
 					penaltyListener(notifier.executor, notifier)

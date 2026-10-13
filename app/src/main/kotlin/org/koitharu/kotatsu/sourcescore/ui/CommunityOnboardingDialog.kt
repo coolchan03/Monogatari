@@ -2,7 +2,6 @@ package org.koitharu.kotatsu.sourcescore.ui
 
 import android.app.Dialog
 import android.content.Context
-import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.style.ClickableSpan
 import android.text.method.LinkMovementMethod
@@ -20,7 +19,6 @@ import android.view.animation.OvershootInterpolator
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.widget.doAfterTextChanged
-import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -36,7 +34,6 @@ import android.widget.Toast
 import org.koitharu.kotatsu.sourcescore.data.IdentityResponse
 import org.koitharu.kotatsu.sourcescore.data.CommunityApi
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
-import org.koitharu.kotatsu.stats.ui.views.PieChartView
 import javax.inject.Inject
 
 /**
@@ -91,7 +88,6 @@ class CommunityOnboardingDialog : DialogFragment() {
 			view.findViewById(R.id.dot_1),
 			view.findViewById(R.id.dot_2),
 			view.findViewById(R.id.dot_3),
-			view.findViewById(R.id.dot_4),
 		)
 		nicknameLayout = view.findViewById(R.id.layout_nickname)
 		nicknameInput = view.findViewById(R.id.edit_nickname)
@@ -100,7 +96,6 @@ class CommunityOnboardingDialog : DialogFragment() {
 		updateNicknamePreview()
 
 		bindPolicyLinks(view)
-		bindDonationSplit(view)
 
 		val dialog = MaterialAlertDialogBuilder(requireContext())
 			.setView(view)
@@ -198,13 +193,6 @@ class CommunityOnboardingDialog : DialogFragment() {
 				positive.setText(R.string.community_nickname_continue)
 				negative.setText(R.string.community_nickname_back)
 			}
-
-			STEP_SPONSOR -> {
-				titleView.setText(R.string.community_sponsor_title)
-				heroIcon.setImageResource(R.drawable.ic_heart)
-				positive.setText(R.string.community_sponsor_open)
-				negative.setText(R.string.community_sponsor_dismiss)
-			}
 		}
 	}
 
@@ -241,25 +229,20 @@ class CommunityOnboardingDialog : DialogFragment() {
 				settings.isEnabled = true
 				tryRestore()
 				// Answered here, not at the last step. The consent question is this one; the rest are
-				// follow-ups. Marking it only on the sponsor screen meant anyone who opted in and did
-				// not walk all four steps got asked again on every single launch.
+				// follow-ups. A separate promotional final step is no longer used, so no
+				// follow-up step can cause onboarding to be shown on every launch.
 				settings.hasSeenOnboarding = true
 				advance(dialog, STEP_TELEMETRY)
 			}
 
 			STEP_TELEMETRY -> {
 				settings.isTelemetryEnabled = true
-				advance(dialog, nextAfterTelemetry())
+				nextAfterTelemetry(dialog)
 			}
 
 			// Validated here rather than on the server round trip, so a typo is caught before the
 			// step advances and the user has to come back to Settings to fix it.
-			STEP_NICKNAME -> if (saveNickname()) advance(dialog, STEP_SPONSOR)
-
-			STEP_SPONSOR -> {
-				openSponsorPage()
-				finish(dialog)
-			}
+			STEP_NICKNAME -> if (saveNickname()) finish(dialog)
 		}
 	}
 
@@ -275,14 +258,13 @@ class CommunityOnboardingDialog : DialogFragment() {
 
 			STEP_TELEMETRY -> {
 				settings.isTelemetryEnabled = false
-				advance(dialog, nextAfterTelemetry())
+				nextAfterTelemetry(dialog)
 			}
 
 			// There is no anonymous participation: a name is part of joining, so the only way out
 			// of this step is back to the opt-in, where declining is still a real choice.
 			STEP_NICKNAME -> advance(dialog, STEP_INTRO)
 
-			STEP_SPONSOR -> finish(dialog)
 		}
 	}
 
@@ -413,8 +395,9 @@ class CommunityOnboardingDialog : DialogFragment() {
 	}
 
 	/** Skips the nickname question for somebody who already has one. */
-	private fun nextAfterTelemetry(): Int =
-		if (restored?.nickname.isNullOrEmpty()) STEP_NICKNAME else STEP_SPONSOR
+	private fun nextAfterTelemetry(dialog: AlertDialog) {
+		if (restored?.nickname.isNullOrEmpty()) advance(dialog, STEP_NICKNAME) else finish(dialog)
+	}
 
 	/**
 	 * @return true when the nickname is acceptable and stored. It is pushed to the server by the sync
@@ -460,52 +443,8 @@ class CommunityOnboardingDialog : DialogFragment() {
 		dialog.dismiss()
 	}
 
-	/**
-	 * Routed through [AppRouter] rather than a bare ACTION_VIEW intent: Kotatsu registers its own VIEW
-	 * filter for manga urls, so an implicit intent can be caught by the app itself.
-	 */
-	private fun openSponsorPage() {
-		router.openExternalBrowser(SPONSOR_URL, getString(R.string.community_sponsor))
-	}
-
 	private val activeDotWidth by lazy { resources.getDimensionPixelSize(R.dimen.onboarding_dot_active) }
 	private val inactiveDotWidth by lazy { resources.getDimensionPixelSize(R.dimen.onboarding_dot) }
-
-	/**
-	 * The split shown at step three. Server costs come out first, and what remains is divided evenly
-	 * between translation work and the V Foundation for Cancer Research - so the chart shows the
-	 * halves as equal and the server slice as the deduction it is.
-	 */
-	private fun bindDonationSplit(view: View) {
-		val chart = view.findViewById<PieChartView>(R.id.chart_split)
-		val entries = listOf(
-			Triple(R.id.legend_translation, R.string.community_sponsor_split_translation, COLOR_TRANSLATION),
-			Triple(R.id.legend_charity, R.string.community_sponsor_split_charity, COLOR_CHARITY),
-			Triple(R.id.legend_server, R.string.community_sponsor_split_server, COLOR_SERVER),
-		)
-		val percents = listOf(SHARE_TRANSLATION, SHARE_CHARITY, SHARE_SERVER)
-
-		chart.setData(
-			entries.mapIndexed { index, (_, labelRes, color) ->
-				PieChartView.Segment(
-					value = (percents[index] * 100).toInt(),
-					label = getString(labelRes),
-					percent = percents[index],
-					color = color,
-					tag = null,
-				)
-			},
-		)
-
-		entries.forEachIndexed { index, (viewId, labelRes, color) ->
-			view.findViewById<TextView>(viewId).apply {
-				val percent = getString(R.string.percent_format, (percents[index] * 100).toInt())
-				text = "$percent  ${getString(labelRes)}"
-				setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_dot_small, 0, 0, 0)
-				TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(color))
-			}
-		}
-	}
 
 	companion object {
 
@@ -516,20 +455,8 @@ class CommunityOnboardingDialog : DialogFragment() {
 		private const val STEP_INTRO = 0
 		private const val STEP_TELEMETRY = 1
 		private const val STEP_NICKNAME = 2
-		private const val STEP_SPONSOR = 3
 
 		private const val NICKNAME_MIN = 2
-
-		const val SPONSOR_URL = "https://github.com/sponsors/Kotatsu-Redo"
-
-		/** Server first, then an even split of what is left - which is what the wording promises. */
-		private const val SHARE_SERVER = 0.20f
-		private const val SHARE_TRANSLATION = 0.40f
-		private const val SHARE_CHARITY = 0.40f
-
-		private const val COLOR_TRANSLATION = 0xFF4E9F5B.toInt()
-		private const val COLOR_CHARITY = 0xFFC0504D.toInt()
-		private const val COLOR_SERVER = 0xFF7A7A7A.toInt()
 
 		fun showIfNeeded(context: Context, settings: CommunitySettings, fm: FragmentManager) {
 			// Either flag is proof the question has been put. `isEnabled` is set the moment somebody

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
@@ -47,6 +48,8 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
     private var index = 0
     private var rendering = false
     private var preflight = "Not run"
+    private var screenAwakeForScan = false
+    private var scanScreenResumed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,8 +104,24 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        scanScreenResumed = true
+        updateScanScreenAwake(sourceScan.status.value.running)
         // A verdict may have been given from the spotlight card on another screen.
         selectStep(index)
+    }
+
+    override fun onPause() {
+        scanScreenResumed = false
+        updateScanScreenAwake(false)
+        super.onPause()
+    }
+
+    private fun updateScanScreenAwake(running: Boolean) {
+        val shouldStayAwake = running && scanScreenResumed
+        if (shouldStayAwake == screenAwakeForScan) return
+        screenAwakeForScan = shouldStayAwake
+        if (shouldStayAwake) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -170,6 +189,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
     }
 
     private fun renderScanStatus(status: SourceScanManager.Status) {
+        updateScanScreenAwake(status.running)
         val count = if (status.total > 0) "${status.done} of ${status.total}" else "${status.done} checked"
         val saved = sourceScan.hasSavedResults(true)
         ui.qaScanStatus.text = when {

@@ -928,6 +928,11 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="years">Years</string>
     <string name="year_filter_unsupported">This source does not support searching by year.</string>
     <string name="publication_years">Publication years</string>
+    <string name="publication_year_sort_label">Results order</string>
+    <string name="publication_year_sort_relevance">Best match (default)</string>
+    <string name="publication_year_sort_ascending">Oldest to newest (estimated)</string>
+    <string name="publication_year_sort_descending">Newest to oldest (estimated)</string>
+    <string name="publication_year_sort_hint">Uses publication years when available in titles or descriptions. Unknown dates come last. Sorts within each source.</string>
     <string name="publication_year_from">From year</string>
     <string name="publication_year_to">To year</string>
     <string name="publication_year_filter_hint">Only sources that support searching with this year range will be included.</string>
