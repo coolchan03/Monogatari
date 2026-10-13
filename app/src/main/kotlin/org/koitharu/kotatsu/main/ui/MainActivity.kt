@@ -172,14 +172,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			}
 			override fun onMenuItemSelected(item: android.view.MenuItem): Boolean {
 				if (item.itemId != 4901) return false
-				val options = arrayOf("Books", "Reading statistics", "Source test center", "Settings")
+				val options = arrayOf("Unified Library", "Books catalog", "Reading statistics", "News & followed tags", "Source test center", "Settings")
 				AlertDialog.Builder(this@MainActivity)
 					.setTitle("More")
 					.setItems(options) { _, which ->
 						val target = when (which) {
-							0 -> org.koitharu.kotatsu.core.media.BookLibraryActivity::class.java
-							1 -> org.koitharu.kotatsu.stats.ui.StatsActivity::class.java
-							2 -> MonogatariTestCenterActivity::class.java
+							0 -> org.koitharu.kotatsu.core.media.UnifiedLibraryActivity::class.java
+							1 -> org.koitharu.kotatsu.core.media.BookLibraryActivity::class.java
+							2 -> org.koitharu.kotatsu.stats.ui.StatsActivity::class.java
+							3 -> org.koitharu.kotatsu.core.qa.NewsFeedActivity::class.java
+							4 -> MonogatariTestCenterActivity::class.java
 							else -> org.koitharu.kotatsu.settings.SettingsActivity::class.java
 						}
 						startActivity(Intent(this@MainActivity, target))

@@ -21,3 +21,10 @@ Date: 2026-10-13. This is the first integrated UI batch, not full acceptance of 
 - Main app overflow menu now exposes a **More destinations** dialog linking existing Books catalog, reading statistics, source test center, and Settings activities. Existing bottom-navigation selections and persisted order are unchanged. This is a functional shortcut hub, not the full redesigned More tab.
 - This and earlier CSV/TTS changes still require exact-commit CI, launch/navigation smoke testing and user acceptance.
 - Part 2 cannot truthfully be marked complete while WebDAV secret storage/synchronization, full foreign importer, privacy enforcement, translation runtime, unified media library and discovery/tag/RSS wiring are missing.
+
+## Fourth implementation batch — actual user-facing integrations
+- Added `UnifiedLibraryActivity`: displays favorited manga, book/novel, video/anime and audio by installed source-media type, plus imported local ebooks in the Books tab. Search filters within each type and opens existing details or local reader. Accessed from More destinations; existing library/categories are preserved. Only currently registered sources can be reliably classified, and rows still require visual QA.
+- Added `NewsFeedActivity`: user-entered allowlisted HTTPS RSS/Atom feed, optional saved URL list, opt-in manual refresh, persisted followed tags and followed-only filter; article taps open an external browser. Network fetches refuse redirects, cap feed bytes at 1MB and use bounded timeouts. No background fetching, automatic notifications or credential uploads.
+- Added secure bounded `NewsFeedParser` for RSS 2.0 and Atom with entity/DTD refusal, HTTPS-only article links, 100-item limit and JVM regression tests.
+- Both new activities are non-exported Android manifest entries and visible in the main More destinations menu.
+- No claim that encrypted WebDAV, automated tag notifications, private categories, foreign parsers or on-device translation is operational. This improves Part 2, not full acceptance.
