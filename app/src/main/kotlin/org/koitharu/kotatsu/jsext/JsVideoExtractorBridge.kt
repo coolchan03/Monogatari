@@ -9,10 +9,17 @@ import java.net.URI
 
 /** Sendvid implementation adapted from Mangayomi's SendvidExtractor (Apache-2.0). */
 internal class JsVideoExtractorBridge(private val transport: JsHttpTransport) {
+
+    private val extractors = JsVideoExtractors(transport)
+
     suspend fun handle(name: String, args: JsonArray): String {
         if (name != "sendVidExtractor") {
-            MissingJsHostDiagnostics.record("extractor:$name")
-            throw JsExtensionException("Video extractor not supported: $name")
+            val videos = extractors.extract(name, args)
+            if (videos == null) {
+                MissingJsHostDiagnostics.record("extractor:$name")
+                throw JsExtensionException("Video extractor not supported: $name")
+            }
+            return JsonArray(videos.map { it.toJson() }).toString()
         }
         val pageUrl = args.getOrNull(0).str().orEmpty()
         if (!pageUrl.startsWith("https://") && !pageUrl.startsWith("http://")) return "[]"
