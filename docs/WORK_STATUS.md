@@ -4,12 +4,12 @@
 
 - **Canonical GitHub branch:** `devel` (only active remote branch; old tips preserved by archive tags). Do not create another development branch.
 - **Previously merged head:** `a029f45eac9f143bc0293d0350a08753aa4574fd`; Claude's changes plus guarded ACRA lifecycle callbacks. CI build passed but did not launch app.
-- **Current committed head:** `5169d2f33325964278e6430bfa909108643d31b5`; added Android 15 cold-start emulator smoke test; GitHub Actions run `38467173560` started, initially compiling.
+- **Repair head:** `e2c72be15b4a9a81d3282198650918fc85e566b6`; first diagnostic build `5169d2f` reproduced the crash, second build verified correction.
 - **Observed issue:** User reports immediate on-device crash and ~4.10 KB of app data. APK packaging inspected: prior debug APK is ~47 MB with arm64-v8a native libraries. 4 KB is saved data, not APK size.
 - **Crash reproduced:** Android 15 smoke run `38467173560` failed at `NetworkModule.provideBaseHttpClient(NetworkModule.kt:68)`: `IllegalStateException: Calling this from the main thread is prohibited`, during Hilt application injection. This is a confirmed cause of the pre-screen launch failure.
-- **Fix staged:** remove the invalid main-thread client-construction assertion without weakening TLS, guard ACRA disabled-build paths, enhance smoke check, bump to 0.13.1, and add phone log capture instructions. Commit, push, rerun emulator, then publish test APK.
+- **Fix shipped and verified:** `e2c72be15b4a9a81d3282198650918fc85e566b6` removes the invalid main-thread assertion without weakening TLS, guards ACRA-disabled paths, and bumps to v0.13.1. GitHub Actions [38469889807](https://github.com/coolchan03/Monogatari/actions/runs/38469889807) passed unit tests, debug APK build, R8 release build and a real emulator cold-start smoke test. The signed debug APK is [published here](https://github.com/coolchan03/Monogatari/releases/tag/v0.13.1-launch-fix-debug). Motorola device testing is still outstanding.
 - **Device debugging:** No authorized device was attached to `adb` when checked; do not claim the phone crash has been reproduced without a log. Do not uninstall or clear data.
-- **Next step:** commit targeted fix to `devel`, run unit/build plus emulator cold-start check, and publish an installable debug APK only after verifying its exact commit.
+- **Next step:** install and test the published v0.13.1 debug APK on the Motorola device. If a device-specific crash remains, use `scripts/capture-startup-crash.ps1` to collect a targeted stack trace; never clear saved data without a backup.
 
 ## Historical checkpoint — 2026-10-12
 
