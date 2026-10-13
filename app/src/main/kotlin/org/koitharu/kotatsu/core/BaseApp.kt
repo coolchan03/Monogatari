@@ -98,9 +98,13 @@ open class BaseApp : Application(), Configuration.Provider {
 			Security.insertProviderAt(Conscrypt.newProvider(), 1)
 		}
 		setupActivityLifecycleCallbacks()
-		processLifecycleScope.launch {
-			ACRA.errorReporter.putCustomData("isOriginalApp", appValidator.isOriginalApp.getOrNull().toString())
-			ACRA.errorReporter.putCustomData("isMiui", RomCompat.isMiui.getOrNull().toString())
+		// ACRA is deliberately not initialized in builds without a reporting endpoint.
+		// Accessing errorReporter anyway throws on startup (including ordinary test APKs).
+		if (BuildConfig.SENTRY_DSN.isNotEmpty()) {
+			processLifecycleScope.launch {
+				ACRA.errorReporter.putCustomData("isOriginalApp", appValidator.isOriginalApp.getOrNull().toString())
+				ACRA.errorReporter.putCustomData("isMiui", RomCompat.isMiui.getOrNull().toString())
+			}
 		}
 		processLifecycleScope.launch(Dispatchers.Default) {
 			setupDatabaseObservers()
