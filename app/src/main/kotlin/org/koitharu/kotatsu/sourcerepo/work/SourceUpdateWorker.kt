@@ -90,6 +90,18 @@ class SourceUpdateWorker @AssistedInject constructor(
         private val workManager: WorkManager,
         private val context: Context,
     ) {
+        fun checkNow() {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
+                .build()
+            val request = OneTimeWorkRequestBuilder<SourceUpdateWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.HOURS)
+                .build()
+            workManager.enqueueUniqueWork(ONE_SHOT, ExistingWorkPolicy.REPLACE, request)
+        }
+
         fun schedule() {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)

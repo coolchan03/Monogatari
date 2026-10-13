@@ -52,6 +52,7 @@ import org.koitharu.kotatsu.jsext.source.JsMangaSource
 import org.koitharu.kotatsu.sourcerepo.domain.JsSourceItem
 import org.koitharu.kotatsu.sourcerepo.domain.PluginEntry
 import org.koitharu.kotatsu.sourcerepo.domain.PluginState
+import org.koitharu.kotatsu.sourcerepo.work.SourceUpdateWorker
 import org.koitharu.kotatsu.sourcerepo.domain.RepoPreview
 import javax.inject.Inject
 
@@ -71,6 +72,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 	@Inject
 	lateinit var healthChecks: FirstRunHealthChecks
+
+    @Inject
+    lateinit var sourceUpdateScheduler: SourceUpdateWorker.Scheduler
 
 	private var scanProgressDialog: AlertDialog? = null
 
@@ -251,6 +255,22 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			setIcon(R.drawable.ic_monogatari_nav_explore)
 			summary = getString(R.string.monogatari_source_overview)
 		})
+        val sourceUpdatePrefs = context.getSharedPreferences(SourceUpdateWorker.PREFS, Context.MODE_PRIVATE)
+        val currentDay = System.currentTimeMillis() / 86_400_000L
+        val count = if (sourceUpdatePrefs.getLong("last_updated_day", -1) == currentDay)
+            sourceUpdatePrefs.getInt("updates_today", 0) else 0
+        pluginsCategory.addPreference(Preference(context).apply {
+            key = "monogatari_source_update_status"
+            title = "Check installed source updates"
+            summary = "$count sources updated today. Runs automatically every 12 hours on a network; " +
+                "the previous version can be restored if an update fails."
+            isPersistent = false
+            setOnPreferenceClickListener {
+                sourceUpdateScheduler.checkNow()
+                Toast.makeText(context, "Update check queued; refresh this screen after it finishes", Toast.LENGTH_LONG).show()
+                true
+            }
+        })
 		pluginsCategory.addPreference(Preference(context).apply {
 			key = "temporary_js_batch_install"
 			title = "Download JS sources for testing (10 or all)"
