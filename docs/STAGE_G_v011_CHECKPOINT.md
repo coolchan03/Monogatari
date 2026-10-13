@@ -15,10 +15,10 @@ Last confirmed operation 19:09 CDT (America/Chicago). This is an observation, no
 - Step 37 scheduling / rollback commit `4d92e1a89`: WorkManager installed-JS updates every 12 h, app-start check if 6 h have elapsed, 4 concurrent installs, automatic rollback on 3 failures only if previous install healthy and updated recently. Builtin and JS source health rows, digest/version validation still performed.
 - Version 0.11 test release preparation commit `ea5cc7b8d`: versionCode=3, versionName=0.11.0, source update status + manual check in Sources, 3 new Test Center checks, CHANGELOG, docs/RELEASE_0_11_0_NOTES.md.
 - Source domain/no-network refinement commit `2d0d25edf`: use existing ProbeFailureFilter to distinguish dead site/DNS vs offline/VPN, using recent other-source successes.
-- Cumulative branch `batch-39-default-source-presets` tip `2d0d25edf`. Latest full candidate CI #38325809860 pending at checkpoint; do not publish or merge until SUCCESS.
+- Cumulative branch `batch-39-default-source-presets` latest tip `efee8f3f9`. First cumulative CI #38325809860 failed because WorkManager Scheduler's Android Context was missing its Hilt @ApplicationContext qualifier. Fixed by commit `efee8f3f9`. Latest CI #38326334853 running; do not publish or merge until SUCCESS. The earlier Step 35 baseline CI #38324757604 passed full tests/debug/R8.
 
 ## Release tasks only after full CI passed
-1. Use Tunnel to Surface first. Check CI #38325809860. If red, inspect --log-failed, patch and run new CI; do not force merge.
+1. Use Tunnel to Surface first. Check CI #38326334853 on commit efee8f3f9. If red, inspect --log-failed, patch and run new CI; do not force merge.
 2. Fast-forward devel from `origin/batch-39-default-source-presets` ONLY AFTER full CI green; verify remote SHA.
 3. Publish public **debug-signed** APK to tag `v0.11.0-source-health-preview` with SHA256SUMS.txt and release notes. Prepared tunnel-local script `C:\Users\coolc\AppData\Local\Temp\monogatari_publish_v011.py` accepts `--run <passed_run_id> --expected-sha <commit_prefix>`. It rejects non-success CI and mismatched SHA. Check the published release and assets before giving links.
 4. If time allows, use Settings -> Monogatari Test Center on Android, copy report and repair issues in a later batch.
