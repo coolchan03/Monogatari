@@ -2,6 +2,8 @@ package org.koitharu.kotatsu.backups.data
 
 import androidx.collection.ArrayMap
 import androidx.room.withTransaction
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.Reusable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -40,6 +42,8 @@ import org.koitharu.kotatsu.filter.data.SavedFiltersRepository
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.reader.data.TapGridSettings
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
+import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
+import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
@@ -54,6 +58,8 @@ class BackupRepository @Inject constructor(
     private val tapGridSettings: TapGridSettings,
     private val mangaSourcesRepository: MangaSourcesRepository,
     private val savedFiltersRepository: SavedFiltersRepository,
+    @ApplicationContext private val context: Context,
+    private val repoStore: SourceRepoStore,
     /**
      * Nullable so [org.koitharu.kotatsu.backups.domain.AppBackupAgent] can keep constructing this by
      * hand: a backup agent runs in its own process with no Hilt graph. Dagger ignores the default and
@@ -134,6 +140,19 @@ class BackupRepository @Inject constructor(
                     serializer = serializer(),
                 )
 
+                BackupSection.REPOS -> output.writeString(
+                    section = BackupSection.REPOS,
+                    data = encodeUrlList(repoStore.getAll(), httpsOnly = true),
+                )
+
+                BackupSection.OPDS_CATALOGS -> output.writeString(
+                    section = BackupSection.OPDS_CATALOGS,
+                    data = encodeUrlList(
+                        context.getSharedPreferences("opds_catalogs", Context.MODE_PRIVATE)
+                            .getStringSet("urls", emptySet()).orEmpty(), httpsOnly = false,
+                    ),
+                )
+
                 BackupSection.SCROBBLING -> output.writeJsonArray(
                     section = BackupSection.SCROBBLING,
                     data = database.getScrobblingDao().dumpEnabled().map { ScrobblingBackup(it) },
@@ -211,7 +230,7 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.SETTINGS -> input.readMap().let {
-                        settings.upsertAll(it)
+                        settings.upsertAll(it.filterKeys(BackupCatalogPolicy::safePreferenceKey))
                         CompositeResult.success()
                     }
 
@@ -232,6 +251,20 @@ class BackupRepository @Inject constructor(
 
                     BackupSection.SOURCES -> input.readJsonArray<SourceBackup>(serializer()).restoreToDb {
                         getSourcesDao().upsert(it.toEntity())
+                    }
+
+                    BackupSection.REPOS -> input.readMap().let { values ->
+                        decodeUrlList(values, httpsOnly = true).forEach { url -> repoStore.add(url) }
+                        CompositeResult.success()
+                    }
+
+                    BackupSection.OPDS_CATALOGS -> input.readMap().let { values ->
+                        val urls = decodeUrlList(values, httpsOnly = false)
+                        val prefs = context.getSharedPreferences("opds_catalogs", Context.MODE_PRIVATE)
+                        val old = prefs.getStringSet("urls", emptySet()).orEmpty()
+                        prefs.edit().putStringSet("urls", old + urls).apply()
+                        urls.forEach { url -> OpdsSourceRegistry.register(url) }
+                        CompositeResult.success()
                     }
 
                     BackupSection.SCROBBLING -> input.readJsonArray<ScrobblingBackup>(serializer()).restoreToDb {
@@ -342,8 +375,20 @@ class BackupRepository @Inject constructor(
         community.hasSeenOnboarding = true
     }
 
+    private fun encodeUrlList(urls: Collection<String>, httpsOnly: Boolean): String =
+        JSONObject().put("urls", JSONArray(urls.mapNotNull {
+            BackupCatalogPolicy.safeUrl(it, httpsOnly)
+        }.distinct().sorted())).toString()
+
+    private fun decodeUrlList(values: Map<String, Any?>, httpsOnly: Boolean): List<String> {
+        val data = values["urls"] as? JSONArray ?: return emptyList()
+        return (0 until data.length()).mapNotNull { index ->
+            BackupCatalogPolicy.safeUrl(data.optString(index), httpsOnly)
+        }.distinct()
+    }
+
     private fun dumpSettings(): String {
-        val map = settings.getAllValues().toMutableMap()
+        val map = settings.getAllValues().filterKeys(BackupCatalogPolicy::safePreferenceKey).toMutableMap()
         map.remove(AppSettings.KEY_APP_PASSWORD)
         map.remove(AppSettings.KEY_PROXY_PASSWORD)
         map.remove(AppSettings.KEY_PROXY_LOGIN)

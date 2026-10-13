@@ -15,6 +15,8 @@ enum class BackupSection(
 	SETTINGS_READER_GRID("reader_grid"),
 	BOOKMARKS("bookmarks"),
 	SOURCES("sources"),
+    REPOS("repos"),
+    OPDS_CATALOGS("opds_catalogs"),
 	SCROBBLING("scrobbling"),
 	STATS("statistics"),
 	SAVED_FILTERS("saved_filters"),

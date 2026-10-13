@@ -16,6 +16,7 @@ import org.koitharu.kotatsu.explore.data.MangaSourcesRepository
 import org.koitharu.kotatsu.filter.data.SavedFiltersRepository
 import org.koitharu.kotatsu.reader.data.TapGridSettings
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
+import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
 import java.io.File
 import java.io.FileDescriptor
 import java.io.FileInputStream
@@ -67,6 +68,8 @@ class AppBackupAgent : BackupAgent() {
 					context = applicationContext,
 				),
 				communitySettings = CommunitySettings(applicationContext),
+                context = applicationContext,
+                repoStore = SourceRepoStore(applicationContext),
 			),
 		)
 		try {
@@ -101,6 +104,8 @@ class AppBackupAgent : BackupAgent() {
 						context = applicationContext,
 					),
 					communitySettings = CommunitySettings(applicationContext),
+                context = applicationContext,
+                repoStore = SourceRepoStore(applicationContext),
 				),
 			)
 			destination.delete()
