@@ -166,6 +166,27 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 
 		addMenuProvider(MainMenuProvider(router, viewModel))
+		addMenuProvider(object : MenuProvider {
+			override fun onCreateMenu(menu: android.view.Menu, menuInflater: android.view.MenuInflater) {
+				menu.add(0, 4901, 100, "More destinations")
+			}
+			override fun onMenuItemSelected(item: android.view.MenuItem): Boolean {
+				if (item.itemId != 4901) return false
+				val options = arrayOf("Books", "Reading statistics", "Source test center", "Settings")
+				AlertDialog.Builder(this@MainActivity)
+					.setTitle("More")
+					.setItems(options) { _, which ->
+						val target = when (which) {
+							0 -> org.koitharu.kotatsu.core.media.BookLibraryActivity::class.java
+							1 -> org.koitharu.kotatsu.stats.ui.StatsActivity::class.java
+							2 -> MonogatariTestCenterActivity::class.java
+							else -> org.koitharu.kotatsu.settings.SettingsActivity::class.java
+						}
+						startActivity(Intent(this@MainActivity, target))
+					}.show()
+				return true
+			}
+		})
 
 		// The community features introduce themselves once, on the first launch that reaches the main
 		// screen. Nothing is created before the user answers: the identity is generated lazily, so

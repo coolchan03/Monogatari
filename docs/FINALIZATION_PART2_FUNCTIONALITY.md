@@ -16,3 +16,8 @@ Date: 2026-10-13. This is the first integrated UI batch, not full acceptance of 
 - Local book catalog screen now has an explicit `Export my books (CSV)` menu action. Android CreateDocument picker controls destination; exports title, format and the saved local reading-progress summary through the shared CSV formatter. No exported data leaves the phone automatically.
 - Local text/HTML reader now has a 15-minute speech sleep timer and a cancel action. It checks a monotonic clock before speaking each paragraph. This is not a background service and does not claim exact millisecond stopping in the middle of a long paragraph.
 - The combined CI result and Android reader smoke tests remain outstanding; do not claim complete Part 2 acceptance. WebDAV sync, encrypted private categories, full media navigation, offline translation, cross-media discovery and remaining integrations are not finished.
+
+## Third UI integration batch
+- Main app overflow menu now exposes a **More destinations** dialog linking existing Books catalog, reading statistics, source test center, and Settings activities. Existing bottom-navigation selections and persisted order are unchanged. This is a functional shortcut hub, not the full redesigned More tab.
+- This and earlier CSV/TTS changes still require exact-commit CI, launch/navigation smoke testing and user acceptance.
+- Part 2 cannot truthfully be marked complete while WebDAV secret storage/synchronization, full foreign importer, privacy enforcement, translation runtime, unified media library and discovery/tag/RSS wiring are missing.
