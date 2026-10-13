@@ -197,7 +197,7 @@ class AppShortcutManager @Inject constructor(
 
 	private fun generatedShortcutIcon(manga: Manga): IconCompat =
 		IconCompat.createWithAdaptiveBitmap(
-			GeneratedCoverDrawable(manga.title).toBitmap(256, 256),
+			GeneratedCoverDrawable(manga.title, manga.authors.firstOrNull()).toBitmap(256, 256),
 		)
 
 	private suspend fun buildShortcutInfo(source: MangaSource): ShortcutInfoCompat = withContext(Dispatchers.Default) {

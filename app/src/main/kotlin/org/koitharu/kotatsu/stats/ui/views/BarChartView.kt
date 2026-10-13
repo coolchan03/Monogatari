@@ -61,7 +61,7 @@ class BarChartView @JvmOverloads constructor(
 
 	override fun onDraw(canvas: Canvas) {
 		super.onDraw(canvas)
-		if (bars.isEmpty() || chartBounds.isEmpty) {
+		if (bars.isEmpty() || maxValue <= 0 || chartBounds.isEmpty) {
 			return
 		}
 		val spacing = (chartBounds.width() - (barWidth * bars.size.toFloat())) / (bars.size + 1).toFloat()

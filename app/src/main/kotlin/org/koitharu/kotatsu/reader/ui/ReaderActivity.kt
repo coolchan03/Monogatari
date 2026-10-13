@@ -123,6 +123,7 @@ class ReaderActivity :
     private val hideEInkFlashRunnable = Runnable { einkFlashView.isVisible = false }
     private lateinit var einkFlashView: View
     private var eInkFlashCounter = 0
+    private var chapterEtaLabel: String? = null
 
     // Tracks whether the foldable device is in an unfolded state (half-opened or flat)
     private var isFoldUnfolded: Boolean = false
@@ -182,6 +183,12 @@ class ReaderActivity :
         viewModel.readerMode.observe(this, Lifecycle.State.STARTED, this::onInitReader)
         viewModel.onPageSaved.observeEvent(this, PagesSavedObserver(viewBinding.container))
         viewModel.uiState.zipWithPrevious().observe(this, this::onUiStateChanged)
+        viewModel.chapterRemainingMs.observe(this) { remaining ->
+            chapterEtaLabel = remaining?.takeIf { it > 0L }?.let { duration ->
+                getString(R.string.monogatari_chapter_eta, (duration + 59_999L) / 60_000L)
+            }
+            updateReaderHeading(viewModel.uiState.value)
+        }
         combine(
             viewModel.isLoading,
             viewModel.content.map { it.pages.isNotEmpty() }.distinctUntilChanged(),
@@ -536,10 +543,22 @@ class ReaderActivity :
         viewBinding.infoBar.isVisible = isBarEnabled && viewBinding.appbarTop.isGone
     }
 
+    private fun updateReaderHeading(state: ReaderUiState?) {
+        viewBinding.infoBar.update(state, chapterEtaLabel)
+        val chapterTitle = state?.getChapterTitle(resources).orEmpty()
+        supportActionBar?.subtitle = when {
+            state == null -> null
+            state.incognito -> getString(R.string.incognito_mode)
+            chapterEtaLabel == null -> chapterTitle
+            chapterTitle.isBlank() -> chapterEtaLabel
+            else -> "$chapterTitle · $chapterEtaLabel"
+        }
+    }
+
     private fun onUiStateChanged(pair: Pair<ReaderUiState?, ReaderUiState?>) {
         val (previous: ReaderUiState?, uiState: ReaderUiState?) = pair
         title = uiState?.mangaName ?: getString(R.string.loading_)
-        viewBinding.infoBar.update(uiState)
+        updateReaderHeading(uiState)
         if (uiState == null) {
             supportActionBar?.subtitle = null
             viewBinding.actionsView.setSliderValue(0, 1)
@@ -547,10 +566,6 @@ class ReaderActivity :
             return
         }
         val chapterTitle = uiState.getChapterTitle(resources)
-        supportActionBar?.subtitle = when {
-            uiState.incognito -> getString(R.string.incognito_mode)
-            else -> chapterTitle
-        }
         if (
             settings.isReaderChapterToastEnabled &&
             chapterTitle != previous?.getChapterTitle(resources) &&

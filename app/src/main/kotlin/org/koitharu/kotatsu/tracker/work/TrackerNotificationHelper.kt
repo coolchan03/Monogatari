@@ -77,7 +77,7 @@ class TrackerNotificationHelper @Inject constructor(
 						.build(),
 				).toBitmapOrNull()
 			}.getOrNull()
-			setLargeIcon(image ?: GeneratedCoverDrawable(manga.title).toBitmap(300, 450))
+			setLargeIcon(image ?: GeneratedCoverDrawable(manga.title, manga.authors.firstOrNull()).toBitmap(300, 450))
 			setSmallIcon(R.drawable.ic_stat_book_plus)
 			setGroup(GROUP_NEW_CHAPTERS)
 			val style = NotificationCompat.InboxStyle(this)

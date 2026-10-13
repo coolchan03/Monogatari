@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.take
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.FavouriteCategory
+import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.stats.domain.StatsInsights
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.ui.util.ReversibleAction
@@ -34,6 +36,7 @@ class StatsViewModel @Inject constructor(
 
 	val readingStats = MutableStateFlow<List<StatsRecord>>(emptyList())
 	val dailyTotals = MutableEventFlow<String>()
+	val insights = MutableEventFlow<StatsScreenInsights>()
 
 	init {
 		launchJob(Dispatchers.Default) {
@@ -82,27 +85,7 @@ class StatsViewModel @Inject constructor(
 			val goal = settings.dailyReadingGoalMinutes
 			val summary = repository.getInsights(goal)
 			val media = repository.getMediaTotals(StatsPeriod.MONTH)
-			val minutes = { value: Long -> "${value / 60000L} min" }
-			val text = buildString {
-				appendLine("Daily goal: $goal min")
-				appendLine("Today: ${minutes(summary.todayMs)}")
-				appendLine("Last 7 days: ${minutes(summary.weekMs)}")
-				appendLine("This month: ${minutes(summary.monthMs)}")
-				appendLine("Current streak: ${summary.streakDays} days")
-				appendLine("Goal met: ${summary.goalDaysIn30} / 30 days")
-				appendLine()
-				appendLine("Time by media (last 30 days):")
-				media.entries.sortedByDescending { it.value }.forEach { (type, duration) ->
-					appendLine("  ${type.name.lowercase()}: ${minutes(duration)}")
-				}
-				appendLine()
-				appendLine("Reading by time of day (last 400 days):")
-				for (start in 0 until 24 step 4) {
-					val total = summary.hourMs.subList(start, start + 4).sum()
-					appendLine("  ${start.toString().padStart(2, '0')}:00–${(start + 4).toString().padStart(2, '0')}:00: ${minutes(total)}")
-				}
-			}
-			dailyTotals.call(text)
+			insights.call(StatsScreenInsights(goal, summary, media))
 		}
 	}
 
@@ -114,3 +97,9 @@ class StatsViewModel @Inject constructor(
 		}
 	}
 }
+
+internal data class StatsScreenInsights(
+    val goalMinutes: Int,
+    val summary: StatsInsights.Summary,
+    val media: Map<MediaType, Long>,
+)

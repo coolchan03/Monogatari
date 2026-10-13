@@ -62,7 +62,7 @@ class RecentListFactory(
 		val item = dataSet.getOrNull(position) ?: return views
 		runCatchingCancellable {
 			if (item.coverUrl.isNullOrBlank()) {
-				GeneratedCoverDrawable(item.title).toBitmap(300, 450)
+				GeneratedCoverDrawable(item.title, item.authors.firstOrNull()).toBitmap(300, 450)
 			} else coilLazy.get().executeBlocking(
 				ImageRequest.Builder(context)
 					.data(item.coverUrl)
@@ -74,7 +74,7 @@ class RecentListFactory(
 		}.onSuccess { cover ->
 			views.setImageViewBitmap(R.id.imageView_cover, cover)
 		}.onFailure {
-			views.setImageViewBitmap(R.id.imageView_cover, GeneratedCoverDrawable(item.title).toBitmap(300, 450))
+			views.setImageViewBitmap(R.id.imageView_cover, GeneratedCoverDrawable(item.title, item.authors.firstOrNull()).toBitmap(300, 450))
 		}
 		val intent = Intent()
 		intent.putExtra(AppRouter.KEY_ID, item.id)

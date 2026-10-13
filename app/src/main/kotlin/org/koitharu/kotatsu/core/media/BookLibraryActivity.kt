@@ -216,14 +216,10 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private fun showLocalBooks(filter: String = "") {
-        results.removeAllViews()
-        val books = BookShelf.list(this, filter)
-        if (books.isEmpty()) showLines(listOf("No imported books yet."))
-        books.forEach { file ->
-            results.addView(BookShelfCard.create(results, file) { selected ->
-                startActivity(BookShelf.readerIntent(this, selected))
-            })
-        }
+        // Saved remote titles and imported books now share the same searchable shelf.
+        startActivity(Intent(this, UnifiedLibraryActivity::class.java)
+            .putExtra(UnifiedLibraryActivity.EXTRA_MEDIA_KIND, MediaType.BOOK.name)
+            .putExtra(UnifiedLibraryActivity.EXTRA_FILTER, filter))
     }
 
     private fun catalogCard(title: String, subtitle: String, onOpen: () -> Unit): MaterialCardView {

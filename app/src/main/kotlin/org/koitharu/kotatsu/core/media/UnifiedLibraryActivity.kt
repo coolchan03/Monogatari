@@ -30,11 +30,16 @@ import javax.inject.Inject
 /** User-facing unified library across saved manga, novels, anime, audio and imported books. */
 @AndroidEntryPoint
 class UnifiedLibraryActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_MEDIA_KIND = "monogatari_library_media_kind"
+        const val EXTRA_FILTER = "monogatari_library_filter"
+    }
     @Inject lateinit var favorites: FavouritesRepository
     private data class Row(val title: String, val detail: String, val kind: MediaType,
         val manga: Manga? = null, val file: File? = null)
     private var all = emptyList<Row>()
     private var selected = MediaType.MANGA
+    private var requestedKind: MediaType? = null
     private var refreshJob: Job? = null
     private lateinit var search: EditText
     private lateinit var count: TextView
@@ -43,6 +48,10 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedKind = MediaType.entries.firstOrNull {
+            it.name.equals(intent.getStringExtra(EXTRA_MEDIA_KIND), ignoreCase = true)
+        }
+        selected = requestedKind ?: MediaType.MANGA
         title = "My Library"
         val px = (12 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(px, px, px, px) }
@@ -59,6 +68,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         root.addView(tabs)
         search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
         search.doAfterTextChanged { render() }
+        search.setText(intent.getStringExtra(EXTRA_FILTER).orEmpty())
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
         count = TextView(this)
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
@@ -101,13 +111,17 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     private fun render() {
         if (!::count.isInitialized) return
-        val availableTypes = MediaType.entries.filter { kind -> all.any { it.kind == kind } }
+        val availableTypes = MediaType.entries.filter { kind ->
+            all.any { it.kind == kind } || kind == requestedKind
+        }
         if (availableTypes.isNotEmpty() && selected !in availableTypes) selected = availableTypes.first()
         val q = search.text?.toString().orEmpty().trim()
         val filtered = all.filter { it.kind == selected && (q.isBlank() ||
             it.title.contains(q, ignoreCase = true) || it.detail.contains(q, ignoreCase = true)) }
         adapter.setRows(filtered.take(1000))
-        count.text = "${filtered.size} ${selected.name.lowercase()} titles" +
+        count.text = if (filtered.isEmpty()) {
+            if (q.isBlank()) "No ${selected.name.lowercase()} saved yet" else "No matching ${selected.name.lowercase()} titles"
+        } else "${filtered.size} ${selected.name.lowercase()} titles" +
             if (filtered.size > 1000) " (first 1000 shown)" else ""
         buttons.forEach { (type, button) ->
             button.isVisible = type in availableTypes || (availableTypes.isEmpty() && type == MediaType.MANGA)

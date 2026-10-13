@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -77,6 +79,8 @@ import org.koitharu.kotatsu.reader.ui.config.ReaderSettings
 import org.koitharu.kotatsu.reader.ui.pager.ReaderUiState
 import org.koitharu.kotatsu.scrobbling.discord.ui.DiscordRpc
 import org.koitharu.kotatsu.stats.domain.StatsCollector
+import org.koitharu.kotatsu.stats.data.StatsRepository
+import org.koitharu.kotatsu.stats.domain.TimeEstimator
 import org.koitharu.kotatsu.tracker.domain.TrackingRepository
 import java.time.Instant
 import javax.inject.Inject
@@ -101,6 +105,7 @@ class ReaderViewModel @Inject constructor(
     private val historyUpdateUseCase: HistoryUpdateUseCase,
     private val detectReaderModeUseCase: DetectReaderModeUseCase,
     private val statsCollector: StatsCollector,
+    private val statsRepository: StatsRepository,
     private val discordRpc: DiscordRpc,
     @LocalStorageChanges localStorageChanges: SharedFlow<LocalManga?>,
     interactor: DetailsInteractor,
@@ -133,6 +138,33 @@ class ReaderViewModel @Inject constructor(
     val onShowToast = MutableEventFlow<Int>()
     val onAskNsfwIncognito = MutableEventFlow<Unit>()
     val uiState = MutableStateFlow<ReaderUiState?>(null)
+
+    /** Read the recorded pace at chapter changes, never on every page turn. */
+    private val estimateSettings = settings
+    private val chapterPace = uiState
+        .map { state -> state?.let { getMangaOrNull()?.id?.let { id -> id to it.chapter.id } } }
+        .distinctUntilChanged()
+        .mapLatest { key ->
+            key?.let {
+                it to (if (estimateSettings.isStatsEnabled)
+                    runCatchingCancellable { statsRepository.getWeightedTimePerPage(it.first) }.getOrNull()
+                else null)
+            }
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** No fabricated ETA for unknown page counts or continuous media. */
+    val chapterRemainingMs = combine(uiState, chapterPace) { state, observed ->
+        val mangaId = getMangaOrNull()?.id
+        val key = if (state != null && mangaId != null) mangaId to state.chapter.id else null
+        if (!estimateSettings.isReadingTimeEstimationEnabled || state == null ||
+            state.totalPages <= 0 || state.currentPage >= state.totalPages - 1 ||
+            getMangaOrNull()?.source?.isContinuousMedia() == true) null
+        else TimeEstimator.mangaRemainingMs(
+            (state.totalPages - state.currentPage - 1).coerceAtLeast(0),
+            observed?.takeIf { it.first == key }?.second, null, null)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val isIncognitoMode = MutableStateFlow(savedStateHandle.get<Boolean>(ReaderIntent.EXTRA_INCOGNITO))
 

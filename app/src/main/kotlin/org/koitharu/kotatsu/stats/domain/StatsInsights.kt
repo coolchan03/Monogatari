@@ -13,6 +13,7 @@ internal object StatsInsights {
         val streakDays: Int,
         val goalDaysIn30: Int,
         val hourMs: List<Long>,
+        val dailyMs: List<Long>, // oldest to newest, including today
         val totalMs: Long,
     )
 
@@ -25,7 +26,9 @@ internal object StatsInsights {
             calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
         val currentMonth = calendar.get(Calendar.MONTH)
         val currentYear = calendar.get(Calendar.YEAR)
-        val daily = StatsRollup.byDay(records, zone)
+        // Ignore invalid/future sessions so imports cannot inflate goals.
+        val valid = records.filter { it.startedAt in 1..nowMs && it.duration > 0L }
+        val daily = StatsRollup.byDay(valid, zone)
         val goalMs = goalMinutes * 60_000L
         fun back(days: Int): StatsRollup.Day {
             val temp = Calendar.getInstance(zone)
@@ -47,7 +50,7 @@ internal object StatsInsights {
         }
         val goalDays = (0..29).count { daily[back(it)].orZero() >= goalMs }
         val hours = LongArray(24)
-        records.forEach { record ->
+        valid.forEach { record ->
             if (record.startedAt in 0..nowMs) {
                 calendar.timeInMillis = record.startedAt
                 hours[calendar.get(Calendar.HOUR_OF_DAY)] += record.duration.coerceAtLeast(0L)
@@ -60,7 +63,8 @@ internal object StatsInsights {
             streakDays = streak,
             goalDaysIn30 = goalDays,
             hourMs = hours.toList(),
-            totalMs = records.sumOf { it.duration.coerceAtLeast(0L) },
+            dailyMs = (29 downTo 0).map { daily[back(it)].orZero() },
+            totalMs = valid.sumOf { it.duration },
         )
     }
 

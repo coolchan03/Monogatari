@@ -9,6 +9,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
 import android.widget.CompoundButton
+import android.widget.ScrollView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.ProgressBar
 import androidx.activity.viewModels
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.graphics.Insets
@@ -43,6 +47,7 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsRecord
 import org.koitharu.kotatsu.stats.ui.views.PieChartView
+import org.koitharu.kotatsu.stats.ui.views.ReadingHeatmapView
 
 @AndroidEntryPoint
 class StatsActivity : BaseActivity<ActivityStatsBinding>(),
@@ -88,6 +93,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		}
 		viewModel.favoriteCategories.observe(this, ::createCategoriesChips)
 		viewModel.onActionDone.observeEvent(this, ReversibleActionObserver(viewBinding.recyclerView))
+		viewModel.insights.observeEvent(this, ::showInsightsDialog)
 		viewModel.dailyTotals.observeEvent(this) { summary ->
 			androidx.appcompat.app.AlertDialog.Builder(this)
 				.setTitle("Reading activity and insights")
@@ -236,6 +242,56 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 			container.addView(chip)
 		}
 	}
+
+    private fun showInsightsDialog(report: StatsScreenInsights) {
+        val detail = report.summary
+        val dp = resources.displayMetrics.density
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((18 * dp).toInt(), (8 * dp).toInt(), (18 * dp).toInt(), (16 * dp).toInt())
+        }
+        fun addText(value: String, size: Float = 15f) {
+            body.addView(TextView(this).apply {
+                text = value
+                textSize = size
+                setPadding(0, (7 * dp).toInt(), 0, (5 * dp).toInt())
+            })
+        }
+        fun minutes(timeMs: Long): String = "${timeMs.coerceAtLeast(0L) / 60_000L} min"
+        addText("Daily goal: ${minutes(detail.todayMs)} / ${report.goalMinutes} min", 18f)
+        body.addView(ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = report.goalMinutes
+            progress = (detail.todayMs / 60_000L).coerceIn(0L, max.toLong()).toInt()
+        }, LinearLayout.LayoutParams(-1, (10 * dp).toInt()))
+        addText("Current streak: ${detail.streakDays} days  ·  Goal reached: ${detail.goalDaysIn30}/30 days")
+        addText("Last 7 days: ${minutes(detail.weekMs)}  ·  This month: ${minutes(detail.monthMs)}")
+        addText("Reading activity — last 30 days", 18f)
+        body.addView(ReadingHeatmapView(this).apply {
+            setData(detail.dailyMs, 7)
+            contentDescription = "30 daily reading totals. Darker tiles indicate more activity."
+        }, LinearLayout.LayoutParams(-1, -2))
+        addText("29 days ago → today")
+        addText("Reading by time of day — last 400 days", 18f)
+        body.addView(ReadingHeatmapView(this).apply {
+            setData(detail.hourMs, 12)
+            contentDescription = "Activity from midnight through 11 PM. Darker tiles indicate more reading."
+        }, LinearLayout.LayoutParams(-1, -2))
+        addText("00:00–11:59 (top row)  ·  12:00–23:59 (bottom row)")
+        addText("Time by media — last 30 days", 18f)
+        if (report.media.isEmpty()) {
+            addText("No recorded activity")
+        } else {
+            report.media.entries.sortedByDescending { it.value }.forEach { (kind, time) ->
+                addText("${kind.name.lowercase().replaceFirstChar { it.uppercaseChar() }}: ${minutes(time)}")
+            }
+        }
+        val scroll = ScrollView(this).apply { addView(body) }
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Reading insights")
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
 
 	private fun showDailyGoalSelector() {
 		val options = intArrayOf(5, 10, 15, 20, 30, 45, 60, 90, 120)

@@ -29,6 +29,7 @@ import org.koitharu.kotatsu.core.exceptions.CloudFlareProtectedException
 import org.koitharu.kotatsu.core.exceptions.UnsupportedSourceException
 import org.koitharu.kotatsu.core.image.CoilImageView
 import org.koitharu.kotatsu.core.ui.image.AnimatedPlaceholderDrawable
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.ui.image.TextDrawable
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
 import org.koitharu.kotatsu.core.util.ext.bookmarkExtra
@@ -59,6 +60,7 @@ class CoverImageView @JvmOverloads constructor(
 	private var aspectRationHeight: Int = 0
 	private var aspectRationWidth: Int = 0
 	var trimImage: Boolean = false
+	private var generatedCoverRequest: ImageRequest? = null
 
 	private val hasAspectRatio: Boolean
 		get() = aspectRationHeight > 0 && aspectRationWidth > 0
@@ -132,12 +134,20 @@ class CoverImageView @JvmOverloads constructor(
 	fun setImageAsync(
 		coverUrl: String?,
 		manga: Manga?,
-	) = enqueueRequest(
-		newRequestBuilder(applyTrim = !isAnimatedUrl(coverUrl))
-			.data(coverUrl?.takeIf { it.isNotBlank() })
-			.mangaExtra(manga)
-			.build(),
-	)
+	) = newRequestBuilder(applyTrim = !isAnimatedUrl(coverUrl))
+        .data(coverUrl?.takeIf { it.isNotBlank() })
+        .mangaExtra(manga)
+        .apply {
+            manga?.let {
+                val generated = GeneratedCoverDrawable(it.title, it.authors.firstOrNull())
+                fallback(generated)
+                error(generated)
+            }
+        }
+        .build().let { request ->
+            generatedCoverRequest = if (manga != null) request else null
+            enqueueRequest(request)
+        }
 
 	fun setImageAsync(
 		coverUrl: String?,
@@ -190,6 +200,10 @@ class CoverImageView @JvmOverloads constructor(
 
 		override fun onError(request: ImageRequest, result: ErrorResult) {
 			super.onError(request, result)
+            if (request === generatedCoverRequest) {
+                foreground = null // Keep the generated title artwork legible.
+                return
+            }
 			foreground = if (result.throwable.isNetworkError() && !networkState.isOnline()) {
 				ContextCompat.getDrawable(context, R.drawable.ic_offline)?.let {
 					LayerDrawable(arrayOf(it)).apply {

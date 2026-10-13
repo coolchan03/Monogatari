@@ -235,7 +235,7 @@ class ReaderInfoBarView @JvmOverloads constructor(
 	}
 
 	@SuppressLint("StringFormatMatches")
-	fun update(state: ReaderUiState?) {
+	fun update(state: ReaderUiState?, chapterEta: String? = null) {
 		text = if (state != null) {
 			context.getString(
 				R.string.reader_info_pattern,
@@ -251,6 +251,14 @@ class ReaderInfoBarView @JvmOverloads constructor(
 		} else {
 			""
 		}
+        if (!chapterEta.isNullOrBlank()) {
+            val combined = "$text    $chapterEta"
+            val reserved = if (isTimeVisible) paint.measureText(timeText + batteryText) +
+                resources.displayMetrics.density * 62f else 0f
+            if (width <= 0 || paint.measureText(combined) + reserved < innerWidth) {
+                text = combined
+            }
+        }
 		val newHeight = computeTextHeight()
 		if (newHeight != prevTextHeight) {
 			prevTextHeight = newHeight
