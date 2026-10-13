@@ -45,6 +45,7 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
+import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.suggestions.domain.SuggestionRepository
 import javax.inject.Inject
@@ -255,7 +256,10 @@ class ExploreViewModel @Inject constructor(
             val unhealthy = runCatchingCancellable {
                 sourceHealth.unhealthyNames()
             }.getOrDefault(emptySet())
-            sources.sortedBy { it.name in unhealthy }.mapTo(result) {
+            val preferred = SourceWebsiteGroups.orderedGroups(
+                sources.sortedBy { it.name in unhealthy },
+            ) { SourceWebsiteGroups.key(it.mangaSource) }.map { it.first() }
+            preferred.mapTo(result) {
                 MangaSourceItem(it, isGrid, it.name in trending && it.name !in unhealthy, it.name in unhealthy)
             }
 		} else {

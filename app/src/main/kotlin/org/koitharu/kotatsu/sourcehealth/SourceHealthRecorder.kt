@@ -11,6 +11,7 @@ import org.koitharu.kotatsu.core.model.unwrap
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
+import org.koitharu.kotatsu.sourcerepo.work.SourceRepairWorker
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.ProbeFailureFilter
@@ -23,6 +24,7 @@ class SourceHealthRecorder @Inject constructor(
     private val db: MangaDatabase,
     @ApplicationContext private val context: Context,
     private val jsStore: JsSourceStore,
+    private val repairScheduler: SourceRepairWorker.Scheduler,
 ) {
     private val dao get() = db.getSourcesDao()
 
@@ -59,7 +61,13 @@ class SourceHealthRecorder @Inject constructor(
         val now = System.currentTimeMillis()
         if (SourceHealthPolicy.shouldRollback(state.failCount, state.lastSuccessAt, now,
                 jsStore.isFreshUpdate(js.id, now))) {
-            if (jsStore.rollback(js.id, now)) dao.clearHealthFailures(source.name)
+            if (jsStore.rollback(js.id, now)) {
+                dao.clearHealthFailures(source.name)
+                return
+            }
+        }
+        if (state.failCount == 3 && !jsStore.isUpdatePaused(js.id)) {
+            repairScheduler.repair(js.id)
         }
     }
 

@@ -60,6 +60,7 @@ import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.domain.SearchV2Helper
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
+import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
 import java.util.Locale
 import javax.inject.Inject
 
@@ -243,13 +244,13 @@ class SearchViewModel @Inject constructor(
 			}
             val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-            sources.filterNot { it.name in excluded }.map { source ->
-				launch {
-					semaphore.withPermit {
-						appendResult(searchSource(source))
-					}
-				}
-			}.joinAll()
+            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }).map { group ->
+                launch {
+                    semaphore.withPermit {
+                        appendResult(searchHostGroup(group))
+                    }
+                }
+            }.joinAll()
 		}
 	}
 
@@ -284,15 +285,26 @@ class SearchViewModel @Inject constructor(
 			val sources = getPresetSourcesOrDefault().rankedForSweep(batch = 0)
             val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-            sources.filterNot { it.name in excluded }.map { source ->
-				launch {
-					semaphore.withPermit {
-						appendResult(searchSource(source))
-					}
-				}
-			}.joinAll()
+            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }).map { group ->
+                launch {
+                    semaphore.withPermit {
+                        appendResult(searchHostGroup(group))
+                    }
+                }
+            }.joinAll()
 		}
 	}
+
+    /** One result section per known host; retry alternatives if the preferred site is empty or fails. */
+    private suspend fun searchHostGroup(group: List<MangaSource>): SearchResultsListModel? {
+        var lastError: SearchResultsListModel? = null
+        for (source in group) {
+            val result = searchSource(source)
+            if (result != null && result.list.isNotEmpty()) return result
+            if (result?.error != null) lastError = result
+        }
+        return lastError
+    }
 
 	/** Public catalogs share the Books search list without masquerading as manga parsers. */
 	private suspend fun safeCatalogSearch(
