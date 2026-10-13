@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.stats.ui
 
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import org.koitharu.kotatsu.core.qa.CsvExportFormatter
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -52,6 +54,19 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 	CompoundButton.OnCheckedChangeListener {
 
 	private val viewModel: StatsViewModel by viewModels()
+	private val csvFilePicker = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+		if (uri != null) {
+			val records = viewModel.readingStats.value
+			val csv = CsvExportFormatter.encode(listOf("Title", "DurationMs"), records.map {
+				listOf(it.manga?.title ?: "Other", it.duration.toString())
+			})
+			runCatching { contentResolver.openOutputStream(uri)?.use { stream ->
+				stream.write(csv.toByteArray(Charsets.UTF_8))
+			} ?: error("Cannot open destination") }.onFailure { error ->
+				android.widget.Toast.makeText(this, error.message ?: "CSV export failed", android.widget.Toast.LENGTH_LONG).show()
+			}
+		}
+	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -145,11 +160,16 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 
 	override fun onCreateOptionsMenu(menu: Menu?): Boolean {
 		menuInflater.inflate(R.menu.opt_stats, menu)
+		menu?.add(0, 7201, 0, "Export reading statistics (CSV)")
 		return super.onCreateOptionsMenu(menu)
 	}
 
 	override fun onOptionsItemSelected(item: MenuItem): Boolean {
 		return when (item.itemId) {
+			7201 -> {
+				csvFilePicker.launch("monogatari-reading-stats.csv")
+				true
+			}
 			R.id.action_clear -> {
 				showClearConfirmDialog()
 				true
