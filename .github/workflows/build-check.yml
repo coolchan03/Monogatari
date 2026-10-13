@@ -7,6 +7,7 @@ on:
       - 'claude/**'
       - 'step-*'
       - 'batch-*'
+      - 'ccr-*'
   workflow_dispatch:
 
 concurrency:

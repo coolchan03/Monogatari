@@ -11,7 +11,7 @@ class JsUtilsBridgeTest {
 
     @Test fun unsupportedCallIsReportedOnceByDispatcherNotUtility() {
         MissingJsHostDiagnostics.clear()
-        assertEquals(Unit, bridge.handle("parseDates", JsonArray(emptyList())))
+        assertEquals(Unit, bridge.handle("evaluateJavascriptViaWebview", JsonArray(emptyList())))
         assertTrue(MissingJsHostDiagnostics.snapshot().isEmpty())
     }
 
@@ -27,5 +27,19 @@ class JsUtilsBridgeTest {
             JsonPrimitive(key), JsonPrimitive(false),
         ))) as String
         assertEquals("Monogatari", plain)
+    }
+
+    @Test fun parseDatesAnswersJsonArrayOfMillis() {
+        val json = bridge.handle("parseDates", JsonArray(listOf(
+            JsonArray(listOf(JsonPrimitive("1700000000"), JsonPrimitive(""))),
+            JsonPrimitive(""), JsonPrimitive("en"),
+        ))) as String
+        assertEquals("[\"1700000000000\"]", json)
+    }
+
+    @Test fun unpackAndDeobfuscateAreNoLongerUnsupported() {
+        assertTrue("unpackJs" !in JsUtilsBridge.UNSUPPORTED)
+        assertEquals("", bridge.handle("unpackJs", JsonArray(listOf(JsonPrimitive("plain")))))
+        assertEquals("1", bridge.handle("deobfuscateJsPassword", JsonArray(listOf(JsonPrimitive("[+!+[]]")))))
     }
 }

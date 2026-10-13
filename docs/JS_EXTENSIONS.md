@@ -35,9 +35,14 @@ covers the EPUB helper contract used by the current Anna's Archive JavaScript so
 lists are consumed by the Media3 player when a JavaScript anime source returns direct playable
 streams; headers and subtitles from the extension are forwarded to the player.
 
-Not implemented yet (fail with a clear "not supported yet" error, never silently): legacy video-host
-extractor host calls, `evaluateJavascriptViaWebview`, `unpackJs*`, `decryptAES*`, `parseDates`, XPath
-attribute results. Dart extensions cannot run at all, only JavaScript ones.
+Also implemented: `encryptAESCryptoJS`/`decryptAESCryptoJS` (OpenSSL "Salted__" format), `decryptAESGCM`,
+`deobfuscateJsPassword`, `unpackJs`/`unpackJsAndCombine` (Dean Edwards packer) and `parseDates` (epoch, ISO,
+relative "3 days ago" phrases in several languages, explicit and common patterns) — see `JsCrypto`, `JsUnpacker`,
+`JsDateParser`.
+
+Not implemented yet (fail with a clear "not supported yet" error, never silently): some legacy video-host
+extractor host calls, `evaluateJavascriptViaWebview`, XPath attribute results. Dart extensions cannot run at
+all, only JavaScript ones.
 
 ## Curated Manga Reader-compatible repositories
 

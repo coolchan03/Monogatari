@@ -101,10 +101,11 @@ function unpackJs(packedJS) {
     );
 }
 function parseDates(value, dateFormat, dateFormatLocale) {
-    return sendMessage(
+    // Monogatari: the host answers with JSON text (upstream returns a native list).
+    return JSON.parse(sendMessage(
         "parseDates",
         JSON.stringify([value, dateFormat, dateFormatLocale])
-    );
+    ));
 }
 async function evaluateJavascriptViaWebview(url, headers, scripts) {
     return await sendMessage(
