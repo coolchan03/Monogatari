@@ -13,6 +13,7 @@ import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
 import coil3.network.HttpException
+import coil3.asImage
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -140,8 +141,8 @@ class CoverImageView @JvmOverloads constructor(
         .apply {
             manga?.let {
                 val generated = GeneratedCoverDrawable(it.title, it.authors.firstOrNull())
-                fallback(generated)
-                error(generated)
+                fallback(generated.asImage())
+                error(generated.asImage())
             }
         }
         .build().let { request ->
