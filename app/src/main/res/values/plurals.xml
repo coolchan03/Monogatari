@@ -48,4 +48,8 @@
 		<item quantity="one">%1$d source</item>
 		<item quantity="other">%1$d sources</item>
 	</plurals>
+	<plurals name="broken_library_sources_text">
+		<item quantity="one">%1$d title is on a source that stopped working. Tap to pick a replacement.</item>
+		<item quantity="other">%1$d titles are on sources that stopped working. Tap to pick replacements.</item>
+	</plurals>
 </resources>

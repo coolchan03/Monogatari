@@ -1270,4 +1270,6 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="media_playback_speed">Playback speed</string>
     <string name="media_playback_speed_value">%1$s×</string>
     <string name="media_picture_in_picture">Picture-in-picture</string>
+    <string name="broken_library_sources_channel">Broken sources</string>
+    <string name="broken_library_sources_title">Some library titles need a new source</string>
 </resources>
