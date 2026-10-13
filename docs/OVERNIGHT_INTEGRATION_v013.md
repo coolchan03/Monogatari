@@ -31,3 +31,13 @@
 2. On green build, publish debug APK preview; never assert this is production-signed.
 3. Continue Step 42 missing JS source restore and Step 43 opt-in folder sync with per-device cursors and merge-safety tests.
 4. Record unverified device cases for the morning repair pass.
+
+## 9 PM overnight batch result (2026-10-12, CDT)
+- Local worktree: `C:\Users\coolc\AppData\Local\Temp\monogatari-overnight-integration`.
+- Branch: `batch-overnight-stageg-stageh`; integrated cumulative Stage H 42e with source retirement, website grouping and verified index-health commits.
+- Cherry-picked: `a8a76d245` -> `ff542de16`, `669110fa9` -> `14d6fa315` (manual constructor merge), `2b23f3382` -> `aa7776682`, `1f6c198c1` -> `9ae0f3d7c`.
+- Local release preparation commit `706fc5067a9713ab1af1e177cfa6659594ce125e`; `versionCode=5`, `versionName=0.13.0`.
+- Local Git diff whitespace check passed. Separate source-retirement, index-health and Stage H branches have green CI, but **the combined branch has not passed CI**.
+- GitHub push from Tunnel was denied by OpenAI's safety checks (two attempts); no new remote branch, CI run or release asset exists for this commit. Do **not** merge/publish until exact-commit CI runs green and permission allows push.
+- The laptop cannot run this Gradle build locally without further setup: `java` absent from PATH, Android 37 platform and `local.properties` absent. Do not install an SDK/JDK without consent.
+- User files and untracked `.release-temp/` and `source-audit/` were untouched.
