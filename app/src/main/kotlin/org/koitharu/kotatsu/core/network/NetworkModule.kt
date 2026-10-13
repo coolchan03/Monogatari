@@ -18,7 +18,6 @@ import org.koitharu.kotatsu.core.network.imageproxy.ImageProxyInterceptor
 import org.koitharu.kotatsu.core.network.imageproxy.RealImageProxyInterceptor
 import org.koitharu.kotatsu.core.network.proxy.ProxyProvider
 import org.koitharu.kotatsu.core.prefs.AppSettings
-import org.koitharu.kotatsu.core.util.ext.assertNotInMainThread
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.local.data.LocalStorageManager
 import java.util.concurrent.TimeUnit
@@ -65,7 +64,9 @@ interface NetworkModule {
 			settings: AppSettings,
 			proxyProvider: ProxyProvider,
 		): OkHttpClient = OkHttpClient.Builder().apply {
-			assertNotInMainThread()
+			// Hilt may create this singleton while injecting the Application or an Activity.
+			// Client construction does not execute requests; rejecting the main thread here
+			// crashed Monogatari before its first screen (Android cold-start smoke test).
 			connectTimeout(20, TimeUnit.SECONDS)
 			readTimeout(60, TimeUnit.SECONDS)
 			writeTimeout(20, TimeUnit.SECONDS)

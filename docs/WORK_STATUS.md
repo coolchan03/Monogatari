@@ -1,5 +1,18 @@
 # Monogatari work checkpoint
 
+## 2026-10-13 — Startup crash diagnosis (current)
+
+- **Canonical GitHub branch:** `devel` (only active remote branch; old tips preserved by archive tags). Do not create another development branch.
+- **Previously merged head:** `a029f45eac9f143bc0293d0350a08753aa4574fd`; Claude's changes plus guarded ACRA lifecycle callbacks. CI build passed but did not launch app.
+- **Current committed head:** `5169d2f33325964278e6430bfa909108643d31b5`; added Android 15 cold-start emulator smoke test; GitHub Actions run `38467173560` started, initially compiling.
+- **Observed issue:** User reports immediate on-device crash and ~4.10 KB of app data. APK packaging inspected: prior debug APK is ~47 MB with arm64-v8a native libraries. 4 KB is saved data, not APK size.
+- **Crash reproduced:** Android 15 smoke run `38467173560` failed at `NetworkModule.provideBaseHttpClient(NetworkModule.kt:68)`: `IllegalStateException: Calling this from the main thread is prohibited`, during Hilt application injection. This is a confirmed cause of the pre-screen launch failure.
+- **Fix staged:** remove the invalid main-thread client-construction assertion without weakening TLS, guard ACRA disabled-build paths, enhance smoke check, bump to 0.13.1, and add phone log capture instructions. Commit, push, rerun emulator, then publish test APK.
+- **Device debugging:** No authorized device was attached to `adb` when checked; do not claim the phone crash has been reproduced without a log. Do not uninstall or clear data.
+- **Next step:** commit targeted fix to `devel`, run unit/build plus emulator cold-start check, and publish an installable debug APK only after verifying its exact commit.
+
+## Historical checkpoint — 2026-10-12
+
 - Date: 2026-10-12, America/Chicago
 - Current branch: batch-08-10-extension-security.
 - Last completed milestone: Steps 4-5 passed GitHub Actions run 38292011053 and fast-forwarded to default devel at e497d88de. Verified by git ls-remote.

@@ -85,7 +85,7 @@ open class BaseApp : Application(), Configuration.Provider {
 		super.onCreate()
 		OpdsSourceRegistry.initialize(this)
 		PlatformRegistry.applicationContext = this // TODO replace with OkHttp.initialize
-		if (ACRA.isACRASenderServiceProcess()) {
+		if (BuildConfig.SENTRY_DSN.isNotEmpty() && ACRA.isACRASenderServiceProcess()) {
 			return
 		}
 		NewPipe.init(newPipeDownloader, Localization("en", "US"), ContentCountry("US"))
@@ -115,11 +115,11 @@ open class BaseApp : Application(), Configuration.Provider {
 
 	override fun attachBaseContext(base: Context) {
 		super.attachBaseContext(base)
-		if (ACRA.isACRASenderServiceProcess()) {
+		if (BuildConfig.SENTRY_DSN.isEmpty()) {
+			// Do not access ACRA at all in test builds where it is not initialized.
 			return
 		}
-		if (BuildConfig.SENTRY_DSN.isEmpty()) {
-			// No reporting endpoint configured for this build, so don't ask the user to send anything.
+		if (ACRA.isACRASenderServiceProcess()) {
 			return
 		}
 		initAcra {

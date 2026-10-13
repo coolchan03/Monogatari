@@ -23,4 +23,10 @@ if ! adb shell pidof "$PKG" | tr -d '\r' | grep -q '[0-9]'; then
   exit 1
 fi
 
-echo 'PASS: Monogatari cold launch survived for 12 seconds.'
+if grep -Fq "Process: $PKG," smoke-crash-buffer.txt; then
+  echo 'FAIL: Android recorded a Monogatari fatal exception, even if a background service restarted it.'
+  tail -n 180 smoke-crash-buffer.txt
+  exit 1
+fi
+
+echo 'PASS: Monogatari cold launch survived for 12 seconds without a Java crash.'

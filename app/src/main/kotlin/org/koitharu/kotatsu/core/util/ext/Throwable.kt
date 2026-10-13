@@ -259,6 +259,12 @@ fun Throwable.isNetworkError(): Boolean {
 }
 
 fun Throwable.report(silent: Boolean = false) {
+    // ACRA is deliberately absent when this build has no Sentry endpoint. Calling its
+    // extension functions would throw again and can turn a recoverable error into a crash.
+    if (BuildConfig.SENTRY_DSN.isEmpty()) {
+        android.util.Log.e("Monogatari", "Error captured locally; crash upload is disabled", this)
+        return
+    }
     val exception = CaughtException(this)
     if (!silent) {
         exception.sendWithAcra()
