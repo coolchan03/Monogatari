@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 abstract class SourcePresetsDao {
 
+    @Query("SELECT COUNT(*) FROM source_presets")
+    abstract suspend fun countIncludingDeleted(): Int
+
 	@Query("SELECT * FROM source_presets WHERE deleted_at = 0 ORDER BY sort_key")
 	abstract suspend fun findAll(): List<SourcePresetEntity>
 

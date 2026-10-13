@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.plus
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.core.model.isNsfw
 import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
 import org.koitharu.kotatsu.core.os.AppShortcutManager
@@ -114,6 +116,16 @@ class ExploreViewModel @Inject constructor(
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, getLoadingStateList())
 
 	init {
+        launchJob(Dispatchers.IO) {
+            val candidates = buildList<MangaSource> {
+                addAll(sourcesRepository.allMangaSources.filterNot {
+                    settings.hideAdultOnlySources && it.isNsfw()
+                })
+                addAll(BuiltinSource.entries)
+                addAll(sourcesRepository.getJsSources())
+            }
+            presetsRepository.seedDefaultsIfAbsent(candidates)
+        }
 		launchJob(Dispatchers.Default) {
 			if (!settings.isSuggestionsEnabled && settings.isTipEnabled(TIP_SUGGESTIONS)) {
 				onShowSuggestionsTip.call(Unit)
