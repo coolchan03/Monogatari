@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="welcome_source_setup_title">Set up additional reading sources?</string>
+    <string name="welcome_source_setup_message">Download compatible English manga, book and video JavaScript sources from the included repositories? Monogatari skips known duplicates. Setup continues in the background and progress appears in Explore. You can skip and add sources later.</string>
+    <string name="welcome_source_setup_yes">Install sources</string>
+    <string name="welcome_source_setup_skip">Not now</string>
+    <string name="source_setup_running">Setting up sources… %1$d/%2$d (%3$d failed)</string>
+    <string name="source_setup_waiting">Setting up sources… waiting for network</string>
+    <string name="source_setup_finished">Source setup complete: %1$d installed, %2$d failed</string>
+    <string name="source_setup_failed">Source setup interrupted. Open Sources to retry.</string>
+
     <string name="video_results_videos">Videos</string>
     <string name="video_results_channels">Channels (YouTube)</string>
     <string name="video_results_playlists">Playlists (YouTube)</string>

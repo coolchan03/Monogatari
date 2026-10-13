@@ -53,6 +53,8 @@ import org.koitharu.kotatsu.sourcerepo.domain.JsSourceItem
 import org.koitharu.kotatsu.sourcerepo.domain.PluginEntry
 import org.koitharu.kotatsu.sourcerepo.domain.PluginState
 import org.koitharu.kotatsu.sourcerepo.work.SourceUpdateWorker
+import org.koitharu.kotatsu.sourcerepo.work.SourceBootstrapWorker
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.sourcerepo.domain.RepoPreview
 import javax.inject.Inject
 
@@ -75,6 +77,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
     @Inject
     lateinit var sourceUpdateScheduler: SourceUpdateWorker.Scheduler
+
+    @Inject
+    lateinit var bootstrapScheduler: SourceBootstrapWorker.Scheduler
+
+    @Inject
+    lateinit var appSettings: AppSettings
+
 
 	private var scanProgressDialog: AlertDialog? = null
 
@@ -259,6 +268,26 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
         val currentDay = System.currentTimeMillis() / 86_400_000L
         val count = if (sourceUpdatePrefs.getLong("last_updated_day", -1) == currentDay)
             sourceUpdatePrefs.getInt("updates_today", 0) else 0
+        pluginsCategory.addPreference(Preference(context).apply {
+            key = "monogatari_bootstrap_sources"
+            title = getString(R.string.welcome_source_setup_title)
+            summary = "Install available English and multilingual JavaScript manga, book and video sources. Duplicates and installed sources are skipped; progress appears in Explore."
+            isPersistent = false
+            setOnPreferenceClickListener {
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.welcome_source_setup_title)
+                    .setMessage(R.string.welcome_source_setup_message)
+                    .setNegativeButton(R.string.welcome_source_setup_skip, null)
+                    .setPositiveButton(R.string.welcome_source_setup_yes) { _, _ ->
+                        bootstrapScheduler.start(
+                            !appSettings.isNsfwContentDisabled && !appSettings.hideAdultOnlySources,
+                        )
+                        Toast.makeText(context, R.string.source_setup_waiting, Toast.LENGTH_SHORT).show()
+                    }
+                    .show()
+                true
+            }
+        })
         pluginsCategory.addPreference(Preference(context).apply {
             key = "monogatari_source_update_status"
             title = "Check installed source updates"

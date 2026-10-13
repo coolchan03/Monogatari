@@ -18,6 +18,10 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.isVisible
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import org.koitharu.kotatsu.sourcerepo.work.SourceBootstrapWorker
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
@@ -86,6 +90,28 @@ class ExploreFragment :
 		}
 		addMenuProvider(ExploreMenuProvider(requireContext(), router, viewModel))
 		viewModel.content.observe(viewLifecycleOwner, checkNotNull(exploreAdapter))
+        WorkManager.getInstance(requireContext())
+            .getWorkInfosForUniqueWorkLiveData(SourceBootstrapWorker.NAME)
+            .observe(viewLifecycleOwner) { works ->
+                val info = works.orEmpty().maxByOrNull { it.runAttemptCount }
+                val status = info?.state
+                val progress = if (status?.isFinished == true) info.outputData else info?.progress
+                val total = progress?.getInt(SourceBootstrapWorker.KEY_TOTAL, 0) ?: 0
+                val done = progress?.getInt(SourceBootstrapWorker.KEY_DONE, 0) ?: 0
+                val failed = progress?.getInt(SourceBootstrapWorker.KEY_FAILED, 0) ?: 0
+                val card = binding.sourceSetupCard
+                card.isVisible = info != null &&
+                    (status == WorkInfo.State.ENQUEUED || status == WorkInfo.State.RUNNING ||
+                    (status?.isFinished == true && total > 0))
+                binding.textSourceSetupProgress.text = when (status) {
+                    WorkInfo.State.RUNNING -> getString(R.string.source_setup_running, done, total, failed)
+                    WorkInfo.State.SUCCEEDED -> getString(R.string.source_setup_finished,
+                        (done - failed).coerceAtLeast(0), failed)
+                    WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> getString(R.string.source_setup_failed)
+                    else -> getString(R.string.source_setup_waiting)
+                }
+            }
+
 		viewModel.onError.observeEvent(viewLifecycleOwner, SnackbarErrorObserver(binding.recyclerView, this))
 		viewModel.onOpenManga.observeEvent(viewLifecycleOwner, ::onOpenManga)
 		viewModel.onActionDone.observeEvent(viewLifecycleOwner, ReversibleActionObserver(binding.recyclerView))

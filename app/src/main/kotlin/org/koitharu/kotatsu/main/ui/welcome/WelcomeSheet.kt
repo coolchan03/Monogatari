@@ -27,6 +27,7 @@ import org.koitharu.kotatsu.databinding.SheetWelcomeBinding
 import org.koitharu.kotatsu.filter.ui.model.FilterProperty
 import org.koitharu.kotatsu.parsers.model.ContentType
 import org.koitharu.kotatsu.sync.domain.SyncController
+import org.koitharu.kotatsu.sourcerepo.work.SourceBootstrapWorker
 import java.util.Locale
 import javax.inject.Inject
 
@@ -38,6 +39,9 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
 
 	@Inject
 	lateinit var syncController: SyncController
+
+    @Inject
+    lateinit var bootstrapScheduler: SourceBootstrapWorker.Scheduler
 
 	private val backupSelectCall = registerForActivityResult(
 		ActivityResultContracts.OpenDocument(),
@@ -67,16 +71,29 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
 			.setTitle(R.string.welcome_adult_content_title)
 			.setMessage(R.string.welcome_adult_content_description)
 			.setNegativeButton(R.string.welcome_adult_content_no) { _, _ ->
-				viewModel.setAdultContentEnabled(false)
-				dismiss()
+                viewModel.setAdultContentEnabled(false)
+                showInitialSourceSetupChoice(false)
 			}
 			.setPositiveButton(R.string.welcome_adult_content_yes) { _, _ ->
-				viewModel.setAdultContentEnabled(true)
-				dismiss()
+                viewModel.setAdultContentEnabled(true)
+                showInitialSourceSetupChoice(true)
 			}
 			.setCancelable(false)
 			.show()
 	}
+
+    private fun showInitialSourceSetupChoice(allowAdult: Boolean) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.welcome_source_setup_title)
+            .setMessage(R.string.welcome_source_setup_message)
+            .setPositiveButton(R.string.welcome_source_setup_yes) { _, _ ->
+                bootstrapScheduler.start(allowAdult)
+                dismiss()
+            }
+            .setNegativeButton(R.string.welcome_source_setup_skip) { _, _ -> dismiss() }
+            .setCancelable(false)
+            .show()
+    }
 
 	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
 		val typeMask = WindowInsetsCompat.Type.systemBars()
