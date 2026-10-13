@@ -29,7 +29,6 @@ import org.koitharu.kotatsu.core.exceptions.CloudFlareProtectedException
 import org.koitharu.kotatsu.core.exceptions.UnsupportedSourceException
 import org.koitharu.kotatsu.core.image.CoilImageView
 import org.koitharu.kotatsu.core.ui.image.AnimatedPlaceholderDrawable
-import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.ui.image.TextDrawable
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
 import org.koitharu.kotatsu.core.util.ext.bookmarkExtra
@@ -136,8 +135,6 @@ class CoverImageView @JvmOverloads constructor(
 	) = enqueueRequest(
 		newRequestBuilder(applyTrim = !isAnimatedUrl(coverUrl))
 			.data(coverUrl?.takeIf { it.isNotBlank() })
-			.fallback(GeneratedCoverDrawable(manga?.title.orEmpty()))
-			.error(GeneratedCoverDrawable(manga?.title.orEmpty()))
 			.mangaExtra(manga)
 			.build(),
 	)

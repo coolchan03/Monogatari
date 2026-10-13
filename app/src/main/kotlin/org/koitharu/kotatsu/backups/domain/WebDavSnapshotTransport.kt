@@ -102,8 +102,8 @@ internal class WebDavSnapshotTransport @Inject constructor() {
                 setFeature("http://xml.org/sax/features/external-parameter-entities", false)
                 isExpandEntityReferences = false
                 isXIncludeAware = false
-                setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
-                setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+                setAttribute("http://javax.xml.XMLConstants/property/accessExternalDTD", "")
+                setAttribute("http://javax.xml.XMLConstants/property/accessExternalSchema", "")
             }
             val document = factory.newDocumentBuilder().parse(ByteArrayInputStream(xml))
             val nodes = document.getElementsByTagNameNS("DAV:", "response")
