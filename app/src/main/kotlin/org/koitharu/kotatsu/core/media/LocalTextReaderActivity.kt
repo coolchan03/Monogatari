@@ -2,6 +2,10 @@ package org.koitharu.kotatsu.core.media
 
 import android.os.Bundle
 import android.text.Html
+import android.speech.tts.TextToSpeech
+import android.view.Menu
+import android.view.MenuItem
+import java.util.Locale
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -12,6 +16,10 @@ class LocalTextReaderActivity : AppCompatActivity() {
     companion object { const val EXTRA_FILE = "local_book_file" }
     private lateinit var scroll: ScrollView
     private var book: File? = null
+    private var tts: TextToSpeech? = null
+    private var spokenParagraphs = emptyList<String>()
+    private var paragraphIndex = 0
+    private var ttsReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +39,12 @@ class LocalTextReaderActivity : AppCompatActivity() {
         try {
             if (file.length() > 8L * 1024 * 1024) error("Text file is too large for this reader")
             val contents = file.readText()
+            spokenParagraphs = contents.split(Regex("\\n\\s*\\n")).map { it.trim() }
+                .filter { it.isNotEmpty() }.take(2000)
+            tts = TextToSpeech(this) { status ->
+                ttsReady = status == TextToSpeech.SUCCESS
+                if (ttsReady) tts?.language = Locale.getDefault()
+            }
             text.text = if (file.extension.lowercase() in setOf("html", "htm", "xhtml"))
                 Html.fromHtml(contents, Html.FROM_HTML_MODE_COMPACT) else contents
             val y = getSharedPreferences("book_scroll", MODE_PRIVATE).getInt(file.name, 0)
@@ -38,6 +52,41 @@ class LocalTextReaderActivity : AppCompatActivity() {
         } catch (error: Exception) {
             text.text = "Unable to read book: ${error.message}"
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, 6701, 0, "Read aloud / Stop").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId != 6701) return super.onOptionsItemSelected(item)
+        val engine = tts ?: return true
+        if (engine.isSpeaking) { engine.stop(); return true }
+        if (!ttsReady || spokenParagraphs.isEmpty()) return true
+        paragraphIndex = 0
+        engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) = Unit
+            override fun onError(utteranceId: String?) = Unit
+            override fun onDone(utteranceId: String?) {
+                runOnUiThread {
+                    paragraphIndex++
+                    if (paragraphIndex < spokenParagraphs.size) speakNext()
+                }
+            }
+        })
+        speakNext()
+        return true
+    }
+
+    private fun speakNext() {
+        tts?.speak(spokenParagraphs[paragraphIndex], TextToSpeech.QUEUE_FLUSH, null, "text-$paragraphIndex")
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
     }
 
     override fun onPause() {

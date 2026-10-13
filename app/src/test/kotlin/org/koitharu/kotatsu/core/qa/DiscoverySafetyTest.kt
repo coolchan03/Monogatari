@@ -4,6 +4,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DiscoverySafetyTest {
+    @Test fun csvQuotesAndProtectsFormulaCells() {
+        val csv = CsvExportFormatter.encode(listOf("title", "notes"), listOf(listOf("Book, One", "=1+1")))
+        assertTrue(csv.contains("\"Book, One\""))
+        assertTrue(csv.contains("\"'=1+1\""))
+    }
+
+    @Test fun crossMediaRelationLinksAreTypeSpecific() {
+        assertEquals(CrossMediaRelationPolicy.Action.WATCH_ANIME,
+            CrossMediaRelationPolicy.action("ADAPTATION", "TV"))
+        assertEquals(CrossMediaRelationPolicy.Action.FIND_SEQUEL,
+            CrossMediaRelationPolicy.action("SEQUEL", "MANGA"))
+    }
+
     @Test fun sanitizesFindCopyQueries() {
         assertEquals("A Story", DiscoveryQueryPolicy.findCopyQuery("  A   Story  "))
         assertNull(DiscoveryQueryPolicy.findCopyQuery(" "))

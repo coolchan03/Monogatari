@@ -2,6 +2,9 @@ package org.koitharu.kotatsu.core.ui
 
 import android.content.DialogInterface
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.acra.dialog.CrashReportDialog
@@ -25,6 +28,13 @@ class CrashReportActivity : CrashReportDialog() {
 		val alertDialog = MaterialAlertDialogBuilder(this)
 			.setView(binding.root)
 			.create()
+		binding.buttonGithubIssue.setOnClickListener {
+			val uri = Uri.parse("https://github.com/coolchan03/Monogatari/issues/new")
+				.buildUpon().appendQueryParameter("title", "Android crash report")
+				.appendQueryParameter("body", "App: Monogatari\\nAndroid: ${Build.VERSION.RELEASE}\\nPlease describe what you were doing. Do not include private titles or credentials.")
+				.build()
+			startActivity(Intent(Intent.ACTION_VIEW, uri))
+		}
 		binding.button1.setOnClickListener { complete(alertDialog, DialogInterface.BUTTON_POSITIVE) }
 		binding.buttonClose.setOnClickListener { complete(alertDialog, DialogInterface.BUTTON_NEGATIVE) }
 		// Back or a tap outside discards the report rather than leaving it pending.

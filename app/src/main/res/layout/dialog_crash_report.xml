@@ -72,6 +72,13 @@
 			tools:ignore="VisualLintButtonSize" />
 
 		<com.google.android.material.button.MaterialButton
+			android:id="@+id/button_github_issue"
+			style="?borderlessButtonStyle"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="Report issue on GitHub" />
+
+		<com.google.android.material.button.MaterialButton
 			android:id="@+id/button_close"
 			style="?borderlessButtonStyle"
 			android:layout_width="wrap_content"

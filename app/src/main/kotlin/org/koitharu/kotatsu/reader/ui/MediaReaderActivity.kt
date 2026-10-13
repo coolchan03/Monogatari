@@ -8,6 +8,8 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.Menu
+import android.view.MenuItem
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -90,6 +92,25 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private var currentMediaType: MediaType? = null
 	private var restorePosition = 0
 	private var textZoom = DEFAULT_TEXT_ZOOM
+
+	override fun onCreateOptionsMenu(menu: Menu): Boolean {
+		menu.add(0, 6801, 0, "Skip intro (+85 s)").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+		menu.add(0, 6802, 1, "Playback speed 1.25×").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+		menu.add(0, 6803, 2, "Playback speed 1×").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+		return super.onCreateOptionsMenu(menu)
+	}
+
+	override fun onOptionsItemSelected(item: MenuItem): Boolean {
+		val playing = player ?: return super.onOptionsItemSelected(item)
+		when (item.itemId) {
+			6801 -> playing.seekTo((playing.currentPosition + 85_000L).coerceAtMost(
+				playing.duration.takeIf { it > 0L } ?: Long.MAX_VALUE))
+			6802 -> playing.setPlaybackSpeed(1.25f)
+			6803 -> playing.setPlaybackSpeed(1f)
+			else -> return super.onOptionsItemSelected(item)
+		}
+		return true
+	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
