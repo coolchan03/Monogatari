@@ -83,6 +83,21 @@ class SourceSettings(context: Context, source: MangaSource) : MangaSourceConfig 
 		}
 	}
 
+    fun dumpBackupValues(): Map<String, Any> = SourceSettingsBackupPolicy.sanitize(prefs.all)
+
+    /** Merge the safe options only; never clear cookies, authorization or parser credentials. */
+    fun restoreBackupValues(values: Map<String, *>) {
+        val safe = SourceSettingsBackupPolicy.sanitize(values)
+        prefs.edit {
+            safe.forEach { (key, value) ->
+                when (value) {
+                    is Boolean -> putBoolean(key, value)
+                    is String -> putString(key, value)
+                }
+            }
+        }
+    }
+
 	fun subscribe(listener: OnSharedPreferenceChangeListener) {
 		prefs.registerOnSharedPreferenceChangeListener(listener)
 	}

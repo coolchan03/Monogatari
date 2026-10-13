@@ -17,6 +17,7 @@ enum class BackupSection(
 	SOURCES("sources"),
     REPOS("repos"),
     OPDS_CATALOGS("opds_catalogs"),
+    SOURCE_SETTINGS("source_settings"),
 	SCROBBLING("scrobbling"),
 	STATS("statistics"),
 	SAVED_FILTERS("saved_filters"),

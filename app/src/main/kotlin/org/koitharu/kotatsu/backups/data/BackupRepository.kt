@@ -44,6 +44,7 @@ import org.koitharu.kotatsu.reader.data.TapGridSettings
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
 import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
+import org.koitharu.kotatsu.core.prefs.SourceSettings
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
@@ -152,6 +153,15 @@ class BackupRepository @Inject constructor(
                             .getStringSet("urls", emptySet()).orEmpty(), httpsOnly = false,
                     ),
                 )
+
+                BackupSection.SOURCE_SETTINGS -> {
+                    val options = JSONObject()
+                    mangaSourcesRepository.getEnabledSources().forEach { source ->
+                        val values = SourceSettings(context, source).dumpBackupValues()
+                        if (values.isNotEmpty()) options.put(source.name, JSONObject(values))
+                    }
+                    output.writeString(BackupSection.SOURCE_SETTINGS, options.toString())
+                }
 
                 BackupSection.SCROBBLING -> output.writeJsonArray(
                     section = BackupSection.SCROBBLING,
@@ -264,6 +274,22 @@ class BackupRepository @Inject constructor(
                         val old = prefs.getStringSet("urls", emptySet()).orEmpty()
                         prefs.edit().putStringSet("urls", old + urls).apply()
                         urls.forEach { url -> OpdsSourceRegistry.register(url) }
+                        CompositeResult.success()
+                    }
+
+                    BackupSection.SOURCE_SETTINGS -> input.readMap().let { values ->
+                        val known = mangaSourcesRepository.getEnabledSources().associateBy { it.name }
+                        values.forEach { (name, raw) ->
+                            val source = known[name] ?: return@forEach
+                            val valuesObj = raw as? JSONObject ?: return@forEach
+                            val prefValues = mutableMapOf<String, Any>()
+                            val keys = valuesObj.keys()
+                            while (keys.hasNext()) {
+                                val key = keys.next()
+                                prefValues[key] = valuesObj.get(key)
+                            }
+                            SourceSettings(context, source).restoreBackupValues(prefValues)
+                        }
                         CompositeResult.success()
                     }
 
