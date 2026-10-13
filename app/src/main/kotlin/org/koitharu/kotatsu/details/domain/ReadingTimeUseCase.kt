@@ -6,7 +6,7 @@ import org.koitharu.kotatsu.details.data.MangaDetails
 import org.koitharu.kotatsu.details.data.ReadingTime
 import org.koitharu.kotatsu.parsers.util.findById
 import org.koitharu.kotatsu.stats.data.StatsRepository
-import java.util.concurrent.TimeUnit
+import org.koitharu.kotatsu.stats.domain.TimeEstimator
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -24,8 +24,12 @@ class ReadingTimeUseCase @Inject constructor(
 			return null
 		}
 		val isOnHistoryBranch = history != null && chapters.findById(history.chapterId) != null
-		// Impossible task, I guess. Good luck on this.
-		var averageTimeSec: Int = 20 /* pages */ * getSecondsPerPage(manga.id) * chapters.size
+		// Until individual chapter sizes are available, use the measured reading pace
+		// and the established 20-pages-per-chapter approximation.
+		val estimatedPages = 20 * chapters.size
+		var averageTimeSec = (TimeEstimator.mangaRemainingMs(
+			estimatedPages, getMeasuredMsPerPage(manga.id), null, null,
+		) / 1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 		if (isOnHistoryBranch) {
 			averageTimeSec = (averageTimeSec * (1f - history.percent)).roundToInt()
 		}
@@ -39,15 +43,7 @@ class ReadingTimeUseCase @Inject constructor(
 		)
 	}
 
-	private suspend fun getSecondsPerPage(mangaId: Long): Int {
-		var time = if (settings.isStatsEnabled) {
-			TimeUnit.MILLISECONDS.toSeconds(statsRepository.getTimePerPage(mangaId)).toInt()
-		} else {
-			0
-		}
-		if (time == 0) {
-			time = 10 // default
-		}
-		return time
-	}
+	private suspend fun getMeasuredMsPerPage(mangaId: Long): Long? =
+		if (settings.isStatsEnabled) statsRepository.getTimePerPage(mangaId).takeIf { it > 0L }
+		else null
 }

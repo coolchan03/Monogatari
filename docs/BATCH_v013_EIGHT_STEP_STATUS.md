@@ -33,3 +33,9 @@
 - Step 50 PARTIAL: converted the local Books shelf Fragment from fully inflated ScrollView/LinearLayout cards to a RecyclerView adapter; book rows reuse `BookShelfCard.bind` shared with the catalog, preserve filtering and reader click behavior. The category-level Manga/Books/Video/Audio switch and integration of local shelf books as normal favourites remain pending.
 - Therefore all eight Steps 44–51 have now been **touched**, but **ZERO of the eight are accepted fully**. Stage 44/45 remain disabled; Step 46 only fixes idle gaps; Step 47/48 not wired to complete screens; Step 49 default navigation only; Step 50 shelf-only RecyclerView; Step 51 generated covers only on normal manga requests and widgets.
 - The newer work is local, not part of v0.13.0 preview or verified by Android CI. Do not merge/release it without exact-commit passing checks.
+
+## Follow-up large batch (2026-10-13 morning)
+- Previously isolated commits `7c7a06006`, `f569f2467`, `392e8ca8b` pushed together as cumulative HEAD `392e8ca8b61b741456d52e5a9961aef3db19e7c3` through Tunnel. Exact-commit Build run `38397469870` initiated, not yet accepted at this checkpoint.
+- Previous Step 46 idle-time fix `e1860fdfb700e7bc441039c564999bb7e4379eec` passed exact-head Build `38394023068` including JVM, debug APK, R8.
+- Step 47 wired `TimeEstimator.mangaRemainingMs` into `ReadingTimeUseCase` using measured ms/page if available, otherwise eight-second default; 20 pages/chapter is still approximate until chapter_meta exists. Added after push: LOCAL ONLY, must be compiled and tested.
+- Never include disabled WebDAV as functional or claim the foreign import feature works. Do not auto-migrate data.
