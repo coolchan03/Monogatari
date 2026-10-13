@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -27,6 +28,7 @@ class NewsFeedActivity : AppCompatActivity() {
     private lateinit var entries: LinearLayout
     private var items = emptyList<NewsFeedParser.Entry>()
     private var onlyFollowing = false
+    private var feedJob: Job? = null
     private val prefs by lazy { getSharedPreferences("monogatari_news", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,7 +100,7 @@ class NewsFeedActivity : AppCompatActivity() {
     private fun showSavedFeeds() {
         val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty().sorted()
         if (feeds.isEmpty()) { message.text = "No saved feeds"; return }
-        AlertDialog.Builder(this).setTitle("Saved feeds — tap to open, long press to remove")
+        AlertDialog.Builder(this).setTitle("Saved feeds")
             .setItems(feeds.toTypedArray()) { _, which ->
                 val selected = feeds[which]
                 AlertDialog.Builder(this).setTitle(selected)
@@ -113,9 +115,13 @@ class NewsFeedActivity : AppCompatActivity() {
 
     private fun load(url: String) {
         if (!NewsFeedPolicy.trustedFeed(url)) return
+        feedJob?.cancel()
+        items = emptyList()
+        entries.removeAllViews()
         message.text = "Loading feed…"
-        lifecycleScope.launch {
+        feedJob = lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching { fetchEntries(url) } }
+            if (url != feedInput.text.toString().trim()) return@launch
             result.onSuccess { loaded ->
                 items = loaded
                 message.text = "Loaded ${loaded.size} entries — nothing is fetched in the background"

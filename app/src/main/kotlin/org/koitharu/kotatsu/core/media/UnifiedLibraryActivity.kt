@@ -1,6 +1,5 @@
 package org.koitharu.kotatsu.core.media
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.EditText
@@ -15,6 +14,7 @@ import com.google.android.material.button.MaterialButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
@@ -30,6 +30,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         val manga: Manga? = null, val file: File? = null)
     private var all = emptyList<Row>()
     private var selected = MediaType.MANGA
+    private var refreshJob: Job? = null
     private lateinit var search: EditText
     private lateinit var count: TextView
     private val adapter = Rows()
@@ -69,7 +70,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     private fun refresh() {
         count.text = "Loading your saved items…"
-        lifecycleScope.launch {
+        refreshJob?.cancel()
+        refreshJob = lifecycleScope.launch {
             all = withContext(Dispatchers.IO) {
                 val groups = MediaType.entries.associateWith { it.persistedSourceNames() }
                 val remote = favorites.getAllManga().distinctBy { it.id }.map { manga ->

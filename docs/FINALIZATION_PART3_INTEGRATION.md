@@ -13,3 +13,8 @@
 ## Foreign backup identification repair (Part 2 + Part 3)
 - Reduced false-positive recognition of arbitrary `.json` as Mangayomi backup: preflight now requires a JSON object with at least two recognizable collection keys within a small bounded header; generic JSON is UNKNOWN.
 - Updated header-detection tests and added a generic-JSON rejection regression case. This remains a format **hint**, not a safe parser or transactionally reviewed import.
+
+## Async lifecycle and UI simplification
+- Unified Library now cancels a previous in-flight refresh before starting another, preventing older results from overwriting the latest list on repeated resumes.
+- RSS refresh cancels the previous fetch, clears stale articles immediately and rejects results whose source URL differs from the current field. The saved-feeds dialog heading no longer misleadingly instructs users to long-press (selection opens an Open/Remove confirmation).
+- These changes address stale-state and UI integrity regressions; still need exact-SHA CI and Android device smoke tests.
