@@ -26,3 +26,5 @@
 - This captures real runtime failures without logging source payloads or full URLs. Counters are still process-local and not surfaced in the user-facing report.
 
 - JS diagnostics `run()` report now includes up to 30 counted missing host functions with observed call counts, from the process-local bounded diagnostics. The copyable test output can now surface what needs implementation. Source test statuses and playback remain subject to separate verification.
+
+- Added read-only `VttCueParser.kt` for WEBVTT cue timestamps and text, with regression test. This is a substrate for Step 57, NOT translated subtitles or an integrated player feature. No subtitle data is rewritten.

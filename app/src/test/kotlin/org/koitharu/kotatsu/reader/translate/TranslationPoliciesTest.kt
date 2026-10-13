@@ -6,6 +6,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TranslationPoliciesTest {
+    @Test fun parsesWebVttWithoutDroppingCueTiming() {
+        val vtt = "WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nHello\n\n00:03.000 --> 00:04.000\nGoodbye"
+        val cues = VttCueParser.parse(vtt)
+        assertEquals(2, cues.size)
+        assertEquals("00:00:01.000", cues[0].start)
+        assertEquals("Hello", cues[0].text)
+        assertEquals("Goodbye", cues[1].text)
+    }
+
     @Test fun novelChunksRemainBoundedAndReadable() {
         val text = "hello ".repeat(700).trim()
         val chunks = TranslationChunker.split(text)
