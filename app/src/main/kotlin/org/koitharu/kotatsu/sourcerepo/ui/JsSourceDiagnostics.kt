@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.koitharu.kotatsu.jsext.JsItemType
+import org.koitharu.kotatsu.jsext.MissingJsHostDiagnostics
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
@@ -193,6 +194,13 @@ class JsSourceDiagnostics @Inject constructor(
         lines.add(2, "Summary: PASS=$working PARTIAL=$partial FAIL=$failed")
         lines += "PASS means sampled listing/detail/content calls returned without throwing; usable content and playback are not verified."
         lines += "Note: search uses a single sample query; content tests use the first popular item. Video streams are listed but not played."
+        val missingHosts = MissingJsHostDiagnostics.snapshot()
+        if (missingHosts.isNotEmpty()) {
+            lines += "Missing JS host functions (this process, sampled):"
+            missingHosts.entries.sortedByDescending { it.value }.take(30).forEach { (name, count) ->
+                lines += "missing host function: $name | calls=$count"
+            }
+        }
         return lines.joinToString("\n")
     }
 }

@@ -24,3 +24,5 @@
 - `JsExtension.dispatchSync` now records unknown synchronous host function names before throwing.
 - `JsExtension.dispatchAsync` now records unknown asynchronous host calls; names ending in `Extractor` route to the video bridge, which logs unsupported extractor names before throwing. Only Sendvid remains implemented.
 - This captures real runtime failures without logging source payloads or full URLs. Counters are still process-local and not surfaced in the user-facing report.
+
+- JS diagnostics `run()` report now includes up to 30 counted missing host functions with observed call counts, from the process-local bounded diagnostics. The copyable test output can now surface what needs implementation. Source test statuses and playback remain subject to separate verification.
