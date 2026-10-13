@@ -194,7 +194,7 @@ class BackupRepository @Inject constructor(
 
                 BackupSection.CHAPTER_META -> output.writeJsonArray(
                     section = BackupSection.CHAPTER_META,
-                    data = database.getStatsDao().dumpChapterMeta().map { ChapterMetaBackup(it) },
+                    data = database.getStatsDao().dumpChapterMeta().asFlow().map { ChapterMetaBackup(it) },
                     serializer = serializer(),
                 )
 
