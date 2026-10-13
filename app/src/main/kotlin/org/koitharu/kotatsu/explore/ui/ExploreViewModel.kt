@@ -266,13 +266,8 @@ class ExploreViewModel @Inject constructor(
             // deliberately saved in a custom preset remains visible for manual recovery.
             val retired = if (activePreset == null) retirementTracker.retiredNames() else emptySet()
             val preferred = SourceWebsiteGroups.orderedGroups(
-<<<<<<< HEAD
                 sources.filterNot { it.name in retired }.sortedBy { it.name in unhealthy },
-            ) { SourceWebsiteGroups.key(it.mangaSource) }.map { it.first() }
-=======
-                sources.sortedBy { it.name in unhealthy },
             ) { SourceWebsiteGroups.key(it.mangaSource, ::parserDomain) }.map { it.first() }
->>>>>>> 669110fa9 (sources: group Kotatsu parsers with matching website sources)
             preferred.mapTo(result) {
                 MangaSourceItem(it, isGrid, it.name in trending && it.name !in unhealthy, it.name in unhealthy)
             }
