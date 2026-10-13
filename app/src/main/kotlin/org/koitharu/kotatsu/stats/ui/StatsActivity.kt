@@ -80,7 +80,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 					PieChartView.Segment(
 						value = (v.duration / 1000).toInt(),
 						label = v.manga?.title ?: getString(R.string.other_manga),
-						percent = (v.duration.toDouble() / sum).toFloat(),
+						percent = if (sum > 0L) (v.duration.toDouble() / sum).toFloat() else 0f,
 						color = KotatsuColors.ofManga(this, v.manga),
 						tag = v.manga,
 					)

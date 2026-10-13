@@ -61,7 +61,9 @@ class RecentListFactory(
 		val views = RemoteViews(context.packageName, R.layout.item_recent)
 		val item = dataSet.getOrNull(position) ?: return views
 		runCatchingCancellable {
-			coilLazy.get().executeBlocking(
+			if (item.coverUrl.isBlank()) {
+				GeneratedCoverDrawable(item.title).toBitmap(300, 450)
+			} else coilLazy.get().executeBlocking(
 				ImageRequest.Builder(context)
 					.data(item.coverUrl)
 					.size(coverSize)

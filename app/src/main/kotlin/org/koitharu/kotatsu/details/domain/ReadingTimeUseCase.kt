@@ -26,12 +26,12 @@ class ReadingTimeUseCase @Inject constructor(
 		val isOnHistoryBranch = history != null && chapters.findById(history.chapterId) != null
 		// Until individual chapter sizes are available, use the measured reading pace
 		// and the established 20-pages-per-chapter approximation.
-		val estimatedPages = 20 * chapters.size
+		val estimatedPages = (20L * chapters.size).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 		var averageTimeSec = (TimeEstimator.mangaRemainingMs(
 			estimatedPages, getMeasuredMsPerPage(manga.id), null, null,
 		) / 1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 		if (isOnHistoryBranch) {
-			averageTimeSec = (averageTimeSec * (1f - history.percent)).roundToInt()
+			averageTimeSec = (averageTimeSec * (1f - history.percent.coerceIn(0f, 1f))).roundToInt()
 		}
 		if (averageTimeSec < 60) {
 			return null

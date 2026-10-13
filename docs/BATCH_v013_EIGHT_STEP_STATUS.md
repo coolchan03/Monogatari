@@ -48,3 +48,11 @@
 ## History deletion statistics regression (2026-10-13)
 - StatsDao.getDurationStats no longer filters on history.deleted_at, which would hide surviving stats after the History table is cleared. It now joins explicitly to manga, consistent with new stats foreign key.
 - This is a distinct local follow-up on top of the pushed version-31 migration `6ff6bce24` and needs CI. No device upgrade/migration acceptance claim.
+
+## Five-step focused batch (2026-10-13)
+- Step 47: ReadingTimeUseCase clamps estimated pages against Int overflow and coerces persisted history completion percent to [0,1]. This remains a chapter-size approximation, not full reader top-bar integration.
+- Step 48: StatsActivity guards pie-chart percentages when total duration is zero; does not complete the requested charts, goals, or backup integration.
+- Step 49: New-install default navigation includes the Books destination alongside Library, Updates, History and Browse; existing persisted navigation choices remain untouched. This is NOT the requested More hub.
+- Step 50: BookShelfRecyclerAdapter uses stable identifiers derived from local file paths, reducing unnecessary view identity churn. Media-type switch and merged Books favourites remain unfinished.
+- Step 51: Shelf and Recent home-screen widgets avoid network requests for blank cover URLs and render generated title covers directly. CoverImageView Coil fallback and notifications/shortcuts integration remain pending.
+- All five steps are PARTIAL. Preserve truthful status until exact-commit CI and device acceptance.

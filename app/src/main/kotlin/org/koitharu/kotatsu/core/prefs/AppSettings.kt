@@ -93,7 +93,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() {
 			val raw = prefs.getString(KEY_NAV_MAIN, null)?.split(',')
 			return if (raw.isNullOrEmpty()) {
-				listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.EXPLORE)
+				listOf(NavItem.FAVORITES, NavItem.BOOKS, NavItem.UPDATED, NavItem.HISTORY, NavItem.EXPLORE)
 			} else {
 				raw.mapNotNull { x -> NavItem.entries.find(x) }.ifEmpty { listOf(NavItem.EXPLORE) }
 			}

@@ -72,7 +72,9 @@ class ShelfListFactory(
 		val item = dataSet.getOrNull(position) ?: return views
 		views.setTextViewText(R.id.textView_title, item.title)
 		runCatching {
-			coilLazy.get().executeBlocking(
+			if (item.coverUrl.isBlank()) {
+				GeneratedCoverDrawable(item.title).toBitmap(300, 450)
+			} else coilLazy.get().executeBlocking(
 				ImageRequest.Builder(context)
 					.data(item.coverUrl)
 					.size(coverSize)

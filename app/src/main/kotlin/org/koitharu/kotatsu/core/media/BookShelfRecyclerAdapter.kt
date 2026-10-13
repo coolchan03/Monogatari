@@ -12,6 +12,10 @@ internal class BookShelfRecyclerAdapter(private val onOpen: (File) -> Unit) :
     RecyclerView.Adapter<BookShelfRecyclerAdapter.Holder>() {
     private var files = emptyList<File>()
 
+    init { setHasStableIds(true) }
+
+    override fun getItemId(position: Int): Long = files[position].absolutePath.hashCode().toLong()
+
     fun submitFiles(updated: List<File>) {
         files = updated.toList()
         notifyDataSetChanged()
