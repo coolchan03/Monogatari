@@ -19,6 +19,8 @@ class BackupCatalogPolicyTest {
         assertNull(BackupCatalogPolicy.safeUrl("https://person:pass@catalog.example.org/books", false))
         assertNull(BackupCatalogPolicy.safeUrl("https://catalog.example.org/opds?access_token=secret", true))
         assertNull(BackupCatalogPolicy.safeUrl("https://catalog.example.org/feed?api_key=x", true))
+        assertNull(BackupCatalogPolicy.safeUrl("https://catalog.example.org/feed?access%5Ftoken=x", true))
+        assertNull(BackupCatalogPolicy.safeUrl("https://catalog.example.org/feed?access%255Ftoken=x", true))
         assertNull(BackupCatalogPolicy.safeUrl("https://catalog.example.org/?q=books#mysecret", false))
     }
 
