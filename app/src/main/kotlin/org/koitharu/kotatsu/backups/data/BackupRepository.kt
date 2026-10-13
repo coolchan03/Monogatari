@@ -240,7 +240,7 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.SETTINGS -> input.readMap().let {
-                        settings.upsertAll(it.filterKeys(BackupCatalogPolicy::safePreferenceKey))
+                        settings.mergeBackupValues(it.filterKeys(BackupCatalogPolicy::safePreferenceKey))
                         CompositeResult.success()
                     }
 

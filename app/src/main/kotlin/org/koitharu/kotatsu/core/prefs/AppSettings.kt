@@ -746,6 +746,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		putAll(normalizeImportedPreferences(m))
 	}
 
+    /** A backup contains no credentials: merge its ordinary preferences without clearing local secrets. */
+    fun mergeBackupValues(values: Map<String, *>) = prefs.edit {
+        putAll(normalizeImportedPreferences(values))
+    }
+
 	private fun getLongCompat(key: String, defaultValue: Long): Long = try {
 		prefs.getLong(key, defaultValue)
 	} catch (_: ClassCastException) {
