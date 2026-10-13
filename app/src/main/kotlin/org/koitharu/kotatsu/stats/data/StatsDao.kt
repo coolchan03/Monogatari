@@ -52,7 +52,6 @@ abstract class StatsDao {
 		favouriteCategories: Set<Long>
 	): Map<MangaEntity, Long> {
 		val conditions = ArrayList<String>()
-		conditions.add("(SELECT deleted_at FROM history WHERE history.manga_id = stats.manga_id) = 0")
 		conditions.add("stats.started_at >= $fromDate")
 		if (favouriteCategories.isNotEmpty()) {
 			val ids = favouriteCategories.joinToString(",")
@@ -64,7 +63,7 @@ abstract class StatsDao {
 		}
 		val where = conditions.joinToString(separator = " AND ")
 		val query = SimpleSQLiteQuery(
-			"SELECT manga.*, SUM(duration) AS d FROM stats LEFT JOIN manga ON manga.manga_id = stats.manga_id WHERE $where GROUP BY manga.manga_id ORDER BY d DESC",
+			"SELECT manga.*, SUM(duration) AS d FROM stats INNER JOIN manga ON manga.manga_id = stats.manga_id WHERE $where GROUP BY manga.manga_id ORDER BY d DESC",
 		)
 		return getDurationStatsImpl(query)
 	}

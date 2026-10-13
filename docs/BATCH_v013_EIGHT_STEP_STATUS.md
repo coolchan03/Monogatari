@@ -44,3 +44,7 @@
 - New Room DATABASE_VERSION 31 and Migration30To31 replaces the stats history FK with a manga FK while copying existing statistics, adds nullable `chapter_id`, `words`, `media_ms`, and creates `chapter_meta` with a composite chapter/manga identity, indexed manga foreign key, and size/duration fields.
 - StatsCollector now records chapter ID and preserves extra columns during session upserts.
 - Data preservation across Android upgrades and Room schema verification are **not yet device-verified**; migration code requires exact-commit CI and upgrade tests before any new release. There is no destructive migration or bulk live user-data operation here.
+
+## History deletion statistics regression (2026-10-13)
+- StatsDao.getDurationStats no longer filters on history.deleted_at, which would hide surviving stats after the History table is cleared. It now joins explicitly to manga, consistent with new stats foreign key.
+- This is a distinct local follow-up on top of the pushed version-31 migration `6ff6bce24` and needs CI. No device upgrade/migration acceptance claim.
