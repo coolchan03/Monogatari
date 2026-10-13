@@ -10,6 +10,8 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.FavouriteCategory
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.stats.domain.StatsInsights
+import org.koitharu.kotatsu.stats.domain.TagShare
+import org.koitharu.kotatsu.stats.domain.BacklogEstimator
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.ui.util.ReversibleAction
@@ -84,8 +86,14 @@ class StatsViewModel @Inject constructor(
 		launchLoadingJob(Dispatchers.Default) {
 			val goal = settings.dailyReadingGoalMinutes
 			val summary = repository.getInsights(goal)
-			val media = repository.getMediaTotals(StatsPeriod.MONTH)
-			insights.call(StatsScreenInsights(goal, summary, media))
+            val media = linkedMapOf(
+                StatsPeriod.DAY to repository.getMediaTotals(StatsPeriod.DAY),
+                StatsPeriod.WEEK to repository.getMediaTotals(StatsPeriod.WEEK),
+                StatsPeriod.MONTH to repository.getMediaTotals(StatsPeriod.MONTH),
+            )
+            val tags = repository.getTagShares(StatsPeriod.MONTH)
+            val backlog = repository.getCachedBacklogEstimate()
+            insights.call(StatsScreenInsights(goal, summary, media, tags, backlog))
 		}
 	}
 
@@ -101,5 +109,7 @@ class StatsViewModel @Inject constructor(
 internal data class StatsScreenInsights(
     val goalMinutes: Int,
     val summary: StatsInsights.Summary,
-    val media: Map<MediaType, Long>,
+    val media: Map<StatsPeriod, Map<MediaType, Long>>,
+    val tags: List<TagShare>,
+    val backlog: BacklogEstimator.Summary,
 )

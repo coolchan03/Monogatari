@@ -265,6 +265,23 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
         }, LinearLayout.LayoutParams(-1, (10 * dp).toInt()))
         addText("Current streak: ${detail.streakDays} days  ·  Goal reached: ${detail.goalDaysIn30}/30 days")
         addText("Last 7 days: ${minutes(detail.weekMs)}  ·  This month: ${minutes(detail.monthMs)}")
+        val backlog = report.backlog
+        addText("Cached unread backlog (estimate)", 18f)
+        if (backlog.unreadTitlesEstimated == 0) {
+            addText("No locally cached unread chapters with estimable lengths")
+        } else {
+            val hours = backlog.estimatedMs / 3_600_000L
+            val mins = backlog.estimatedMs / 60_000L % 60
+            addText("~$hours h $mins min across ${backlog.unreadTitlesEstimated} titles", 17f)
+            if (backlog.chapterSizesGuessed > 0) {
+                addText("${backlog.chapterSizesGuessed} chapter lengths estimated from title averages or defaults", 13f)
+            }
+        }
+        if (backlog.titlesWithoutDuration > 0) {
+            addText("${backlog.titlesWithoutDuration} cached video/audio titles lack playable duration metadata", 13f)
+        }
+        addText("Only locally cached chapter lists are included; this is not the complete online library backlog." +
+            if (backlog.partialCache) " Cache scan reached its safety limit." else "", 13f)
         addText("Reading activity — last 30 days", 18f)
         body.addView(ReadingHeatmapView(this).apply {
             setData(detail.dailyMs, 7)
@@ -277,13 +294,29 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
             contentDescription = "Activity from midnight through 11 PM. Darker tiles indicate more reading."
         }, LinearLayout.LayoutParams(-1, -2))
         addText("00:00–11:59 (top row)  ·  12:00–23:59 (bottom row)")
-        addText("Time by media — last 30 days", 18f)
-        if (report.media.isEmpty()) {
-            addText("No recorded activity")
-        } else {
-            report.media.entries.sortedByDescending { it.value }.forEach { (kind, time) ->
-                addText("${kind.name.lowercase().replaceFirstChar { it.uppercaseChar() }}: ${minutes(time)}")
+        addText("Time by media type", 18f)
+        report.media.forEach { (period, totals) ->
+            val label = when (period) {
+                StatsPeriod.DAY -> "Today"
+                StatsPeriod.WEEK -> "Last 7 days"
+                StatsPeriod.MONTH -> "Last 30 days"
+                else -> period.name.lowercase()
             }
+            addText(label)
+            if (totals.isEmpty()) addText("No recorded activity")
+            totals.entries.sortedByDescending { it.value }.forEach { (kind, time) ->
+                addText("  ${kind.name.lowercase().replaceFirstChar { it.uppercaseChar() }}: ${minutes(time)}")
+            }
+        }
+        addText("Reading time by tag — last 30 days", 18f)
+        if (report.tags.isEmpty()) {
+            addText("No tagged reading activity yet")
+        } else {
+            report.tags.forEach { share ->
+                addText("  ${share.title}: ${String.format(java.util.Locale.getDefault(),
+                    "%.1f%%", share.percent * 100.0)}")
+            }
+            addText("Each tag includes all time spent on titles with that tag. Tags overlap; totals may exceed 100%.", 13f)
         }
         val scroll = ScrollView(this).apply { addView(body) }
         androidx.appcompat.app.AlertDialog.Builder(this)

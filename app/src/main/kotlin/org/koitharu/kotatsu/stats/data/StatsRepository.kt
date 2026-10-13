@@ -12,8 +12,12 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsInsights
+import org.koitharu.kotatsu.stats.domain.TagShare
+import org.koitharu.kotatsu.stats.domain.TagShareCalculator
+import org.koitharu.kotatsu.stats.domain.BacklogEstimator
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.mediaType
+import org.koitharu.kotatsu.core.media.persistedSourceNames
 import org.koitharu.kotatsu.stats.domain.StatsRecord
 import org.koitharu.kotatsu.stats.domain.StatsRollup
 import java.util.TimeZone
@@ -112,6 +116,50 @@ class StatsRepository @Inject constructor(
 		return StatsInsights.compute(db.getStatsDao().findSince(since),
 			now, TimeZone.getDefault(), goalMinutes)
 	}
+
+    /**
+     * Inclusive tag shares: titles may have several tags, so percentages do not sum to 100%.
+     * Reads local tag associations, not guesses based on source name or title keywords.
+     */
+    suspend fun getTagShares(period: StatsPeriod = StatsPeriod.MONTH): List<TagShare> {
+        val now = System.currentTimeMillis()
+        val since = if (period == StatsPeriod.ALL) 0L
+            else now - TimeUnit.DAYS.toMillis(period.days.toLong())
+        val dao = db.getStatsDao()
+        return TagShareCalculator.compute(
+            dao.getTagDurations(since, now, 12),
+            dao.getPositiveDurationTotal(since, now),
+        )
+    }
+
+    /**
+     * Approximation restricted to locally cached chapters in active favourites.
+     * Uncached library titles are deliberately excluded, never counted as zero backlog.
+     */
+    internal suspend fun getCachedBacklogEstimate(): BacklogEstimator.Summary {
+        val dao = db.getStatsDao()
+        val limit = 20_000
+        val cached = dao.getCachedBacklogChapters(limit)
+        val groups = MediaType.entries.associateWith { it.persistedSourceNames() }
+        val chapters = cached.map { chapter ->
+            val kind = when {
+                chapter.source in groups.getValue(MediaType.VIDEO) -> MediaType.VIDEO
+                chapter.source in groups.getValue(MediaType.AUDIO) -> MediaType.AUDIO
+                chapter.source in groups.getValue(MediaType.BOOK) -> MediaType.BOOK
+                else -> MediaType.MANGA
+            }
+            BacklogEstimator.Chapter(
+                mangaId = chapter.mangaId, kind = kind, chapterId = chapter.chapterId,
+                branch = chapter.branch, index = chapter.chapterIndex,
+                pages = chapter.pages, words = chapter.words, durationMs = chapter.durationMs,
+                currentChapterId = chapter.currentChapterId,
+                titleProgress = chapter.progress,
+            )
+        }
+        val recentSince = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30L)
+        val pace = dao.getWeightedGlobalTimePerPage(recentSince)
+        return BacklogEstimator.compute(chapters, pace, cached.size == limit)
+    }
 
 	/** Aggregate recorded time by current media source type (not guesses from file names). */
 	suspend fun getMediaTotals(period: StatsPeriod = StatsPeriod.MONTH): Map<MediaType, Long> {

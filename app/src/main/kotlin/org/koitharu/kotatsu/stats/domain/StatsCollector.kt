@@ -96,15 +96,22 @@ class StatsCollector @Inject constructor(
 		}
 	}
 
-	@Synchronized
-	fun onPause(mangaId: Long) {
-		stats.remove(mangaId)
-	}
+    @Synchronized
+    fun onPause(mangaId: Long) {
+        val last = stats[mangaId]
+        stats.remove(mangaId)
+        // Count the final active interval even when the reader closes without a page turn.
+        if (settings.isStatsEnabled && last != null) {
+            val duration = last.stats.duration +
+                ReadingActivityTime.activeInterval(last.lastEventAt, System.currentTimeMillis())
+            if (duration > 0L) commit(last.stats.copy(duration = duration))
+        }
+    }
 
 	private fun commit(entity: StatsEntity) {
 		viewModelScope.launch(Dispatchers.Default) {
 			runCatchingCancellable {
-				db.getStatsDao().upsert(entity)
+                db.getStatsDao().upsertProgress(entity)
 			}.onFailure { e ->
 				e.printStackTraceDebug()
 			}
