@@ -30,6 +30,7 @@ import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.favicon.faviconUri
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.image.ThumbnailTransformation
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.util.ext.getDrawableOrThrow
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
@@ -156,20 +157,24 @@ class AppShortcutManager @Inject constructor(
 	}
 
 	private suspend fun buildShortcutInfo(manga: Manga): ShortcutInfoCompat = withContext(Dispatchers.Default) {
-		val icon = runCatchingCancellable {
-			coil.execute(
-				ImageRequest.Builder(context)
-					.data(manga.coverUrl)
-					.size(iconSize)
-					.mangaSourceExtra(manga.source)
-					.scale(Scale.FILL)
-					.transformations(ThumbnailTransformation())
-					.build(),
-			).getDrawableOrThrow().toBitmap()
-		}.fold(
-			onSuccess = { IconCompat.createWithAdaptiveBitmap(it) },
-			onFailure = { IconCompat.createWithResource(context, R.drawable.ic_shortcut_default) },
-		)
+		val icon = if (manga.coverUrl.isNullOrBlank()) {
+			generatedShortcutIcon(manga)
+		} else {
+			runCatchingCancellable {
+				coil.execute(
+					ImageRequest.Builder(context)
+						.data(manga.coverUrl)
+						.size(iconSize)
+						.mangaSourceExtra(manga.source)
+						.scale(Scale.FILL)
+						.transformations(ThumbnailTransformation())
+						.build(),
+				).getDrawableOrThrow().toBitmap()
+			}.fold(
+				onSuccess = { IconCompat.createWithAdaptiveBitmap(it) },
+				onFailure = { generatedShortcutIcon(manga) },
+			)
+		}
 		mangaRepository.storeManga(manga, replaceExisting = true)
 		val title = manga.title.ifEmpty {
 			manga.altTitles.firstOrNull()
@@ -189,6 +194,11 @@ class AppShortcutManager @Inject constructor(
 					.intent,
 			).build()
 	}
+
+	private fun generatedShortcutIcon(manga: Manga): IconCompat =
+		IconCompat.createWithAdaptiveBitmap(
+			GeneratedCoverDrawable(manga.title).toBitmap(256, 256),
+		)
 
 	private suspend fun buildShortcutInfo(source: MangaSource): ShortcutInfoCompat = withContext(Dispatchers.Default) {
 		val icon = runCatchingCancellable {

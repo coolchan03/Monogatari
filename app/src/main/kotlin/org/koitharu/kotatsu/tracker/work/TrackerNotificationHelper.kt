@@ -12,6 +12,9 @@ import androidx.core.app.NotificationCompat.VISIBILITY_SECRET
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.PendingIntentCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
+import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import org.koitharu.kotatsu.R
@@ -66,14 +69,15 @@ class TrackerNotificationHelper @Inject constructor(
 			setContentText(summary)
 			setContentTitle(manga.title)
 			setNumber(newChapters.size)
-			setLargeIcon(
+			val image = if (manga.coverUrl.isNullOrBlank()) null else runCatchingCancellable {
 				coil.execute(
 					ImageRequest.Builder(applicationContext)
 						.data(manga.coverUrl)
 						.mangaSourceExtra(manga.source)
 						.build(),
-				).toBitmapOrNull(),
-			)
+				).toBitmapOrNull()
+			}.getOrNull()
+			setLargeIcon(image ?: GeneratedCoverDrawable(manga.title).toBitmap(300, 450))
 			setSmallIcon(R.drawable.ic_stat_book_plus)
 			setGroup(GROUP_NEW_CHAPTERS)
 			val style = NotificationCompat.InboxStyle(this)

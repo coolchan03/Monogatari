@@ -34,6 +34,31 @@ abstract class StatsDao {
 	@Query("SELECT IFNULL(SUM(duration)/SUM(pages), 0) FROM stats")
 	abstract suspend fun getAverageTimePerPage(): Long
 
+	@Query("SELECT * FROM chapter_meta WHERE manga_id = :mangaId AND chapter_id = :chapterId LIMIT 1")
+	abstract suspend fun getChapterMeta(mangaId: Long, chapterId: Long): ChapterMetaEntity?
+
+	@Query("SELECT * FROM chapter_meta WHERE manga_id = :mangaId")
+	abstract suspend fun findChapterMeta(mangaId: Long): List<ChapterMetaEntity>
+
+	@Query("SELECT * FROM chapter_meta")
+	abstract suspend fun dumpChapterMeta(): List<ChapterMetaEntity>
+
+	@Upsert
+	abstract suspend fun upsertChapterMeta(metadata: ChapterMetaEntity)
+
+	/** Weighted toward sessions in the past 30 days. Exclude video/audio sessions. */
+	@Query("""SELECT IFNULL(
+	    SUM(CASE WHEN started_at >= :recentSince THEN duration * 2 ELSE duration END) /
+	    NULLIF(SUM(CASE WHEN started_at >= :recentSince THEN pages * 2 ELSE pages END),0),0)
+	    FROM stats WHERE manga_id = :mangaId AND pages > 0 AND duration > 0""")
+	abstract suspend fun getWeightedTimePerPage(mangaId: Long, recentSince: Long): Long
+
+	@Query("""SELECT IFNULL(
+	    SUM(CASE WHEN started_at >= :recentSince THEN duration * 2 ELSE duration END) /
+	    NULLIF(SUM(CASE WHEN started_at >= :recentSince THEN pages * 2 ELSE pages END),0),0)
+	    FROM stats WHERE pages > 0 AND duration > 0""")
+	abstract suspend fun getWeightedGlobalTimePerPage(recentSince: Long): Long
+
 	@Query("DELETE FROM stats")
 	abstract suspend fun clear()
 
@@ -72,6 +97,19 @@ abstract class StatsDao {
 	protected abstract suspend fun getDurationStatsImpl(
 		query: SupportSQLiteQuery
 	): Map<@MapColumn("manga") MangaEntity, @MapColumn("d") Long>
+
+	@Query("SELECT * FROM chapter_meta ORDER BY manga_id, chapter_id LIMIT :limit OFFSET :offset")
+	protected abstract suspend fun chapterMetaPage(offset: Int, limit: Int): List<ChapterMetaEntity>
+
+	fun dumpChapterMeta(): Flow<ChapterMetaEntity> = flow {
+		var offset = 0
+		while (currentCoroutineContext().isActive) {
+			val page = chapterMetaPage(offset, 100)
+			if (page.isEmpty()) break
+			offset += page.size
+			page.forEach { emit(it) }
+		}
+	}
 
 	@Query("SELECT * FROM stats ORDER BY started_at LIMIT :limit OFFSET :offset")
 	protected abstract suspend fun findAll(offset: Int, limit: Int): List<StatsEntity>

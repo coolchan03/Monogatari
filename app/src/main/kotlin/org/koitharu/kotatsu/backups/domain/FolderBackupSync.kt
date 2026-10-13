@@ -150,6 +150,7 @@ class FolderBackupSync @Inject constructor(
         const val MAX_OWN_BACKUPS = 3
         val SYNC_INTERVAL_MS = TimeUnit.HOURS.toMillis(6)
         val MERGE_SECTIONS = setOf(BackupSection.HISTORY, BackupSection.CATEGORIES,
-            BackupSection.FAVOURITES, BackupSection.BOOKMARKS, BackupSection.STATS)
+            BackupSection.FAVOURITES, BackupSection.BOOKMARKS,
+            BackupSection.STATS, BackupSection.CHAPTER_META)
     }
 }

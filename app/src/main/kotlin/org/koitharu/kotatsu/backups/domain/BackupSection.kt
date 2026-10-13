@@ -21,6 +21,7 @@ enum class BackupSection(
     SOURCE_SETTINGS("source_settings"),
 	SCROBBLING("scrobbling"),
 	STATS("statistics"),
+	CHAPTER_META("chapter_meta"),
 	SAVED_FILTERS("saved_filters"),
 
 	/**

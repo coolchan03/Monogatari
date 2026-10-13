@@ -290,6 +290,13 @@ class ReaderViewModel @Inject constructor(
         )
     }
 
+    /** Reader-reported size, persisted only when statistics are enabled and incognito is off. */
+    fun recordChapterMetadata(chapterId: Long, words: Int = 0, durationMs: Long = 0L) {
+        if (isIncognitoMode.value != false) return
+        val mangaId = getMangaOrNull()?.id ?: return
+        statsCollector.onChapterMetadata(mangaId, chapterId, words = words, durationMs = durationMs)
+    }
+
     fun getCurrentState() = readingState.value
 
     fun getCurrentChapterPages(): List<MangaPage>? {
@@ -572,6 +579,9 @@ class ReaderViewModel @Inject constructor(
         uiState.value = newState
         if (isIncognitoMode.value == false) {
             statsCollector.onStateChanged(m.id, state)
+            if (newState.totalPages > 0) {
+                statsCollector.onChapterMetadata(m.id, state.chapterId, pages = newState.totalPages)
+            }
             discordRpc.updateRpc(m.toManga(), newState)
         }
     }

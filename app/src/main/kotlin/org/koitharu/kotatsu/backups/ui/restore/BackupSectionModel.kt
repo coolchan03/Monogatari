@@ -29,6 +29,7 @@ data class BackupSectionModel(
             BackupSection.SOURCE_SETTINGS -> R.string.backup_source_settings
 			BackupSection.SCROBBLING -> R.string.tracking
 			BackupSection.STATS -> R.string.statistics
+			BackupSection.CHAPTER_META -> R.string.statistics
 			BackupSection.SAVED_FILTERS -> R.string.saved_filters
 			BackupSection.IDENTITY -> R.string.community
 		}

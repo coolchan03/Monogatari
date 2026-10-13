@@ -17,6 +17,7 @@ import android.webkit.WebViewClient
 import androidx.activity.viewModels
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.text.HtmlCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -264,6 +265,12 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 					source = jsSource,
 					mayStartVerification = true,
 				) { provider.getChapterHtml(manga.title, state.chapter) }
+				val words = withContext(Dispatchers.Default) {
+					Regex("[\\p{L}\\p{N}]+").findAll(
+						HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_COMPACT).toString(),
+					).take(2_000_000).count()
+				}
+				viewModel.recordChapterMetadata(state.chapter.id, words = words)
 				viewBinding.webView.loadDataWithBaseURL(
 					state.chapter.url,
 					wrapHtml(html),
@@ -471,6 +478,9 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 
 			MediaType.VIDEO, MediaType.AUDIO -> player?.let { current ->
 				val duration = current.duration
+				if (duration > 0L) currentChapterId?.let { chapterId ->
+					viewModel.recordChapterMetadata(chapterId, durationMs = duration)
+				}
 				val position = current.currentPosition.coerceAtLeast(0L)
 				val progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
 				viewModel.saveContinuousState(position.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), progress)

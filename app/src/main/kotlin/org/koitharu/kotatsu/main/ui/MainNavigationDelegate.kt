@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.main.ui
 
 import android.os.Bundle
+import android.content.Intent
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -188,6 +189,10 @@ class MainNavigationDelegate(
 	}
 
 	private fun onNavigationItemSelected(@IdRes itemId: Int): Boolean {
+		if (itemId == R.id.nav_more) {
+			navBar.context.startActivity(Intent(navBar.context, MoreActivity::class.java))
+			return false // More is an activity; keep the current content tab checked.
+		}
 		val newFragment = when (itemId) {
 			R.id.nav_books -> BookLibraryFragment::class.java
 			R.id.nav_history -> HistoryListFragment::class.java
@@ -292,7 +297,7 @@ class MainNavigationDelegate(
 	private fun firstItem(): MenuItem? {
 		val menu = navBar.menu
 		for (item in menu) {
-			if (item.isVisible) return item
+			if (item.isVisible && item.itemId != R.id.nav_more) return item
 		}
 		return null
 	}

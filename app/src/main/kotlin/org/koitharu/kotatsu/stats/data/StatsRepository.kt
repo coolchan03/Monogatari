@@ -11,6 +11,9 @@ import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
+import org.koitharu.kotatsu.stats.domain.StatsInsights
+import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.stats.domain.StatsRecord
 import org.koitharu.kotatsu.stats.domain.StatsRollup
 import java.util.TimeZone
@@ -63,11 +66,63 @@ class StatsRepository @Inject constructor(
 		time
 	}
 
+	/** Transactionally merge dimensions; never replace a known size with zero. */
+	suspend fun recordChapterMetadata(mangaId: Long, chapterId: Long,
+		pages: Int = 0, words: Int = 0, durationMs: Long = 0L) {
+		if (!settings.isStatsEnabled || mangaId <= 0L || chapterId <= 0L) return
+		if (pages <= 0 && words <= 0 && durationMs <= 0L) return
+		db.withTransaction {
+			val dao = db.getStatsDao()
+			val old = dao.getChapterMeta(mangaId, chapterId)
+			val updated = ChapterMetaEntity(
+				mangaId = mangaId, chapterId = chapterId,
+				pages = maxOf(old?.pages ?: 0, pages.coerceIn(0, 20000)),
+				words = maxOf(old?.words ?: 0, words.coerceIn(0, 2_000_000)),
+				durationMs = maxOf(old?.durationMs ?: 0L, durationMs.coerceIn(0L, 86400000L)),
+				updatedAt = System.currentTimeMillis(),
+			)
+			if (old == null || old.pages != updated.pages || old.words != updated.words ||
+				old.durationMs != updated.durationMs) dao.upsertChapterMeta(updated)
+		}
+	}
+
+	suspend fun getChapterMetadata(mangaId: Long): Map<Long, ChapterMetaEntity> =
+		db.getStatsDao().findChapterMeta(mangaId).associateBy { it.chapterId }
+
+	/** Title pace weighted 2× for sessions within 30 days, falling back to global. */
+	suspend fun getWeightedTimePerPage(mangaId: Long): Long {
+		val dao = db.getStatsDao()
+		val since = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30)
+		val title = dao.getWeightedTimePerPage(mangaId, since)
+		if (title in 1000L..180000L) return title
+		return dao.getWeightedGlobalTimePerPage(since).takeIf { it in 1000L..180000L } ?: 8000L
+	}
+
 	/** Reading time by local calendar day, suitable for a future statistics heatmap. */
 	internal suspend fun getDailyReadingTime(days: Int, timezone: TimeZone = TimeZone.getDefault()): Map<StatsRollup.Day, Long> {
 		require(days in 1..366)
 		val fromDate = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong())
 		return StatsRollup.byDay(db.getStatsDao().findSince(fromDate), timezone)
+	}
+
+	/** Last 90 days include the prior month for accurate current-month and streak figures. */
+	internal suspend fun getInsights(goalMinutes: Int): StatsInsights.Summary {
+		val now = System.currentTimeMillis()
+		val since = now - TimeUnit.DAYS.toMillis(400L)
+		return StatsInsights.compute(db.getStatsDao().findSince(since),
+			now, TimeZone.getDefault(), goalMinutes)
+	}
+
+	/** Aggregate recorded time by current media source type (not guesses from file names). */
+	suspend fun getMediaTotals(period: StatsPeriod = StatsPeriod.MONTH): Map<MediaType, Long> {
+		val from = if (period == StatsPeriod.ALL) 0L
+			else System.currentTimeMillis() - TimeUnit.DAYS.toMillis(period.days.toLong())
+		val totals = mutableMapOf<MediaType, Long>()
+		for ((entity, duration) in db.getStatsDao().getDurationStats(from, null, emptySet())) {
+			val kind = entity.toManga(emptySet(), null).source.mediaType()
+			totals[kind] = (totals[kind] ?: 0L) + duration.coerceAtLeast(0L)
+		}
+		return totals
 	}
 
 	suspend fun getTotalPagesRead(mangaId: Long): Int {

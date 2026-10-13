@@ -32,6 +32,7 @@ import org.koitharu.kotatsu.backups.data.model.MangaBackup
 import org.koitharu.kotatsu.backups.data.model.ScrobblingBackup
 import org.koitharu.kotatsu.backups.data.model.SourceBackup
 import org.koitharu.kotatsu.backups.data.model.StatisticBackup
+import org.koitharu.kotatsu.backups.data.model.ChapterMetaBackup
 import org.koitharu.kotatsu.backups.domain.BackupSection
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -191,6 +192,12 @@ class BackupRepository @Inject constructor(
                     serializer = serializer(),
                 )
 
+                BackupSection.CHAPTER_META -> output.writeJsonArray(
+                    section = BackupSection.CHAPTER_META,
+                    data = database.getStatsDao().dumpChapterMeta().map { ChapterMetaBackup(it) },
+                    serializer = serializer(),
+                )
+
                 BackupSection.SAVED_FILTERS -> {
                     val sources = mangaSourcesRepository.getEnabledSources()
                     val filters = sources.flatMap { source ->
@@ -341,6 +348,19 @@ class BackupRepository @Inject constructor(
 
                     BackupSection.STATS -> input.readJsonArray<StatisticBackup>(serializer()).restoreToDb {
                         getStatsDao().insertMissing(it.toEntity())
+                    }
+
+                    BackupSection.CHAPTER_META -> input.readJsonArray<ChapterMetaBackup>(serializer()).restoreToDb {
+                        val incoming = it.toEntity()
+                        require(incoming.mangaId > 0L && incoming.chapterId > 0L)
+                        val dao = getStatsDao()
+                        val existing = dao.getChapterMeta(incoming.mangaId, incoming.chapterId)
+                        dao.upsertChapterMeta(incoming.copy(
+                            pages = maxOf(existing?.pages ?: 0, incoming.pages.coerceIn(0, 20000)),
+                            words = maxOf(existing?.words ?: 0, incoming.words.coerceIn(0, 2_000_000)),
+                            durationMs = maxOf(existing?.durationMs ?: 0L, incoming.durationMs.coerceIn(0L, 86400000L)),
+                            updatedAt = maxOf(existing?.updatedAt ?: 0L, incoming.updatedAt),
+                        ))
                     }
 
                     BackupSection.SAVED_FILTERS -> input.readJsonArray<PersistableFilter>(serializer())

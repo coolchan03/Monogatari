@@ -14,6 +14,7 @@ enum class NavItem(
 ) {
 
 	BOOKS(R.id.nav_books, R.string.monogatari_books, R.drawable.ic_monogatari_nav_books),
+	MORE(R.id.nav_more, R.string.monogatari_nav_more, R.drawable.ic_monogatari_nav_more),
 	HISTORY(R.id.nav_history, R.string.history, R.drawable.ic_monogatari_nav_history),
 	FAVORITES(R.id.nav_favorites, R.string.favourites, R.drawable.ic_monogatari_nav_favorites),
 	LOCAL(R.id.nav_local, R.string.on_device, R.drawable.ic_monogatari_nav_local),
