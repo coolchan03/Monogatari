@@ -22,7 +22,10 @@ internal class JsUtilsBridge(private val logger: JsLogger) {
 			encrypt = a[3].bool() ?: false,
 		)
 
-		else -> Unit
+		else -> {
+			if (name in UNSUPPORTED) MissingJsHostDiagnostics.record(name)
+			Unit
+		}
 	}
 
 	/** AES/CBC/PKCS7 with UTF-8 key and IV; on any failure the input comes back, like upstream. */

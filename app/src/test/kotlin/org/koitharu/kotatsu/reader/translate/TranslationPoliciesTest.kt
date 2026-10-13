@@ -6,6 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TranslationPoliciesTest {
+    @Test fun novelChunksRemainBoundedAndReadable() {
+        val text = "hello ".repeat(700).trim()
+        val chunks = TranslationChunker.split(text)
+        assertTrue(chunks.size > 1)
+        assertTrue(chunks.all { it.length <= 1500 })
+        assertEquals(text, chunks.joinToString(" "))
+    }
+
     @Test fun explicitSeriesChoiceWinsOverLanguageDefault() {
         assertFalse(SeriesTranslationPreferences.enabled(false, "ja"))
         assertTrue(SeriesTranslationPreferences.enabled(true, "en"))
