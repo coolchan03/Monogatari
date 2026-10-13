@@ -51,6 +51,9 @@ internal class WebDavSnapshotTransport @Inject constructor() {
         }
     suspend fun upload(endpoint: WebDavEndpoint, auth: WebDavAuth, id: String, file: File) =
         withContext(Dispatchers.IO) {
+            require(file.isFile && file.length() in 1..MAX_ZIP_BYTES) {
+                "WebDAV snapshot must be a nonempty ZIP within the size limit"
+            }
             val create = request(endpoint.collection, auth)
                 .method("MKCOL", ByteArray(0).toRequestBody(null)).build()
             client.newCall(create).execute().use { response ->

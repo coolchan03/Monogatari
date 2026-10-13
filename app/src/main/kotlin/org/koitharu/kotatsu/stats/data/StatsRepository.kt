@@ -36,7 +36,7 @@ class StatsRepository @Inject constructor(
 		val total = stats.values.sum()
 		for ((mangaEntity, duration) in stats) {
 			val manga = mangaEntity.toManga(emptySet(), null)
-			val percent = duration.toDouble() / total
+			val percent = if (total > 0L) duration.toDouble() / total else 0.0
 			if (percent < 0.05) {
 				other = other.copy(duration = other.duration + duration)
 			} else {

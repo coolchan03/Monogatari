@@ -28,6 +28,7 @@ class StatsCollector @Inject constructor(
 	@Synchronized
 	fun onStateChanged(mangaId: Long, state: ReaderState) {
 		if (!settings.isStatsEnabled) {
+			stats.remove(mangaId)
 			return
 		}
 		val now = System.currentTimeMillis()
