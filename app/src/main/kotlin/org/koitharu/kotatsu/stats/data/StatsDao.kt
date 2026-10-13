@@ -40,9 +40,6 @@ abstract class StatsDao {
 	@Query("SELECT * FROM chapter_meta WHERE manga_id = :mangaId")
 	abstract suspend fun findChapterMeta(mangaId: Long): List<ChapterMetaEntity>
 
-	@Query("SELECT * FROM chapter_meta")
-	abstract suspend fun dumpChapterMeta(): List<ChapterMetaEntity>
-
 	@Upsert
 	abstract suspend fun upsertChapterMeta(metadata: ChapterMetaEntity)
 
