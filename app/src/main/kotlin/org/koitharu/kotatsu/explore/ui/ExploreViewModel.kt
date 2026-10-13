@@ -21,6 +21,8 @@ import org.koitharu.kotatsu.core.model.isNsfw
 import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.MangaSourceInfo
 import org.koitharu.kotatsu.core.os.AppShortcutManager
+import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.parser.ParserMangaRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.core.prefs.observeAsStateFlow
@@ -42,6 +44,7 @@ import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.list.ui.model.LoadingState
 import org.koitharu.kotatsu.list.ui.model.MangaCompactListModel
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
@@ -62,6 +65,7 @@ class ExploreViewModel @Inject constructor(
 	private val sourceRanker: SourceRanker,
     private val sourceHealth: SourceHealthRecorder,
     private val retirementTracker: SourceRetirementTracker,
+    private val repositoryFactory: MangaRepository.Factory,
 ) : BaseViewModel() {
 
 	val isGrid = settings.observeAsStateFlow(
@@ -262,8 +266,13 @@ class ExploreViewModel @Inject constructor(
             // deliberately saved in a custom preset remains visible for manual recovery.
             val retired = if (activePreset == null) retirementTracker.retiredNames() else emptySet()
             val preferred = SourceWebsiteGroups.orderedGroups(
+<<<<<<< HEAD
                 sources.filterNot { it.name in retired }.sortedBy { it.name in unhealthy },
             ) { SourceWebsiteGroups.key(it.mangaSource) }.map { it.first() }
+=======
+                sources.sortedBy { it.name in unhealthy },
+            ) { SourceWebsiteGroups.key(it.mangaSource, ::parserDomain) }.map { it.first() }
+>>>>>>> 669110fa9 (sources: group Kotatsu parsers with matching website sources)
             preferred.mapTo(result) {
                 MangaSourceItem(it, isGrid, it.name in trending && it.name !in unhealthy, it.name in unhealthy)
             }
@@ -277,6 +286,10 @@ class ExploreViewModel @Inject constructor(
 		}
 		return result
 	}
+
+	private fun parserDomain(source: MangaParserSource): String? = runCatching {
+		(repositoryFactory.create(source) as? ParserMangaRepository)?.domain
+	}.getOrNull()
 
 	private fun getLoadingStateList() = listOf(
 		ExploreButtons(isRandomLoading.value),

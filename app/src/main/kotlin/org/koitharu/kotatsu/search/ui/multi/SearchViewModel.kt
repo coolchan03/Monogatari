@@ -37,6 +37,8 @@ import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
 import org.koitharu.kotatsu.core.model.getLocale
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.parser.ParserMangaRepository
 import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.append
@@ -84,6 +86,7 @@ class SearchViewModel @Inject constructor(
 	private val presetsRepository: SourcePresetsRepository,
 	private val sourceRanker: SourceRanker,
     private val sourceHealth: SourceHealthRecorder,
+    private val repositoryFactory: MangaRepository.Factory,
 ) : BaseViewModel() {
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
@@ -244,7 +247,7 @@ class SearchViewModel @Inject constructor(
 			}
             val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }).map { group ->
+            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }, ::parserDomain).map { group ->
                 launch {
                     semaphore.withPermit {
                         appendResult(searchHostGroup(group))
@@ -285,7 +288,7 @@ class SearchViewModel @Inject constructor(
 			val sources = getPresetSourcesOrDefault().rankedForSweep(batch = 0)
             val excluded = runCatchingCancellable { sourceHealth.unhealthyNames() }.getOrDefault(emptySet())
 			val semaphore = Semaphore(MAX_PARALLELISM)
-            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }).map { group ->
+            SourceWebsiteGroups.groups(sources.filterNot { it.name in excluded }, ::parserDomain).map { group ->
                 launch {
                     semaphore.withPermit {
                         appendResult(searchHostGroup(group))
@@ -294,6 +297,10 @@ class SearchViewModel @Inject constructor(
             }.joinAll()
 		}
 	}
+
+    private fun parserDomain(source: MangaParserSource): String? = runCatching {
+        (repositoryFactory.create(source) as? ParserMangaRepository)?.domain
+    }.getOrNull()
 
     /** One result section per known host; retry alternatives if the preferred site is empty or fails. */
     private suspend fun searchHostGroup(group: List<MangaSource>): SearchResultsListModel? {

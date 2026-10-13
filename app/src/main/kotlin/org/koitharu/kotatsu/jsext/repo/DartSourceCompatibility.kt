@@ -4,7 +4,7 @@ import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.toMediaType
 import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
-import java.net.URI
+import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
 
 /**
  * Phase one of Dart compatibility: identify an already-supported parser/site.
@@ -55,7 +55,5 @@ object DartSourceCompatibility {
     private fun withoutLocaleSuffix(name: String): String =
         name.replace(Regex("_(EN|ES|ESLA|FR|DE|IT|PT|PTBR|RU|JA|ZH|KO|ID|VI|TH|AR|TR)$"), "")
 
-    private fun hostOf(value: String): String? = runCatching {
-        URI(value).host?.lowercase()?.removePrefix("www.")
-    }.getOrNull()
+    private fun hostOf(value: String): String? = SourceWebsiteGroups.host(value)
 }

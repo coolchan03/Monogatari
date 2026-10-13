@@ -5,6 +5,7 @@ import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.core.model.unwrap
 import org.koitharu.kotatsu.jsext.repo.JsSourceRegistry
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
+import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import java.net.URI
 import java.util.Locale
@@ -15,15 +16,23 @@ import java.util.Locale
  */
 object SourceWebsiteGroups {
     fun host(url: String): String? {
-        val domain = runCatching { URI(url).host?.lowercase(Locale.ROOT) }.getOrNull()
-            ?.trimEnd('.') ?: return null
-        return domain.removePrefix("www.").removePrefix("m.").takeIf { '.' in it }
+        val raw = url.trim().takeIf { it.isNotEmpty() } ?: return null
+        // Kotatsu parser domains are often bare hosts, whereas JS entries use full URLs.
+        val parsed = runCatching { URI(if ("://" in raw) raw else "https://$raw") }.getOrNull()
+            ?: return null
+        if (parsed.scheme?.lowercase(Locale.ROOT) !in setOf("http", "https")) return null
+        var domain = parsed.host?.lowercase(Locale.ROOT)?.trimEnd('.') ?: return null
+        while (domain.startsWith("www.") || domain.startsWith("m.")) {
+            domain = domain.substringAfter('.')
+        }
+        return domain.takeIf { '.' in it }
     }
 
-    fun key(source: MangaSource): String? {
+    fun key(source: MangaSource, parserDomain: (MangaParserSource) -> String? = { null }): String? {
         val resolved = source.unwrap()
         val address = when (resolved) {
             is JsMangaSource -> JsSourceRegistry.get(resolved.id)?.baseUrl
+            is MangaParserSource -> runCatching { parserDomain(resolved) }.getOrNull()
             is BuiltinSource -> when (resolved) {
                 BuiltinSource.AO3 -> "https://archiveofourown.org"
                 BuiltinSource.GUTENBERG -> "https://gutenberg.org"
@@ -44,8 +53,10 @@ object SourceWebsiteGroups {
         return canonical + "|" + source.mediaType().name
     }
 
-    fun groups(sources: List<MangaSource>): List<List<MangaSource>> =
-        orderedGroups(sources, ::key)
+    fun groups(
+        sources: List<MangaSource>,
+        parserDomain: (MangaParserSource) -> String? = { null },
+    ): List<List<MangaSource>> = orderedGroups(sources) { key(it, parserDomain) }
 
     fun <T> orderedGroups(items: List<T>, key: (T) -> String?): List<List<T>> {
         val groups = ArrayList<MutableList<T>>()

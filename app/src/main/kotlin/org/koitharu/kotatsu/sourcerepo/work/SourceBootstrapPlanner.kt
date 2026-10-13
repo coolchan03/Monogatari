@@ -2,16 +2,12 @@ package org.koitharu.kotatsu.sourcerepo.work
 
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
 import org.koitharu.kotatsu.jsext.repo.compareVersions
-import java.net.URI
+import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
 import java.util.Locale
 
 /** Conservatively skip only sources clearly duplicated by an enabled parser or installed JS site. */
 object SourceBootstrapPlanner {
-    fun normalizedHost(baseUrl: String): String? {
-        val host = runCatching { URI(baseUrl).host?.lowercase(Locale.ROOT) }.getOrNull()
-            ?.trimEnd('.') ?: return null
-        return host.removePrefix("www.").removePrefix("m.").takeIf { '.' in it }
-    }
+    fun normalizedHost(baseUrl: String): String? = SourceWebsiteGroups.host(baseUrl)
 
     private fun shortAlias(value: String): String =
         value.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
