@@ -52,7 +52,12 @@ class MoreActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val page = MoreDestinations.pages[position]
             BookShelfCard.bind(holder.card, page.title, page.subtitle) {
-                startActivity(Intent(this@MoreActivity, page.target))
+                val destination = Intent(this@MoreActivity, page.target)
+                page.viewUri?.let { uri ->
+                    destination.action = Intent.ACTION_VIEW
+                    destination.data = android.net.Uri.parse(uri)
+                }
+                startActivity(destination)
             }
             holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon)
                 .setImageResource(page.icon)
