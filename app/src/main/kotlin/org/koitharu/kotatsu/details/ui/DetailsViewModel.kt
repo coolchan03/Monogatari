@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.details.ui
 
 import org.koitharu.kotatsu.reader.translate.TextTranslator
+import org.koitharu.kotatsu.reader.translate.TranslationTextPolicy
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
 import kotlinx.coroutines.cancelAndJoin
 import androidx.lifecycle.SavedStateHandle
@@ -128,13 +129,23 @@ class DetailsViewModel @Inject constructor(
 		translateJob = launchLoadingJob(Dispatchers.Default) {
 			prevJob?.cancelAndJoin()
 			val details = mangaDetails.value ?: return@launchLoadingJob
-			val title = details.toManga().title
+			val manga = details.toManga()
+			// A real English/romanised alternative title beats a machine translation.
+			val isNonLatinTitle = manga.title.any { it.isLetter() && it.code > 0x24F }
+			val knownTitle = TranslationTextPolicy.preferredEnglishTitle(manga.title, manga.altTitles)
+				.takeIf { isNonLatinTitle && it != manga.title }
 			val description = details.description?.toString().orEmpty()
-			val translated = textTranslator.translate(listOf(title, description), details.getLocale()?.language)
-			if (translated == null) {
+			val translated = textTranslator.translate(
+				texts = listOf(if (knownTitle != null) "" else manga.title, description),
+				languageHint = details.getLocale()?.language,
+			)
+			if (translated == null && knownTitle == null) {
 				onTranslationNotNeeded.call(Unit)
 			} else {
-				translatedInfo.value = TranslatedInfo(translated[0], translated[1].takeIf { it.isNotBlank() })
+				translatedInfo.value = TranslatedInfo(
+					title = knownTitle ?: translated?.get(0) ?: manga.title,
+					description = translated?.get(1)?.takeIf { it.isNotBlank() },
+				)
 			}
 		}
 	}
