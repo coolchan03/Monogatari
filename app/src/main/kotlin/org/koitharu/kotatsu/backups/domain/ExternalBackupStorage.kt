@@ -67,13 +67,17 @@ class ExternalBackupStorage @Inject constructor(
 		df != null && df.delete()
 	}
 
-	suspend fun getLastBackupDate() = listOrNull()?.maxOfOrNull { it.dateTime }
+	/** A sync snapshot is not a full backup and must never reset the full-backup timer. */
+	suspend fun getLastBackupDate() = listOrNull()
+		?.filterNot { FolderSyncPlanner.isSnapshotFileName(it.fileName) }
+		?.maxOfOrNull { it.dateTime }
 
 	suspend fun trim(maxCount: Int): Boolean {
 		if (maxCount == Int.MAX_VALUE) {
 			return false
 		}
-		val list = listOrNull()
+		// Automatic full-backup retention must not delete this or another device's sync snapshots.
+		val list = listOrNull()?.filterNot { FolderSyncPlanner.isSnapshotFileName(it.fileName) }
 		if (list == null || list.size <= maxCount) {
 			return false
 		}

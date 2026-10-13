@@ -78,3 +78,10 @@
 - Local repository and staged files were inspected through Tunnel. `git diff --check` and `git diff --cached --check` returned code 0, with only line-ending normalization warnings.
 - No Java/JDK/Android SDK installed locally; Android JUnit, assembleDebug, R8 and device checks remain unexecuted. No exact-commit combined CI success or new release exists as of this checkpoint.
 - Next: commit the staged JS-source restore + new hardening patch only if Tunnel authorizes it; push via Tunnel only; wait for exact-head GitHub Actions Build success before merging/releasing. Do not bypass any safety denial. Then proceed to Step 44 WebDAV/Step 45 imports as separately tested batches.
+
+## Step 43 shared-folder retention follow-up (2026-10-13 CDT)
+- Fixed a second cross-device retention risk: `ExternalBackupStorage.trim()` now excludes dedicated sync snapshots even when automatic full backups are re-enabled later. It never globally trims sync snapshots from another device.
+- `getLastBackupDate()` now measures ordinary/full backups only; a newer `sync_` snapshot will not suppress a scheduled full backup or mislabel it as the last completed full backup.
+- The Step 42 JS-source restore and preceding Step 43 hardening patch were committed locally at `af76c052cb48dd1af7330836eda06d7a525aba94` after clean staged whitespace checks.
+- One normal Tunnel push for `batch-overnight-stageg-stageh` was denied by OpenAI safety checks; not retried or bypassed. Remote branch and exact-commit CI do not exist for this head.
+- This retention follow-up is a separate local worktree change requiring staging/commit, GitHub CI and device verification. Android JUnit and R8 are still unavailable on this Windows host without installing build tooling.
