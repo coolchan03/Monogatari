@@ -6,6 +6,14 @@
 
 Monogatari is an Android reader built on Kotatsu-Redo with Mangayomi-style JavaScript extensions.
 
+## Latest test APK
+
+**[Download the newest Monogatari Android test APK (v0.13.0, October 13, 2026)](https://github.com/coolchan03/Monogatari/releases/download/v0.13.0-20261013-latest-test/Monogatari-v0.13.0-20261013-latest-test.apk)**
+
+[Release details and installation notes](https://github.com/coolchan03/Monogatari/releases/tag/v0.13.0-20261013-latest-test) | [Latest development source (devel)](https://github.com/coolchan03/Monogatari/tree/devel) | [Passing APK build](https://github.com/coolchan03/Monogatari/actions/runs/38449415477)
+
+This is a **debug testing prerelease**, not a device-validated production release. It installs under the separate Android debug app ID; back up existing test-app data before attempting to replace any incompatible debug installation.
+
 ## Features
 
 - Unified search across built-in and custom sources
