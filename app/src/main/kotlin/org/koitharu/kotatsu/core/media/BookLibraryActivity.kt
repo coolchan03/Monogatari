@@ -11,11 +11,9 @@ import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
-import android.view.LayoutInflater
-import com.google.android.material.card.MaterialCardView
 import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -35,7 +33,7 @@ import javax.inject.Inject
 class BookLibraryActivity : AppCompatActivity() {
     @Inject lateinit var catalog: PublicBookCatalog
     @Inject lateinit var opds: OpdsCatalog
-    private lateinit var results: LinearLayout
+    private val resultsAdapter = CatalogResultsAdapter()
     private lateinit var query: EditText
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         lifecycleScope.launch {
@@ -45,13 +43,13 @@ class BookLibraryActivity : AppCompatActivity() {
                     try {
                         val name = queryDisplayName(uri)
                         if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml")) {
-                            return@map "$name: unsupported format"
+                            return@map getString(R.string.monogatari_catalog_import_bad_format, name)
                         }
                         val dest = File.createTempFile("book-", "-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}", dir)
                         contentResolver.openInputStream(uri)?.use { input -> dest.outputStream().use { input.copyTo(it) } }
-                            ?: error("Cannot open file")
-                        "$name: imported"
-                    } catch (e: Exception) { "${uri.lastPathSegment}: ${e.message}" }
+                            ?: error(getString(R.string.monogatari_catalog_import_read_failed))
+                        getString(R.string.monogatari_catalog_imported, name)
+                    } catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
                 }
             }
             showLines(report)
@@ -67,16 +65,16 @@ class BookLibraryActivity : AppCompatActivity() {
                         listOf(BookShelf.title(it), it.extension.lowercase(), BookShelf.progress(this@BookLibraryActivity, it))
                     })
                     contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray(Charsets.UTF_8)) }
-                        ?: error("Unable to open export destination")
-                    "Exported ${books.size} books"
-                }.getOrElse { "Export failed: ${it.message}" }
+                        ?: error(getString(R.string.monogatari_catalog_export_destination_error))
+                    getString(R.string.monogatari_catalog_exported, books.size)
+                }.getOrElse { getString(R.string.monogatari_catalog_export_failed, it.message.orEmpty()) }
             }
             showLines(listOf(result))
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 7203, 0, "Export my books (CSV)")
+        menu.add(0, 7203, 0, R.string.monogatari_catalog_menu_export)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -93,7 +91,10 @@ class BookLibraryActivity : AppCompatActivity() {
         title = getString(R.string.monogatari_catalog_title)
         setContentView(R.layout.activity_monogatari_book_catalog)
         query = findViewById(R.id.monogatari_catalog_query)
-        results = findViewById(R.id.monogatari_catalog_results)
+        findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
+            layoutManager = LinearLayoutManager(this@BookLibraryActivity)
+            adapter = resultsAdapter
+        }
         findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources)
             .setOnClickListener { searchInstalledBookSources() }
         query.setOnEditorActionListener { _, actionId, _ ->
@@ -139,7 +140,7 @@ class BookLibraryActivity : AppCompatActivity() {
     private fun saveOpds(url: String) {
         val parsed = runCatching { java.net.URI(url) }.getOrNull()
         if (parsed?.scheme !in setOf("http", "https") || parsed?.host.isNullOrBlank()) {
-            showLines(listOf("Enter a valid HTTP(S) OPDS URL."))
+            showLines(listOf(getString(R.string.monogatari_catalog_opds_invalid)))
             return
         }
         val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
@@ -151,52 +152,52 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private fun showSavedOpds() {
-        results.removeAllViews()
         val urls = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
             .getStringSet("urls", emptySet()).orEmpty().sorted()
-        if (urls.isEmpty()) showLines(listOf("No saved OPDS catalogs."))
-        urls.forEach { url ->
-            results.addView(catalogCard(url, getString(R.string.monogatari_catalog_opds_saved)) {
-                openOpds(url)
-            }.apply {
-                setOnLongClickListener {
+        if (urls.isEmpty()) {
+            showLines(listOf(getString(R.string.monogatari_catalog_opds_none)))
+            return
+        }
+        resultsAdapter.show(urls.map { url ->
+            CatalogRow(
+                url, getString(R.string.monogatari_catalog_opds_saved),
+                onOpen = { openOpds(url) },
+                onLongPress = {
                     val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
                     val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
                     saved.remove(url)
                     OpdsSourceRegistry.unregister(url)
                     prefs.edit().putStringSet("urls", saved).apply()
                     showSavedOpds()
-                    true
-                }
-            })
-        }
+                },
+            )
+        })
     }
 
     private fun openOpds(url: String) {
         if (!url.startsWith("https://") && !url.startsWith("http://")) {
-            showLines(listOf("Enter a full HTTP(S) OPDS catalog URL in the search box."))
+            showLines(listOf(getString(R.string.monogatari_catalog_opds_full_url)))
             return
         }
-        showLines(listOf("Loading OPDS catalog..."))
+        showLines(listOf(getString(R.string.monogatari_catalog_opds_loading)))
         lifecycleScope.launch {
             try {
                 val entries = opds.load(url)
-                results.removeAllViews()
-                if (entries.isEmpty()) showLines(listOf("No OPDS entries found."))
-                entries.forEach { entry ->
-                    results.addView(catalogCard(entry.title, entry.author) {
+                if (entries.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_opds_empty)))
+                else resultsAdapter.show(entries.map { entry ->
+                    CatalogRow(entry.title, entry.author, onOpen = {
                         if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
                         else openOpds(entry.href)
                     })
-                }
-            } catch (error: Exception) { showLines(listOf("OPDS error: ${error.message}")) }
+                })
+            } catch (error: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty()))) }
         }
     }
 
     private fun search(source: String) {
         val term = query.text.toString().trim()
-        if (term.isEmpty()) { showLines(listOf("Enter a search term.")); return }
-        showLines(listOf("Searching $source..."))
+        if (term.isEmpty()) { showLines(listOf(getString(R.string.monogatari_catalog_search_enter_term))); return }
+        showLines(listOf(getString(R.string.monogatari_catalog_search_progress, source)))
         lifecycleScope.launch {
             try {
                 val books = when (source) {
@@ -204,14 +205,13 @@ class BookLibraryActivity : AppCompatActivity() {
                     "Open Library" -> catalog.searchOpenLibrary(term)
                     else -> catalog.searchInternetArchive(term)
                 }
-                results.removeAllViews()
-                if (books.isEmpty()) showLines(listOf("No matches."))
-                books.forEach { book ->
-                    results.addView(catalogCard(book.title, "${book.author} · ${book.catalog}") {
+                if (books.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_search_none)))
+                else resultsAdapter.show(books.map { book ->
+                    CatalogRow(book.title, "${book.author} · ${book.catalog}", onOpen = {
                         startActivity(Intent(Intent.ACTION_VIEW, book.url.toUri()))
                     })
-                }
-            } catch (e: Exception) { showLines(listOf("Search failed: ${e.message}")) }
+                })
+            } catch (e: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_search_failed, e.message.orEmpty()))) }
         }
     }
 
@@ -222,16 +222,6 @@ class BookLibraryActivity : AppCompatActivity() {
             .putExtra(UnifiedLibraryActivity.EXTRA_FILTER, filter))
     }
 
-    private fun catalogCard(title: String, subtitle: String, onOpen: () -> Unit): MaterialCardView {
-        val card = LayoutInflater.from(this).inflate(R.layout.item_monogatari_catalog, results, false)
-            as MaterialCardView
-        card.findViewById<TextView>(R.id.monogatari_catalog_item_title).text = title
-        card.findViewById<TextView>(R.id.monogatari_catalog_item_summary).text = subtitle
-        card.contentDescription = "$title, $subtitle"
-        card.setOnClickListener { onOpen() }
-        return card
-    }
-
     private fun queryDisplayName(uri: Uri): String {
         contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) return it.getString(0) ?: "book"
@@ -240,7 +230,6 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private fun showLines(lines: List<String>) {
-        results.removeAllViews()
-        lines.forEach { line -> results.addView(TextView(this).apply { text = line; textSize = 16f; setPadding(8, 12, 8, 12) }) }
+        resultsAdapter.show(lines.map { CatalogRow(it) })
     }
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_catalog_menu_export">Export my books (CSV)</string>
+    <string name="monogatari_catalog_exported">%1$d books exported</string>
+    <string name="monogatari_catalog_export_failed">Export failed: %1$s</string>
+    <string name="monogatari_catalog_export_destination_error">Unable to open export destination</string>
+    <string name="monogatari_catalog_import_bad_format">%1$s: unsupported format</string>
+    <string name="monogatari_catalog_imported">%1$s: imported</string>
+    <string name="monogatari_catalog_import_failed">%1$s: %2$s</string>
+    <string name="monogatari_catalog_import_read_failed">Cannot open file</string>
+    <string name="monogatari_catalog_opds_invalid">Enter a valid HTTP(S) OPDS URL.</string>
+    <string name="monogatari_catalog_opds_none">No saved OPDS catalogs.</string>
+    <string name="monogatari_catalog_opds_full_url">Enter a full HTTP(S) OPDS catalog URL in the search box.</string>
+    <string name="monogatari_catalog_opds_loading">Loading OPDS catalog…</string>
+    <string name="monogatari_catalog_opds_empty">No OPDS entries found.</string>
+    <string name="monogatari_catalog_opds_error">OPDS error: %1$s</string>
+    <string name="monogatari_catalog_search_enter_term">Enter a search term.</string>
+    <string name="monogatari_catalog_search_progress">Searching %1$s…</string>
+    <string name="monogatari_catalog_search_none">No matches.</string>
+    <string name="monogatari_catalog_search_failed">Search failed: %1$s</string>
+</resources>
