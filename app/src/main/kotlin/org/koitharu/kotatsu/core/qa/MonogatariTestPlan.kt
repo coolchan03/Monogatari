@@ -7,9 +7,15 @@ enum class CheckResult(val label: String) {
     UNTESTED("Not tested"), PASS("Looks good"), FAIL("Needs fixing"),
 }
 
+/** Aesthetic/product feedback is separate from the functional pass/fail verdict. */
+enum class ExperienceRating(val label: String) {
+    UNRATED("No opinion yet"), LOVE("Love it"), GOOD("Like it"), MIXED("It's OK"),
+    NEEDS_WORK("Needs work"), NOT_FOR_ME("Not for me"),
+}
+
 enum class TestDestination {
     HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS,
-    LIBRARY, DISCOVER, IMPORT, NONE,
+    LIBRARY, UNIFIED_LIBRARY, DISCOVER, NEWS, IMPORT, NONE,
 }
 
 data class TestCase(
@@ -23,7 +29,7 @@ data class TestCase(
     val highlightOverflow: Boolean = false,
 )
 
-data class TestFinding(val result: CheckResult, val notes: String)
+data class TestFinding(val result: CheckResult, val notes: String, val feeling: ExperienceRating = ExperienceRating.UNRATED)
 
 object MonogatariTestPlan {
     val cases = listOf(
@@ -135,6 +141,33 @@ object MonogatariTestPlan {
         TestCase("discover", "Discover lists (AniList)",
             "Try each circled list, including BL 18+. Tap a cover: it should search your sources for that title. Long-press tries the Japanese title.",
             TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("discover_media_hub", "Discover all media kinds",
+            "Use the highlighted Manga, Books, Video, Audio and News chips. Are the labels clear? Do books and videos open their own sources instead of manga?",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_media)),
+        TestCase("discover_feeds", "Discovery lists and recommendations",
+            "Switch popular, BL, light novel and anime feeds. Check that cards search the correct media type and that you like the selection.",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("books_catalog_ui", "Books catalog layout",
+            "Try Gutenberg, Open Library, Archive and any other catalogs. Is the book search, import and OPDS navigation intuitive on your device?",
+            TestDestination.BOOKS, highlight = listOf(R.id.monogatari_catalog_query)),
+        TestCase("unified_library_ui", "Unified library navigation",
+            "Check All, Manga, Books, Video and Audio. Is everything accessible even when empty? Search your library and open an item.",
+            TestDestination.UNIFIED_LIBRARY, highlight = listOf(R.id.monogatari_library_tabs)),
+        TestCase("news_feed_ui", "News and followed tags",
+            "Open the news feed, add a topic and try followed-only and saved articles. Can you comfortably read and find older articles?",
+            TestDestination.NEWS, highlight = listOf(R.id.monogatari_news_filter)),
+        TestCase("year_order", "Oldest/newest publication ordering",
+            "Open a global search, choose Publication years and try Oldest first, Newest first and Best match. When years are unknown, does the estimate behave sensibly?",
+            TestDestination.MANGA_SEARCH, highlightOverflow = true),
+        TestCase("tablet_adaptive", "Tablet and split-screen layout",
+            "Resize or rotate on a large-screen device. Are the library, Discover, Books and News readable without clipping or oversized cards?",
+            TestDestination.UNIFIED_LIBRARY, highlight = listOf(R.id.monogatari_library_tabs)),
+        TestCase("visual_feedback", "Theme colors and multicolor styling",
+            "Try appearance colors and browse different media sections. Do the colors help distinguish sections without harming text contrast?",
+            TestDestination.SETTINGS),
+        TestCase("source_scan_timeout", "Source scan screen stays awake",
+            "Start a long source test while this screen is visible. The display should stay awake until the scan stops or you leave. It should return to normal afterward.",
+            TestDestination.SOURCES),
         TestCase("foreign_import", "Import from Kotatsu or Mangayomi",
             "Choose a Kotatsu or Mangayomi backup, read the summary, then Restore/Import. Check that your titles, categories and reading progress arrived.",
             TestDestination.IMPORT),
@@ -161,9 +194,14 @@ object MonogatariTestPlan {
         val passes = cases.count { findings[it.id]?.result == CheckResult.PASS }
         val failures = cases.count { findings[it.id]?.result == CheckResult.FAIL }
         appendLine("USER CHECKLIST: $passes looks good, $failures needs fixing, ${cases.size - passes - failures} not tested")
+        appendLine("FEATURE FEEDBACK: " + ExperienceRating.entries
+            .filter { it != ExperienceRating.UNRATED }
+            .joinToString(" · ") { rating ->
+                "${rating.label}=${cases.count { findings[it.id]?.feeling == rating }}"
+            })
         for (test in cases) {
             val finding = findings[test.id] ?: TestFinding(CheckResult.UNTESTED, "")
-            appendLine("[${finding.result.name}] ${test.title} (${test.id})")
+            appendLine("[${finding.result.name}] ${test.title} (${test.id}) — feeling: ${finding.feeling.label}")
             if (finding.notes.isNotBlank()) {
                 appendLine("  Notes: " + finding.notes.trim().take(900).replace("\r", "").replace("\n", " | "))
             }

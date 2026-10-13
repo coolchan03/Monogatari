@@ -12,7 +12,7 @@ import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import android.widget.EditText
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
@@ -92,11 +92,14 @@ class BookLibraryActivity : AppCompatActivity() {
         setContentView(R.layout.activity_monogatari_book_catalog)
         query = findViewById(R.id.monogatari_catalog_query)
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
-            layoutManager = LinearLayoutManager(this@BookLibraryActivity)
+            layoutManager = GridLayoutManager(this@BookLibraryActivity,
+                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
             adapter = resultsAdapter
         }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources)
-            .setOnClickListener { searchInstalledBookSources() }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources).apply {
+            MediaAccents.tintButton(this@BookLibraryActivity, "BOOK", this)
+            setOnClickListener { searchInstalledBookSources() }
+        }
         query.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchInstalledBookSources()
@@ -109,6 +112,8 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("Open Library") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_archive)
             .setOnClickListener { search("Archive") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_wikisource)
+            .setOnClickListener { search("Wikisource") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_opds_open)
             .setOnClickListener { openOpds(query.text.toString().trim()) }
         findViewById<MaterialButton>(R.id.monogatari_catalog_opds_save)
@@ -203,6 +208,7 @@ class BookLibraryActivity : AppCompatActivity() {
                 val books = when (source) {
                     "Gutenberg" -> catalog.searchGutenberg(term)
                     "Open Library" -> catalog.searchOpenLibrary(term)
+                    "Wikisource" -> catalog.searchWikisource(term)
                     else -> catalog.searchInternetArchive(term)
                 }
                 if (books.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_search_none)))

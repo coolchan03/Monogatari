@@ -9,6 +9,13 @@
         android:key="color_theme"
         android:title="@string/color_theme" />
 
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:icon="@drawable/ic_appearance"
+        android:key="monogatari_multicolor"
+        android:title="Multicolor media mode"
+        android:summary="Use coordinated colors for manga, books, videos, audio and news." />
+
     <ListPreference
         android:defaultValue="-1"
         android:entries="@array/themes"

@@ -1,6 +1,21 @@
 package org.koitharu.kotatsu.discover
 
 import android.os.Bundle
+import android.content.Intent
+import android.widget.EditText
+import android.widget.LinearLayout
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.koitharu.kotatsu.core.media.BookLibraryActivity
+import org.koitharu.kotatsu.core.media.PublicBookCatalog
+import android.net.Uri
+import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.core.media.MediaAccents
+import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
+import org.koitharu.kotatsu.core.qa.NewsFeedActivity
+import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.search.domain.SearchKind
+import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -30,14 +45,27 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class DiscoverActivity : AppCompatActivity() {
 
+	/** Discover finds what to enjoy; Explore remains the advanced source manager. */
+	private enum class MediaSection(val label: String, val description: String) {
+		MANGA("Manga & Comics", "Trending comics and Boys' Love titles from AniList"),
+		BOOK("Books & Novels", "Light novels, public-domain books and your OPDS catalogs"),
+		VIDEO("Anime & Video", "Anime recommendations plus searchable video websites"),
+		AUDIO("Audio", "Discover audiobooks and audio dramas from installed sources"),
+		NEWS("News", "Read RSS articles and follow your favorite topics"),
+	}
+
 	@Inject
 	lateinit var discover: AniListDiscover
+
+	@Inject
+	lateinit var publicCatalog: PublicBookCatalog
 
 	@Inject
 	lateinit var coil: ImageLoader
 
 	private lateinit var binding: ActivityDiscoverBinding
 	private val adapter = ItemsAdapter()
+	private var section = MediaSection.MANGA
 	private var feed = AniListDiscover.Feed.TRENDING_BL
 	private var nextPage = 1
 	private var hasNextPage = true
@@ -61,17 +89,34 @@ class DiscoverActivity : AppCompatActivity() {
 			insets
 		}
 
+		savedInstanceState?.getString(KEY_SECTION)?.let { name ->
+			MediaSection.entries.find { it.name == name }?.let { section = it }
+		}
 		savedInstanceState?.getString(KEY_FEED)?.let { name ->
 			AniListDiscover.Feed.entries.find { it.name == name }?.let { feed = it }
 		}
-		for (entry in AniListDiscover.Feed.entries) {
-			val chip = Chip(this).apply {
-				id = entry.ordinal + 1
-				setText(entry.titleRes)
+		MediaSection.entries.forEach { media ->
+			binding.chipsMedia.addView(Chip(this).apply {
+				id = media.ordinal + 100
+				text = media.label
 				isCheckable = true
-				isChecked = entry == feed
+				isChecked = media == section
+				MediaAccents.tintChip(this@DiscoverActivity, media.name, this)
+			})
+		}
+		binding.chipsMedia.setOnCheckedStateChangeListener { _, checkedIds ->
+			val chosen = checkedIds.firstOrNull()?.let { MediaSection.entries.getOrNull(it - 100) }
+			if (chosen != null && chosen != section) {
+				section = chosen
+				feed = when (section) {
+					MediaSection.MANGA -> AniListDiscover.Feed.TRENDING_BL
+					MediaSection.BOOK -> AniListDiscover.Feed.LIGHT_NOVELS
+					MediaSection.VIDEO -> AniListDiscover.Feed.TRENDING_ANIME
+					else -> feed
+				}
+				showSection()
+				reload()
 			}
-			binding.chipsFeed.addView(chip)
 		}
 		binding.chipsFeed.setOnCheckedStateChangeListener { _, checkedIds ->
 			val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
@@ -80,8 +125,11 @@ class DiscoverActivity : AppCompatActivity() {
 				reload()
 			}
 		}
+		showSection()
 
-		val layoutManager = GridLayoutManager(this, resources.getInteger(R.integer.discover_columns))
+		// Reflow covers from phone portrait to 13-inch tablets and resizable windows.
+		val columns = (resources.configuration.screenWidthDp / 176).coerceIn(2, 7)
+		val layoutManager = GridLayoutManager(this, columns)
 		binding.recyclerView.layoutManager = layoutManager
 		binding.recyclerView.adapter = adapter
 		binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -98,6 +146,7 @@ class DiscoverActivity : AppCompatActivity() {
 	override fun onSaveInstanceState(outState: Bundle) {
 		super.onSaveInstanceState(outState)
 		outState.putString(KEY_FEED, feed.name)
+		outState.putString(KEY_SECTION, section.name)
 	}
 
 	override fun onSupportNavigateUp(): Boolean {
@@ -105,13 +154,134 @@ class DiscoverActivity : AppCompatActivity() {
 		return true
 	}
 
+	private fun showSection() {
+		binding.discoverSectionDescription.text = section.description
+		binding.chipsFeed.removeAllViews()
+		val options = AniListDiscover.Feed.entries.filter { entry ->
+			when (section) {
+				MediaSection.MANGA -> entry.type == "MANGA" && entry != AniListDiscover.Feed.LIGHT_NOVELS
+				MediaSection.BOOK -> entry == AniListDiscover.Feed.LIGHT_NOVELS
+				MediaSection.VIDEO -> entry.type == "ANIME"
+				else -> false
+			}
+		}
+		if (options.isNotEmpty() && feed !in options) feed = options.first()
+		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty()
+		options.forEach { entry ->
+			binding.chipsFeed.addView(Chip(this).apply {
+				id = entry.ordinal + 1
+				setText(entry.titleRes)
+				isCheckable = true
+				isChecked = entry == feed
+				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
+			})
+		}
+		binding.discoverActions.removeAllViews()
+		fun action(title: String, run: () -> Unit) {
+			binding.discoverActions.addView(MaterialButton(this).apply {
+				text = title
+				isAllCaps = false
+				MediaAccents.tintButton(this@DiscoverActivity, section.name, this)
+				setOnClickListener { run() }
+			}, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+				marginEnd = (8 * resources.displayMetrics.density).toInt()
+			})
+		}
+		when (section) {
+			MediaSection.MANGA -> {
+				action("Search manga") { askSearch(MediaType.MANGA) }
+				action("My library") { startActivity(Intent(this, UnifiedLibraryActivity::class.java)) }
+			}
+			MediaSection.BOOK -> {
+				action("Books catalog & OPDS") { startActivity(Intent(this, BookLibraryActivity::class.java)) }
+				action("Search novel sources") { askSearch(MediaType.BOOK) }
+			}
+			MediaSection.VIDEO -> {
+				action("Search video websites") { askSearch(MediaType.VIDEO) }
+				action("Archive public videos") { searchArchiveVideos() }
+				action("My saved videos") { openLibrary(MediaType.VIDEO) }
+			}
+			MediaSection.AUDIO -> {
+				action("Find audiobooks & dramas") { askSearch(MediaType.AUDIO) }
+				action("My audiobooks") { openLibrary(MediaType.AUDIO) }
+			}
+			MediaSection.NEWS -> {
+				action("News & followed tags") { startActivity(Intent(this, NewsFeedActivity::class.java)) }
+			}
+		}
+	}
+
+	private fun openLibrary(type: MediaType) {
+		startActivity(Intent(this, UnifiedLibraryActivity::class.java)
+			.putExtra(UnifiedLibraryActivity.EXTRA_MEDIA_KIND, type.name))
+	}
+
+	private fun askSearch(type: MediaType) {
+		val input = EditText(this).apply {
+			hint = "Title, author or topic"
+			setSingleLine(true)
+		}
+		MaterialAlertDialogBuilder(this)
+			.setTitle("Search ${type.name.lowercase().replaceFirstChar { it.uppercaseChar() }} sources")
+			.setView(input)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton("Search") { _, _ ->
+				val term = input.text?.toString()?.trim().orEmpty()
+				if (term.isNotBlank()) openTypedSearch(term, type)
+			}
+			.show()
+	}
+
+	private fun searchArchiveVideos() {
+		val input = EditText(this).apply { hint = "Search public video archives"; setSingleLine(true) }
+		MaterialAlertDialogBuilder(this)
+			.setTitle("Internet Archive videos")
+			.setView(input)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton("Search") { _, _ ->
+				val term = input.text?.toString()?.trim().orEmpty()
+				if (term.isBlank()) return@setPositiveButton
+				lifecycleScope.launch {
+					val videos = runCatching { publicCatalog.searchInternetArchiveVideos(term) }
+					videos.onSuccess { results ->
+						if (results.isEmpty()) {
+							showMessage("No public Archive videos matched that search.")
+						} else {
+							MaterialAlertDialogBuilder(this@DiscoverActivity)
+								.setTitle("Internet Archive · ${results.size} results")
+								.setItems(results.map { it.title }.toTypedArray()) { _, position ->
+									startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(results[position].url)))
+								}
+								.setNegativeButton(android.R.string.cancel, null).show()
+						}
+					}.onFailure { showMessage("Archive video search unavailable: ${it.message.orEmpty().take(100)}") }
+				}
+			}.show()
+	}
+
+	private fun openTypedSearch(title: String, type: MediaType) {
+		startActivity(Intent(this, SearchActivity::class.java)
+			.putExtra(AppRouter.KEY_QUERY, title)
+			.putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
+			.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, type.name))
+	}
+
 	private fun reload() {
 		loadJob?.cancel()
 		loadJob = null
 		adapter.items = emptyList()
 		nextPage = 1
-		hasNextPage = true
-		loadMore()
+		hasNextPage = section in setOf(MediaSection.MANGA, MediaSection.BOOK, MediaSection.VIDEO)
+		if (hasNextPage) {
+			loadMore()
+		} else {
+			binding.progress.isVisible = false
+			showMessage(when (section) {
+				MediaSection.AUDIO -> "Search your installed audiobook and audio-drama sources above."
+				MediaSection.NEWS -> "Open RSS and followed tags above to read stories from your favorite feeds."
+				else -> ""
+			})
+		}
 	}
 
 	private fun loadMore() {
@@ -179,13 +349,15 @@ class DiscoverActivity : AppCompatActivity() {
 						.build(),
 				)
 			}
-			holder.binding.root.setOnClickListener {
-				// Search every enabled source for this title; the English title is tried first.
-				router.openSearch(item.title)
+			val type = when (section) {
+				MediaSection.BOOK -> MediaType.BOOK
+				MediaSection.VIDEO -> MediaType.VIDEO
+				else -> MediaType.MANGA
 			}
+			holder.binding.root.setOnClickListener { openTypedSearch(item.title, type) }
 			holder.binding.root.setOnLongClickListener {
 				val alternative = item.alternativeTitle ?: return@setOnLongClickListener false
-				router.openSearch(alternative)
+				openTypedSearch(alternative, type)
 				true
 			}
 		}
@@ -194,5 +366,6 @@ class DiscoverActivity : AppCompatActivity() {
 	private companion object {
 
 		const val KEY_FEED = "feed"
+		const val KEY_SECTION = "media_section"
 	}
 }

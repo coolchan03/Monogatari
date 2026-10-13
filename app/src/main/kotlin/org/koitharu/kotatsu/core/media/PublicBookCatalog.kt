@@ -55,6 +55,33 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         }
     }
 
+    /** Official public Wikisource search API, not a scraper or a DRM workaround. */
+    suspend fun searchWikisource(query: String): List<Book> = withContext(Dispatchers.IO) {
+        val json = fetch("https://en.wikisource.org/w/api.php?action=query&list=search&srnamespace=0&srlimit=30&format=json&srsearch=${encode(query)}")
+        val items = json.optJSONObject("query")?.optJSONArray("search") ?: return@withContext emptyList()
+        (0 until items.length()).mapNotNull { i ->
+            val entry = items.optJSONObject(i) ?: return@mapNotNull null
+            val title = entry.optString("title").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            Book(title, "Wikisource community", "Wikisource",
+                "https://en.wikisource.org/wiki/${encode(title.replace(' ', '_')).replace("+", "%20")}")
+        }
+    }
+
+    /** Internet Archive's public video metadata index; open the official playback page. */
+    suspend fun searchInternetArchiveVideos(query: String): List<Book> = withContext(Dispatchers.IO) {
+        val safe = query.replace(Regex("[^\\p{L}\\p{N} ]"), " ").trim()
+        if (safe.isBlank()) return@withContext emptyList()
+        val expression = "($safe) AND mediatype:movies"
+        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&rows=25&output=json")
+        val items = json.optJSONObject("response")?.optJSONArray("docs") ?: return@withContext emptyList()
+        (0 until items.length()).mapNotNull { i ->
+            val entry = items.optJSONObject(i) ?: return@mapNotNull null
+            val id = entry.optString("identifier").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            Book(entry.optString("title").ifBlank { id }, entry.optString("creator"),
+                "Internet Archive Video", "https://archive.org/details/${encode(id)}")
+        }
+    }
+
     private fun fetch(url: String): JSONObject {
         val request = Request.Builder().url(url).header("User-Agent", "Monogatari/1.0 (book catalog)").build()
         return client.newCall(request).execute().use { response ->

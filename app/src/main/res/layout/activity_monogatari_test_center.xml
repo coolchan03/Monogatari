@@ -132,6 +132,28 @@
                             android:text="@string/monogatari_qa_untested"
                             android:textAllCaps="false" />
                     </com.google.android.material.button.MaterialButtonToggleGroup>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="How do you feel about this feature?"
+                        android:textAppearance="?attr/textAppearanceTitleSmall" />
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="none">
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/qa_feelings"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:singleSelection="true">
+                            <com.google.android.material.chip.Chip android:id="@+id/qa_feel_love" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Love it" />
+                            <com.google.android.material.chip.Chip android:id="@+id/qa_feel_good" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Like it" />
+                            <com.google.android.material.chip.Chip android:id="@+id/qa_feel_mixed" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="It's OK" />
+                            <com.google.android.material.chip.Chip android:id="@+id/qa_feel_needs_work" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Needs work" />
+                            <com.google.android.material.chip.Chip android:id="@+id/qa_feel_not_for_me" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Not for me" />
+                        </com.google.android.material.chip.ChipGroup>
+                    </HorizontalScrollView>
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

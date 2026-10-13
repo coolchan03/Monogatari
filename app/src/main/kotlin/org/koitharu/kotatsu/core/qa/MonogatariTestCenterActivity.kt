@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
@@ -22,6 +23,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.discover.DiscoverActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
+import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.databinding.ActivityMonogatariTestCenterBinding
@@ -75,6 +77,20 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
                     else -> CheckResult.UNTESTED
                 }
                 prefs.edit().putString("result_${currentCase().id}", result.name).apply()
+                updateProgress()
+            }
+        }
+        ui.qaFeelings.setOnCheckedStateChangeListener { _, ids ->
+            if (!rendering) {
+                val feeling = when (ids.firstOrNull()) {
+                    R.id.qa_feel_love -> ExperienceRating.LOVE
+                    R.id.qa_feel_good -> ExperienceRating.GOOD
+                    R.id.qa_feel_mixed -> ExperienceRating.MIXED
+                    R.id.qa_feel_needs_work -> ExperienceRating.NEEDS_WORK
+                    R.id.qa_feel_not_for_me -> ExperienceRating.NOT_FOR_ME
+                    else -> ExperienceRating.UNRATED
+                }
+                prefs.edit().putString("feeling_${currentCase().id}", feeling.name).apply()
                 updateProgress()
             }
         }
@@ -136,6 +152,9 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             CheckResult.valueOf(prefs.getString("result_${test.id}", CheckResult.UNTESTED.name)!!)
         }.getOrDefault(CheckResult.UNTESTED),
         prefs.getString("note_${test.id}", "").orEmpty(),
+        runCatching {
+            ExperienceRating.valueOf(prefs.getString("feeling_${test.id}", ExperienceRating.UNRATED.name)!!)
+        }.getOrDefault(ExperienceRating.UNRATED),
     )
 
     private fun selectStep(next: Int) {
@@ -147,6 +166,14 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         ui.qaStepTitle.text = "${index + 1}. ${test.title}"
         ui.qaStepInstructions.text = test.instructions
         ui.qaNotes.setText(saved.notes)
+        ui.qaFeelings.check(when (saved.feeling) {
+            ExperienceRating.LOVE -> R.id.qa_feel_love
+            ExperienceRating.GOOD -> R.id.qa_feel_good
+            ExperienceRating.MIXED -> R.id.qa_feel_mixed
+            ExperienceRating.NEEDS_WORK -> R.id.qa_feel_needs_work
+            ExperienceRating.NOT_FOR_ME -> R.id.qa_feel_not_for_me
+            ExperienceRating.UNRATED -> { ui.qaFeelings.clearCheck(); View.NO_ID }
+        })
         ui.qaVerdicts.check(
             when (saved.result) {
                 CheckResult.PASS -> R.id.qa_pass
@@ -241,6 +268,8 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             TestDestination.NONE -> { runPreflight(); return }
             TestDestination.HOME -> Intent(this, MainActivity::class.java)
             TestDestination.BOOKS -> Intent(this, BookLibraryActivity::class.java)
+            TestDestination.UNIFIED_LIBRARY -> Intent(this, UnifiedLibraryActivity::class.java)
+            TestDestination.NEWS -> Intent(this, NewsFeedActivity::class.java)
             TestDestination.SOURCES -> Intent(this, SettingsActivity::class.java)
                 .setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS")
             TestDestination.SETTINGS -> Intent(this, SettingsActivity::class.java)

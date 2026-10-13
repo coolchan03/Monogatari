@@ -8,7 +8,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
+import org.koitharu.kotatsu.core.media.MediaAccents
+import android.content.res.ColorStateList
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import org.koitharu.kotatsu.R
@@ -31,7 +33,8 @@ class MoreActivity : AppCompatActivity() {
         }
         root.addView(info, LinearLayout.LayoutParams(-1, -2))
         root.addView(RecyclerView(this).apply {
-            layoutManager = LinearLayoutManager(this@MoreActivity)
+            layoutManager = GridLayoutManager(this@MoreActivity,
+                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
             adapter = DestinationsAdapter()
             clipToPadding = false
         }, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -59,8 +62,19 @@ class MoreActivity : AppCompatActivity() {
                 }
                 startActivity(destination)
             }
-            holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon)
-                .setImageResource(page.icon)
+            holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).apply {
+                setImageResource(page.icon)
+                if (MediaAccents.enabled(this@MoreActivity)) {
+                    val kind = when {
+                        page.title.contains("Book", ignoreCase = true) -> "BOOK"
+                        page.title.contains("Video", ignoreCase = true) || page.title == "Discover" -> "VIDEO"
+                        page.title.contains("News", ignoreCase = true) -> "NEWS"
+                        page.title.contains("Audio", ignoreCase = true) -> "AUDIO"
+                        else -> "MANGA"
+                    }
+                    imageTintList = ColorStateList.valueOf(MediaAccents.color(kind))
+                }
+            }
         }
     }
 }

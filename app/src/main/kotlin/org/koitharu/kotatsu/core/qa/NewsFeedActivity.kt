@@ -7,6 +7,11 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.HorizontalScrollView
+import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.card.MaterialCardView
+import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.MediaAccents
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -19,15 +24,19 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /** User-initiated, HTTPS-only RSS/Atom feeds with locally saved followed-tag filters. */
 class NewsFeedActivity : AppCompatActivity() {
     private lateinit var feedInput: EditText
     private lateinit var tagInput: EditText
+    private lateinit var searchInput: EditText
     private lateinit var message: TextView
     private lateinit var entries: LinearLayout
     private var items = emptyList<NewsFeedParser.Entry>()
     private var onlyFollowing = false
+    private var savedOnly = false
     private var feedJob: Job? = null
     private val prefs by lazy { getSharedPreferences("monogatari_news", MODE_PRIVATE) }
 
@@ -36,14 +45,24 @@ class NewsFeedActivity : AppCompatActivity() {
         title = "News & followed tags"
         val density = resources.displayMetrics.density
         val padding = (16 * density).toInt()
+        val outer = (((resources.configuration.screenWidthDp - 920).coerceAtLeast(0) / 2) * density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding, padding, padding)
+            setPadding(padding + outer, padding, padding + outer, padding)
         }
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        root.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(actions)
+        }, LinearLayout.LayoutParams(-1, -2))
         fun action(text: String, onClick: () -> Unit) = MaterialButton(this).apply {
             this.text = text
+            isAllCaps = false
+            MediaAccents.tintButton(this@NewsFeedActivity, "NEWS", this)
             setOnClickListener { onClick() }
-            root.addView(this, LinearLayout.LayoutParams(-1, -2))
+            actions.addView(this, LinearLayout.LayoutParams(-2, -2).apply {
+                marginEnd = (8 * density).toInt()
+            })
         }
         feedInput = EditText(this).apply {
             hint = "HTTPS RSS/Atom feed URL"
@@ -54,6 +73,7 @@ class NewsFeedActivity : AppCompatActivity() {
         action("Save feed and refresh") { saveAndLoad() }
         action("Saved feeds / remove feed") { showSavedFeeds() }
         tagInput = EditText(this).apply {
+            id = R.id.monogatari_news_filter
             hint = "Tags to follow, separated by commas"
             setSingleLine(true)
             setText(followedTags().sorted().joinToString(", "))
@@ -70,7 +90,17 @@ class NewsFeedActivity : AppCompatActivity() {
             onlyFollowing = !onlyFollowing
             render()
         }
-        message = TextView(this).apply { text = "Choose a feed and refresh" }
+        action("Saved stories / All") {
+            savedOnly = !savedOnly
+            render()
+        }
+        searchInput = EditText(this).apply {
+            hint = "Filter articles by title or topic"
+            setSingleLine(true)
+            doAfterTextChanged { if (::entries.isInitialized) render() }
+        }
+        root.addView(searchInput, LinearLayout.LayoutParams(-1, -2))
+        message = TextView(this).apply { text = "Choose a feed and refresh · long-press a story to save it" }
         root.addView(message, LinearLayout.LayoutParams(-1, -2))
         val listScroll = ScrollView(this)
         entries = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -80,6 +110,17 @@ class NewsFeedActivity : AppCompatActivity() {
     }
 
     private fun followedTags(): Set<String> = prefs.getStringSet("tags", emptySet()).orEmpty().toSet()
+
+    /** Unknown dates remain last, preserving the original feed order among ties. */
+    private fun dateKey(value: String): Long {
+        for (pattern in listOf("EEE, dd MMM yyyy HH:mm:ss Z", "yyyy-MM-dd'T'HH:mm:ssXXX", "yyyy-MM-dd")) {
+            val parsed = runCatching {
+                SimpleDateFormat(pattern, Locale.ENGLISH).apply { isLenient = false }.parse(value)?.time
+            }.getOrNull()
+            if (parsed != null) return parsed
+        }
+        return Long.MIN_VALUE
+    }
 
     private fun saveAndLoad() {
         val url = feedInput.text.toString().trim()
@@ -160,26 +201,48 @@ class NewsFeedActivity : AppCompatActivity() {
     private fun render() {
         entries.removeAllViews()
         val tags = followedTags()
-        val visible = if (onlyFollowing) items.filter { FollowedTagPolicy.matches(it.tags, tags) }
-            else items
-        message.text = "${visible.size} articles shown · ${tags.size} followed tags" +
+        val saved = prefs.getStringSet("saved_stories", emptySet()).orEmpty()
+        val query = searchInput.text?.toString()?.trim().orEmpty()
+        val visible = items.asSequence()
+            .filter { !onlyFollowing || FollowedTagPolicy.matches(it.tags, tags) }
+            .filter { !savedOnly || it.link in saved }
+            .filter { query.isBlank() || it.title.contains(query, ignoreCase = true) ||
+                it.tags.any { tag -> tag.contains(query, ignoreCase = true) } }
+            .sortedWith(compareByDescending { entry: NewsFeedParser.Entry -> dateKey(entry.date) })
+            .toList()
+        message.text = "${visible.size} articles · ${tags.size} followed topics · ${saved.size} saved" +
             if (onlyFollowing) " · followed only" else ""
         val pad = (12 * resources.displayMetrics.density).toInt()
         visible.forEach { entry ->
+            val savedNow = entry.link in saved
+            val card = MaterialCardView(this).apply {
+                radius = 16 * resources.displayMetrics.density
+                cardElevation = 0f
+                setContentPadding(pad, pad, pad, pad)
+            }
             val label = TextView(this).apply {
-                text = entry.title + (if (entry.date.isNotBlank()) "\n${entry.date}" else "") +
-                    (if (entry.tags.isEmpty()) "" else "\n${entry.tags.joinToString(", ")}")
+                text = (if (savedNow) "★  " else "") + entry.title +
+                    (if (entry.date.isNotBlank()) "\n${entry.date}" else "") +
+                    (if (entry.tags.isEmpty()) "" else "\n${entry.tags.joinToString(" · ")}")
                 textSize = 16f
-                setPadding(pad, pad, pad, pad)
                 setOnClickListener {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(entry.link))
-                    runCatching { startActivity(intent) }.onFailure { message.text = "No browser available" }
+                    if (entry.link.startsWith("https://") || entry.link.startsWith("http://")) {
+                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.link))) }
+                            .onFailure { message.text = "No browser available" }
+                    }
+                }
+                setOnLongClickListener {
+                    val links = prefs.getStringSet("saved_stories", emptySet()).orEmpty().toMutableSet()
+                    if (!links.add(entry.link)) links.remove(entry.link)
+                    prefs.edit().putStringSet("saved_stories", links).apply()
+                    render()
+                    true
                 }
             }
-            entries.addView(label, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2))
-            entries.addView(android.view.View(this).apply {
-                setBackgroundColor(0x33666666)
-            }, LinearLayout.LayoutParams(-1, (resources.displayMetrics.density).toInt().coerceAtLeast(1)))
+            card.addView(label)
+            entries.addView(card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, -2).apply {
+                bottomMargin = pad / 2
+            })
         }
     }
 }

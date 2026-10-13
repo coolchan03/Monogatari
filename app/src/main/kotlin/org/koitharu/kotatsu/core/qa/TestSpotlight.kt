@@ -28,6 +28,7 @@ import androidx.appcompat.widget.ActionMenuView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
@@ -86,9 +87,10 @@ object TestSpotlight {
 		decor.findViewWithTag<View>(TAG)?.let(decor::removeView)
 	}
 
-	private fun record(activity: Activity, case: TestCase, result: CheckResult, note: String?) {
+	private fun record(activity: Activity, case: TestCase, result: CheckResult, note: String?, feeling: ExperienceRating) {
 		val prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
 			.putString("result_${case.id}", result.name)
+			.putString("feeling_${case.id}", feeling.name)
 		if (!note.isNullOrBlank()) prefs.putString("note_${case.id}", note.trim())
 		prefs.apply()
 		detach(activity)
@@ -104,6 +106,8 @@ object TestSpotlight {
 			style = Paint.Style.STROKE
 			color = RING_COLOR
 		}
+		// Drawn outside the highlighted control only; touches still reach the app.
+		private val shadePaint = Paint().apply { color = Color.argb(155, 0, 0, 0) }
 		private val target = RectF()
 		private var hasTarget = false
 		private var lastLookup = 0L
@@ -151,6 +155,16 @@ object TestSpotlight {
 		override fun onDraw(canvas: Canvas) {
 			super.onDraw(canvas)
 			if (!hasTarget) return
+			// Dim the surrounding UI in four rectangles; no opaque View intercepts gestures.
+			val gap = 7f * density
+			val x1 = (target.left - gap).coerceAtLeast(0f)
+			val x2 = (target.right + gap).coerceAtMost(width.toFloat())
+			val y1 = (target.top - gap).coerceAtLeast(0f)
+			val y2 = (target.bottom + gap).coerceAtMost(height.toFloat())
+			canvas.drawRect(0f, 0f, width.toFloat(), y1, shadePaint)
+			canvas.drawRect(0f, y2, width.toFloat(), height.toFloat(), shadePaint)
+			canvas.drawRect(0f, y1, x1, y2, shadePaint)
+			canvas.drawRect(x2, y1, width.toFloat(), y2, shadePaint)
 			// Two rings: a solid one hugging the control and a fading one pulsing outwards.
 			val base = 6f * density
 			drawRing(canvas, base, 4f * density, 255)
@@ -189,7 +203,17 @@ object TestSpotlight {
 			for (id in case.highlight) {
 				root.findViewById<View>(id)?.takeIf { it.isShown && it.width > 0 }?.let { return it }
 			}
-			return if (case.highlightOverflow) findOverflow(root) else null
+			return (if (case.highlightOverflow) findOverflow(root) else null) ?: findPrimaryContent(root)
+		}
+
+		/** A sensible fallback for older test steps without a specific view ID. */
+		private fun findPrimaryContent(view: View): View? {
+			if (view === this || !view.isShown) return null
+			if (view is RecyclerView && view.width > 100 && view.height > 100) return view
+			if (view is ViewGroup) {
+				for (child in view.children) findPrimaryContent(child)?.let { return it }
+			}
+			return null
 		}
 
 		private fun findOverflow(view: View): View? {
@@ -242,21 +266,29 @@ object TestSpotlight {
 					maxLines = 5
 					setPadding(0, pad / 3, 0, pad / 3)
 				})
+				addView(TextView(context).apply {
+					text = "Try the highlighted area, then tell us how you feel:"
+					setTextColor(Color.WHITE)
+					textSize = 12f
+				})
 				addView(LinearLayout(context).apply {
 					orientation = LinearLayout.HORIZONTAL
-					addView(button("👍 Looks good") { record(activity, case, CheckResult.PASS, null) }, weighted())
-					addView(button("👎 Needs fixing") { askWhatIsWrong() }, weighted())
-					addView(button("✕") {
-						detach(activity)
-						disarm(activity.application)
-					})
+					addView(button("Love it") { record(activity, case, CheckResult.PASS, null, ExperienceRating.LOVE) }, weighted())
+					addView(button("Like it") { record(activity, case, CheckResult.PASS, null, ExperienceRating.GOOD) }, weighted())
+					addView(button("It's OK") { record(activity, case, CheckResult.PASS, null, ExperienceRating.MIXED) }, weighted())
+				})
+				addView(LinearLayout(context).apply {
+					orientation = LinearLayout.HORIZONTAL
+					addView(button("Needs work") { askWhatIsWrong() }, weighted())
+					addView(button("Not for me") { record(activity, case, CheckResult.UNTESTED, null, ExperienceRating.NOT_FOR_ME) }, weighted())
+					addView(button("Skip") { detach(activity); disarm(activity.application) }, weighted())
 				})
 			}
 		}
 
 		private fun askWhatIsWrong() {
 			if (activity !is AppCompatActivity) {
-				record(activity, case, CheckResult.FAIL, null)
+				record(activity, case, CheckResult.FAIL, null, ExperienceRating.NEEDS_WORK)
 				return
 			}
 			val input = EditText(activity).apply { hint = "What's wrong? (optional)" }
@@ -270,7 +302,7 @@ object TestSpotlight {
 				.setView(container)
 				.setNegativeButton(android.R.string.cancel, null)
 				.setPositiveButton(android.R.string.ok) { _, _ ->
-					record(activity, case, CheckResult.FAIL, input.text?.toString())
+					record(activity, case, CheckResult.FAIL, input.text?.toString(), ExperienceRating.NEEDS_WORK)
 				}
 				.show()
 		}
@@ -286,7 +318,7 @@ object TestSpotlight {
 
 		private companion object {
 			const val LOOKUP_INTERVAL_MS = 250L
-			val RING_COLOR = Color.rgb(255, 64, 129)
+			val RING_COLOR = Color.rgb(48, 203, 180)
 			val CARD_COLOR = Color.argb(235, 33, 33, 40)
 		}
 	}

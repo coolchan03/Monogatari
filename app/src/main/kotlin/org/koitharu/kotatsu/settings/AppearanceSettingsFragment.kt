@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.os.AppShortcutManager
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.media.MediaAccents
 import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.prefs.ProgressIndicatorMode
 import org.koitharu.kotatsu.core.prefs.ScreenshotsPolicy
@@ -113,6 +114,7 @@ class AppearanceSettingsFragment :
 
             AppSettings.KEY_COLOR_THEME,
             AppSettings.KEY_THEME_AMOLED,
+            MediaAccents.KEY,
                 -> {
                 postRestart()
             }

@@ -6,6 +6,51 @@
 	android:layout_height="match_parent"
 	android:orientation="vertical">
 
+	<TextView
+		android:id="@+id/discover_intro"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingHorizontal="16dp"
+		android:paddingTop="16dp"
+		android:paddingBottom="4dp"
+		android:text="Discover manga, novels, anime, video, audio and news"
+		android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+	<HorizontalScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:scrollbars="none">
+		<com.google.android.material.chip.ChipGroup
+			android:id="@+id/chips_media"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="16dp"
+			android:paddingVertical="6dp"
+			app:singleLine="true"
+			app:selectionRequired="true"
+			app:singleSelection="true" />
+	</HorizontalScrollView>
+
+	<TextView
+		android:id="@+id/discover_section_description"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingHorizontal="16dp"
+		android:paddingVertical="4dp"
+		android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+	<HorizontalScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:scrollbars="none">
+		<LinearLayout
+			android:id="@+id/discover_actions"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:paddingHorizontal="12dp" />
+	</HorizontalScrollView>
+
 	<HorizontalScrollView
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"

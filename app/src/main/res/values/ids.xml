@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+	<item name="monogatari_library_tabs" type="id" />
+	<item name="monogatari_news_filter" type="id" />
+	<item name="nav_discover" type="id" />
 	<item name="nav_books" type="id" />
 	<item name="nav_more" type="id" />
 	<item name="toolbar" type="id" />

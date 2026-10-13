@@ -40,6 +40,7 @@ import org.koitharu.kotatsu.core.util.ext.buildBundle
 import org.koitharu.kotatsu.core.util.ext.setContentDescriptionAndTooltip
 import org.koitharu.kotatsu.core.util.ext.smoothScrollToTop
 import org.koitharu.kotatsu.databinding.NavigationRailFabBinding
+import org.koitharu.kotatsu.discover.DiscoverActivity
 import org.koitharu.kotatsu.explore.ui.ExploreFragment
 import org.koitharu.kotatsu.favourites.ui.container.FavouritesContainerFragment
 import org.koitharu.kotatsu.history.ui.HistoryListFragment
@@ -189,6 +190,10 @@ class MainNavigationDelegate(
 	}
 
 	private fun onNavigationItemSelected(@IdRes itemId: Int): Boolean {
+		if (itemId == R.id.nav_discover) {
+			navBar.context.startActivity(Intent(navBar.context, DiscoverActivity::class.java))
+			return false // Full-screen destination; preserve the current content tab.
+		}
 		if (itemId == R.id.nav_more) {
 			navBar.context.startActivity(Intent(navBar.context, MoreActivity::class.java))
 			return false // More is an activity; keep the current content tab checked.
