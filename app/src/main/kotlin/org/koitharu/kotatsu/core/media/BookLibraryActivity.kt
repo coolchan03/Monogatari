@@ -3,6 +3,9 @@ package org.koitharu.kotatsu.core.media
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import org.koitharu.kotatsu.core.qa.CsvExportFormatter
 import android.view.inputmethod.EditorInfo
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.nav.AppRouter
@@ -53,6 +56,36 @@ class BookLibraryActivity : AppCompatActivity() {
             }
             showLines(report)
         }
+    }
+
+    private val exportPicker = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val books = BookShelf.list(this@BookLibraryActivity)
+                    val csv = CsvExportFormatter.encode(listOf("Title", "Format", "Progress"), books.map {
+                        listOf(BookShelf.title(it), it.extension.lowercase(), BookShelf.progress(this@BookLibraryActivity, it))
+                    })
+                    contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray(Charsets.UTF_8)) }
+                        ?: error("Unable to open export destination")
+                    "Exported ${books.size} books"
+                }.getOrElse { "Export failed: ${it.message}" }
+            }
+            showLines(listOf(result))
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, 7203, 0, "Export my books (CSV)")
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == 7203) {
+            exportPicker.launch("monogatari-books.csv")
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -21,6 +21,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
     private var paragraphIndex = 0
     private var ttsReady = false
     private var speechGeneration = 0
+    private var sleepEndAt = Long.MAX_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,10 +59,20 @@ class LocalTextReaderActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(0, 6701, 0, "Read aloud / Stop").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(0, 6702, 1, "Sleep timer: 15 min")
+        menu.add(0, 6703, 2, "Cancel sleep timer")
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == 6702) {
+            sleepEndAt = android.os.SystemClock.elapsedRealtime() + 15L * 60_000L
+            return true
+        }
+        if (item.itemId == 6703) {
+            sleepEndAt = Long.MAX_VALUE
+            return true
+        }
         if (item.itemId != 6701) return super.onOptionsItemSelected(item)
         val engine = tts ?: return true
         if (engine.isSpeaking) { speechGeneration++; engine.stop(); return true }
@@ -75,7 +86,8 @@ class LocalTextReaderActivity : AppCompatActivity() {
                 runOnUiThread {
                     if (generation != speechGeneration || isFinishing || isDestroyed) return@runOnUiThread
                     paragraphIndex++
-                    if (paragraphIndex < spokenParagraphs.size) speakNext()
+                    if (paragraphIndex < spokenParagraphs.size &&
+                        android.os.SystemClock.elapsedRealtime() < sleepEndAt) speakNext()
                 }
             }
         })
@@ -84,6 +96,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
     }
 
     private fun speakNext() {
+        if (android.os.SystemClock.elapsedRealtime() >= sleepEndAt) return
         tts?.speak(spokenParagraphs[paragraphIndex], TextToSpeech.QUEUE_FLUSH, null, "text-$paragraphIndex")
     }
 
