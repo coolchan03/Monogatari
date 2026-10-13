@@ -60,7 +60,13 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         }
         button("Configure secure WebDAV account") { configure() }
         button("Upload selected backup ZIP") {
-            if (account() != null) uploadPicker.launch(arrayOf("application/zip", "application/octet-stream"))
+            if (account() != null) AlertDialog.Builder(this)
+                .setTitle("Replace this device's remote backup?")
+                .setMessage("Uploading replaces the existing ZIP for this device. Existing remote files from other devices are not changed. Keep another local backup before continuing.")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton("Choose backup ZIP") { _, _ ->
+                    uploadPicker.launch(arrayOf("application/zip", "application/octet-stream"))
+                }.show()
         }
         button("List and download backup ZIP") { listRemote() }
         button("Remove account from this device") {
