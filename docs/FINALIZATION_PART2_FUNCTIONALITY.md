@@ -28,3 +28,9 @@ Date: 2026-10-13. This is the first integrated UI batch, not full acceptance of 
 - Added secure bounded `NewsFeedParser` for RSS 2.0 and Atom with entity/DTD refusal, HTTPS-only article links, 100-item limit and JVM regression tests.
 - Both new activities are non-exported Android manifest entries and visible in the main More destinations menu.
 - No claim that encrypted WebDAV, automated tag notifications, private categories, foreign parsers or on-device translation is operational. This improves Part 2, not full acceptance.
+
+## Part 2 manual WebDAV implementation
+- `WebDavAccountStore` now implements AES-256-GCM Android Keystore credential encryption/decryption and explicit removal; passwords are never stored as plaintext preferences.
+- `monogatari_webdav_secret.xml` excluded from both cloud backup and Android device transfer rules (legacy backup-content rules too).
+- `WebDavManualSyncActivity` exposes secure account setup, explicit manual upload of a selected ZIP with bounded 128MB copy and basic ZIP validation, remote device-snapshot listing, selected download via SAF, and account removal. All downloads are user-directed, never automatically restored. Uses the existing HTTPS-only, redirect-disabled transport.
+- This is **manual file transfer only**. Automatic background sync, per-record conflict reconciliation, credential recovery after Android backup, hostile WebDAV server tests and multi-device acceptance remain outstanding. Do not market it as complete two-way synchronization.

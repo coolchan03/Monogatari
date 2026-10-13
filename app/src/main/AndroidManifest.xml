@@ -101,6 +101,7 @@
 		</service>
 		<activity android:name="org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.qa.NewsFeedActivity" android:exported="false" />
+		<activity android:name="org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity" android:exported="false" />
 		<activity
 			android:name="org.koitharu.kotatsu.main.ui.MainActivity"
 			android:exported="true">
