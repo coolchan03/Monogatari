@@ -34,6 +34,7 @@ class StatsCollector @Inject constructor(
 		val entry = stats[mangaId]
 		if (entry == null) {
 			stats[mangaId] = Entry(
+				lastEventAt = now,
 				state = state,
 				stats = StatsEntity(
 					mangaId = mangaId,
@@ -46,10 +47,11 @@ class StatsCollector @Inject constructor(
 		}
 		val pagesDelta = if (entry.state.page != state.page || entry.state.chapterId != state.chapterId) 1 else 0
 		val newEntry = entry.copy(
+			lastEventAt = now,
 			stats = StatsEntity(
 				mangaId = mangaId,
 				startedAt = entry.stats.startedAt,
-				duration = now - entry.stats.startedAt,
+				duration = entry.stats.duration + ReadingActivityTime.activeInterval(entry.lastEventAt, now),
 				pages = entry.stats.pages + pagesDelta,
 			),
 		)
@@ -73,6 +75,7 @@ class StatsCollector @Inject constructor(
 	}
 
 	private data class Entry(
+		val lastEventAt: Long,
 		val state: ReaderState,
 		val stats: StatsEntity,
 	)
