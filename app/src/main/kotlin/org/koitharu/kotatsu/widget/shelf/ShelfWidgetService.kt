@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.widget.shelf
 
+import org.koitharu.kotatsu.favourites.domain.PrivateCategories
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.widget.RemoteViewsService
@@ -22,11 +23,14 @@ class ShelfWidgetService : RemoteViewsService() {
 	@Inject
 	lateinit var coilLazy: Lazy<ImageLoader>
 
+	@Inject
+	lateinit var privateCategories: PrivateCategories
+
 	override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
 		val widgetId = intent.getIntExtra(
 			AppWidgetManager.EXTRA_APPWIDGET_ID,
 			AppWidgetManager.INVALID_APPWIDGET_ID,
 		)
-		return ShelfListFactory(applicationContext, favouritesRepository, coilLazy, settings, widgetId)
+		return ShelfListFactory(applicationContext, favouritesRepository, coilLazy, settings, privateCategories, widgetId)
 	}
 }

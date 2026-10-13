@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.widget.shelf
 
+import org.koitharu.kotatsu.favourites.domain.PrivateCategories
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
@@ -30,6 +31,7 @@ class ShelfListFactory(
 	private val favouritesRepository: FavouritesRepository,
 	private val coilLazy: Lazy<ImageLoader>,
 	private val settings: AppSettings,
+	private val privateCategories: PrivateCategories,
 	widgetId: Int,
 ) : RemoteViewsService.RemoteViewsFactory {
 
@@ -53,8 +55,13 @@ class ShelfListFactory(
 		val data = if (settings.appPassword.isNullOrEmpty()) {
 			runBlocking {
 				val category = config.categoryId
+				// Widgets are visible to anyone holding the phone: private categories never appear on them.
+				val privateIds = privateCategories.privateIds.value
 				if (category == 0L) {
-					favouritesRepository.getAllManga()
+					val hidden = privateIds.flatMapTo(HashSet()) { id -> favouritesRepository.getManga(id).map { it.id } }
+					favouritesRepository.getAllManga().filterNot { it.id in hidden }
+				} else if (category in privateIds) {
+					emptyList()
 				} else {
 					favouritesRepository.getManga(category)
 				}
