@@ -24,7 +24,12 @@ sealed class BuiltinSource(
     data object IA_COMICS : BuiltinSource("builtin:ia_comics", "Internet Archive Comics", MediaType.MANGA)
 
     companion object {
-        val entries: List<BuiltinSource> = listOf(GUTENBERG, OPEN_LIBRARY, AO3, ROYAL_ROAD, SCRIBBLE_HUB, LIBRIVOX, YOUTUBE, PEERTUBE, SOUNDCLOUD, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS)
+        // Delay member construction until the superclass is fully initialized; eager construction
+        // can expose partially initialized data-object singletons in JVM tests.
+        val entries: List<BuiltinSource> by lazy {
+            listOf(GUTENBERG, OPEN_LIBRARY, AO3, ROYAL_ROAD, SCRIBBLE_HUB, LIBRIVOX,
+                YOUTUBE, PEERTUBE, SOUNDCLOUD, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS)
+        }
         fun fromName(name: String): BuiltinSource? = entries.firstOrNull { it.name == name }
     }
 }
