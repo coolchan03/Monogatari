@@ -19,3 +19,8 @@
 ## Old CI regression
 - Earlier CI for v0.14 `38401800333` was still in progress at start of batch. All new changes require exact-commit JVM/Debug/R8 and reader/device tests before merge or APK publication.
 - No unsafe binary decryption, remote code execution, cloud translation, credentials, or model downloads were introduced.
+
+## Follow-up host diagnostic integration
+- `JsExtension.dispatchSync` now records unknown synchronous host function names before throwing.
+- `JsExtension.dispatchAsync` now records unknown asynchronous host calls; names ending in `Extractor` route to the video bridge, which logs unsupported extractor names before throwing. Only Sendvid remains implemented.
+- This captures real runtime failures without logging source payloads or full URLs. Counters are still process-local and not surfaced in the user-facing report.

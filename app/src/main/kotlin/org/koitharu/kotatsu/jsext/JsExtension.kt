@@ -157,17 +157,21 @@ class JsExtension(
 				""
 			}
 
-			else -> throw JsExtensionException("Unknown host call: $name")
+			else -> {
+				MissingJsHostDiagnostics.record(name)
+				throw JsExtensionException("Unknown host call: $name")
+			}
 		}
 	}
 
 	private suspend fun dispatchAsync(name: String, argsJson: String): Any? {
 		val a = Json.parseToJsonElement(argsJson).jsonArray
 		JsHttpBridge.METHODS[name]?.let { return httpBridge.handle(it, a) }
-		if (name == "sendVidExtractor") return videoBridge.handle(name, a)
+		if (name.endsWith("Extractor")) return videoBridge.handle(name, a)
 		if (name == "parseEpub" || name == "parseEpubChapter") {
 			return epubBridge.handle(name, a)
 		}
+		MissingJsHostDiagnostics.record(name)
 		throw JsExtensionException("Host call '$name' is not supported yet")
 	}
 
