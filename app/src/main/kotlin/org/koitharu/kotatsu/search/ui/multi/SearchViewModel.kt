@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import org.koitharu.kotatsu.favourites.domain.PrivateCategories
 import android.content.Context
 import androidx.collection.ArraySet
 import androidx.collection.LongSet
@@ -82,6 +83,7 @@ class SearchViewModel @Inject constructor(
 	private val sourcesRepository: MangaSourcesRepository,
 	private val historyRepository: HistoryRepository,
 	private val favouritesRepository: FavouritesRepository,
+	private val privateCategories: PrivateCategories,
 	private val settings: AppSettings,
 	private val presetsRepository: SourcePresetsRepository,
 	private val sourceRanker: SourceRanker,
@@ -429,7 +431,10 @@ class SearchViewModel @Inject constructor(
 	)
 
 	private suspend fun searchFavorites(): SearchResultsListModel? = runCatchingCancellable {
-		favouritesRepository.search(query, kind, Int.MAX_VALUE)
+		favouritesRepository.search(query, kind, Int.MAX_VALUE).filterNot { manga ->
+			// Titles in a locked private category don't show up in search either.
+			favouritesRepository.getCategoriesIds(manga.id).any { privateCategories.isHidden(it) }
+		}
 	}.fold(
 		onSuccess = { result ->
 			if (result.isNotEmpty()) {

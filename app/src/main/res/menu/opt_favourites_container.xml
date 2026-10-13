@@ -8,4 +8,16 @@
 		android:title="@string/favourites_categories"
 		android:titleCondensed="@string/categories" />
 
+	<item
+		android:id="@+id/action_unlock_private"
+		android:orderInCategory="49"
+		android:title="@string/private_categories_show"
+		android:visible="false" />
+
+	<item
+		android:id="@+id/action_lock_private"
+		android:orderInCategory="49"
+		android:title="@string/private_categories_hide"
+		android:visible="false" />
+
 </menu>

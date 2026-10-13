@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.favourites.ui.container
 
+import org.koitharu.kotatsu.favourites.domain.PrivateCategories
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class FavouritesContainerViewModel @Inject constructor(
 	private val settings: AppSettings,
 	private val favouritesRepository: FavouritesRepository,
+	private val privateCategories: PrivateCategories,
 ) : BaseViewModel() {
 
 	val onActionDone = MutableEventFlow<ReversibleAction>()
@@ -37,9 +39,33 @@ class FavouritesContainerViewModel @Inject constructor(
 	val categories = combine(
 		categoriesStateFlow.filterNotNull(),
 		observeAllFavouritesVisibility(),
-	) { list, showAll ->
-		list.toUi(showAll)
+		privateCategories.hiddenIds,
+	) { list, showAll, hidden ->
+		list.filterNot { it.id in hidden }.toUi(showAll)
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, emptyList())
+
+	/** Whether there are private categories, and whether they are currently shown. */
+	val privacyState = combine(privateCategories.privateIds, privateCategories.isUnlocked) { ids, unlocked ->
+		PrivacyState(hasPrivate = ids.isNotEmpty(), isUnlocked = unlocked)
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, PrivacyState(false, false))
+
+	data class PrivacyState(val hasPrivate: Boolean, val isUnlocked: Boolean)
+
+	fun isPrivate(categoryId: Long) = privateCategories.isPrivate(categoryId)
+
+	fun togglePrivate(categoryId: Long) {
+		if (categoryId == NO_ID) return
+		val makePrivate = !privateCategories.isPrivate(categoryId)
+		privateCategories.setPrivate(categoryId, makePrivate)
+		val message = if (makePrivate) R.string.private_category_enabled else R.string.private_category_disabled
+		onActionDone.call(
+			ReversibleAction(message, ReversibleHandle { privateCategories.setPrivate(categoryId, !makePrivate) }),
+		)
+	}
+
+	fun unlockPrivate() = privateCategories.unlock()
+
+	fun lockPrivate() = privateCategories.lock()
 
 	val isEmpty = categoriesStateFlow.map {
 		it?.isEmpty() == true

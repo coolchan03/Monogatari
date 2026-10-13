@@ -15,4 +15,8 @@
 		android:id="@+id/action_hide"
 		android:title="@string/hide" />
 
+	<item
+		android:id="@+id/action_private"
+		android:title="@string/private_category_make_private" />
+
 </menu>

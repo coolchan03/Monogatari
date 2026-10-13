@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.favourites.ui.list
 
+import org.koitharu.kotatsu.favourites.domain.PrivateCategories
+import kotlinx.coroutines.flow.flowOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,6 +61,7 @@ class FavouritesListViewModel @Inject constructor(
 	settings: AppSettings,
 	mangaDataRepository: MangaDataRepository,
 	@LocalStorageChanges localStorageChanges: SharedFlow<LocalManga?>,
+	private val privateCategories: PrivateCategories,
 ) : MangaListViewModel(settings, mangaDataRepository, localStorageChanges), QuickFilterListener {
 
 	val categoryId: Long = savedStateHandle[AppRouter.KEY_ID] ?: NO_ID
@@ -176,17 +179,30 @@ class FavouritesListViewModel @Inject constructor(
 			quickFilter.appliedOptions.combineWithSettings(),
 			limit,
 			screenSearchQuery.query(SearchSuggestionScope.FAVOURITES),
-		) { order, filters, limit, searchQuery ->
+			privateCategories.hiddenIds,
+		) { order, filters, limit, searchQuery, hidden ->
 			isPaginationReady.set(false)
-			repository.observeAll(order, filters, limit, searchQuery)
+			val all = repository.observeAll(order, filters, limit, searchQuery)
+			if (hidden.isEmpty()) {
+				all
+			} else {
+				// Titles in a locked private category stay out of "all favourites" too.
+				val hiddenManga = hidden.flatMapTo(HashSet()) { id -> repository.getManga(id).map { it.id } }
+				all.map { list -> list.filterNot { it.id in hiddenManga } }
+			}
 		}.flattenLatest()
 	} else {
 		combine(
 			quickFilter.appliedOptions.combineWithSettings(),
 			limit,
 			screenSearchQuery.query(SearchSuggestionScope.FAVOURITES),
-		) { filters, limit, searchQuery ->
-			repository.observeAll(categoryId, filters, limit, searchQuery)
+			privateCategories.hiddenIds,
+		) { filters, limit, searchQuery, hidden ->
+			if (categoryId in hidden) {
+				flowOf(emptyList<Manga>())
+			} else {
+				repository.observeAll(categoryId, filters, limit, searchQuery)
+			}
 		}.flattenLatest()
 	}
 

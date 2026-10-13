@@ -67,7 +67,8 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 		actionModeDelegate.addListener(this)
 		viewModel.categories.observe(viewLifecycleOwner, pagerAdapter)
 		viewModel.isEmpty.observe(viewLifecycleOwner, ::onEmptyStateChanged)
-		addMenuProvider(FavouritesContainerMenuProvider(router))
+		addMenuProvider(FavouritesContainerMenuProvider(router, this, viewModel))
+		viewModel.privacyState.observe(viewLifecycleOwner) { activity?.invalidateOptionsMenu() }
 		viewModel.onActionDone.observeEvent(viewLifecycleOwner, ReversibleActionObserver(binding.pager))
 	}
 

@@ -24,11 +24,15 @@ class FavouriteTabPopupMenuProvider(
 			R.menu.popup_fav_tab
 		}
 		menuInflater.inflate(menuResId, menu)
+		menu.findItem(R.id.action_private)?.setTitle(
+			if (viewModel.isPrivate(categoryId)) R.string.private_category_make_public else R.string.private_category_make_private,
+		)
 	}
 
 	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
 		when (menuItem.itemId) {
 			R.id.action_hide -> viewModel.hide(categoryId)
+			R.id.action_private -> viewModel.togglePrivate(categoryId)
 			R.id.action_edit -> router.openFavoriteCategoryEdit(categoryId)
 			R.id.action_delete -> confirmDelete()
 			R.id.action_manage -> router.openFavoriteCategories()
