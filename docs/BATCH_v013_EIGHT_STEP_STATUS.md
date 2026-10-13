@@ -27,3 +27,9 @@
 - `widget/shelf/ShelfListFactory.kt` and `widget/recent/RecentListFactory.kt`: failed cover fetches now display generated cover bitmaps rather than generic placeholder.
 - Step 51 remains PARTIAL: generated covers have no device screenshot review and tracker notifications/app shortcuts are not converted; local source is not yet compiled/CI tested.
 - Step 50 still NOT STARTED; no fabricated library filtering progress. Steps 48 and 50 require data/UI work and remain pending.
+
+## Additional Step 48 and Step 50 work
+- Step 48 PARTIAL: `StatsRollup.kt` groups reading-session durations into user-timezone calendar days, with `StatsRollupTest.kt` covering same-day aggregation and timezone boundaries. `StatsDao.findSince` and an internal repository method retrieve recent data. No chart/heatmap/streak UI, chapter metadata or backup section yet.
+- Step 50 PARTIAL: converted the local Books shelf Fragment from fully inflated ScrollView/LinearLayout cards to a RecyclerView adapter; book rows reuse `BookShelfCard.bind` shared with the catalog, preserve filtering and reader click behavior. The category-level Manga/Books/Video/Audio switch and integration of local shelf books as normal favourites remain pending.
+- Therefore all eight Steps 44–51 have now been **touched**, but **ZERO of the eight are accepted fully**. Stage 44/45 remain disabled; Step 46 only fixes idle gaps; Step 47/48 not wired to complete screens; Step 49 default navigation only; Step 50 shelf-only RecyclerView; Step 51 generated covers only on normal manga requests and widgets.
+- The newer work is local, not part of v0.13.0 preview or verified by Android CI. Do not merge/release it without exact-commit passing checks.

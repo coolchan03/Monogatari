@@ -12,6 +12,8 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsRecord
+import org.koitharu.kotatsu.stats.domain.StatsRollup
+import java.util.TimeZone
 import java.util.NavigableMap
 import java.util.TreeMap
 import java.util.concurrent.TimeUnit
@@ -59,6 +61,13 @@ class StatsRepository @Inject constructor(
 			dao.getAverageTimePerPage()
 		}
 		time
+	}
+
+	/** Reading time by local calendar day, suitable for a future statistics heatmap. */
+	internal suspend fun getDailyReadingTime(days: Int, timezone: TimeZone = TimeZone.getDefault()): Map<StatsRollup.Day, Long> {
+		require(days in 1..366)
+		val fromDate = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong())
+		return StatsRollup.byDay(db.getStatsDao().findSince(fromDate), timezone)
 	}
 
 	suspend fun getTotalPagesRead(mangaId: Long): Int {

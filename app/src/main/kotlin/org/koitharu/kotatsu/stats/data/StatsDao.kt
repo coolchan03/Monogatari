@@ -22,6 +22,9 @@ abstract class StatsDao {
 	@Query("SELECT * FROM stats WHERE manga_id = :mangaId ORDER BY started_at")
 	abstract suspend fun findAll(mangaId: Long): List<StatsEntity>
 
+	@Query("SELECT * FROM stats WHERE started_at >= :fromDate ORDER BY started_at")
+	abstract suspend fun findSince(fromDate: Long): List<StatsEntity>
+
 	@Query("SELECT IFNULL(SUM(pages),0) FROM stats WHERE manga_id = :mangaId")
 	abstract suspend fun getReadPagesCount(mangaId: Long): Int
 

@@ -5,11 +5,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import org.koitharu.kotatsu.R
@@ -17,6 +18,9 @@ import org.koitharu.kotatsu.R
 /** Monogatari's unified local book shelf, using the shared imported-book index. */
 class BookLibraryFragment : Fragment() {
     private var shelfView: View? = null
+    private val shelfAdapter = BookShelfRecyclerAdapter { file ->
+        startActivity(BookShelf.readerIntent(requireContext(), file))
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,6 +36,10 @@ class BookLibraryFragment : Fragment() {
             .setOnClickListener {
                 startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
             }
+        view.findViewById<RecyclerView>(R.id.monogatari_book_list).apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = shelfAdapter
+        }
         view.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
             .doAfterTextChanged { refresh() }
         refresh()
@@ -52,16 +60,10 @@ class BookLibraryFragment : Fragment() {
         val term = root.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
             .text?.toString().orEmpty()
         val files = BookShelf.list(requireContext(), term)
-        val list = root.findViewById<LinearLayout>(R.id.monogatari_book_list)
         val empty = root.findViewById<View>(R.id.monogatari_book_empty)
-        list.removeAllViews()
+        shelfAdapter.submitFiles(files)
         empty.isVisible = files.isEmpty()
         root.findViewById<TextView>(R.id.monogatari_book_count).text =
             getString(R.string.monogatari_books_count, files.size)
-        for (file in files) {
-            list.addView(BookShelfCard.create(list, file) {
-                startActivity(BookShelf.readerIntent(requireContext(), it))
-            })
-        }
     }
 }

@@ -69,35 +69,31 @@
         android:layout_marginTop="16dp"
         android:layout_marginBottom="6dp"
         android:textAppearance="?attr/textAppearanceTitleMedium" />
-    <ScrollView android:layout_width="match_parent"
+    <FrameLayout android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:paddingBottom="96dp">
-        <LinearLayout android:layout_width="match_parent"
+        android:layout_weight="1">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/monogatari_book_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="96dp" />
+        <LinearLayout android:id="@+id/monogatari_book_empty"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <LinearLayout android:id="@+id/monogatari_book_empty"
-                android:layout_width="match_parent"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
+            <ImageView android:layout_width="260dp"
+                android:layout_height="174dp"
+                android:contentDescription="@null"
+                android:src="@drawable/illustration_monogatari_stories" />
+            <TextView android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:orientation="vertical"
-                android:padding="24dp">
-                <ImageView android:layout_width="260dp"
-                    android:layout_height="174dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/illustration_monogatari_stories" />
-                <TextView android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/monogatari_books_empty"
-                    android:textAppearance="?attr/textAppearanceBodyLarge" />
-            </LinearLayout>
-            <LinearLayout android:id="@+id/monogatari_book_list"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:text="@string/monogatari_books_empty"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
         </LinearLayout>
-    </ScrollView>
+    </FrameLayout>
 </LinearLayout>
