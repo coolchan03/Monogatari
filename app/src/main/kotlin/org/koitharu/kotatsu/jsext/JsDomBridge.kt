@@ -146,16 +146,35 @@ internal class JsDomBridge {
 		walk(node)
 	}
 
-	// XPath: Jsoup only returns elements, so the value is the element's text. No bundled JS source
-	// uses xpath yet; revisit if one needs attribute results.
-	private fun xpathFirst(root: Element, xpath: String): String =
-		safe { root.selectXpath(xpath).firstOrNull()?.text() }.orEmpty()
+	// XPath: Jsoup selects elements only, so a trailing `/@attr` or `/text()` step is applied here to return
+	// attribute values or text, like upstream's xpath helpers. Plain element paths return the element text.
+	private fun xpathFirst(root: Element, xpath: String): String = xpathValues(root, xpath).firstOrNull().orEmpty()
 
 	private fun xpathList(root: Element, xpath: String): String {
-		val found = safe { root.selectXpath(xpath) }.orEmpty()
+		val found = xpathValues(root, xpath)
 		// upstream returns [] unless more than one node matched
-		val values = if (found.size > 1) found.map { JsonPrimitive(it.text().trim()) } else emptyList()
+		val values = if (found.size > 1) found.map { JsonPrimitive(it) } else emptyList()
 		return JsonArray(values).toString()
+	}
+
+	private fun xpathValues(root: Element, xpath: String): List<String> {
+		val attribute = XPATH_ATTRIBUTE.find(xpath)
+		val isText = xpath.endsWith("/text()")
+		val elementPath = when {
+			attribute != null -> xpath.substring(0, attribute.range.first)
+			isText -> xpath.removeSuffix("/text()")
+			else -> xpath
+		}.ifEmpty { "." }
+		val elements = safe { root.selectXpath(elementPath) }.orEmpty()
+		return when {
+			attribute != null -> {
+				val name = attribute.groupValues[1]
+				elements.mapNotNull { element -> element.attr(name).trim().takeIf { element.hasAttr(name) } }
+			}
+
+			isText -> elements.map { it.ownText().trim() }
+			else -> elements.map { it.text().trim() }
+		}
 	}
 
 	private companion object {
@@ -164,5 +183,6 @@ internal class JsDomBridge {
 		val DATA_SRC = Regex("""data-src="([^"]+)"""")
 		val SRC = Regex("""src="([^"]+)"""")
 		val IMG = Regex("""img="([^"]+)"""")
+		val XPATH_ATTRIBUTE = Regex("""/@([\w:-]+)$""")
 	}
 }

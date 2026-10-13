@@ -41,7 +41,7 @@ relative "3 days ago" phrases in several languages, explicit and common patterns
 `JsDateParser`.
 
 Not implemented yet (fail with a clear "not supported yet" error, never silently): some legacy video-host
-extractor host calls, `evaluateJavascriptViaWebview`, XPath attribute results. Dart extensions cannot run at
+extractor host calls and `evaluateJavascriptViaWebview`. (XPath `/@attr` and `/text()` steps are supported.) Dart extensions cannot run at
 all, only JavaScript ones.
 
 ## Curated Manga Reader-compatible repositories
