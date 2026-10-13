@@ -11,7 +11,9 @@ class MonogatariTestPlanTest {
         assertEquals(ids.size, ids.toSet().size)
         for (id in listOf("startup", "manga_search", "book_sources", "public_catalogs",
             "local_books", "anime_search", "video_playback", "extensions", "dart",
-            "downloads", "backup_sync", "customization", "stability")) {
+            "downloads", "backup_sync", "customization", "stability",
+            "page_translation", "title_translation", "private_categories", "video_extras",
+            "discover", "foreign_import")) {
             assertTrue("Missing QA step: $id", id in ids)
         }
     }

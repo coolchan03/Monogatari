@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="foreign_backup_review_title">Inspect backup format</string>
-    <string name="foreign_backup_choose">Choose backup to inspect</string>
-    <string name="foreign_backup_read_only">This preview does not import anything or modify your library. Foreign backup import requires compatible format parsing, reviewed source matching and a reversible transaction.</string>
-    <string name="foreign_backup_reviewing">Checking archive format and integrity…</string>
+    <string name="foreign_backup_review_title">Import from another app</string>
+    <string name="foreign_backup_choose">Choose a backup file</string>
+    <string name="foreign_backup_read_only">Choose a Kotatsu (.bk.zip / .zip) or Mangayomi (.backup) backup. Nothing changes until you confirm on the next step, and existing library entries are never overwritten with older data.</string>
+    <string name="foreign_backup_reviewing">Reading the backup…</string>
     <string name="foreign_backup_format">Detected format: %1$s</string>
-    <string name="foreign_backup_failed">Could not inspect backup: %1$s. Your library was not changed.</string>
+    <string name="foreign_backup_failed">Could not read this backup: %1$s. Your library was not changed.</string>
+    <string name="foreign_backup_kotatsu">This is a Kotatsu / Monogatari backup. It restores directly: tap Restore and pick what to bring over (library, history, categories, bookmarks, statistics and settings).</string>
+    <string name="foreign_backup_restore">Restore</string>
+    <string name="foreign_backup_import">Import</string>
+    <string name="foreign_backup_importing">Importing… installing extensions and adding titles.</string>
+    <string name="foreign_backup_mangayomi_summary">Mangayomi backup\n\n• %1$d titles (%2$d in your library, %3$d with reading progress)\n• %4$d will open straight away with the same extension</string>
+    <string name="foreign_backup_mangayomi_install">Extensions that will be installed: %1$s</string>
+    <string name="foreign_backup_mangayomi_unmatched">No extension available here for: %1$s. Those titles are still added (marked as an unavailable source) so you can use \"Find on other sources\" to move them.</string>
+    <string name="foreign_backup_mihon">Mihon/Tachiyomi backups can\'t be imported: their extensions are Android apps that don\'t run here, and their saved links don\'t match Monogatari\'s sources.</string>
+    <string name="foreign_backup_unknown">This file isn\'t a Kotatsu or Mangayomi backup.</string>
+    <string name="foreign_backup_done">Imported %1$d titles.</string>
+    <string name="foreign_backup_done_skipped">%1$d titles couldn\'t be imported.</string>
+    <string name="foreign_backup_done_install_failed">These extensions failed to install, so their titles were added as unavailable sources: %1$s</string>
+    <string name="foreign_backup_default_category">Default</string>
 </resources>

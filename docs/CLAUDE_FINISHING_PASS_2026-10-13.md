@@ -47,9 +47,26 @@ release APK). Nothing here has been tried on a real phone yet — see "Please te
   those.)
 
 ### Discover
-- **More → Discover**: AniList lists — trending manga, trending/popular Boys' Love, trending anime, BL anime and
-  light novels — with covers and scores. Tap a title to search all your sources for it (long-press searches the
-  romaji title). No account needed; adult titles are excluded.
+- **More → Discover**: AniList lists — trending manga, trending/popular Boys' Love, BL 18+, trending anime, BL anime
+  and light novels — with covers, scores and an 18+ badge. Tap a title to search all your sources for it
+  (long-press searches the romaji title). No account needed; adult titles are included.
+
+### Importing from other apps
+- **More → Import from Kotatsu / Mangayomi** (`backups/domain/MangayomiBackup.kt`, `MangayomiImporter.kt`):
+  - Kotatsu backups use Monogatari's own format and open the normal Restore dialog.
+  - Mangayomi `.backup` files are read, previewed (how many titles, which extensions get installed, which have no
+    extension here) and imported on "Import": favourites into matching categories (created by name), reading
+    position and progress. Monogatari runs the same Mangayomi JS extensions, so titles keep their exact links and
+    open straight away; missing extensions are installed from your repositories first. Titles whose extension
+    isn't available are still added (as an unavailable source) so "Find on other sources" can move them.
+    Newer local progress is never overwritten.
+  - Mihon/Tachiyomi backups are recognised but can't be imported (their extensions don't run here).
+
+### Test Center spotlight
+- "Open feature" in **More → Source test center** now circles the control being tested with a pulsing ring and
+  shows a small card on every screen with the step's instructions and **👍 Looks good / 👎 Needs fixing** (with an
+  optional note). The answer goes straight into the copied test report. Tap the card's title to move it.
+- New steps: page translation, title translation, private categories, video extras, Discover, import.
 
 ## Reviewed and found OK
 - Room migrations 28→29→30→31 match their entity definitions exactly (column types, defaults, keys, indexes),
@@ -58,8 +75,7 @@ release APK). Nothing here has been tried on a real phone yet — see "Please te
 ## Still open (needs you, or a later pass)
 - **Signed releases** (Step 6): needs your keystore and GitHub secrets.
 - **Google developer verification** (Step 7): outside the app.
-- **Importing Mihon/Mangayomi backups**: still a read-only preview. Mihon's source IDs and URLs don't map one-to-one
-  onto Monogatari's sources, so a real import needs a title-matching pass with your confirmation.
+- **Importing Mihon backups**: not supported (Mihon extensions are Android apps and their links don't match).
 - `evaluateJavascriptViaWebview` and the GogoCDN/Quark/UC extractors are still unsupported.
 - Wattpad (Step 33).
 
@@ -68,4 +84,6 @@ release APK). Nothing here has been tried on a real phone yet — see "Please te
 2. Open an English title with a Japanese/Korean name → menu → Translate title and description.
 3. Play a JS anime episode that uses one of the new hosts; try picture-in-picture by pressing Home.
 4. Make a category private, leave the app, come back: it should be hidden until you unlock it.
-5. More → Discover → Trending BL → tap a title.
+5. More → Discover → Trending BL / BL 18+ → tap a title.
+6. More → Import from Kotatsu / Mangayomi → pick a backup → Import/Restore.
+7. More → Source test center → any new step → Open feature: the ring and approval card should appear.

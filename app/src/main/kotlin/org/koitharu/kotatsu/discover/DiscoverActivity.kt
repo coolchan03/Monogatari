@@ -166,8 +166,9 @@ class DiscoverActivity : AppCompatActivity() {
 		override fun onBindViewHolder(holder: Holder, position: Int) {
 			val item = items[position]
 			holder.binding.textTitle.text = item.title
-			holder.binding.textScore.isVisible = item.score != null
-			holder.binding.textScore.text = item.score?.let { "$it%" }
+			val badge = listOfNotNull(item.score?.let { "$it%" }, if (item.isAdult) "18+" else null)
+			holder.binding.textScore.isVisible = badge.isNotEmpty()
+			holder.binding.textScore.text = badge.joinToString(" · ")
 			holder.binding.imageCover.setImageDrawable(null)
 			item.coverUrl?.let { url ->
 				coil.enqueue(

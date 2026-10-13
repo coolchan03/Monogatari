@@ -1,12 +1,15 @@
 package org.koitharu.kotatsu.core.qa
 
+import org.koitharu.kotatsu.R
+
 /** Success for a parser network request is not proof that a chapter or video can actually play. */
 enum class CheckResult(val label: String) {
     UNTESTED("Not tested"), PASS("Looks good"), FAIL("Needs fixing"),
 }
 
 enum class TestDestination {
-    HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS, NONE,
+    HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS,
+    LIBRARY, DISCOVER, IMPORT, NONE,
 }
 
 data class TestCase(
@@ -14,6 +17,10 @@ data class TestCase(
     val title: String,
     val instructions: String,
     val destination: TestDestination,
+    /** Views circled by [TestSpotlight] when they are on screen. */
+    val highlight: List<Int> = emptyList(),
+    /** Also circle the toolbar's ⋮ menu button. */
+    val highlightOverflow: Boolean = false,
 )
 
 data class TestFinding(val result: CheckResult, val notes: String)
@@ -113,6 +120,24 @@ object MonogatariTestPlan {
         TestCase("customization", "Dark mode, phone and tablet layouts",
             "Change light/dark mode, font size and navigation. If possible, compare phone and tablet.",
             TestDestination.SETTINGS),
+        TestCase("page_translation", "Translate a manga page",
+            "Open a Japanese, Korean or Chinese raw chapter, tap the circled options button, then Translate page. Is the English readable and placed over the speech bubbles?",
+            TestDestination.HOME, highlight = listOf(R.id.button_options)),
+        TestCase("title_translation", "Translate title and description",
+            "Open a title with a Japanese/Korean name or description, tap the circled ⋮ menu, then Translate title and description. Tap it again to switch back.",
+            TestDestination.HOME, highlightOverflow = true),
+        TestCase("private_categories", "Private categories",
+            "Open Library (circled), long-press a category tab and choose Make private. Leave the app and come back: it should be hidden (also in search and the widget) until you unlock it from the ⋮ menu.",
+            TestDestination.LIBRARY, highlight = listOf(R.id.tabs, R.id.nav_favorites)),
+        TestCase("video_extras", "Video speed, skip intro and picture-in-picture",
+            "Play an episode and open the circled ⋮ menu: try Skip intro, Playback speed and Picture-in-picture. Press Home while playing; the video should keep going in a small window.",
+            TestDestination.ANIME_SEARCH, highlightOverflow = true),
+        TestCase("discover", "Discover lists (AniList)",
+            "Try each circled list, including BL 18+. Tap a cover: it should search your sources for that title. Long-press tries the Japanese title.",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("foreign_import", "Import from Kotatsu or Mangayomi",
+            "Choose a Kotatsu or Mangayomi backup, read the summary, then Restore/Import. Check that your titles, categories and reading progress arrived.",
+            TestDestination.IMPORT),
         TestCase("stability", "Performance and other bugs",
             "Use the app normally, rotate, switch apps and note crashes, loops, slowdowns and missing features.",
             TestDestination.HOME),

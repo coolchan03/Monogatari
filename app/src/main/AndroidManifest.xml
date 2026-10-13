@@ -112,7 +112,7 @@
 			android:exported="false"
 			android:label="@string/discover" />
 		<activity android:name="org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity" android:exported="false" />
-        <activity android:name="org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity" android:exported="false" />
+        <activity android:name="org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.main.ui.MoreActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.main.ui.OpenSourceLicensesActivity" android:exported="false" />
 		<activity

@@ -174,15 +174,5 @@ class JsMangaRepository(
 	}
 
 	/** Same scheme as the parsers' `generateUid`: stable per source + url. */
-	private fun uid(url: String): Long {
-		var h = UID_SEED
-		source.name.forEach { c -> h = 31 * h + c.code }
-		url.forEach { c -> h = 31 * h + c.code }
-		return h
-	}
-
-	private companion object {
-
-		const val UID_SEED = 1125899906842597L
-	}
+	private fun uid(url: String): Long = jsUid(source.name, url)
 }

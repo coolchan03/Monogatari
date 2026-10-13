@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
+import org.koitharu.kotatsu.discover.DiscoverActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
@@ -41,7 +43,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
     @Inject lateinit var sourceScan: SourceScanManager
 
     private lateinit var ui: ActivityMonogatariTestCenterBinding
-    private val prefs by lazy { getSharedPreferences("monogatari_guided_tests_v1", Context.MODE_PRIVATE) }
+    private val prefs by lazy { getSharedPreferences(TestSpotlight.PREFS_NAME, Context.MODE_PRIVATE) }
     private var index = 0
     private var rendering = false
     private var preflight = "Not run"
@@ -95,6 +97,12 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         lifecycleScope.launch {
             sourceScan.status.collect { status -> renderScanStatus(status) }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // A verdict may have been given from the spotlight card on another screen.
+        selectStep(index)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -200,7 +208,13 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun openFeature() = openFeature(currentCase().destination)
+    private fun openFeature() {
+        val test = currentCase()
+        if (test.destination != TestDestination.NONE) {
+            TestSpotlight.arm(this, test)
+        }
+        openFeature(test.destination)
+    }
 
     private fun openFeature(destination: TestDestination) {
         val intent = when (destination) {
@@ -210,6 +224,9 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             TestDestination.SOURCES -> Intent(this, SettingsActivity::class.java)
                 .setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS")
             TestDestination.SETTINGS -> Intent(this, SettingsActivity::class.java)
+            TestDestination.LIBRARY -> Intent(this, MainActivity::class.java)
+            TestDestination.DISCOVER -> Intent(this, DiscoverActivity::class.java)
+            TestDestination.IMPORT -> Intent(this, ForeignBackupReviewActivity::class.java)
             TestDestination.DOWNLOADS -> Intent(this, SettingsActivity::class.java)
                 .setAction(AppRouter.ACTION_MANAGE_DOWNLOADS)
             TestDestination.MANGA_SEARCH, TestDestination.BOOK_SEARCH, TestDestination.ANIME_SEARCH, TestDestination.AUDIO_SEARCH ->
@@ -253,7 +270,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         copy("Monogatari testing report", report)
         MaterialAlertDialogBuilder(this)
             .setTitle("Report copied")
-            .setMessage("Paste the report into our ChatGPT conversation. Your test answers and a sample of any source failures are included. Nothing was uploaded automatically.")
+            .setMessage("Paste the report into your chat with ChatGPT or Claude. Your test answers and a sample of any source failures are included. Nothing was uploaded automatically.")
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }

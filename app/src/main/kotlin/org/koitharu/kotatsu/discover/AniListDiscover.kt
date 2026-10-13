@@ -14,7 +14,7 @@ import org.koitharu.kotatsu.core.network.BaseHttpClient
 import java.io.IOException
 import javax.inject.Inject
 
-/** Read-only AniList discovery lists (no account needed). Tapping a result searches the user's own sources. */
+/** Read-only AniList discovery lists (no account needed, adult titles included). Tapping a result searches the user's own sources. */
 class AniListDiscover @Inject constructor(
 	@BaseHttpClient private val client: OkHttpClient,
 ) {
@@ -25,10 +25,13 @@ class AniListDiscover @Inject constructor(
 		val sort: String,
 		val tag: String? = null,
 		val format: String? = null,
+		/** `null` returns adult and non-adult titles alike; `true` only adult ones. */
+		val adult: Boolean? = null,
 	) {
 		TRENDING_MANGA(R.string.discover_trending_manga, "MANGA", "TRENDING_DESC"),
 		TRENDING_BL(R.string.discover_trending_bl, "MANGA", "TRENDING_DESC", tag = "Boys' Love"),
 		POPULAR_BL(R.string.discover_popular_bl, "MANGA", "POPULARITY_DESC", tag = "Boys' Love"),
+		ADULT_BL(R.string.discover_adult_bl, "MANGA", "TRENDING_DESC", tag = "Boys' Love", adult = true),
 		TRENDING_ANIME(R.string.discover_trending_anime, "ANIME", "TRENDING_DESC"),
 		BL_ANIME(R.string.discover_bl_anime, "ANIME", "POPULARITY_DESC", tag = "Boys' Love"),
 		LIGHT_NOVELS(R.string.discover_light_novels, "MANGA", "POPULARITY_DESC", format = "NOVEL"),
@@ -40,6 +43,7 @@ class AniListDiscover @Inject constructor(
 		val alternativeTitle: String?,
 		val coverUrl: String?,
 		val score: Int?,
+		val isAdult: Boolean = false,
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)
@@ -63,14 +67,15 @@ class AniListDiscover @Inject constructor(
 		private val JSON = "application/json; charset=utf-8".toMediaType()
 
 		private const val QUERY = """
-query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}tags: [String], ${'$'}format: MediaFormat) {
+query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}tags: [String], ${'$'}format: MediaFormat, ${'$'}isAdult: Boolean) {
   Page(page: ${'$'}page, perPage: 30) {
     pageInfo { hasNextPage }
-    media(type: ${'$'}type, sort: ${'$'}sort, tag_in: ${'$'}tags, format: ${'$'}format, isAdult: false) {
+    media(type: ${'$'}type, sort: ${'$'}sort, tag_in: ${'$'}tags, format: ${'$'}format, isAdult: ${'$'}isAdult) {
       id
       title { english romaji }
       coverImage { large }
       averageScore
+      isAdult
     }
   }
 }"""
@@ -82,6 +87,7 @@ query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}ta
 				.put("sort", JSONArray().put(feed.sort))
 			feed.tag?.let { variables.put("tags", JSONArray().put(it)) }
 			feed.format?.let { variables.put("format", it) }
+			feed.adult?.let { variables.put("isAdult", it) }
 			return JSONObject().put("query", QUERY.trim()).put("variables", variables)
 		}
 
@@ -105,6 +111,7 @@ query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}ta
 					alternativeTitle = romaji?.takeIf { it != title },
 					coverUrl = entry.optJSONObject("coverImage")?.optString("large")?.takeIf { it.startsWith("https://") },
 					score = entry.optInt("averageScore", 0).takeIf { it > 0 },
+					isAdult = entry.optBoolean("isAdult", false),
 				)
 			}
 			val hasNext = page.optJSONObject("pageInfo")?.optBoolean("hasNextPage", false) ?: false
