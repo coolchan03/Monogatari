@@ -27,6 +27,7 @@ import org.koitharu.kotatsu.backups.data.model.BookmarkBackup
 import org.koitharu.kotatsu.backups.data.model.CategoryBackup
 import org.koitharu.kotatsu.backups.data.model.FavouriteBackup
 import org.koitharu.kotatsu.backups.data.model.HistoryBackup
+import org.koitharu.kotatsu.backups.data.model.JsSourceBackup
 import org.koitharu.kotatsu.backups.data.model.MangaBackup
 import org.koitharu.kotatsu.backups.data.model.ScrobblingBackup
 import org.koitharu.kotatsu.backups.data.model.SourceBackup
@@ -43,8 +44,12 @@ import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.reader.data.TapGridSettings
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
 import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
+import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
+import org.koitharu.kotatsu.jsext.repo.JsSourceStore
+import org.koitharu.kotatsu.jsext.repo.compareVersions
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.prefs.SourceSettings
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
@@ -67,6 +72,8 @@ class BackupRepository @Inject constructor(
      * injects the real instance; the agent simply omits the identity section.
      */
     private val communitySettings: CommunitySettings? = null,
+    private val jsSourceStore: JsSourceStore? = null,
+    private val sourceRepoRepository: SourceRepoRepository? = null,
 ) {
 
     private companion object {
@@ -145,6 +152,14 @@ class BackupRepository @Inject constructor(
                 BackupSection.REPOS -> output.writeString(
                     section = BackupSection.REPOS,
                     data = encodeUrlList(repoStore.getAll(), httpsOnly = true),
+                )
+
+                BackupSection.JS_SOURCES -> output.writeJsonArray(
+                    section = BackupSection.JS_SOURCES,
+                    data = jsSourceStore?.list().orEmpty()
+                        .filter { BackupCatalogPolicy.safeUrl(it.repoUrl, httpsOnly = true) != null }
+                        .map { JsSourceBackup(it.id, it.repoUrl, it.version) }.asFlow(),
+                    serializer = serializer(),
                 )
 
                 BackupSection.OPDS_CATALOGS -> output.writeString(
@@ -267,6 +282,32 @@ class BackupRepository @Inject constructor(
                     BackupSection.REPOS -> input.readMap().let { values ->
                         decodeUrlList(values, httpsOnly = true).forEach { url -> repoStore.add(url) }
                         CompositeResult.success()
+                    }
+
+                    BackupSection.JS_SOURCES -> {
+                        val wanted = input.readJsonArray<JsSourceBackup>(serializer()).toList()
+                        if (wanted.isEmpty()) CompositeResult.EMPTY else {
+                            val repo = sourceRepoRepository
+                            if (repo == null) CompositeResult.failure(IOException("Source installer unavailable"))
+                            else {
+                                val available = repo.fetchAll().jsSources.map { it.entry }
+                                wanted.asSequence().restoreWithoutTransaction { record ->
+                                    val safeUrl = BackupCatalogPolicy.safeUrl(record.repoUrl, httpsOnly = true)
+                                        ?: throw IOException("Invalid source repository in backup")
+                                    val entry = available.firstOrNull { it.id == record.id && it.repoUrl == safeUrl }
+                                        ?: throw IOException("Source ${record.id} is not available in its repository")
+                                    if (compareVersions(entry.version, record.version) < 0) {
+                                        throw IOException("Source ${record.id} is older than backup version")
+                                    }
+                                    val existing = jsSourceStore?.get(record.id)?.entry
+                                    if (existing != null && existing.repoUrl == safeUrl &&
+                                        compareVersions(existing.version, entry.version) >= 0) {
+                                        return@restoreWithoutTransaction
+                                    }
+                                    repo.installJsSource(entry)
+                                }
+                            }
+                        }
                     }
 
                     BackupSection.OPDS_CATALOGS -> input.readMap().let { values ->

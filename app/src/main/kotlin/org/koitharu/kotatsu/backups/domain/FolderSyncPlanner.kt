@@ -6,6 +6,10 @@ internal object FolderSyncPlanner {
 
     private const val CLOCK_TOLERANCE_MS = 24L * 60 * 60 * 1000
 
+    /** Older sync_ archives remain readable; ordinary private/manual backups are never auto-imported. */
+    fun isSnapshotFileName(name: String): Boolean =
+        name.startsWith("sync_") && name.endsWith(".zip", ignoreCase = true)
+
     fun pending(
         snapshots: Collection<Snapshot>,
         localDeviceId: String,

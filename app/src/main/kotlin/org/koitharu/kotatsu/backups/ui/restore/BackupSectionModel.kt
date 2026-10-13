@@ -24,6 +24,7 @@ data class BackupSectionModel(
 			BackupSection.BOOKMARKS -> R.string.bookmarks
 			BackupSection.SOURCES -> R.string.remote_sources
             BackupSection.REPOS -> R.string.backup_source_repositories
+            BackupSection.JS_SOURCES -> R.string.backup_js_sources
             BackupSection.OPDS_CATALOGS -> R.string.backup_opds_catalogs
             BackupSection.SOURCE_SETTINGS -> R.string.backup_source_settings
 			BackupSection.SCROBBLING -> R.string.tracking

@@ -13,6 +13,7 @@ import androidx.preference.PreferenceCategory
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backups.domain.FolderSyncWorker
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.os.OpenDocumentTreeHelper
@@ -31,6 +32,9 @@ class PeriodicalBackupSettingsFragment : BasePreferenceFragment(R.string.periodi
 
 	@Inject
 	lateinit var telegramBackupUploader: TelegramBackupUploader
+
+	@Inject
+	lateinit var folderSyncScheduler: FolderSyncWorker.Scheduler
 
 	private val viewModel by viewModels<PeriodicalBackupSettingsViewModel>()
 
@@ -56,6 +60,11 @@ class PeriodicalBackupSettingsFragment : BasePreferenceFragment(R.string.periodi
 	override fun onPreferenceTreeClick(preference: Preference): Boolean {
 		val result = when (preference.key) {
 			AppSettings.KEY_BACKUP_PERIODICAL_OUTPUT -> outputSelectCall.tryLaunch(null)
+			AppSettings.KEY_BACKUP_FOLDER_SYNC, AppSettings.KEY_BACKUP_PERIODICAL_ENABLED -> {
+				// The switch commits after its click handler: schedule using the stored value.
+				listView.post { folderSyncScheduler.schedule() }
+				true
+			}
 			AppSettings.KEY_BACKUP_TG_OPEN -> telegramBackupUploader.openBotInApp(router)
 			AppSettings.KEY_BACKUP_TG_TEST -> {
 				viewModel.checkTelegram()
@@ -76,6 +85,7 @@ class PeriodicalBackupSettingsFragment : BasePreferenceFragment(R.string.periodi
 			context?.contentResolver?.takePersistableUriPermission(result, takeFlags)
 			settings.periodicalBackupDirectory = result
 			viewModel.updateSummaryData()
+			folderSyncScheduler.schedule()
 		}
 	}
 

@@ -30,4 +30,11 @@ class FolderSyncPlannerTest {
             snapshot("invalid", "other", 0)),
             "local", emptyMap(), 1000).isEmpty())
     }
+
+    @Test fun syncRecognizesOnlyDedicatedSnapshotFiles() {
+        assertTrue(FolderSyncPlanner.isSnapshotFileName("sync_monogatari_20261012-2300.bk.zip"))
+        assertTrue(FolderSyncPlanner.isSnapshotFileName("sync_2e7e9d7b-7d63-4f1a-9825-5aa96f480d41_monogatari_20261012-2300.bk.zip"))
+        assertEquals(false, FolderSyncPlanner.isSnapshotFileName("monogatari_20261012-2300.bk.zip"))
+        assertEquals(false, FolderSyncPlanner.isSnapshotFileName("sync_notes.txt"))
+    }
 }

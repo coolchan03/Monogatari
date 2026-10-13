@@ -16,6 +16,7 @@ enum class BackupSection(
 	BOOKMARKS("bookmarks"),
 	SOURCES("sources"),
     REPOS("repos"),
+    JS_SOURCES("js_sources"),
     OPDS_CATALOGS("opds_catalogs"),
     SOURCE_SETTINGS("source_settings"),
 	SCROBBLING("scrobbling"),

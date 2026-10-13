@@ -81,7 +81,7 @@ class FolderBackupSync @Inject constructor(
 
     private suspend fun publishOwnBackup() {
         val temp = File(BackupUtils.getAppBackupDir(context),
-            "sync_" + BackupUtils.generateFileName(context))
+            "sync_${UUID.randomUUID()}_" + BackupUtils.generateFileName(context))
         checkNotNull(temp.parentFile).mkdirs()
         try {
             ZipOutputStream(temp.outputStream()).use { repository.createBackup(it, null, MERGE_SECTIONS + BackupSection.INDEX) }
@@ -92,18 +92,21 @@ class FolderBackupSync @Inject constructor(
     }
 
     private suspend fun scanSnapshots(): List<SnapshotFile> =
-        externalStorage.list().take(MAX_SCAN_FILES).mapNotNull { file ->
-            val index = runCatching {
-                context.contentResolver.openInputStream(file.uri)?.use { source ->
-                    ZipInputStream(source).use(::readIndex)
-                }
-            }.getOrNull() ?: return@mapNotNull null
-            SnapshotFile(file, index.deviceId, index.createdAt)
-        }
+        externalStorage.list()
+            .filter { FolderSyncPlanner.isSnapshotFileName(it.fileName) }
+            .take(MAX_SCAN_FILES)
+            .mapNotNull { file ->
+                val index = runCatching {
+                    context.contentResolver.openInputStream(file.uri)?.use { source ->
+                        ZipInputStream(source).use(::readIndex)
+                    }
+                }.getOrNull() ?: return@mapNotNull null
+                SnapshotFile(file, index.deviceId, index.createdAt)
+            }
 
     private suspend fun trimOwnBackups(deviceId: String) {
         val ownFiles = scanSnapshots().asSequence()
-            .filter { it.deviceId == deviceId && it.file.fileName.startsWith("sync_") }
+            .filter { it.deviceId == deviceId }
             .sortedWith(compareByDescending<SnapshotFile> { it.createdAt }
                 .thenByDescending { it.file.uri.toString() }).toList()
         ownFiles.drop(MAX_OWN_BACKUPS).forEach { externalStorage.delete(it.file) }

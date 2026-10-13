@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="backup_source_repositories">Source repositories</string>
+    <string name="backup_js_sources">Installed JavaScript sources</string>
     <string name="backup_opds_catalogs">OPDS book catalogs</string>
     <string name="backup_source_settings">Source preferences (without credentials)</string>
     <string name="welcome_source_setup_title">Set up additional reading sources?</string>
@@ -1248,5 +1249,5 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="js_source_preferences_saved">Source settings saved</string>
     <string name="dart_sources_skipped">%1$d sources in this repository need Mangayomi\'s Dart runtime and cannot be used here.</string>
     <string name="backup_folder_sync_title">Sync my devices through the backup folder</string>
-    <string name="backup_folder_sync_summary">Every 6 hours, merge newer reading progress from other Monogatari devices and publish a backup. Use a trusted private folder: backups can contain account identity data and are not encrypted.</string>
+    <string name="backup_folder_sync_summary">Every 6 hours, merge newer reading progress from other Monogatari devices and publish a reading-only snapshot. Use a trusted private folder: older complete backups may still contain account identity data, and files are not encrypted.</string>
 </resources>

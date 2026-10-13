@@ -51,3 +51,30 @@
 - App ID checks allow only explicit Monogatari release/debug/nightly package identifiers.
 - Do not claim verified until combined-commit CI and device smoke testing pass. Actual phone/tablet two-device merge and SAF permissions remain untested.
 - Step 42 JS-source metadata/reinstallation, Step 44 WebDAV, Step 45 migrations, production signing and earlier Stage G partial features remain pending.
+
+## Subsequent Step 42 JS-source restore batch (2026-10-12 CDT)
+- Added JS_SOURCES to archive sections, containing per-source ID, repository index URL, and installed version; executable JavaScript code is never embedded in this section.
+- On an explicit backup restore, restored repository URLs are loaded first, the matching source is discovered in the configured remote index, its version is checked, and installation uses the existing network download/integrity validation path.
+- Existing sources at an equal or newer version from the same repository are not overwritten. Unavailable sources are recorded as per-item restore failures rather than silently replaced by a different repository's source.
+- Source-specific settings are restored only after JS source installation, preserving the existing secret-exclusion policy.
+- Added a JS metadata serialization round-trip test; note that all new tests are unexecuted locally pending a CI-enabled push.
+- User must still test offline restore, sources missing from upstream, protected libraries, and multi-device source compatibility; backup password encryption remains optional and unimplemented.
+- Push to GitHub remains blocked by OpenAI safety checks even though a dry-run push reported the destination branch as creatable. Do not bypass the restriction, merge or release without exact-commit CI.
+
+## Verification and authorization state for this iteration
+- Step 43 and privacy hardening are committed locally at `8d6589132` (parent `fcbc0b15e`); combined v0.13.0 has still not passed CI.
+- Step 42 JS source restoration changes and JUnit metadata test are staged, not committed. A Tunnel `git commit` call was blocked by OpenAI safety checks.
+- A Tunnel `git push` call was also denied (not retried or circumvented), despite an earlier successful read-only `--dry-run` branch check.
+- `git diff --check` and `git diff --cached --check` succeeded, but JUnit, Android debug APK, R8, device sync and network restore remain untested.
+- A read-only XML parser test attempt was also blocked by OpenAI safety checks; do not mark XML validated.
+- Do not publish, merge, or claim completed until the specific new cumulative commit passes exact-commit GitHub Actions Build.
+
+## After-midnight Step 42/43 integration hardening (2026-10-13 CDT)
+- Confirmed that the Step 42 JS-source metadata/restore batch remains staged separately from the committed Step 43 work. No staged content was overwritten.
+- Folder sync now scans only dedicated `sync_*.zip` snapshots, not complete/manual backups that can contain identity and settings. This prevents automatic import of unrelated full backups and lets the bounded scanner prioritize sync snapshots.
+- New snapshot filenames incorporate a UUID before the existing date token so repeated exports in one minute do not collide. Legacy `sync_` snapshot filenames remain eligible.
+- Added `FolderSyncPlanner.isSnapshotFileName()` and a JVM regression test confirming both old and new snapshot names and rejecting ordinary full backups and non-ZIP notes.
+- Changing the folder-sync/periodic switches, or selecting the destination directory, now refreshes WorkManager scheduling without needing an app restart.
+- Local repository and staged files were inspected through Tunnel. `git diff --check` and `git diff --cached --check` returned code 0, with only line-ending normalization warnings.
+- No Java/JDK/Android SDK installed locally; Android JUnit, assembleDebug, R8 and device checks remain unexecuted. No exact-commit combined CI success or new release exists as of this checkpoint.
+- Next: commit the staged JS-source restore + new hardening patch only if Tunnel authorizes it; push via Tunnel only; wait for exact-head GitHub Actions Build success before merging/releasing. Do not bypass any safety denial. Then proceed to Step 44 WebDAV/Step 45 imports as separately tested batches.
