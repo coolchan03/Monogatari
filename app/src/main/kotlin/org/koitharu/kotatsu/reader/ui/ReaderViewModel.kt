@@ -1,5 +1,9 @@
 package org.koitharu.kotatsu.reader.ui
 
+import org.koitharu.kotatsu.core.model.getLocale
+import java.io.File
+import org.koitharu.kotatsu.reader.translate.PageTranslationPrefs
+import org.koitharu.kotatsu.reader.translate.PageTranslator
 import android.net.Uri
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
@@ -112,6 +116,8 @@ class ReaderViewModel @Inject constructor(
     deleteLocalMangaUseCase: DeleteLocalMangaUseCase,
     downloadScheduler: DownloadWorker.Scheduler,
     readerSettingsProducerFactory: ReaderSettings.Producer.Factory,
+    private val pageTranslator: PageTranslator,
+    private val pageTranslationPrefs: PageTranslationPrefs,
 ) : ChaptersPagesViewModel(
     settings = settings,
     interactor = interactor,
@@ -125,6 +131,7 @@ class ReaderViewModel @Inject constructor(
 
     private var loadingJob: Job? = null
     private var pageSaveJob: Job? = null
+    private var pageTranslateJob: Job? = null
     private var bookmarkJob: Job? = null
     private var stateChangeJob: Job? = null
 
@@ -134,6 +141,8 @@ class ReaderViewModel @Inject constructor(
 
     val readerMode = MutableStateFlow<ReaderMode?>(null)
     val onPageSaved = MutableEventFlow<Collection<Uri>>()
+    val onPageTranslated = MutableEventFlow<File>()
+    val pageTranslationStatus = MutableStateFlow<Int?>(null)
     val onLoadingError = MutableEventFlow<Throwable>()
     val onShowToast = MutableEventFlow<Int>()
     val onAskNsfwIncognito = MutableEventFlow<Unit>()
@@ -353,6 +362,56 @@ class ReaderViewModel @Inject constructor(
             )
             val dest = pageSaveHelper.save(setOf(task))
             onPageSaved.call(dest)
+        }
+    }
+
+    /**
+     * The OCR script to use for this title: a choice the user saved earlier, else one derived from the source
+     * language, or null when it has to be asked.
+     */
+    fun getPageTranslationScript(): PageTranslator.Script? {
+        val currentManga = manga.value ?: return null
+        pageTranslationPrefs.getScript(currentManga.id)?.let { return it }
+        return PageTranslationPrefs.scriptForLanguage(currentManga.source.getLocale()?.language)
+    }
+
+    fun translateCurrentPage(pageSaveHelper: PageSaveHelper, script: PageTranslator.Script, remember: Boolean) {
+        val prevJob = pageTranslateJob
+        pageTranslateJob = launchLoadingJob(Dispatchers.Default) {
+            prevJob?.cancelAndJoin()
+            try {
+                val state = checkNotNull(getCurrentState())
+                val currentManga = manga.requireValue()
+                if (remember) {
+                    pageTranslationPrefs.setScript(currentManga.id, script)
+                }
+                val page = checkNotNull(getCurrentPage()) { "Cannot find current page" }
+                pageTranslator.findCached(page.url, script)?.let { cached ->
+                    onPageTranslated.call(cached)
+                    return@launchLoadingJob
+                }
+                val task = PageSaveHelper.Task(
+                    manga = currentManga,
+                    chapterId = state.chapterId,
+                    pageNumber = state.page + 1,
+                    page = page,
+                )
+                val pageFile = pageSaveHelper.saveToTempFile(task)
+                val result = try {
+                    pageTranslator.translate(
+                        page = pageFile,
+                        cacheKey = page.url,
+                        script = script,
+                        sourceLanguageHint = currentManga.source.getLocale()?.language,
+                        onStatus = { pageTranslationStatus.value = it },
+                    )
+                } finally {
+                    pageFile.delete()
+                }
+                onPageTranslated.call(result.file)
+            } finally {
+                pageTranslationStatus.value = null
+            }
         }
     }
 

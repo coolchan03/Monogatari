@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto">
+
+	<item
+		android:id="@+id/action_skip_intro"
+		android:title="@string/media_skip_intro"
+		android:visible="false"
+		app:showAsAction="never" />
+
+	<item
+		android:id="@+id/action_playback_speed"
+		android:title="@string/media_playback_speed"
+		android:visible="false"
+		app:showAsAction="never" />
+
+	<item
+		android:id="@+id/action_picture_in_picture"
+		android:title="@string/media_picture_in_picture"
+		android:visible="false"
+		app:showAsAction="never" />
+
+</menu>

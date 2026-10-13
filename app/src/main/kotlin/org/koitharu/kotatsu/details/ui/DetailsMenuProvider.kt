@@ -53,6 +53,9 @@ class DetailsMenuProvider(
 		menu.findItem(R.id.action_scrobbling).isVisible = viewModel.isScrobblingAvailable
 		menu.findItem(R.id.action_online).isVisible = viewModel.remoteManga.value != null
 		menu.findItem(R.id.action_stats).isVisible = viewModel.isStatsAvailable.value
+		menu.findItem(R.id.action_translate_info)?.setTitle(
+			if (viewModel.translatedInfo.value != null) R.string.translation_show_original else R.string.translation_translate_info,
+		)
 	}
 
 	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -93,6 +96,10 @@ class DetailsMenuProvider(
 
 			R.id.action_replace_source -> {
 				router.openSourceReplacement(listOf(manga))
+			}
+
+			R.id.action_translate_info -> {
+				viewModel.toggleInfoTranslation()
 			}
 
 			R.id.action_stats -> {

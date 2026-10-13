@@ -1,5 +1,11 @@
 package org.koitharu.kotatsu.reader.ui
 
+import android.app.PictureInPictureParams
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.os.Build
+import android.util.Rational
+import androidx.core.content.edit
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
@@ -95,22 +101,103 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private var textZoom = DEFAULT_TEXT_ZOOM
 
 	override fun onCreateOptionsMenu(menu: Menu): Boolean {
-		menu.add(0, 6801, 0, "Skip intro (+85 s)").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-		menu.add(0, 6802, 1, "Playback speed 1.25×").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-		menu.add(0, 6803, 2, "Playback speed 1×").setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+		menuInflater.inflate(R.menu.opt_media_reader, menu)
 		return super.onCreateOptionsMenu(menu)
 	}
 
+	override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+		val isPlayable = currentMediaType == MediaType.VIDEO || currentMediaType == MediaType.AUDIO
+		menu.findItem(R.id.action_skip_intro)?.isVisible = isPlayable
+		menu.findItem(R.id.action_playback_speed)?.isVisible = isPlayable
+		menu.findItem(R.id.action_picture_in_picture)?.isVisible = currentMediaType == MediaType.VIDEO &&
+			Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+			packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+		return super.onPrepareOptionsMenu(menu)
+	}
+
 	override fun onOptionsItemSelected(item: MenuItem): Boolean {
-		val playing = player ?: return super.onOptionsItemSelected(item)
 		when (item.itemId) {
-			6801 -> playing.seekTo((playing.currentPosition + 85_000L).coerceAtMost(
-				playing.duration.takeIf { it > 0L } ?: Long.MAX_VALUE))
-			6802 -> playing.setPlaybackSpeed(1.25f)
-			6803 -> playing.setPlaybackSpeed(1f)
+			R.id.action_skip_intro -> {
+				val playing = player ?: return true
+				val duration = playing.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+				playing.seekTo((playing.currentPosition + SKIP_INTRO_MS).coerceAtMost(duration))
+			}
+
+			R.id.action_playback_speed -> showPlaybackSpeedDialog()
+			R.id.action_picture_in_picture -> enterPictureInPicture()
 			else -> return super.onOptionsItemSelected(item)
 		}
 		return true
+	}
+
+	override fun onUserLeaveHint() {
+		super.onUserLeaveHint()
+		// Leaving the app while a video plays keeps it running in a small floating window.
+		if (currentMediaType == MediaType.VIDEO && player?.isPlaying == true) {
+			enterPictureInPicture()
+		}
+	}
+
+	override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+		super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+		viewBinding.toolbar.isVisible = !isInPictureInPictureMode
+		viewBinding.chapterControls.isVisible = !isInPictureInPictureMode
+		viewBinding.playerView.useController = !isInPictureInPictureMode
+	}
+
+	private fun enterPictureInPicture() {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+		if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+		val size = (player as? ExoPlayer)?.videoSize
+		val ratio = if (size != null && size.width > 0 && size.height > 0) {
+			Rational(size.width, size.height).coerceToPipLimits()
+		} else {
+			Rational(16, 9)
+		}
+		runCatching {
+			enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(ratio).build())
+		}
+	}
+
+	/** Android only accepts aspect ratios between 1:2.39 and 2.39:1 for picture-in-picture. */
+	private fun Rational.coerceToPipLimits(): Rational {
+		val value = toFloat()
+		return when {
+			value > 2.39f -> Rational(239, 100)
+			value < 1f / 2.39f -> Rational(100, 239)
+			else -> this
+		}
+	}
+
+	private fun showPlaybackSpeedDialog() {
+		val playing = player ?: return
+		val labels = PLAYBACK_SPEEDS.map { speed ->
+			val text = if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()
+			getString(R.string.media_playback_speed_value, text)
+		}.toTypedArray()
+		val current = PLAYBACK_SPEEDS.indexOfFirst { it == playing.playbackParameters.speed }
+		buildAlertDialog(this) {
+			setTitle(R.string.media_playback_speed)
+			setSingleChoiceItems(labels, current) { dialog, which ->
+				val speed = PLAYBACK_SPEEDS[which]
+				playing.setPlaybackSpeed(speed)
+				viewModel.getMangaOrNull()?.let { manga ->
+					getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit {
+						putFloat(KEY_SPEED_PREFIX + manga.id, speed)
+					}
+				}
+				dialog.dismiss()
+			}
+			setNegativeButton(android.R.string.cancel, null)
+		}.show()
+	}
+
+	/** The playback speed the user picked for this show, if any. */
+	private fun savedPlaybackSpeed(): Float? {
+		val manga = viewModel.getMangaOrNull() ?: return null
+		return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+			.getFloat(KEY_SPEED_PREFIX + manga.id, 0f)
+			.takeIf { it in PLAYBACK_SPEEDS }
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -217,7 +304,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			finish()
 			return
 		}
-		currentMediaType = mediaType
+		if (currentMediaType != mediaType) {
+			currentMediaType = mediaType
+			invalidateOptionsMenu()
+		}
 		updateAudioArtwork(mediaType, manga.coverUrl)
 		supportActionBar?.title = state.mangaName
 		supportActionBar?.subtitle = state.getChapterTitle(resources)
@@ -356,6 +446,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			exoPlayer.setMediaItem(item, position)
 		}
 		restorePosition = 0
+		savedPlaybackSpeed()?.let { exoPlayer.setPlaybackSpeed(it) }
 		exoPlayer.prepare()
 		exoPlayer.playWhenReady = true
 	}
@@ -586,6 +677,9 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		const val MIN_TEXT_ZOOM = 70
 		const val MAX_TEXT_ZOOM = 200
 		const val TEXT_ZOOM_STEP = 10
+		const val KEY_SPEED_PREFIX = "speed_"
+		const val SKIP_INTRO_MS = 85_000L
+		val PLAYBACK_SPEEDS = floatArrayOf(0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f).toList()
 		val QUALITY_NUMBER = Regex("(\\d{3,4})")
 	}
 }

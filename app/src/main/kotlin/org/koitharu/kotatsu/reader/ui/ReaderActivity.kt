@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.reader.ui
 
+import androidx.core.content.FileProvider
+import org.koitharu.kotatsu.BuildConfig
+import org.koitharu.kotatsu.reader.translate.PageTranslator
 import android.app.assist.AssistContent
 import android.content.DialogInterface
 import android.content.Intent
@@ -182,6 +185,14 @@ class ReaderActivity :
         }
         viewModel.readerMode.observe(this, Lifecycle.State.STARTED, this::onInitReader)
         viewModel.onPageSaved.observeEvent(this, PagesSavedObserver(viewBinding.container))
+        viewModel.onPageTranslated.observeEvent(this) { file ->
+            // A content:// URI: handing a file:// URI to another activity throws FileUriExposedException.
+            val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.files", file)
+            router.openImage(uri.toString(), null)
+        }
+        viewModel.pageTranslationStatus.observe(this) { status ->
+            if (status != null) viewBinding.toastView.show(status)
+        }
         viewModel.uiState.zipWithPrevious().observe(this, this::onUiStateChanged)
         viewModel.chapterRemainingMs.observe(this) { remaining ->
             chapterEtaLabel = remaining?.takeIf { it > 0L }?.let { duration ->
@@ -507,6 +518,28 @@ class ReaderActivity :
 
     override fun onSavePageClick() {
         viewModel.saveCurrentPage(pageSaveHelper)
+    }
+
+    override fun onTranslatePageClick() {
+        val script = viewModel.getPageTranslationScript()
+        if (script != null) {
+            viewModel.translateCurrentPage(pageSaveHelper, script, remember = false)
+            return
+        }
+        val scripts = PageTranslator.Script.entries
+        val labels = arrayOf(
+            getString(R.string.page_translation_script_latin),
+            getString(R.string.page_translation_script_japanese),
+            getString(R.string.page_translation_script_korean),
+            getString(R.string.page_translation_script_chinese),
+        )
+        buildAlertDialog(this) {
+            setTitle(R.string.page_translation_choose_language)
+            setItems(labels) { _, which ->
+                viewModel.translateCurrentPage(pageSaveHelper, scripts[which], remember = true)
+            }
+            setNegativeButton(android.R.string.cancel, null)
+        }.show()
     }
 
     override fun onScrollTimerClick(isLongClick: Boolean) {

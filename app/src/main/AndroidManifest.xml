@@ -68,6 +68,12 @@
 		android:theme="@style/Theme.Kotatsu"
 		tools:ignore="UnusedAttribute">
 
+		<!-- Let Google Play services fetch the on-device text recognition models used by page translation -->
+		<meta-data
+			android:name="com.google.mlkit.vision.DEPENDENCIES"
+			android:value="ocr,ocr_chinese,ocr_japanese,ocr_korean" />
+
+
 		<!--
 			Sentry is initialised by hand in SentryReportSender, inside ACRA's sender process, so that
 			nothing is captured or sent without the user agreeing to it in ACRA's dialog. Its
@@ -181,7 +187,9 @@
 		</activity>
 		<activity
 			android:name="org.koitharu.kotatsu.reader.ui.MediaReaderActivity"
-			android:exported="false" />
+			android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+			android:exported="false"
+			android:supportsPictureInPicture="true" />
 		<activity
 			android:name="org.koitharu.kotatsu.search.ui.MangaListActivity"
 			android:exported="true"

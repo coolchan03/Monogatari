@@ -211,6 +211,13 @@ class DetailsActivity :
 		viewModel.relatedManga.observe(this, ::onRelatedMangaChanged)
 		viewModel.favouriteCategories.observe(this, ::onFavoritesChanged)
 		val menuInvalidator = MenuInvalidator(this)
+		viewModel.translatedInfo.observe(this) {
+			viewModel.mangaDetails.value?.let(::onMangaUpdated)
+			invalidateOptionsMenu()
+		}
+		viewModel.onTranslationNotNeeded.observeEvent(this) {
+			Snackbar.make(viewBinding.scrollView, R.string.page_translation_same_language, Snackbar.LENGTH_SHORT).show()
+		}
 		viewModel.isStatsAvailable.observe(this, menuInvalidator)
 		viewModel.remoteManga.observe(this, menuInvalidator)
 		viewModel.tags.observe(this, ::onTagsChanged)
@@ -434,14 +441,16 @@ class DetailsActivity :
 	private fun onMangaUpdated(details: MangaDetails) {
 		val manga = details.toManga()
 		with(viewBinding) {
-			textViewTitle.text = manga.title
+			val translated = viewModel.translatedInfo.value
+			textViewTitle.text = translated?.title ?: manga.title
 			// Alternative titles are hidden here. Sources often carry a translation per language, so
 			// this ran to several lines of text nobody reads before the header even reaches the
 			// favourite button. They are still on the manga object for search and matching.
 			textViewSubtitle.textAndVisible = null
 			textViewNsfw16.isVisible = manga.contentRating == ContentRating.SUGGESTIVE
 			textViewNsfw18.isVisible = manga.contentRating == ContentRating.ADULT
-			textViewDescription.text = details.description.ifNullOrEmpty { getString(R.string.no_description) }
+			textViewDescription.text = translated?.description
+				?: details.description.ifNullOrEmpty { getString(R.string.no_description) }
 		}
 		with(infoBinding) {
 			val translation = details.getLocale()

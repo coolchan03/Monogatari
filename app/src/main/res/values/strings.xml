@@ -1250,4 +1250,24 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="dart_sources_skipped">%1$d sources in this repository need Mangayomi\'s Dart runtime and cannot be used here.</string>
     <string name="backup_folder_sync_title">Sync my devices through the backup folder</string>
     <string name="backup_folder_sync_summary">Every 6 hours, merge newer reading progress from other Monogatari devices and publish a reading-only snapshot. Use a trusted private folder: older complete backups may still contain account identity data, and files are not encrypted.</string>
+    <string name="page_translation_action">Translate page</string>
+    <string name="page_translation_choose_language">What language is this page in?</string>
+    <string name="page_translation_script_latin">English, Spanish, French, Indonesian or another Latin-alphabet language</string>
+    <string name="page_translation_script_japanese">Japanese</string>
+    <string name="page_translation_script_korean">Korean</string>
+    <string name="page_translation_script_chinese">Chinese</string>
+    <string name="page_translation_reading">Reading the text on this page…</string>
+    <string name="page_translation_downloading">Preparing the translation model (first time only)…</string>
+    <string name="page_translation_translating">Translating…</string>
+    <string name="page_translation_no_text">No text was found on this page</string>
+    <string name="page_translation_same_language">This page is already in your language</string>
+    <string name="page_translation_unknown_language">Couldn\'t tell which language this page is in</string>
+    <string name="page_translation_unreadable">This page image couldn\'t be read for translation</string>
+    <string name="page_translation_model_unavailable">The on-device translation model isn\'t available yet. Check your connection and Google Play services, then try again</string>
+    <string name="translation_translate_info">Translate title and description</string>
+    <string name="translation_show_original">Show original title and description</string>
+    <string name="media_skip_intro">Skip intro (+85 s)</string>
+    <string name="media_playback_speed">Playback speed</string>
+    <string name="media_playback_speed_value">%1$s×</string>
+    <string name="media_picture_in_picture">Picture-in-picture</string>
 </resources>

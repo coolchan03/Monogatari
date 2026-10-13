@@ -35,6 +35,13 @@
                 app:drawableStartCompat="@drawable/ic_save" />
 
             <org.koitharu.kotatsu.core.ui.widgets.ListItemTextView
+                android:id="@+id/button_translate_page"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_translation_action"
+                app:drawableStartCompat="@drawable/ic_language" />
+
+            <org.koitharu.kotatsu.core.ui.widgets.ListItemTextView
                 android:id="@+id/button_bookmark"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

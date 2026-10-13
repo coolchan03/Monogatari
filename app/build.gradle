@@ -283,6 +283,13 @@ dependencies {
 	implementation libs.media3.ui
 	implementation libs.media3.session
 	implementation libs.newpipe.extractor
+	// On-device page and text translation (OCR models are delivered by Google Play services)
+	implementation libs.mlkit.ocr.latin
+	implementation libs.mlkit.ocr.japanese
+	implementation libs.mlkit.ocr.korean
+	implementation libs.mlkit.ocr.chinese
+	implementation libs.mlkit.translate
+	implementation libs.mlkit.language.id
 	implementation libs.kizzyrpc
 
 	implementation libs.acra.dialog

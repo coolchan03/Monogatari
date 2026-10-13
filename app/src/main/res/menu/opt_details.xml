@@ -38,6 +38,12 @@
 		app:showAsAction="never" />
 
 	<item
+		android:id="@+id/action_translate_info"
+		android:orderInCategory="45"
+		android:title="@string/translation_translate_info"
+		app:showAsAction="never" />
+
+	<item
 		android:id="@+id/action_stats"
 		android:orderInCategory="50"
 		android:title="@string/statistics"

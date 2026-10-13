@@ -34,6 +34,10 @@ lifecycle = "2.9.4"
 markwon = "4.6.2"
 material = "1.14.0"
 media3 = "1.11.1"
+mlkitLanguageId = "17.0.6"
+mlkitOcr = "19.0.1"
+mlkitOcrCjk = "16.0.1"
+mlkitTranslate = "17.0.3"
 newpipe = "v0.26.5"
 moshi = "1.15.2"
 okhttp = "5.3.2"
@@ -126,6 +130,12 @@ media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", versio
 media3-exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "media3" }
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkitLanguageId" }
+mlkit-ocr-latin = { module = "com.google.android.gms:play-services-mlkit-text-recognition", version.ref = "mlkitOcr" }
+mlkit-ocr-japanese = { module = "com.google.android.gms:play-services-mlkit-text-recognition-japanese", version.ref = "mlkitOcrCjk" }
+mlkit-ocr-korean = { module = "com.google.android.gms:play-services-mlkit-text-recognition-korean", version.ref = "mlkitOcrCjk" }
+mlkit-ocr-chinese = { module = "com.google.android.gms:play-services-mlkit-text-recognition-chinese", version.ref = "mlkitOcrCjk" }
+mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
 newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipe" }
 moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
 quickjs-kt = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjs" }

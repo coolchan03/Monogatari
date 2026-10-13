@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.details.ui
 
+import org.koitharu.kotatsu.reader.translate.TextTranslator
+import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
+import kotlinx.coroutines.cancelAndJoin
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,6 +77,7 @@ class DetailsViewModel @Inject constructor(
 	private val progressUpdateUseCase: ProgressUpdateUseCase,
 	private val readingTimeUseCase: ReadingTimeUseCase,
 	statsRepository: StatsRepository,
+	private val textTranslator: TextTranslator,
 ) : ChaptersPagesViewModel(
 	settings = settings,
 	interactor = interactor,
@@ -107,6 +111,33 @@ class DetailsViewModel @Inject constructor(
 		.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, false)
 
 	val remoteManga = MutableStateFlow<Manga?>(null)
+
+	/** Display-only translation of the title and description; the stored manga is never changed. */
+	val translatedInfo = MutableStateFlow<TranslatedInfo?>(null)
+	val onTranslationNotNeeded = MutableEventFlow<Unit>()
+	private var translateJob: Job? = null
+
+	data class TranslatedInfo(val title: String, val description: String?)
+
+	fun toggleInfoTranslation() {
+		if (translatedInfo.value != null) {
+			translatedInfo.value = null
+			return
+		}
+		val prevJob = translateJob
+		translateJob = launchLoadingJob(Dispatchers.Default) {
+			prevJob?.cancelAndJoin()
+			val details = mangaDetails.value ?: return@launchLoadingJob
+			val title = details.toManga().title
+			val description = details.description?.toString().orEmpty()
+			val translated = textTranslator.translate(listOf(title, description), details.getLocale()?.language)
+			if (translated == null) {
+				onTranslationNotNeeded.call(Unit)
+			} else {
+				translatedInfo.value = TranslatedInfo(translated[0], translated[1].takeIf { it.isNotBlank() })
+			}
+		}
+	}
 
 	val historyInfo: StateFlow<HistoryInfo> = combine(
 		mangaDetails,
