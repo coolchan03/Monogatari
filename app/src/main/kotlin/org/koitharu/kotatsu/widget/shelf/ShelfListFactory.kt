@@ -15,6 +15,7 @@ import dagger.Lazy
 import kotlinx.coroutines.runBlocking
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.AppWidgetConfig
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
@@ -82,7 +83,7 @@ class ShelfListFactory(
 		}.onSuccess { cover ->
 			views.setImageViewBitmap(R.id.imageView_cover, cover)
 		}.onFailure {
-			views.setImageViewResource(R.id.imageView_cover, R.drawable.ic_placeholder)
+			views.setImageViewBitmap(R.id.imageView_cover, GeneratedCoverDrawable(item.title).toBitmap(300, 450))
 		}
 		val intent = Intent()
 		intent.putExtra(AppRouter.KEY_ID, item.id)
