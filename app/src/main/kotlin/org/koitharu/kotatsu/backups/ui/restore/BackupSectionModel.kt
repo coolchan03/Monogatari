@@ -23,6 +23,9 @@ data class BackupSectionModel(
 			BackupSection.SETTINGS_READER_GRID -> R.string.reader_actions
 			BackupSection.BOOKMARKS -> R.string.bookmarks
 			BackupSection.SOURCES -> R.string.remote_sources
+            BackupSection.REPOS -> R.string.backup_source_repositories
+            BackupSection.OPDS_CATALOGS -> R.string.backup_opds_catalogs
+            BackupSection.SOURCE_SETTINGS -> R.string.backup_source_settings
 			BackupSection.SCROBBLING -> R.string.tracking
 			BackupSection.STATS -> R.string.statistics
 			BackupSection.SAVED_FILTERS -> R.string.saved_filters

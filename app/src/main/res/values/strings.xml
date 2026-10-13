@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="backup_source_repositories">Source repositories</string>
+    <string name="backup_opds_catalogs">OPDS book catalogs</string>
+    <string name="backup_source_settings">Source preferences (without credentials)</string>
     <string name="welcome_source_setup_title">Set up additional reading sources?</string>
     <string name="welcome_source_setup_message">Download compatible English manga, book and video JavaScript sources from the included repositories? Monogatari skips known duplicates. Setup continues in the background and progress appears in Explore. You can skip and add sources later.</string>
     <string name="welcome_source_setup_yes">Install sources</string>
