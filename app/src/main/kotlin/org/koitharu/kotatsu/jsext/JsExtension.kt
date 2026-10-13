@@ -159,7 +159,9 @@ class JsExtension(
 
 			else -> {
 				MissingJsHostDiagnostics.record(name)
-				throw JsExtensionException("Unknown host call: $name")
+				val reason = if (name in JsUtilsBridge.UNSUPPORTED)
+					"Unsupported Mangayomi utility host call" else "Unknown host call"
+				throw JsExtensionException("$reason: $name")
 			}
 		}
 	}

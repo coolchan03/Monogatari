@@ -25,6 +25,9 @@ internal object NewsFeedParser {
             setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
         }
         val document = factory.newDocumentBuilder().parse(InputSource(StringReader(xml)))
+        require(document.documentElement?.tagName in setOf("rss", "feed", "rdf:RDF", "RDF")) {
+            "Not an RSS or Atom document"
+        }
         val all = document.getElementsByTagName("item")
         val atom = all.length == 0
         val items = if (atom) document.getElementsByTagName("entry") else all
@@ -35,8 +38,8 @@ internal object NewsFeedParser {
             val linkElement = item.getElementsByTagName("link").item(0) as? Element
             val rawLink = if (atom) linkElement?.getAttribute("href").orEmpty() else contents("link")
             val url = runCatching { URI(rawLink) }.getOrNull()
-            if (title.isBlank() || url?.scheme != "https" || url?.host.isNullOrBlank() ||
-                url?.userInfo != null || url?.fragment != null) return@mapNotNull null
+            if (title.isBlank() || url?.scheme?.equals("https", true) != true || url.host.isNullOrBlank() ||
+                url.userInfo != null || url.fragment != null || rawLink.length > 2048) return@mapNotNull null
             val categories = item.getElementsByTagName("category")
             val tags = (0 until minOf(categories.length, 25)).mapNotNull { i ->
                 val element = categories.item(i) as? Element ?: return@mapNotNull null

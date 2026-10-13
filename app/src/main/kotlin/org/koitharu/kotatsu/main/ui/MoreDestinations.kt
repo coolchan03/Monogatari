@@ -1,7 +1,8 @@
 package org.koitharu.kotatsu.main.ui
 
+import android.app.Activity
 import android.content.Intent
-import androidx.appcompat.app.AlertDialog
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
@@ -10,24 +11,28 @@ import org.koitharu.kotatsu.core.qa.NewsFeedActivity
 import org.koitharu.kotatsu.settings.SettingsActivity
 import org.koitharu.kotatsu.stats.ui.StatsActivity
 
-/** Centralized More destinations, keeping the main activity focused on navigation. */
+/** One destination catalogue for the full-screen More hub. */
 internal object MoreDestinations {
-    private val pages = listOf(
-        "Unified Library" to UnifiedLibraryActivity::class.java,
-        "Books catalog" to BookLibraryActivity::class.java,
-        "Reading statistics" to StatsActivity::class.java,
-        "News & followed tags" to NewsFeedActivity::class.java,
-        "Manual WebDAV backups" to WebDavManualSyncActivity::class.java,
-        "Source test center" to MonogatariTestCenterActivity::class.java,
-        "Settings" to SettingsActivity::class.java,
+    data class Page(val title: String, val subtitle: String,
+        val icon: Int, val target: Class<out Activity>)
+    val pages = listOf(
+        Page("Unified Library", "Manga, books, video and audio",
+            R.drawable.ic_monogatari_nav_favorites, UnifiedLibraryActivity::class.java),
+        Page("Books catalog", "Open locally imported ebooks",
+            R.drawable.ic_monogatari_nav_books, BookLibraryActivity::class.java),
+        Page("Reading statistics", "Activity, progress and exports",
+            R.drawable.ic_monogatari_nav_history, StatsActivity::class.java),
+        Page("News & followed tags", "RSS feeds and saved interests",
+            R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
+        Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
+            R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java),
+        Page("Source test center", "Run diagnostics and copy reports",
+            R.drawable.ic_monogatari_nav_explore, MonogatariTestCenterActivity::class.java),
+        Page("Open-source licences", "Offline credits, full GPL and upstream notices",
+            R.drawable.ic_monogatari_nav_books, OpenSourceLicensesActivity::class.java),
+        Page("Settings", "Appearance, readers, sources and privacy",
+            R.drawable.ic_monogatari_nav_bookmarks, SettingsActivity::class.java),
     )
-
-    fun show(activity: MainActivity) {
-        AlertDialog.Builder(activity)
-            .setTitle("More")
-            .setItems(pages.map { it.first }.toTypedArray()) { _, selected ->
-                activity.startActivity(Intent(activity, pages[selected].second))
-            }
-            .show()
-    }
+    fun show(activity: MainActivity) =
+        activity.startActivity(Intent(activity, MoreActivity::class.java))
 }

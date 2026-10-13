@@ -26,11 +26,13 @@ class WebDavManualSyncActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private val deviceId by lazy {
         val prefs = getSharedPreferences("monogatari_webdav_device", MODE_PRIVATE)
-        prefs.getString("uuid", null) ?: UUID.randomUUID().toString().also {
+        prefs.getString("uuid", null)?.takeIf(WebDavEndpoint::validDeviceId)
+            ?: UUID.randomUUID().toString().also {
             prefs.edit().putString("uuid", it).apply()
         }
     }
     private var downloadId: String? = null
+    private var busy = false
     private val uploadPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) uploadPicked(uri)
     }
@@ -40,8 +42,15 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         if (uri != null && id != null) downloadPicked(id, uri)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("pendingDownloadId", downloadId)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        downloadId = savedInstanceState?.getString("pendingDownloadId")
+            ?.takeIf(WebDavEndpoint::validDeviceId)
         title = "Manual WebDAV backup transfer"
         val pad = (16 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply {
@@ -108,6 +117,8 @@ class WebDavManualSyncActivity : AppCompatActivity() {
 
     private fun uploadPicked(uri: Uri) {
         val account = account() ?: return
+        if (busy) return
+        busy = true
         status.text = "Uploading selected ZIP…"
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching {
@@ -130,6 +141,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                     transport.upload(account.endpoint, account.auth, deviceId, file)
                 } finally { file.delete() }
             } }
+            busy = false
             result.onSuccess { status.text = "Backup ZIP uploaded for this device" }
                 .onFailure { status.text = "Upload failed: ${it.message}" }
         }
@@ -137,9 +149,12 @@ class WebDavManualSyncActivity : AppCompatActivity() {
 
     private fun listRemote() {
         val account = account() ?: return
+        if (busy) return
+        busy = true
         status.text = "Listing backups…"
         lifecycleScope.launch {
             val result = runCatching { transport.list(account.endpoint, account.auth) }
+            busy = false
             result.onSuccess { ids ->
                 if (ids.isEmpty()) { status.text = "No device backups found"; return@onSuccess }
                 AlertDialog.Builder(this@WebDavManualSyncActivity)
@@ -155,6 +170,9 @@ class WebDavManualSyncActivity : AppCompatActivity() {
 
     private fun downloadPicked(id: String, uri: Uri) {
         val account = account() ?: return
+        if (busy) return
+        require(WebDavEndpoint.validDeviceId(id)) { "Invalid backup device" }
+        busy = true
         status.text = "Downloading ZIP…"
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching {
@@ -168,6 +186,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                         ?: error("Could not write selected destination")
                 } finally { temporary.delete() }
             } }
+            busy = false
             result.onSuccess { status.text = "Backup ZIP saved. Restore it only through the normal restore-review flow." }
                 .onFailure { status.text = "Download failed: ${it.message}" }
         }

@@ -25,6 +25,17 @@ class NewsFeedParserTest {
         assertEquals(0, NewsFeedParser.parse(xml).size)
     }
 
+    @Test fun refusesNonFeedXml() {
+        assertThrows(IllegalArgumentException::class.java) {
+            NewsFeedParser.parse("<html><body><item><title>Fake</title><link>https://example.org</link></item></body></html>")
+        }
+    }
+
+    @Test fun rejectsArticleUrlsWithEmbeddedCredentials() {
+        val xml = """<rss><channel><item><title>Bad</title><link>https://user:pass@example.org/post</link></item></channel></rss>"""
+        assertEquals(0, NewsFeedParser.parse(xml).size)
+    }
+
     @Test fun refusesEntityExpansion() {
         assertThrows(IllegalArgumentException::class.java) {
             NewsFeedParser.parse("<!DOCTYPE rss [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><rss/>")

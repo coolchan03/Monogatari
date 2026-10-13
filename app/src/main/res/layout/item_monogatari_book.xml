@@ -17,7 +17,8 @@
         android:minHeight="76dp"
         android:orientation="horizontal"
         android:padding="14dp">
-        <ImageView android:layout_width="48dp"
+        <ImageView android:id="@+id/monogatari_book_item_icon"
+            android:layout_width="48dp"
             android:layout_height="58dp"
             android:background="@drawable/bg_onboarding_hero"
             android:contentDescription="@null"

@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-	<include
-		domain="sharedpref"
-		path="." />
-	<exclude
-		domain="sharedpref"
-		path="_local_index.xml" />
-	<exclude domain="sharedpref" path="monogatari_backup_identity.xml" />
-        <exclude domain="sharedpref" path="monogatari_webdav_secret.xml" />
-        <exclude domain="sharedpref" path="monogatari_js_source_updates.xml" />
-        <exclude domain="sharedpref" path="monogatari_default_presets.xml" />
-        <exclude domain="database" />
-	<exclude domain="device_database" />
-	<exclude domain="external" />
+    <include domain="sharedpref" path="." />
+    <exclude domain="sharedpref" path="_local_index.xml" />
+    <exclude domain="sharedpref" path="monogatari_backup_identity.xml" />
+    <exclude domain="sharedpref" path="monogatari_webdav_secret.xml" />
+    <exclude domain="sharedpref" path="monogatari_webdav_device.xml" />
+    <exclude domain="sharedpref" path="monogatari_js_source_updates.xml" />
+    <exclude domain="sharedpref" path="monogatari_default_presets.xml" />
+    <exclude domain="database" />
+    <exclude domain="device_database" />
+    <exclude domain="external" />
 </full-backup-content>

@@ -1,6 +1,10 @@
 package org.koitharu.kotatsu.core.media
 
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.widget.ImageView
+import com.google.android.material.card.MaterialCardView
+import org.koitharu.kotatsu.R
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -113,18 +117,13 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }
         override fun getItemCount(): Int = rows.size
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-            val pad = (16 * parent.resources.displayMetrics.density).toInt()
-            val text = TextView(parent.context).apply {
-                textSize = 17f
-                setPadding(pad, pad, pad, pad)
-                maxLines = 3
-            }
-            return Holder(text)
+            val card = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_monogatari_book, parent, false) as MaterialCardView
+            return Holder(card)
         }
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val row = rows[position]
-            holder.text.text = row.title + "\n" + row.detail
-            holder.text.setOnClickListener {
+            BookShelfCard.bind(holder.card, row.title, row.detail) {
                 val intent = when {
                     row.file != null -> BookShelf.readerIntent(this@UnifiedLibraryActivity, row.file)
                     row.manga != null -> AppRouter.detailsIntent(this@UnifiedLibraryActivity, row.manga)
@@ -132,7 +131,15 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                 }
                 if (intent != null) startActivity(intent)
             }
+            holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(
+                when (row.kind) {
+                    MediaType.MANGA -> R.drawable.ic_manga_source
+                    MediaType.VIDEO -> R.drawable.ic_play
+                    MediaType.AUDIO -> R.drawable.ic_play
+                    MediaType.BOOK -> R.drawable.ic_monogatari_nav_books
+                },
+            )
         }
-        inner class Holder(val text: TextView) : RecyclerView.ViewHolder(text)
+        inner class Holder(val card: MaterialCardView) : RecyclerView.ViewHolder(card)
     }
 }

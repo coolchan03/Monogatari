@@ -1,0 +1,27 @@
+Monogatari — Open-source notices
+
+Monogatari is built on open-source projects and libraries. The main project
+license is GNU General Public License, version 3 (GPL-3.0). The complete
+Monogatari license is available as LICENSE in its public source repository.
+
+Upstream project credits (review individual component headers and license
+files for specific permissions and conditions):
+- Kotatsu and Kotatsu-Redo: original manga reader code and Android foundation.
+  GPL-3.0-family license; original copyright notices retained in source.
+- Mangayomi: JavaScript extension interfaces and compatibility references.
+  Apache-2.0 upstream notices must be preserved for any adapted code.
+- NewPipe and NewPipeExtractor: media extraction components where included.
+  Observe GPL-3.0 and the shipped upstream legal notices.
+- Mihon and Tachiyomi: source/backup compatibility references.
+  Review attribution for any specifically incorporated code.
+- Kototoro: in-reader translation architecture reference.
+  Apache-2.0; its complete translation engine has not been ported.
+
+This summary is not a replacement for the original licenses or copyright
+notices of each dependency. Third-party dependency attributions may vary by
+build version. Please consult the source tree and the individual upstream
+packages for complete license terms.
+
+Project source: https://github.com/coolchan03/Monogatari
+Project license: https://github.com/coolchan03/Monogatari/blob/HEAD/LICENSE
+Project NOTICE: https://github.com/coolchan03/Monogatari/blob/HEAD/NOTICE

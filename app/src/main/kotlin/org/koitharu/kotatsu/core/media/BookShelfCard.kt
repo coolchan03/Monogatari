@@ -23,10 +23,14 @@ internal object BookShelfCard {
         val title = BookShelf.title(file)
         val progress = BookShelf.progress(context, file)
         val format = file.extension.uppercase(Locale.ROOT)
+        bind(card, title, "$format · $progress") { onOpen(file) }
+    }
+
+    /** One Material row used by the Books shelf, catalog, and unified media library. */
+    fun bind(card: MaterialCardView, title: String, subtitle: String, onOpen: () -> Unit) {
         card.findViewById<TextView>(R.id.monogatari_book_item_title).text = title
-        card.findViewById<TextView>(R.id.monogatari_book_item_progress).text =
-            "$format · $progress"
-        card.contentDescription = "$title, $progress"
-        card.setOnClickListener { onOpen(file) }
+        card.findViewById<TextView>(R.id.monogatari_book_item_progress).text = subtitle
+        card.contentDescription = "$title, $subtitle"
+        card.setOnClickListener { onOpen() }
     }
 }

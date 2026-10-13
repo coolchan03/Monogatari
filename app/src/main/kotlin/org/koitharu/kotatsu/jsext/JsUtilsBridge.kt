@@ -22,10 +22,8 @@ internal class JsUtilsBridge(private val logger: JsLogger) {
 			encrypt = a[3].bool() ?: false,
 		)
 
-		else -> {
-			if (name in UNSUPPORTED) MissingJsHostDiagnostics.record(name)
-			Unit
-		}
+		// One observation at the dispatch boundary, not twice in the helper and dispatcher.
+		else -> Unit
 	}
 
 	/** AES/CBC/PKCS7 with UTF-8 key and IV; on any failure the input comes back, like upstream. */
