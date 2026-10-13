@@ -36,7 +36,7 @@ class StatsViewModel @Inject constructor(
 
 	val readingStats = MutableStateFlow<List<StatsRecord>>(emptyList())
 	val dailyTotals = MutableEventFlow<String>()
-	val insights = MutableEventFlow<StatsScreenInsights>()
+	internal val insights = MutableEventFlow<StatsScreenInsights>()
 
 	init {
 		launchJob(Dispatchers.Default) {

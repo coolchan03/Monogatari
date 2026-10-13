@@ -7,14 +7,13 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.ColorUtils
 import org.koitharu.kotatsu.core.util.ext.getThemeColor
-import com.google.android.material.R as materialR
 
 /** Compact activity heatmap; day/hour values are provided in chronological order. */
 internal class ReadingHeatmapView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
 ) : View(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val activeColor = context.getThemeColor(materialR.attr.colorPrimary)
+    private val activeColor = context.getThemeColor(androidx.appcompat.R.attr.colorAccent)
     private val density = resources.displayMetrics.density
     private var amounts: List<Long> = emptyList()
     private var columns = 7
