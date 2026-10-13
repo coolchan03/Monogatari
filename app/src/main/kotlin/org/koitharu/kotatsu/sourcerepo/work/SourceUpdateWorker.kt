@@ -25,6 +25,7 @@ import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.sourcerepo.domain.PluginState
 import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
+import org.koitharu.kotatsu.sourcehealth.SourceRetirementTracker
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -35,6 +36,7 @@ class SourceUpdateWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val repos: SourceRepoRepository,
     private val sources: JsSourceStore,
+    private val retirementTracker: SourceRetirementTracker,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -47,6 +49,11 @@ class SourceUpdateWorker @AssistedInject constructor(
         }
         if (indexes.errors.isNotEmpty() && indexes.jsSources.isEmpty() && indexes.plugins.isEmpty()) {
             return Result.retry()
+        }
+        // Only a fully successful catalog refresh can establish that an installed source vanished.
+        // Repo/network errors must never start a removal grace period.
+        if (indexes.errors.isEmpty()) {
+            retirementTracker.recordCompleteSnapshot(indexes.jsSources, repos.getRepos().toSet())
         }
         val pending = indexes.jsSources.filter { item ->
             item.state == PluginState.UPDATE_AVAILABLE &&
