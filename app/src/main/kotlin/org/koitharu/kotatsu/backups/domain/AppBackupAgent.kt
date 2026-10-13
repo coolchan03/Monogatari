@@ -125,16 +125,26 @@ class AppBackupAgent : BackupAgent() {
 		return file
 	}
 
-	@VisibleForTesting
-	fun restoreBackupFile(fd: FileDescriptor, size: Long, repository: BackupRepository) {
-		ZipInputStream(ByteStreams.limit(FileInputStream(fd), size)).use { input ->
-			val sections = EnumSet.allOf(BackupSection::class.java)
-			// managed externally
-			sections.remove(BackupSection.SETTINGS)
-			sections.remove(BackupSection.SETTINGS_READER_GRID)
-			runBlocking {
-				repository.restoreBackup(input, sections, null)
-			}
-		}
-	}
+    @VisibleForTesting
+    fun restoreBackupFile(fd: FileDescriptor, size: Long, repository: BackupRepository) {
+        require(size in 1L..BackupArchiveInspector.MAX_ZIP_BYTES) {
+            "Android restore archive exceeds the safe size limit"
+        }
+        val staged = File.createTempFile("android-restore-checked-", ".zip", applicationContext.cacheDir)
+        try {
+            FileInputStream(fd).use { input ->
+                BackupArchiveInspector.copyBounded(ByteStreams.limit(input, size), staged)
+            }
+            BackupArchiveInspector.inspect(staged)
+            ZipInputStream(staged.inputStream()).use { input ->
+                val sections = EnumSet.allOf(BackupSection::class.java)
+                // Settings are separately managed by Android's preference restore process.
+                sections.remove(BackupSection.SETTINGS)
+                sections.remove(BackupSection.SETTINGS_READER_GRID)
+                runBlocking { repository.restoreBackup(input, sections, null) }
+            }
+        } finally {
+            staged.delete()
+        }
+    }
 }

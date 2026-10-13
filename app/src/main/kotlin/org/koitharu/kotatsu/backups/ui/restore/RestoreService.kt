@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.data.BackupRepository
 import org.koitharu.kotatsu.backups.domain.BackupSection
+import org.koitharu.kotatsu.backups.domain.BackupArchiveInspector
 import org.koitharu.kotatsu.backups.ui.BaseBackupRestoreService
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.util.ext.checkNotificationPermission
@@ -26,6 +27,7 @@ import org.koitharu.kotatsu.core.util.ext.toUriOrNull
 import org.koitharu.kotatsu.core.util.ext.withPartialWakeLock
 import org.koitharu.kotatsu.core.util.progress.Progress
 import java.io.FileNotFoundException
+import java.io.File
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import androidx.appcompat.R as appcompatR
@@ -61,11 +63,24 @@ class RestoreService : BaseBackupRestoreService() {
 			} else {
 				null
 			}
-			val result = ZipInputStream(contentResolver.openInputStream(source)).use { input ->
-				repository.restoreBackup(input, sections, progress)
-			}
-			progressUpdateJob?.cancelAndJoin()
-			showResultNotification(source, result)
+            val staged = File.createTempFile("restore-validated-", ".zip", cacheDir)
+            try {
+                // Validate all entries and CRCs before any section writes to the database.
+                contentResolver.openInputStream(source)?.use {
+                    BackupArchiveInspector.copyBounded(it, staged)
+                } ?: throw FileNotFoundException("Selected backup is unreadable")
+                val report = BackupArchiveInspector.inspect(staged)
+                require(sections.isNotEmpty() && report.sections.containsAll(sections)) {
+                    "Selected backup does not contain every requested restore section"
+                }
+                val result = ZipInputStream(staged.inputStream()).use { input ->
+                    repository.restoreBackup(input, sections, progress)
+                }
+                showResultNotification(source, result)
+            } finally {
+                staged.delete()
+                progressUpdateJob?.cancelAndJoin()
+            }
 		}
 	}
 

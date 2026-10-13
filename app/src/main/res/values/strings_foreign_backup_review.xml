@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="foreign_backup_review_title">Inspect backup format</string>
+    <string name="foreign_backup_choose">Choose backup to inspect</string>
+    <string name="foreign_backup_read_only">This preview does not import anything or modify your library. Foreign backup import requires compatible format parsing, reviewed source matching and a reversible transaction.</string>
+    <string name="foreign_backup_reviewing">Checking archive format and integrity…</string>
+    <string name="foreign_backup_format">Detected format: %1$s</string>
+    <string name="foreign_backup_failed">Could not inspect backup: %1$s. Your library was not changed.</string>
+</resources>

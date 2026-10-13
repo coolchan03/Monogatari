@@ -11,16 +11,18 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.koitharu.kotatsu.backups.data.model.BackupIndex
 import org.koitharu.kotatsu.backups.domain.BackupSection
+import org.koitharu.kotatsu.backups.domain.BackupArchiveInspector
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.toUriOrNull
 import java.io.FileNotFoundException
+import java.io.File
+import java.util.zip.ZipFile
 import java.io.InputStream
 import java.util.Date
 import java.util.EnumMap
 import java.util.EnumSet
-import java.util.zip.ZipInputStream
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +33,7 @@ class RestoreViewModel @Inject constructor(
 
 	val uri = savedStateHandle.get<String>(AppRouter.KEY_FILE)?.toUriOrNull()
 	private val contentResolver = context.contentResolver
+    private val cacheDir = context.cacheDir
 
 	val availableEntries = MutableStateFlow<List<BackupSectionModel>>(emptyList())
 	val backupDate = MutableStateFlow<Date?>(null)
@@ -42,25 +45,26 @@ class RestoreViewModel @Inject constructor(
 	}
 
 	private suspend fun loadBackupInfo() {
-		val sections = runInterruptible(Dispatchers.IO) {
-			if (uri == null) throw FileNotFoundException()
-			ZipInputStream(contentResolver.openInputStream(uri)).use { stream ->
-				val result = EnumSet.noneOf(BackupSection::class.java)
-				var entry = stream.nextEntry
-				while (entry != null) {
-					val s = BackupSection.of(entry)
-					if (s != null) {
-						result.add(s)
-						if (s == BackupSection.INDEX) {
-							backupDate.value = stream.readDate()
-						}
-					}
-					stream.closeEntry()
-					entry = stream.nextEntry
-				}
-				result
-			}
-		}
+        val sections = runInterruptible(Dispatchers.IO) {
+            val source = uri ?: throw FileNotFoundException()
+            val staged = File.createTempFile("backup-review-", ".zip", cacheDir)
+            try {
+                contentResolver.openInputStream(source)?.use {
+                    BackupArchiveInspector.copyBounded(it, staged)
+                } ?: throw FileNotFoundException("Selected backup is unreadable")
+                val report = BackupArchiveInspector.inspect(staged)
+                if (BackupSection.INDEX in report.sections) {
+                    ZipFile(staged).use { zip ->
+                        zip.getEntry(BackupSection.INDEX.entryName)?.let { entry ->
+                            zip.getInputStream(entry).use { backupDate.value = it.readDate() }
+                        }
+                    }
+                }
+                report.sections
+            } finally {
+                staged.delete()
+            }
+        }
 		availableEntries.value = BackupSection.entries.mapNotNull { entry ->
 			if (entry == BackupSection.INDEX || entry !in sections) {
 				return@mapNotNull null

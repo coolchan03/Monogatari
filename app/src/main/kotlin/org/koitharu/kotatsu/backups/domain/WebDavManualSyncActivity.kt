@@ -125,19 +125,11 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 val file = File.createTempFile("dav-upload", ".zip", cacheDir)
                 try {
                     contentResolver.openInputStream(uri)?.use { input ->
-                        file.outputStream().use { output ->
-                            val buffer = ByteArray(8192)
-                            var total = 0L
-                            while (true) {
-                                val n = input.read(buffer)
-                                if (n < 0) break
-                                total += n
-                                require(total <= 128L * 1024 * 1024) { "Backup exceeds 128 MB" }
-                                output.write(buffer, 0, n)
-                            }
-                        }
+                        BackupArchiveInspector.copyBounded(input, file, 128L * 1024 * 1024)
                     } ?: error("Cannot read selected backup")
-                    require(java.util.zip.ZipFile(file).use { it.entries().hasMoreElements() }) { "Invalid or empty ZIP" }
+                    // Verify each section and CRC before replacing the remote device snapshot.
+                    BackupArchiveInspector.inspect(file, requireIndex = true,
+                        maxArchiveBytes = 128L * 1024 * 1024)
                     transport.upload(account.endpoint, account.auth, deviceId, file)
                 } finally { file.delete() }
             } }
@@ -179,9 +171,9 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 val temporary = File.createTempFile("dav-download", ".zip", cacheDir)
                 try {
                     transport.download(account.endpoint, account.auth, id, temporary)
-                    require(java.util.zip.ZipFile(temporary).use { it.entries().hasMoreElements() }) {
-                        "Downloaded archive is invalid"
-                    }
+                    // Never write corrupt or unrelated remote data into the user's SAF file.
+                    BackupArchiveInspector.inspect(temporary, requireIndex = true,
+                        maxArchiveBytes = 128L * 1024 * 1024)
                     contentResolver.openOutputStream(uri)?.use { out -> temporary.inputStream().use { it.copyTo(out) } }
                         ?: error("Could not write selected destination")
                 } finally { temporary.delete() }

@@ -49,8 +49,16 @@ class FolderBackupSync @Inject constructor(
         var merged = 0
         for (snapshot in pending) {
             val uri = Uri.parse(snapshot.uri)
-            val result = context.contentResolver.openInputStream(uri)?.use { source ->
-                ZipInputStream(source).use { zip ->
+            val staged = File.createTempFile("folder-sync-validated-", ".zip", context.cacheDir)
+            val result = try {
+                context.contentResolver.openInputStream(uri)?.use {
+                    BackupArchiveInspector.copyBounded(it, staged)
+                } ?: throw FileNotFoundException("Shared backup no longer exists")
+                val report = BackupArchiveInspector.inspect(staged, requireIndex = true)
+                if (report.sections.none { it in MERGE_SECTIONS }) {
+                    throw IOException("Backup contains no mergeable reading sections")
+                }
+                ZipInputStream(staged.inputStream()).use { zip ->
                     val index = readIndex(zip)
                     if (index == null || index.deviceId != snapshot.deviceId ||
                         index.createdAt != snapshot.createdAt) {
@@ -58,7 +66,9 @@ class FolderBackupSync @Inject constructor(
                     }
                     repository.restoreBackup(zip, MERGE_SECTIONS, null)
                 }
-            } ?: throw FileNotFoundException("Shared backup no longer exists")
+            } finally {
+                staged.delete()
+            }
             if (!result.isAllSuccess) {
                 throw IOException("Backup merge failed for ${snapshot.deviceId}", result.failures.first())
             }
@@ -84,7 +94,10 @@ class FolderBackupSync @Inject constructor(
             "sync_${UUID.randomUUID()}_" + BackupUtils.generateFileName(context))
         checkNotNull(temp.parentFile).mkdirs()
         try {
-            ZipOutputStream(temp.outputStream()).use { repository.createBackup(it, null, MERGE_SECTIONS + BackupSection.INDEX) }
+            ZipOutputStream(temp.outputStream()).use {
+                repository.createBackup(it, null, MERGE_SECTIONS + BackupSection.INDEX)
+            }
+            BackupArchiveInspector.inspect(temp, requireIndex = true)
             externalStorage.put(temp)
         } finally {
             temp.delete()

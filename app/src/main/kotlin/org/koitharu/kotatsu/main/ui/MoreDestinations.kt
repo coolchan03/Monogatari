@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity
+import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
@@ -35,6 +36,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
             R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java),
+        Page("Inspect foreign backup", "Read-only Kotatsu, Mihon and Mangayomi format review",
+            R.drawable.ic_monogatari_nav_local, ForeignBackupReviewActivity::class.java),
         Page("Source test center", "Run diagnostics and copy reports",
             R.drawable.ic_monogatari_nav_explore, MonogatariTestCenterActivity::class.java),
         Page("Open-source licences", "Offline credits, full GPL and upstream notices",

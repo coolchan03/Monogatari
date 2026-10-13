@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.settings.userdata
 
 import android.net.Uri
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.result.ActivityResultCallback
@@ -11,6 +12,7 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.BackupUtils
+import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.backups.ui.backup.BackupService
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
@@ -70,6 +72,11 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
                         listView, R.string.operation_not_supported, Snackbar.LENGTH_SHORT,
                     ).show()
                 }
+                true
+            }
+
+            "monogatari_foreign_backup_review" -> {
+                startActivity(Intent(requireContext(), ForeignBackupReviewActivity::class.java))
                 true
             }
 

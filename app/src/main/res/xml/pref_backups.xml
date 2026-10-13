@@ -18,6 +18,13 @@
         android:summary="@string/restore_summary"
         android:title="@string/restore_backup" />
 
+    <Preference
+        android:icon="@drawable/ic_backup_restore"
+        android:key="monogatari_foreign_backup_review"
+        android:persistent="false"
+        android:title="@string/foreign_backup_review_title"
+        android:summary="@string/foreign_backup_read_only" />
+
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.backups.ui.periodical.PeriodicalBackupSettingsFragment"
         android:icon="@drawable/ic_timer_run"
