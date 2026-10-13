@@ -13,6 +13,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.Reusable
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -88,7 +89,7 @@ class SourceUpdateWorker @AssistedInject constructor(
     @Reusable
     class Scheduler @Inject constructor(
         private val workManager: WorkManager,
-        private val context: Context,
+        @ApplicationContext private val context: Context,
     ) {
         fun checkNow() {
             val constraints = Constraints.Builder()
