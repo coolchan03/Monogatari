@@ -11,6 +11,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.koitharu.kotatsu.jsext.JsItemType
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.StandardCopyOption
 
 /**
  * Installed JS sources, one `<id>.js` plus `<id>.json` (metadata) per source under [dir].
@@ -25,30 +28,123 @@ class JsSourceStore(private val dir: File) {
 	/** Ticks whenever a source is installed, updated or removed. */
 	val changes: StateFlow<Int> = _changes.asStateFlow()
 
-	init {
-		JsSourceRegistry.replaceAll(list())
-	}
+    init {
+        recoverInterruptedInstalls()
+        JsSourceRegistry.replaceAll(list())
+    }
 
 	private fun publish() {
 		JsSourceRegistry.replaceAll(list())
 		_changes.value++
 	}
 
-	/** Writes the metadata last, so a half-finished install is never listed. */
-	@Synchronized
-	fun install(entry: JsSourceEntry, code: String) {
-		dir.mkdirs()
-		File(dir, "${entry.id}.js").writeText(code)
-		File(dir, "${entry.id}.json").writeText(toJson(entry).toString())
-		publish()
-	}
+    /**
+     * Stage both files before replacement. A marker survives a process crash; initialization
+     * then restores the previous complete pair instead of starting with mismatched code/metadata.
+     */
+    @Synchronized
+    fun install(entry: JsSourceEntry, code: String) {
+        dir.mkdirs()
+        val id = entry.id
+        val stagedJs = File(dir, "$id.js.new")
+        val stagedMeta = File(dir, "$id.json.new")
+        val currentJs = File(dir, "$id.js")
+        val currentMeta = File(dir, "$id.json")
+        stagedJs.writeText(code)
+        stagedMeta.writeText(toJson(entry).toString())
+        val previousExists = currentJs.isFile && currentMeta.isFile
+        if (previousExists) {
+            currentJs.copyTo(File(dir, "$id.js.prev"), overwrite = true)
+            currentMeta.copyTo(File(dir, "$id.json.prev"), overwrite = true)
+        } else {
+            File(dir, "$id.js.prev").delete()
+            File(dir, "$id.json.prev").delete()
+        }
+        val marker = File(dir, "$id.updating")
+        marker.writeText("pending")
+        try {
+            replace(stagedJs, currentJs)
+            replace(stagedMeta, currentMeta)
+            marker.delete()
+            publish()
+        } catch (error: Exception) {
+            recoverInterruptedInstalls()
+            publish()
+            throw error
+        }
+    }
 
-	@Synchronized
-	fun uninstall(id: Long) {
-		File(dir, "$id.json").delete()
-		File(dir, "$id.js").delete()
-		publish()
-	}
+    @Synchronized
+    fun hasPrevious(id: Long): Boolean =
+        File(dir, "$id.js.prev").isFile && File(dir, "$id.json.prev").isFile
+
+    @Synchronized
+    fun isUpdatePaused(id: Long, now: Long = System.currentTimeMillis()): Boolean =
+        File(dir, "$id.pause").takeIf { it.isFile }?.readText()
+            ?.trim()?.toLongOrNull()?.let { it > now } == true
+
+    /** A broken update returns to its last full installation and pauses automatic updates. */
+    @Synchronized
+    fun rollback(id: Long, now: Long = System.currentTimeMillis()): Boolean {
+        if (!hasPrevious(id)) return false
+        val marker = File(dir, "$id.updating")
+        marker.writeText("rollback")
+        restorePrevious(id)
+        marker.delete()
+        File(dir, "$id.pause").writeText((now + ROLLBACK_PAUSE_MS).toString())
+        publish()
+        return true
+    }
+
+    @Synchronized
+    fun uninstall(id: Long) {
+        listOf(".json", ".js", ".json.new", ".js.new", ".json.prev",
+            ".js.prev", ".updating", ".pause").forEach { ext ->
+            File(dir, "$id$ext").delete()
+        }
+        publish()
+    }
+
+    private fun replace(from: File, to: File) {
+        try {
+            Files.move(from.toPath(), to.toPath(),
+                StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(from.toPath(), to.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+
+    /** Repairs installations interrupted between the code and metadata rename. */
+    private fun recoverInterruptedInstalls() {
+        dir.listFiles { f -> f.name.endsWith(".updating") }.orEmpty().forEach { marker ->
+            val id = marker.name.removeSuffix(".updating").toLongOrNull() ?: return@forEach
+            if (hasPrevious(id)) {
+                restorePrevious(id)
+            } else {
+                File(dir, "$id.js").delete()
+                File(dir, "$id.json").delete()
+            }
+            marker.delete()
+            File(dir, "$id.js.new").delete()
+            File(dir, "$id.json.new").delete()
+        }
+    }
+
+    private fun restorePrevious(id: Long) {
+        if (!hasPrevious(id)) return
+        val stagedJs = File(dir, "$id.js.new")
+        val stagedMeta = File(dir, "$id.json.new")
+        File(dir, "$id.js.prev").copyTo(stagedJs, overwrite = true)
+        File(dir, "$id.json.prev").copyTo(stagedMeta, overwrite = true)
+        replace(stagedJs, File(dir, "$id.js"))
+        replace(stagedMeta, File(dir, "$id.json"))
+        File(dir, "$id.js.prev").delete()
+        File(dir, "$id.json.prev").delete()
+    }
+
+    private companion object {
+        const val ROLLBACK_PAUSE_MS = 48L * 60 * 60 * 1000
+    }
 
 	@Synchronized
 	fun list(): List<JsSourceEntry> = dir.listFiles { f -> f.extension == "json" }.orEmpty()
