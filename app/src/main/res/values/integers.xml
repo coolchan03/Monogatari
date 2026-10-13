@@ -13,4 +13,5 @@
 	<integer name="details_title_lines">3</integer>
 
 	<integer name="splash_screen_duration">450</integer>
+	<integer name="discover_columns">3</integer>
 </resources>

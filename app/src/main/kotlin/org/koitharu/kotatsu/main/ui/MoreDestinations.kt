@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.discover.DiscoverActivity
 import android.app.Activity
 import android.content.Intent
 import org.koitharu.kotatsu.R
@@ -32,6 +33,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_bookmarks, AllBookmarksActivity::class.java),
         Page("Sources", "Installed websites and extension catalog",
             R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java),
+        Page("Discover", "Trending and Boys' Love picks from AniList",
+            R.drawable.ic_monogatari_nav_explore, DiscoverActivity::class.java),
         Page("News & followed tags", "RSS feeds and saved interests",
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
