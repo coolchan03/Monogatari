@@ -31,6 +31,7 @@ class StatsViewModel @Inject constructor(
 		.take(1)
 
 	val readingStats = MutableStateFlow<List<StatsRecord>>(emptyList())
+	val dailyTotals = MutableEventFlow<String>()
 
 	init {
 		launchJob(Dispatchers.Default) {
@@ -54,6 +55,17 @@ class StatsViewModel @Inject constructor(
 			snapshot.remove(category.id)
 		}
 		selectedCategories.value = snapshot
+	}
+
+	fun requestDailyTotals() {
+		launchLoadingJob(Dispatchers.Default) {
+			val byDay = repository.getDailyReadingTime(30)
+			val text = if (byDay.isEmpty()) "No reading activity in the last 30 days" else
+				byDay.entries.joinToString("\n") { (day, milliseconds) ->
+					"%04d-%02d-%02d: %d minutes".format(day.year, day.month, day.day, milliseconds / 60_000L)
+				}
+			dailyTotals.call(text)
+		}
 	}
 
 	fun clearStats() {

@@ -88,6 +88,13 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		}
 		viewModel.favoriteCategories.observe(this, ::createCategoriesChips)
 		viewModel.onActionDone.observeEvent(this, ReversibleActionObserver(viewBinding.recyclerView))
+		viewModel.dailyTotals.observeEvent(this) { summary ->
+			androidx.appcompat.app.AlertDialog.Builder(this)
+				.setTitle("Reading activity — last 30 days")
+				.setMessage(summary)
+				.setPositiveButton(android.R.string.ok, null)
+				.show()
+		}
 		viewModel.readingStats.observe(this) {
 			val sum = it.sumOf { it.duration }
 			viewBinding.chart.setData(
@@ -161,6 +168,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 	override fun onCreateOptionsMenu(menu: Menu?): Boolean {
 		menuInflater.inflate(R.menu.opt_stats, menu)
 		menu?.add(0, 7201, 0, "Export reading statistics (CSV)")
+		menu?.add(0, 7202, 1, "Daily reading totals")
 		return super.onCreateOptionsMenu(menu)
 	}
 
@@ -168,6 +176,10 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		return when (item.itemId) {
 			7201 -> {
 				csvFilePicker.launch("monogatari-reading-stats.csv")
+				true
+			}
+			7202 -> {
+				viewModel.requestDailyTotals()
 				true
 			}
 			R.id.action_clear -> {
