@@ -260,8 +260,9 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun onPause() {
-        getMangaOrNull()?.let {
-            statsCollector.onPause(it.id)
+        getMangaOrNull()?.let { manga ->
+            if (isIncognitoMode.value == false) statsCollector.onPause(manga.id)
+            else statsCollector.discardSession(manga.id)
         }
     }
 
@@ -468,6 +469,9 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun setIncognitoMode(value: Boolean, dontAskAgain: Boolean) {
+        if (value && isIncognitoMode.value != true) {
+            getMangaOrNull()?.let { statsCollector.discardSession(it.id) }
+        }
         isIncognitoMode.value = value
         if (dontAskAgain) {
             settings.incognitoModeForNsfw = if (value) TriStateOption.ENABLED else TriStateOption.DISABLED

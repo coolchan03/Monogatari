@@ -96,6 +96,12 @@ class StatsCollector @Inject constructor(
 		}
 	}
 
+    /** Discard the active interval when incognito becomes enabled; no further writes. */
+    @Synchronized
+    fun discardSession(mangaId: Long) {
+        stats.remove(mangaId)
+    }
+
     @Synchronized
     fun onPause(mangaId: Long) {
         val last = stats[mangaId]
