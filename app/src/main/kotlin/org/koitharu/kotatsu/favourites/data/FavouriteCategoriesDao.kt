@@ -17,6 +17,12 @@ abstract class FavouriteCategoriesDao {
 	@Query("SELECT * FROM favourite_categories WHERE deleted_at = 0 ORDER BY sort_key")
 	abstract suspend fun findAll(): List<FavouriteCategoryEntity>
 
+    @Query("SELECT * FROM favourite_categories WHERE category_id = :id LIMIT 1")
+    abstract suspend fun findIncludingDeleted(id: Int): FavouriteCategoryEntity?
+
+    @Query("SELECT * FROM favourite_categories ORDER BY sort_key")
+    abstract suspend fun findAllForBackup(): List<FavouriteCategoryEntity>
+
 	@Query("SELECT * FROM favourite_categories WHERE deleted_at = 0 ORDER BY sort_key")
 	abstract fun observeAll(): Flow<List<FavouriteCategoryEntity>>
 

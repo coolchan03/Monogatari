@@ -7,7 +7,10 @@
 		<exclude
 			domain="sharedpref"
 			path="_local_index.xml" />
-		<exclude domain="database" />
+		<exclude domain="sharedpref" path="monogatari_backup_identity.xml" />
+        <exclude domain="sharedpref" path="monogatari_js_source_updates.xml" />
+        <exclude domain="sharedpref" path="monogatari_default_presets.xml" />
+        <exclude domain="database" />
 		<exclude domain="device_database" />
 		<exclude domain="external" />
 	</cloud-backup>
@@ -18,7 +21,10 @@
 		<exclude
 			domain="sharedpref"
 			path="_local_index.xml" />
-		<exclude domain="database" />
+		<exclude domain="sharedpref" path="monogatari_backup_identity.xml" />
+        <exclude domain="sharedpref" path="monogatari_js_source_updates.xml" />
+        <exclude domain="sharedpref" path="monogatari_default_presets.xml" />
+        <exclude domain="database" />
 		<exclude domain="device_database" />
 	</device-transfer>
 </data-extraction-rules>

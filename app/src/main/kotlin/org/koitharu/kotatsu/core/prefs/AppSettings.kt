@@ -43,6 +43,7 @@ import java.io.File
 import java.net.Proxy
 import java.util.EnumSet
 import java.util.HashMap
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,6 +52,18 @@ import javax.inject.Singleton
 class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 
 	private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    // Kept separately and excluded from Android restore so two devices don't share an identity.
+    private val backupIdentityPrefs = context.getSharedPreferences("monogatari_backup_identity", Context.MODE_PRIVATE)
+
+    val backupDeviceId: String
+        get() = synchronized(backupIdentityPrefs) {
+            backupIdentityPrefs.getString("device_id", null) ?: UUID.randomUUID().toString().also { id ->
+                backupIdentityPrefs.edit().putString("device_id", id).commit()
+            }
+        }
+
+    val backupDeviceName: String
+        get() = (Build.MANUFACTURER + " " + Build.MODEL).trim().take(100)
 	init {
 		// Previous versions could disable TLS verification for the entire app.
 		// Never preserve that unsafe setting on upgrade.

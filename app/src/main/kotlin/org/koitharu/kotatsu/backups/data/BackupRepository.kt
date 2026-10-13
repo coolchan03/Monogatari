@@ -85,7 +85,7 @@ class BackupRepository @Inject constructor(
             when (section) {
                 BackupSection.INDEX -> output.writeJsonArray(
                     section = BackupSection.INDEX,
-                    data = flowOf(BackupIndex()),
+                    data = flowOf(BackupIndex(settings.backupDeviceId, settings.backupDeviceName)),
                     serializer = serializer(),
                 )
 
@@ -97,7 +97,7 @@ class BackupRepository @Inject constructor(
 
                 BackupSection.CATEGORIES -> output.writeJsonArray(
                     section = BackupSection.CATEGORIES,
-                    data = database.getFavouriteCategoriesDao().findAll().asFlow().map { CategoryBackup(it) },
+                    data = database.getFavouriteCategoriesDao().findAllForBackup().asFlow().map { CategoryBackup(it) },
                     serializer = serializer(),
                 )
 
@@ -179,17 +179,35 @@ class BackupRepository @Inject constructor(
                 result += when (section) {
                     BackupSection.INDEX -> CompositeResult.EMPTY // useless in our case
                     BackupSection.HISTORY -> input.readJsonArray<HistoryBackup>(serializer()).restoreToDb {
-                        upsertManga(it.manga)
-                        getHistoryDao().upsert(it.toEntity())
+                        val incoming = it.toEntity()
+                        val existing = getHistoryDao().findIncludingDeleted(incoming.mangaId)
+                        if (BackupMergePolicy.shouldReplace(
+                                existing?.updatedAt, existing?.deletedAt ?: 0L,
+                                incoming.updatedAt, incoming.deletedAt)) {
+                            upsertManga(it.manga)
+                            getHistoryDao().upsertRestored(incoming)
+                        }
                     }
 
                     BackupSection.CATEGORIES -> input.readJsonArray<CategoryBackup>(serializer()).restoreToDb {
-                        getFavouriteCategoriesDao().upsert(it.toEntity())
+                        val incoming = it.toEntity()
+                        val existing = getFavouriteCategoriesDao().findIncludingDeleted(incoming.categoryId)
+                        if (BackupMergePolicy.shouldReplace(
+                                existing?.createdAt, existing?.deletedAt ?: 0L,
+                                incoming.createdAt, incoming.deletedAt)) {
+                            getFavouriteCategoriesDao().upsert(incoming)
+                        }
                     }
 
                     BackupSection.FAVOURITES -> input.readJsonArray<FavouriteBackup>(serializer()).restoreToDb {
-                        upsertManga(it.manga)
-                        getFavouritesDao().upsert(it.toEntity())
+                        val incoming = it.toEntity()
+                        val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
+                        if (BackupMergePolicy.shouldReplace(
+                                existing?.createdAt, existing?.deletedAt ?: 0L,
+                                incoming.createdAt, incoming.deletedAt)) {
+                            upsertManga(it.manga)
+                            getFavouritesDao().upsert(incoming)
+                        }
                     }
 
                     BackupSection.SETTINGS -> input.readMap().let {
@@ -209,7 +227,7 @@ class BackupRepository @Inject constructor(
 
                     BackupSection.BOOKMARKS -> input.readJsonArray<BookmarkBackup>(serializer()).restoreToDb {
                         upsertManga(it.manga)
-                        getBookmarksDao().upsert(it.bookmarks.map { b -> b.toEntity() })
+                        getBookmarksDao().insertMissing(it.bookmarks.map { b -> b.toEntity() })
                     }
 
                     BackupSection.SOURCES -> input.readJsonArray<SourceBackup>(serializer()).restoreToDb {
@@ -221,7 +239,7 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.STATS -> input.readJsonArray<StatisticBackup>(serializer()).restoreToDb {
-                        getStatsDao().upsert(it.toEntity())
+                        getStatsDao().insertMissing(it.toEntity())
                     }
 
                     BackupSection.SAVED_FILTERS -> input.readJsonArray<PersistableFilter>(serializer())

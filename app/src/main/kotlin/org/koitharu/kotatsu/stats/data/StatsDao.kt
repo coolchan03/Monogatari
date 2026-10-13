@@ -5,6 +5,8 @@ import androidx.room.MapColumn
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.Upsert
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.currentCoroutineContext
@@ -34,6 +36,9 @@ abstract class StatsDao {
 
 	@Query("SELECT COUNT(*) FROM stats WHERE manga_id = :mangaId")
 	abstract fun observeRowCount(mangaId: Long): Flow<Int>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertMissing(entity: StatsEntity)
 
 	@Upsert
 	abstract suspend fun upsert(entity: StatsEntity)

@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.Transaction
+import androidx.room.Upsert
 import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -118,6 +119,9 @@ abstract class HistoryDao : MangaQueryBuilder.ConditionCallback {
 	@Query("SELECT * FROM history WHERE manga_id = :id AND deleted_at = 0")
 	abstract suspend fun find(id: Long): HistoryEntity?
 
+    @Query("SELECT * FROM history WHERE manga_id = :id LIMIT 1")
+    abstract suspend fun findIncludingDeleted(id: Long): HistoryEntity?
+
 	@Query("SELECT * FROM history WHERE manga_id = :id AND deleted_at = 0")
 	abstract fun observe(id: Long): Flow<HistoryEntity?>
 
@@ -130,11 +134,15 @@ abstract class HistoryDao : MangaQueryBuilder.ConditionCallback {
 	@Query("SELECT percent FROM history WHERE manga_id = :id AND deleted_at = 0")
 	abstract suspend fun findProgress(id: Long): Float?
 
+    @Transaction
+    @Query("SELECT * FROM history ORDER BY updated_at DESC LIMIT :limit OFFSET :offset")
+    abstract suspend fun findAllForBackup(offset: Int, limit: Int): List<HistoryWithManga>
+
 	fun dump(): Flow<HistoryWithManga> = flow {
 		val window = 10
 		var offset = 0
 		while (currentCoroutineContext().isActive) {
-			val list = findAll(offset, window)
+			val list = findAllForBackup(offset, window)
 			if (list.isEmpty()) {
 				break
 			}
@@ -142,6 +150,10 @@ abstract class HistoryDao : MangaQueryBuilder.ConditionCallback {
 			list.forEach { emit(it) }
 		}
 	}
+
+    /** Unlike the normal reading update, this preserves deleted_at. */
+    @Upsert
+    abstract suspend fun upsertRestored(entity: HistoryEntity)
 
 	@Insert(onConflict = OnConflictStrategy.IGNORE)
 	abstract suspend fun insert(entity: HistoryEntity): Long

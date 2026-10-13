@@ -9,11 +9,15 @@ class BackupIndex(
 	@SerialName("app_id") val appId: String,
 	@SerialName("app_version") val appVersion: Int,
 	@SerialName("created_at") val createdAt: Long,
+    @SerialName("device_id") val deviceId: String = "",
+    @SerialName("device_name") val deviceName: String = "",
 ) {
 
-	constructor() : this(
-		appId = BuildConfig.APPLICATION_ID,
-		appVersion = BuildConfig.VERSION_CODE,
-		createdAt = System.currentTimeMillis(),
-	)
+    constructor(deviceId: String = "", deviceName: String = "") : this(
+        appId = BuildConfig.APPLICATION_ID,
+        appVersion = BuildConfig.VERSION_CODE,
+        createdAt = System.currentTimeMillis(),
+        deviceId = deviceId,
+        deviceName = deviceName,
+    )
 }

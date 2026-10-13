@@ -148,6 +148,13 @@ abstract class FavouritesDao : MangaQueryBuilder.ConditionCallback {
 	@Query("SELECT * FROM favourites WHERE manga_id = :mangaId AND deleted_at = 0")
 	abstract suspend fun findAllRaw(mangaId: Long): List<FavouriteEntity>
 
+    @Query("SELECT * FROM favourites WHERE manga_id = :mangaId AND category_id = :categoryId LIMIT 1")
+    abstract suspend fun findIncludingDeleted(mangaId: Long, categoryId: Long): FavouriteEntity?
+
+    @Transaction
+    @Query("SELECT * FROM favourites ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+    abstract suspend fun findAllForBackup(offset: Int, limit: Int): List<FavouriteManga>
+
 	@Query("SELECT DISTINCT category_id FROM favourites WHERE manga_id = :id AND deleted_at = 0")
 	abstract fun observeIds(id: Long): Flow<List<Long>>
 
@@ -192,7 +199,7 @@ abstract class FavouritesDao : MangaQueryBuilder.ConditionCallback {
 		val window = 10
 		var offset = 0
 		while (currentCoroutineContext().isActive) {
-			val list = findAllRaw(offset, window)
+			val list = findAllForBackup(offset, window)
 			if (list.isEmpty()) {
 				break
 			}
