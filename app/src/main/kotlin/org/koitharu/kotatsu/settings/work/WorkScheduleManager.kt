@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.settings.work
 import android.content.SharedPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.koitharu.kotatsu.backups.domain.FolderSyncWorker
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
 import org.koitharu.kotatsu.suggestions.ui.SuggestionsWorker
@@ -22,6 +23,7 @@ class WorkScheduleManager @Inject constructor(
 	private val trackerUnstuckMigrationProvider: Provider<TrackerUnstuckMigrationUseCase>,
 	private val syncController: SyncController,
     private val sourceUpdateScheduler: SourceUpdateWorker.Scheduler,
+    private val folderSyncScheduler: FolderSyncWorker.Scheduler,
 ) : SharedPreferences.OnSharedPreferenceChangeListener {
 
 	override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -42,6 +44,10 @@ class WorkScheduleManager @Inject constructor(
 			)
 
 			AppSettings.KEY_SYNC_PERIOD -> syncController.updateSyncSchedule()
+
+            AppSettings.KEY_BACKUP_FOLDER_SYNC,
+            AppSettings.KEY_BACKUP_PERIODICAL_ENABLED,
+            AppSettings.KEY_BACKUP_PERIODICAL_OUTPUT -> folderSyncScheduler.schedule()
 		}
 	}
 
@@ -52,6 +58,7 @@ class WorkScheduleManager @Inject constructor(
 			updateWorkerImpl(suggestionScheduler, settings.isSuggestionsEnabled, false)
             // Safe JS updates only: no installing hundreds of unreviewed sources in the background.
             sourceUpdateScheduler.schedule()
+            folderSyncScheduler.schedule()
 			// Periodic syncs are registered with the system rather than WorkManager, so they have to be
 			// re-asserted here for accounts added before this setting existed.
 			syncController.updateSyncSchedule()

@@ -30,5 +30,6 @@ class BackupCatalogPolicyTest {
         assertFalse(BackupCatalogPolicy.safePreferenceKey("discord_token"))
         assertFalse(BackupCatalogPolicy.safePreferenceKey("proxy_password"))
         assertFalse(BackupCatalogPolicy.safePreferenceKey("cf_clearance_cookie"))
+        assertFalse(BackupCatalogPolicy.safePreferenceKey("backup_folder_sync"))
     }
 }

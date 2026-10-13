@@ -6,6 +6,7 @@ import java.util.Date
 data class BackupFile(
 	val uri: Uri,
 	val dateTime: Date,
+	val fileName: String = "",
 ) : Comparable<BackupFile> {
 
 	override fun compareTo(other: BackupFile): Int = compareValues(dateTime, other.dateTime)

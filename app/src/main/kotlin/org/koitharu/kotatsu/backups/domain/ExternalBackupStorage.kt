@@ -30,6 +30,7 @@ class ExternalBackupStorage @Inject constructor(
 					dateTime = it.name?.let { fileName ->
 						BackupUtils.parseBackupDateTime(fileName)
 					} ?: return@mapNotNull null,
+					fileName = it.name.orEmpty(),
 				)
 			} else {
 				null

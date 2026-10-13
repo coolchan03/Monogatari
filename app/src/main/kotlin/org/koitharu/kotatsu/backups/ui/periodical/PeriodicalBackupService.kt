@@ -35,7 +35,10 @@ class PeriodicalBackupService : CoroutineIntentService() {
 	lateinit var settings: AppSettings
 
 	override suspend fun IntentJobContext.processIntent(intent: Intent) {
-		if (!settings.isPeriodicalBackupEnabled || settings.periodicalBackupDirectory == null) {
+		if (!settings.isPeriodicalBackupEnabled || settings.periodicalBackupDirectory == null ||
+			settings.isFolderSyncEnabled) {
+			// Folder sync publishes merge-only snapshots. Do not upload identity-bearing
+			// full backups or globally trim other devices' snapshots in the shared folder.
 			return
 		}
 		val lastBackupDate = externalBackupStorage.getLastBackupDate()

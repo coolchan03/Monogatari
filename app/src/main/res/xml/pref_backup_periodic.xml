@@ -18,6 +18,13 @@
 		android:key="backup_periodic_output"
 		android:title="@string/backups_output_directory" />
 
+	<SwitchPreferenceCompat
+		android:defaultValue="false"
+		android:dependency="backup_periodic"
+		android:key="backup_folder_sync"
+		android:title="@string/backup_folder_sync_title"
+		android:summary="@string/backup_folder_sync_summary" />
+
 	<ListPreference
 		android:defaultValue="7"
 		android:dependency="backup_periodic"

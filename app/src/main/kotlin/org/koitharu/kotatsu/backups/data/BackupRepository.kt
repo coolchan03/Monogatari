@@ -85,10 +85,11 @@ class BackupRepository @Inject constructor(
     suspend fun createBackup(
         output: ZipOutputStream,
         progress: FlowCollector<Progress>?,
+        sections: Set<BackupSection> = BackupSection.entries.toSet(),
     ) {
         progress?.emit(Progress.INDETERMINATE)
-        var commonProgress = Progress(0, BackupSection.entries.size)
-        for (section in BackupSection.entries) {
+        var commonProgress = Progress(0, sections.size)
+        for (section in BackupSection.entries.filter { it in sections }) {
             when (section) {
                 BackupSection.INDEX -> output.writeJsonArray(
                     section = BackupSection.INDEX,

@@ -41,3 +41,13 @@
 - GitHub push from Tunnel was denied by OpenAI's safety checks (two attempts); no new remote branch, CI run or release asset exists for this commit. Do **not** merge/publish until exact-commit CI runs green and permission allows push.
 - The laptop cannot run this Gradle build locally without further setup: `java` absent from PATH, Android 37 platform and `local.properties` absent. Do not install an SDK/JDK without consent.
 - User files and untracked `.release-temp/` and `source-audit/` were untouched.
+
+## 10:55 PM grouped Step 43 hardening checkpoint (2026-10-12 CDT)
+- Added opt-in six-hour WorkManager folder sync and on-launch catch-up, with per-device merge cursors and deterministic newest-snapshot selection.
+- Added pure planner regression tests and a restore safety test: a backup must not activate folder synchronization.
+- Shared-folder sync now writes only INDEX, HISTORY, CATEGORIES, FAVOURITES, BOOKMARKS, STATS, excluding identity, source credentials, and settings.
+- Sync snapshots use `sync_` filenames; retention deletes only this device's `sync_` snapshots, not normal full backups or other devices' files.
+- When folder sync is enabled, the pre-existing periodic full-backup service is disabled to prevent secret-bearing backups and global retention from affecting other devices. Users can still create manual full backups.
+- App ID checks allow only explicit Monogatari release/debug/nightly package identifiers.
+- Do not claim verified until combined-commit CI and device smoke testing pass. Actual phone/tablet two-device merge and SAF permissions remain untested.
+- Step 42 JS-source metadata/reinstallation, Step 44 WebDAV, Step 45 migrations, production signing and earlier Stage G partial features remain pending.

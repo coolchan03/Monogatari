@@ -643,6 +643,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getString(KEY_DISCORD_TOKEN, null)?.trim()?.nullIfEmpty()
 		set(value) = prefs.edit { putString(KEY_DISCORD_TOKEN, value?.nullIfEmpty()) }
 
+	/** Explicit, device-local consent; never enabled by restoring a backup. */
+	val isFolderSyncEnabled: Boolean
+		get() = prefs.getBoolean(KEY_BACKUP_FOLDER_SYNC, false)
+
 	val isPeriodicalBackupEnabled: Boolean
 		get() = prefs.getBoolean(KEY_BACKUP_PERIODICAL_ENABLED, false)
 
@@ -893,6 +897,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP = "backup"
 		const val KEY_RESTORE = "restore"
 		const val KEY_BACKUP_PERIODICAL_ENABLED = "backup_periodic"
+		const val KEY_BACKUP_FOLDER_SYNC = "backup_folder_sync"
 		const val KEY_BACKUP_PERIODICAL_FREQUENCY = "backup_periodic_freq"
 		const val KEY_BACKUP_PERIODICAL_TRIM = "backup_periodic_trim"
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"

@@ -27,6 +27,7 @@ internal object BackupCatalogPolicy {
 
     fun safePreferenceKey(key: String): Boolean {
         val name = key.lowercase(Locale.ROOT)
-        return secretWords.none { it in name }
+        // Opt-in folder sync is device-specific and must not be turned on by a restored backup.
+        return name != "backup_folder_sync" && secretWords.none { it in name }
     }
 }
