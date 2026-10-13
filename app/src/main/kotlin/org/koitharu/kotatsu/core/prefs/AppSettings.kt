@@ -93,7 +93,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() {
 			val raw = prefs.getString(KEY_NAV_MAIN, null)?.split(',')
 			return if (raw.isNullOrEmpty()) {
-				listOf(NavItem.FAVORITES, NavItem.BOOKS, NavItem.UPDATED, NavItem.HISTORY, NavItem.EXPLORE)
+				listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.EXPLORE, NavItem.MORE)
 			} else {
 				raw.mapNotNull { x -> NavItem.entries.find(x) }.ifEmpty { listOf(NavItem.EXPLORE) }
 			}
@@ -681,6 +681,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 
 	val isStatsEnabled: Boolean
 		get() = prefs.getBoolean(KEY_STATS_ENABLED, true)
+
+	var dailyReadingGoalMinutes: Int
+		get() = prefs.getInt("stats_daily_goal_minutes", 20).coerceIn(5, 240)
+		set(value) = prefs.edit { putInt("stats_daily_goal_minutes", value.coerceIn(5, 240)) }
 
 	val isAutoLocalChaptersCleanupEnabled: Boolean
 		get() = prefs.getBoolean(KEY_CHAPTERS_CLEAR_AUTO, false)

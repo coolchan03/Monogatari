@@ -9,7 +9,7 @@ import android.graphics.drawable.Drawable
 import kotlin.math.min
 
 /** Deterministic offline cover for missing artwork; draws only locally supplied title text. */
-class GeneratedCoverDrawable(private val title: String) : Drawable() {
+class GeneratedCoverDrawable(private val title: String, private val author: String? = null) : Drawable() {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var alphaValue = 255
     private val palette = intArrayOf(0xFF204B54.toInt(), 0xFF38456C.toInt(),
@@ -49,6 +49,13 @@ class GeneratedCoverDrawable(private val title: String) : Drawable() {
             val safeText = if (paint.measureText(text) > maxWidth)
                 text.takeWhileIndexedWidth(maxWidth) else text
             canvas.drawText(safeText, rect.exactCenterX(), baseline + spacing * index, paint)
+        }
+        author?.trim()?.takeIf { it.isNotEmpty() }?.let { byline ->
+            paint.typeface = android.graphics.Typeface.DEFAULT
+            paint.textSize = min(rect.width() * 0.07f, rect.height() * 0.035f).coerceAtLeast(10f)
+            val safeByline = if (paint.measureText(byline) > maxWidth)
+                byline.takeWhileIndexedWidth(maxWidth) else byline
+            canvas.drawText(safeByline, rect.exactCenterX(), rect.bottom - rect.height() * 0.1f, paint)
         }
     }
 

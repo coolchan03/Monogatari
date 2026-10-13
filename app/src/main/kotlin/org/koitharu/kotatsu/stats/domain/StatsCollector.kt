@@ -86,7 +86,13 @@ class StatsCollector @Inject constructor(
 			runCatchingCancellable {
 				repository.recordChapterMetadata(mangaId, chapterId,
 					sizes.first, sizes.second, sizes.third)
-			}.onFailure { it.printStackTraceDebug() }
+			}.onFailure { error ->
+				// A transient foreign-key or storage failure must be retried on the next read event.
+				synchronized(this@StatsCollector) {
+					if (recordedSizes[key] == sizes) recordedSizes.remove(key)
+				}
+				error.printStackTraceDebug()
+			}
 		}
 	}
 

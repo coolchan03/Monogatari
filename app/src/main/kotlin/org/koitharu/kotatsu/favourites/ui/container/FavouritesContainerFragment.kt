@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.favourites.ui.container
 
 import android.os.Bundle
+import android.content.Intent
+import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -49,6 +51,9 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 
 	override fun onViewBindingCreated(binding: FragmentFavouritesContainerBinding, savedInstanceState: Bundle?) {
 		super.onViewBindingCreated(binding, savedInstanceState)
+		binding.buttonMediaLibrary.setOnClickListener {
+			startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java))
+		}
 		val pagerAdapter = FavouritesContainerAdapter(this)
 		binding.pager.adapter = pagerAdapter
 		binding.pager.offscreenPageLimit = 1

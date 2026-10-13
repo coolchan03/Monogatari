@@ -90,7 +90,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		viewModel.onActionDone.observeEvent(this, ReversibleActionObserver(viewBinding.recyclerView))
 		viewModel.dailyTotals.observeEvent(this) { summary ->
 			androidx.appcompat.app.AlertDialog.Builder(this)
-				.setTitle("Reading activity — last 30 days")
+				.setTitle("Reading activity and insights")
 				.setMessage(summary)
 				.setPositiveButton(android.R.string.ok, null)
 				.show()
@@ -169,6 +169,8 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		menuInflater.inflate(R.menu.opt_stats, menu)
 		menu?.add(0, 7201, 0, "Export reading statistics (CSV)")
 		menu?.add(0, 7202, 1, "Daily reading totals")
+		menu?.add(0, 7204, 2, "Reading insights and streaks")
+		menu?.add(0, 7205, 3, "Daily reading goal")
 		return super.onCreateOptionsMenu(menu)
 	}
 
@@ -180,6 +182,14 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 			}
 			7202 -> {
 				viewModel.requestDailyTotals()
+				true
+			}
+			7204 -> {
+				viewModel.requestInsights()
+				true
+			}
+			7205 -> {
+				showDailyGoalSelector()
 				true
 			}
 			R.id.action_clear -> {
@@ -225,6 +235,20 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 			chip.setOnCheckedChangeListener(this)
 			container.addView(chip)
 		}
+	}
+
+	private fun showDailyGoalSelector() {
+		val options = intArrayOf(5, 10, 15, 20, 30, 45, 60, 90, 120)
+		val labels = options.map { "$it minutes" }.toTypedArray()
+		val checked = options.indexOf(viewModel.currentGoalMinutes())
+		androidx.appcompat.app.AlertDialog.Builder(this)
+			.setTitle("Daily reading goal")
+			.setSingleChoiceItems(labels, checked) { dialog, index ->
+				viewModel.setDailyGoal(options[index])
+				dialog.dismiss()
+			}
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
 	}
 
 	private fun showClearConfirmDialog() {

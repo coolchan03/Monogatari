@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -100,13 +101,18 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     private fun render() {
         if (!::count.isInitialized) return
+        val availableTypes = MediaType.entries.filter { kind -> all.any { it.kind == kind } }
+        if (availableTypes.isNotEmpty() && selected !in availableTypes) selected = availableTypes.first()
         val q = search.text?.toString().orEmpty().trim()
         val filtered = all.filter { it.kind == selected && (q.isBlank() ||
             it.title.contains(q, ignoreCase = true) || it.detail.contains(q, ignoreCase = true)) }
         adapter.setRows(filtered.take(1000))
         count.text = "${filtered.size} ${selected.name.lowercase()} titles" +
             if (filtered.size > 1000) " (first 1000 shown)" else ""
-        buttons.forEach { (type, button) -> button.isEnabled = type != selected }
+        buttons.forEach { (type, button) ->
+            button.isVisible = type in availableTypes || (availableTypes.isEmpty() && type == MediaType.MANGA)
+            button.isEnabled = type != selected
+        }
     }
 
     private inner class Rows : RecyclerView.Adapter<Rows.Holder>() {

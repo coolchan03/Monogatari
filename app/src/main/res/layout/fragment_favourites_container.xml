@@ -7,6 +7,15 @@
 	android:layout_height="match_parent"
 	android:orientation="vertical">
 
+	<com.google.android.material.button.MaterialButton
+		android:id="@+id/button_media_library"
+		style="?attr/materialButtonOutlinedStyle"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="12dp"
+		android:text="@string/monogatari_nav_library_media"
+		android:contentDescription="@string/monogatari_nav_library_media" />
+
 	<com.google.android.material.tabs.TabLayout
 		android:id="@+id/tabs"
 		android:layout_width="match_parent"
