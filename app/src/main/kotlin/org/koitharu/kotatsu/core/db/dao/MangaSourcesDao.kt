@@ -37,6 +37,9 @@ abstract class MangaSourcesDao {
     @Query("UPDATE sources SET fail_count = MIN(fail_count + 1, 1000000) WHERE source = :source")
     abstract suspend fun recordHealthFailure(source: String): Int
 
+    @Query("SELECT EXISTS(SELECT 1 FROM sources WHERE source != :source AND last_success_at >= :since)")
+    abstract suspend fun hasRecentSuccessElsewhere(source: String, since: Long): Boolean
+
     @Query("SELECT source FROM sources WHERE fail_count >= :threshold AND last_success_at < :cutoff")
     abstract suspend fun findUnhealthyNames(threshold: Int, cutoff: Long): List<String>
 

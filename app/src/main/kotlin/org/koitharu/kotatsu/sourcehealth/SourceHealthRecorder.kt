@@ -45,7 +45,13 @@ class SourceHealthRecorder @Inject constructor(
     suspend fun failure(source: MangaSource, error: Throwable) {
         if (error is CancellationException) throw error
         if (!isWebsiteSource(source)) return
-        if (isCloudflare(error) || !isOnline() || ProbeFailureFilter.isConnectionLevel(error)) return
+        if (isCloudflare(error)) return
+        val validated = isOnline()
+        val recent = if (validated && ProbeFailureFilter.isConnectionLevel(error)) {
+            dao.hasRecentSuccessElsewhere(source.name,
+                System.currentTimeMillis() - ProbeFailureFilter.RECENT_SUCCESS_WINDOW_MS)
+        } else false
+        if (ProbeFailureFilter.shouldDiscard(error, validated, recent)) return
         ensureIfNotParser(source)
         dao.recordHealthFailure(source.name)
         val js = source.unwrap() as? JsMangaSource ?: return
