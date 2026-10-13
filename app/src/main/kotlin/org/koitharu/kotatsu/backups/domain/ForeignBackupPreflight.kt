@@ -16,14 +16,14 @@ internal object ForeignBackupPreflight {
             firstBytes[0] == 0x50.toByte() && firstBytes[1] == 0x4b.toByte() &&
             firstBytes[2] == 0x03.toByte() && firstBytes[3] == 0x04.toByte())
             return ForeignBackupFormat.KOTATSU_ZIP
-        if (name.endsWith(".json")) {
-            val marker = firstBytes.take(32).firstOrNull { byte ->
-                byte != ' '.code.toByte() && byte != '\n'.code.toByte() &&
-                    byte != '\r'.code.toByte() && byte != '\t'.code.toByte()
-            }
-            if (marker == '{'.code.toByte() || marker == '['.code.toByte()) {
-                return ForeignBackupFormat.MANGAYOMI_JSON
-            }
+        if (name.endsWith(".json") && firstBytes.size <= 8192) {
+            val snippet = firstBytes.toString(Charsets.UTF_8).trimStart()
+            // A generic JSON document is not proof of a Mangayomi backup.
+            // The recognizable shape is still a preflight hint, not an import guarantee.
+            val recognizable = snippet.startsWith("{") &&
+                listOf("manga", "mangas", "sources", "history", "categories")
+                    .count { key -> snippet.contains("\"$key\"") } >= 2
+            if (recognizable) return ForeignBackupFormat.MANGAYOMI_JSON
         }
         return ForeignBackupFormat.UNKNOWN
     }

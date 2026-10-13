@@ -13,13 +13,15 @@ class ForeignBackupPreflightTest {
         assertEquals(ForeignBackupFormat.MIHON_PROTOBUF_GZIP,
             ForeignBackupPreflight.detect("export.tachibk", gzip))
         assertEquals(ForeignBackupFormat.MANGAYOMI_JSON,
-            ForeignBackupPreflight.detect("backup.JSON", "  {\"data\":1}".toByteArray()))
+            ForeignBackupPreflight.detect("backup.JSON", "  {\"manga\":[],\"sources\":[]}".toByteArray()))
         assertEquals(ForeignBackupFormat.UNKNOWN,
             ForeignBackupPreflight.detect("unsafe.zip", gzip))
         assertEquals(ForeignBackupFormat.UNKNOWN,
             ForeignBackupPreflight.detect("unsafe.tachibk", zip))
         assertEquals(ForeignBackupFormat.UNKNOWN,
             ForeignBackupPreflight.detect("unsafe.json", "<html>".toByteArray()))
+        assertEquals(ForeignBackupFormat.UNKNOWN,
+            ForeignBackupPreflight.detect("generic.json", "{\"data\":1}".toByteArray()))
     }
 
     private val available = listOf(

@@ -9,3 +9,7 @@
 - Part 2 is **not fully done**: imports, full sync/merge, on-device translation, private-category enforcement, and automated notification integrations are still incomplete. Do not claim otherwise.
 - Part 3 has started but still needs duplicate UI and source-bridge review, dependency/license audits, design consistency, CI, and Android acceptance.
 - No destructive Git commands, no SDK install, no automatic credential transmission.
+
+## Foreign backup identification repair (Part 2 + Part 3)
+- Reduced false-positive recognition of arbitrary `.json` as Mangayomi backup: preflight now requires a JSON object with at least two recognizable collection keys within a small bounded header; generic JSON is UNKNOWN.
+- Updated header-detection tests and added a generic-JSON rejection regression case. This remains a format **hint**, not a safe parser or transactionally reviewed import.
