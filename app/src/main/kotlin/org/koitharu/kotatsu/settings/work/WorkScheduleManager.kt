@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
 import org.koitharu.kotatsu.suggestions.ui.SuggestionsWorker
+import org.koitharu.kotatsu.sourcerepo.work.SourceUpdateWorker
 import org.koitharu.kotatsu.tracker.domain.TrackerUnstuckMigrationUseCase
 import org.koitharu.kotatsu.sync.domain.SyncController
 import org.koitharu.kotatsu.tracker.work.TrackWorker
@@ -20,6 +21,7 @@ class WorkScheduleManager @Inject constructor(
 	private val trackerScheduler: TrackWorker.Scheduler,
 	private val trackerUnstuckMigrationProvider: Provider<TrackerUnstuckMigrationUseCase>,
 	private val syncController: SyncController,
+    private val sourceUpdateScheduler: SourceUpdateWorker.Scheduler,
 ) : SharedPreferences.OnSharedPreferenceChangeListener {
 
 	override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -48,6 +50,8 @@ class WorkScheduleManager @Inject constructor(
 		processLifecycleScope.launch(Dispatchers.Default) {
 			updateWorkerImpl(trackerScheduler, settings.isTrackerEnabled, true) // always force due to adaptive interval
 			updateWorkerImpl(suggestionScheduler, settings.isSuggestionsEnabled, false)
+            // Safe JS updates only: no installing hundreds of unreviewed sources in the background.
+            sourceUpdateScheduler.schedule()
 			// Periodic syncs are registered with the system rather than WorkManager, so they have to be
 			// re-asserted here for accounts added before this setting existed.
 			syncController.updateSyncSchedule()

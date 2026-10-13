@@ -25,6 +25,12 @@ abstract class MangaSourcesDao {
 	@Query("SELECT * FROM sources ORDER BY pinned DESC, sort_key")
 	abstract suspend fun findAll(): List<MangaSourceEntity>
 
+    @Query("INSERT OR IGNORE INTO sources (source, enabled, sort_key, added_in, used_at, pinned, cf_state, fail_count, last_success_at) VALUES (:source, 0, 0, 0, 0, 0, 0, 0, 0)")
+    abstract suspend fun ensureHealthRow(source: String)
+
+    @Query("UPDATE sources SET fail_count = 0 WHERE source = :source")
+    abstract suspend fun clearHealthFailures(source: String)
+
     @Query("UPDATE sources SET fail_count = 0, last_success_at = :timestamp WHERE source = :source")
     abstract suspend fun recordHealthSuccess(source: String, timestamp: Long): Int
 

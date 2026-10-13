@@ -66,6 +66,11 @@ class JsSourceStore(private val dir: File) {
             replace(stagedJs, currentJs)
             replace(stagedMeta, currentMeta)
             marker.delete()
+            if (previousExists) {
+                File(dir, "$id.updated_at").writeText(System.currentTimeMillis().toString())
+            } else {
+                File(dir, "$id.updated_at").delete()
+            }
             publish()
         } catch (error: Exception) {
             recoverInterruptedInstalls()
@@ -77,6 +82,22 @@ class JsSourceStore(private val dir: File) {
     @Synchronized
     fun hasPrevious(id: Long): Boolean =
         File(dir, "$id.js.prev").isFile && File(dir, "$id.json.prev").isFile
+
+    @Synchronized
+    fun isFreshUpdate(id: Long, now: Long = System.currentTimeMillis()): Boolean {
+        if (!hasPrevious(id)) return false
+        val at = File(dir, "$id.updated_at").takeIf { it.isFile }
+            ?.readText()?.trim()?.toLongOrNull() ?: return false
+        return now >= at && now - at <= 48L * 60 * 60 * 1000
+    }
+
+    @Synchronized
+    fun confirmUpdate(id: Long) {
+        if (!isFreshUpdate(id)) return
+        File(dir, "$id.js.prev").delete()
+        File(dir, "$id.json.prev").delete()
+        File(dir, "$id.updated_at").delete()
+    }
 
     @Synchronized
     fun isUpdatePaused(id: Long, now: Long = System.currentTimeMillis()): Boolean =
@@ -91,6 +112,8 @@ class JsSourceStore(private val dir: File) {
         marker.writeText("rollback")
         restorePrevious(id)
         marker.delete()
+        discardPrevious(id)
+        File(dir, "$id.updated_at").delete()
         File(dir, "$id.pause").writeText((now + ROLLBACK_PAUSE_MS).toString())
         publish()
         return true
@@ -99,7 +122,7 @@ class JsSourceStore(private val dir: File) {
     @Synchronized
     fun uninstall(id: Long) {
         listOf(".json", ".js", ".json.new", ".js.new", ".json.prev",
-            ".js.prev", ".updating", ".pause").forEach { ext ->
+            ".js.prev", ".updating", ".pause", ".updated_at").forEach { ext ->
             File(dir, "$id$ext").delete()
         }
         publish()
@@ -125,6 +148,7 @@ class JsSourceStore(private val dir: File) {
                 File(dir, "$id.json").delete()
             }
             marker.delete()
+            discardPrevious(id)
             File(dir, "$id.js.new").delete()
             File(dir, "$id.json.new").delete()
         }
@@ -138,6 +162,9 @@ class JsSourceStore(private val dir: File) {
         File(dir, "$id.json.prev").copyTo(stagedMeta, overwrite = true)
         replace(stagedJs, File(dir, "$id.js"))
         replace(stagedMeta, File(dir, "$id.json"))
+    }
+
+    private fun discardPrevious(id: Long) {
         File(dir, "$id.js.prev").delete()
         File(dir, "$id.json.prev").delete()
     }

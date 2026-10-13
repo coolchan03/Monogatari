@@ -11,6 +11,13 @@ class SourceHealthPolicyTest {
         assertFalse(SourceHealthPolicy.isUnhealthy(4, 0, now))
         assertTrue(SourceHealthPolicy.isUnhealthy(5, 0, now))
     }
+    @Test fun rollbackRequiresRecentHealthyPreviousInstall() {
+        assertTrue(SourceHealthPolicy.shouldRollback(3, now - 86_400_000, now, true))
+        assertFalse(SourceHealthPolicy.shouldRollback(2, now - 86_400_000, now, true))
+        assertFalse(SourceHealthPolicy.shouldRollback(3, now - 86_400_000, now, false))
+        assertFalse(SourceHealthPolicy.shouldRollback(3, 0, now, true))
+    }
+
     @Test fun recentSuccessOverridesPreviousFailures() {
         assertFalse(SourceHealthPolicy.isUnhealthy(10, now - 86_400_000, now))
         assertTrue(SourceHealthPolicy.isUnhealthy(5, now - 8 * 86_400_000, now))

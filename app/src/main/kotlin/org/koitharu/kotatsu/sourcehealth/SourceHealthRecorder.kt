@@ -8,6 +8,9 @@ import kotlinx.coroutines.CancellationException
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.exceptions.CloudFlareException
 import org.koitharu.kotatsu.core.model.unwrap
+import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.jsext.source.JsMangaSource
+import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.ProbeFailureFilter
@@ -19,19 +22,39 @@ import javax.inject.Singleton
 class SourceHealthRecorder @Inject constructor(
     private val db: MangaDatabase,
     @ApplicationContext private val context: Context,
+    private val jsStore: JsSourceStore,
 ) {
     private val dao get() = db.getSourcesDao()
 
+    private fun isWebsiteSource(source: MangaSource): Boolean = when (source.unwrap()) {
+        is MangaParserSource, is JsMangaSource, is BuiltinSource -> true
+        else -> false
+    }
+
+    private suspend fun ensureIfNotParser(source: MangaSource) {
+        if (source.unwrap() !is MangaParserSource) dao.ensureHealthRow(source.name)
+    }
+
     suspend fun success(source: MangaSource) {
-        if (source.unwrap() !is MangaParserSource) return
+        if (!isWebsiteSource(source)) return
+        ensureIfNotParser(source)
         dao.recordHealthSuccess(source.name, System.currentTimeMillis())
+        (source.unwrap() as? JsMangaSource)?.let { jsStore.confirmUpdate(it.id) }
     }
 
     suspend fun failure(source: MangaSource, error: Throwable) {
-        if (source.unwrap() !is MangaParserSource) return
         if (error is CancellationException) throw error
+        if (!isWebsiteSource(source)) return
         if (isCloudflare(error) || !isOnline() || ProbeFailureFilter.isConnectionLevel(error)) return
+        ensureIfNotParser(source)
         dao.recordHealthFailure(source.name)
+        val js = source.unwrap() as? JsMangaSource ?: return
+        val state = dao.findOne(source.name) ?: return
+        val now = System.currentTimeMillis()
+        if (SourceHealthPolicy.shouldRollback(state.failCount, state.lastSuccessAt, now,
+                jsStore.isFreshUpdate(js.id, now))) {
+            if (jsStore.rollback(js.id, now)) dao.clearHealthFailures(source.name)
+        }
     }
 
     suspend fun unhealthyNames(now: Long = System.currentTimeMillis()): Set<String> =
