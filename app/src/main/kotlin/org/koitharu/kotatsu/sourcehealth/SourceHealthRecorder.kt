@@ -25,6 +25,7 @@ class SourceHealthRecorder @Inject constructor(
     @ApplicationContext private val context: Context,
     private val jsStore: JsSourceStore,
     private val repairScheduler: SourceRepairWorker.Scheduler,
+    private val retirementTracker: SourceRetirementTracker,
 ) {
     private val dao get() = db.getSourcesDao()
 
@@ -72,7 +73,8 @@ class SourceHealthRecorder @Inject constructor(
     }
 
     suspend fun unhealthyNames(now: Long = System.currentTimeMillis()): Set<String> =
-        dao.findUnhealthyNames(SourceHealthPolicy.FAIL_THRESHOLD, now - SourceHealthPolicy.OLD_SUCCESS_MS).toSet()
+        dao.findUnhealthyNames(SourceHealthPolicy.FAIL_THRESHOLD, now - SourceHealthPolicy.OLD_SUCCESS_MS).toSet() +
+            retirementTracker.retiredNames(now)
 
     private fun isCloudflare(error: Throwable): Boolean {
         var current: Throwable? = error

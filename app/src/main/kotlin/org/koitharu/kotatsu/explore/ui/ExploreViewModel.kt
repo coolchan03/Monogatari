@@ -45,6 +45,7 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import org.koitharu.kotatsu.sourcehealth.SourceHealthRecorder
+import org.koitharu.kotatsu.sourcehealth.SourceRetirementTracker
 import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.suggestions.domain.SuggestionRepository
@@ -60,6 +61,7 @@ class ExploreViewModel @Inject constructor(
 	private val shortcutManager: AppShortcutManager,
 	private val sourceRanker: SourceRanker,
     private val sourceHealth: SourceHealthRecorder,
+    private val retirementTracker: SourceRetirementTracker,
 ) : BaseViewModel() {
 
 	val isGrid = settings.observeAsStateFlow(
@@ -256,8 +258,11 @@ class ExploreViewModel @Inject constructor(
             val unhealthy = runCatchingCancellable {
                 sourceHealth.unhealthyNames()
             }.getOrDefault(emptySet())
+            // Only the automatic Explore list hides long-retired catalog entries. A source
+            // deliberately saved in a custom preset remains visible for manual recovery.
+            val retired = if (activePreset == null) retirementTracker.retiredNames() else emptySet()
             val preferred = SourceWebsiteGroups.orderedGroups(
-                sources.sortedBy { it.name in unhealthy },
+                sources.filterNot { it.name in retired }.sortedBy { it.name in unhealthy },
             ) { SourceWebsiteGroups.key(it.mangaSource) }.map { it.first() }
             preferred.mapTo(result) {
                 MangaSourceItem(it, isGrid, it.name in trending && it.name !in unhealthy, it.name in unhealthy)
