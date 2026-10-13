@@ -42,6 +42,8 @@ object MangayomiIndexParser {
 
 	private fun parseEntry(element: JsonElement, repoUrl: String): JsSourceEntry? {
 		val o = element as? JsonObject ?: return null
+		// Fail open for unverified or stale nightly reports. Only a confirmed recent failure is hidden.
+		if (SourceIndexHealth.shouldHide(o.string("status"), o.string("checkedAt"))) return null
 		val id = o.long("id") ?: return null
 		val codeUrl = o.string("sourceCodeUrl")?.takeIf { it.startsWith("https://", ignoreCase = true) } ?: return null
 		val language = when (o.int("sourceCodeLanguage")) {
