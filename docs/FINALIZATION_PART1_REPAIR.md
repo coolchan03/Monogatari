@@ -17,3 +17,8 @@
 - No SDK/JDK installation and no application-data deletion.
 - Further CI failures must be repaired before Part 2 or a new preview release.
 - Crash issue-report action now uses real newline-separated GitHub issue body fields and handles the absence of an installed browser without crashing the crash dialog.
+
+## Follow-up stabilization pass
+- Added Android `MigrationTestHelper` instrumentation case creating a version-30 manga/history/stats fixture, migrating to v31, deleting the history row, then asserting reading duration/pages and new default columns remain intact. The device/emulator instrumentation must be executed before accepting migration safety.
+- Previous run `38405405307` had not completed all required CI stages when checked. The new CI commit must pass Kotlin/JVM, debug APK and R8; Android device instrumentation and backup/restore acceptance are distinct gates.
+- Full Part 1 acceptance remains conditional on these checks. Do not merge to `devel` or publish an APK while they are outstanding.
