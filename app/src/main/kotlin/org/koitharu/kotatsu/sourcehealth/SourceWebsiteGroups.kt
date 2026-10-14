@@ -41,6 +41,7 @@ object SourceWebsiteGroups {
                 BuiltinSource.SCRIBBLE_HUB -> "https://scribblehub.com"
                 BuiltinSource.YOUTUBE -> "https://youtube.com"
                 BuiltinSource.SOUNDCLOUD -> "https://soundcloud.com"
+                BuiltinSource.DAILYMOTION -> "https://dailymotion.com"
                 BuiltinSource.LIBRIVOX -> "https://librivox.org"
                 BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO,
                 BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS -> "https://archive.org"
