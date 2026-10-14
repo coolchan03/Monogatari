@@ -81,6 +81,7 @@ class LocalPdfReaderActivity : AppCompatActivity() {
             image.setImageBitmap(bitmap)
         }
         counter.text = "Page ${index + 1} of ${pdf.pageCount}"
+        image.contentDescription = "PDF page ${index + 1} of ${pdf.pageCount}"
     }
 
     override fun onPause() {
