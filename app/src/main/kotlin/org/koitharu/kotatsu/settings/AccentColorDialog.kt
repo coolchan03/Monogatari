@@ -27,14 +27,9 @@ internal object AccentColorDialog {
 			orientation = LinearLayout.VERTICAL
 			setPadding(pad, pad / 2, pad, 0)
 		}
-		if (!AccentColors.isSupported()) {
+		val monochrome = !AccentColors.isSupported()
+		if (monochrome) {
 			root.addView(TextView(context).apply { setText(R.string.accent_color_unsupported) })
-			MaterialAlertDialogBuilder(context)
-				.setTitle(R.string.accent_color)
-				.setView(root)
-				.setPositiveButton(android.R.string.ok, null)
-				.show()
-			return
 		}
 
 		var selected: Int? = settings.accentColor
@@ -44,7 +39,11 @@ internal object AccentColorDialog {
 		fun renderPreview() {
 			preview.removeAllViews()
 			val seed = selected
-			val themed = if (seed == null) context else DynamicColors.wrapContextIfAvailable(context, AccentColors.options(seed))
+			val themed = when {
+				seed == null -> context
+				monochrome -> androidx.appcompat.view.ContextThemeWrapper(context, R.style.ThemeOverlay_Monogatari_AccentMono)
+				else -> DynamicColors.wrapContextIfAvailable(context, AccentColors.options(seed))
+			}
 			val surface = MaterialColors.getColor(themed, materialR.attr.colorSurface, 0)
 			val onSurface = MaterialColors.getColor(themed, materialR.attr.colorOnSurface, 0)
 			val primary = MaterialColors.getColor(themed, androidx.appcompat.R.attr.colorPrimary, 0)

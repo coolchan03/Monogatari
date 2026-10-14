@@ -1323,7 +1323,7 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="jellyfin_unreachable">Couldn\'t reach the server: %1$s</string>
     <string name="accent_color">Accent colour</string>
     <string name="accent_color_summary">Pick a palette or any colour; see it live before you apply</string>
-    <string name="accent_color_unsupported">Custom accent colours need Android 12 or newer. Your chosen colour theme stays in use on this device.</string>
+    <string name="accent_color_unsupported">On Android 11 and older, any accent you pick shows as black in light mode and white in dark mode. Choose Theme default to keep your colour theme.</string>
     <string name="accent_palette_system">Theme default</string>
     <string name="accent_palette_ocean_teal">Ocean teal</string>
     <string name="accent_palette_vaporwave">Vaporwave</string>

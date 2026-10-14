@@ -66,6 +66,33 @@ internal object TranslationLayout {
 	/** True if the text is worth translating: it has letters/ideographs, not just numbers, dots or sound marks. */
 	fun isMeaningful(text: String): Boolean = text.any { it.isLetter() }
 
+	/** Per-channel linear blend of two opaque colours; [t] is 0 for [a] and 1 for [b]. */
+	fun lerpColor(a: Int, b: Int, t: Float): Int {
+		fun channel(shift: Int): Int {
+			val x = (a shr shift) and 0xFF
+			val y = (b shr shift) and 0xFF
+			return (x + (y - x) * t.coerceIn(0f, 1f)).roundToInt().coerceIn(0, 255)
+		}
+		return (0xFF shl 24) or (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
+	}
+
+	/**
+	 * Background colour at position ([fx], [fy]), each 0..1 across a box, from the median colours sampled along its
+	 * [left], [right], [top] and [bottom] edges: fills a text box so shaded bubbles and gradients stay smooth.
+	 */
+	fun blendEdges(left: Int, right: Int, top: Int, bottom: Int, fx: Float, fy: Float): Int =
+		lerpColor(lerpColor(left, right, fx), lerpColor(top, bottom, fy), 0.5f)
+
+	/** Largest difference in any colour channel between the given colours (0 = identical). */
+	fun colorSpread(colors: IntArray): Int {
+		var spread = 0
+		for (shift in intArrayOf(16, 8, 0)) {
+			val values = colors.map { (it shr shift) and 0xFF }
+			spread = max(spread, (values.maxOrNull() ?: 0) - (values.minOrNull() ?: 0))
+		}
+		return spread
+	}
+
 	/** Black or white, whichever reads better on [argb]. */
 	fun contrastingTextColor(argb: Int): Int {
 		val r = (argb shr 16) and 0xFF

@@ -16,6 +16,9 @@ internal object TranslatedPageRenderer {
 
 	private const val MIN_TEXT_SIZE = 8f
 
+	/** Edge colours differing by more than this in any channel switch to the smooth fill. */
+	private const val SMOOTH_FILL_SPREAD = 28
+
 	fun render(source: Bitmap, meta: TranslationMeta): Bitmap =
 		render(source, meta.blocks.map { Block(it.box, it.translation) })
 
@@ -34,14 +37,20 @@ internal object TranslatedPageRenderer {
 		for (block in blocks) {
 			if (block.translation.isBlank()) continue
 			val covered = TranslationLayout.inflate(block.box, pad, width, height)
-			val background = sampleBackground(source, covered)
+			val edges = sampleEdges(source, covered)
+			val background = TranslationLayout.medianColor(edges)
 			fill.color = background
 			val corner = pad * 2f
-			canvas.drawRoundRect(covered.toRectF(), corner, corner, fill)
+			// Shaded or gradient bubbles get a smooth fill from their edges; plain ones keep the flat colour.
+			val smooth = TranslationLayout.colorSpread(edges) > SMOOTH_FILL_SPREAD
+			fun paint(region: TranslationLayout.Box) {
+				if (smooth) fillSmooth(canvas, region, edges) else canvas.drawRoundRect(region.toRectF(), corner, corner, fill)
+			}
+			paint(covered)
 			val widened = TranslationLayout.widenForHorizontalText(covered, width, height)
 			val target = growIfNeeded(block.translation, widened, pad, height, textPaint)
 			if (target != covered) {
-				canvas.drawRoundRect(target.toRectF(), corner, corner, fill)
+				paint(target)
 			}
 			textPaint.color = TranslationLayout.contrastingTextColor(background)
 			drawFittedText(canvas, block.translation, target, pad, textPaint)
@@ -83,6 +92,47 @@ internal object TranslatedPageRenderer {
 			.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
 			.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
 			.build()
+
+	/** Smooth fill from the edge colours [left, right, top, bottom] (see [sampleEdges]). */
+	private fun fillSmooth(canvas: Canvas, region: TranslationLayout.Box, edges: IntArray) {
+		val w = region.width
+		val h = region.height
+		if (w <= 0 || h <= 0 || w.toLong() * h > 4_000_000L) return
+		val pixels = IntArray(w * h)
+		for (y in 0 until h) {
+			val fy = if (h > 1) y / (h - 1f) else 0f
+			for (x in 0 until w) {
+				val fx = if (w > 1) x / (w - 1f) else 0f
+				pixels[y * w + x] = TranslationLayout.blendEdges(edges[0], edges[1], edges[2], edges[3], fx, fy)
+			}
+		}
+		val patch = Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
+		canvas.drawBitmap(patch, region.left.toFloat(), region.top.toFloat(), null)
+		patch.recycle()
+	}
+
+	/** Median colours along the box's left, right, top and bottom edges, in that order. */
+	private fun sampleEdges(bitmap: Bitmap, box: TranslationLayout.Box): IntArray {
+		val right = (box.right - 1).coerceAtLeast(box.left)
+		val bottom = (box.bottom - 1).coerceAtLeast(box.top)
+		val steps = 12
+		val left = IntArray(steps + 1)
+		val rightEdge = IntArray(steps + 1)
+		val top = IntArray(steps + 1)
+		val bottomEdge = IntArray(steps + 1)
+		for (i in 0..steps) {
+			val x = box.left + (right - box.left) * i / steps
+			val y = box.top + (bottom - box.top) * i / steps
+			left[i] = bitmap.getPixel(box.left, y)
+			rightEdge[i] = bitmap.getPixel(right, y)
+			top[i] = bitmap.getPixel(x, box.top)
+			bottomEdge[i] = bitmap.getPixel(x, bottom)
+		}
+		return intArrayOf(
+			TranslationLayout.medianColor(left), TranslationLayout.medianColor(rightEdge),
+			TranslationLayout.medianColor(top), TranslationLayout.medianColor(bottomEdge),
+		)
+	}
 
 	/** Median colour of pixels just outside the box: usually the bubble's paper colour. */
 	private fun sampleBackground(bitmap: Bitmap, box: TranslationLayout.Box): Int {

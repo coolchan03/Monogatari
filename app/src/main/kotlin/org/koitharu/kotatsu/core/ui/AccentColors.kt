@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.annotation.ColorInt
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,9 +23,14 @@ object AccentColors {
 	fun options(@ColorInt seed: Int): DynamicColorsOptions =
 		DynamicColorsOptions.Builder().setContentBasedSource(seed).build()
 
+	/** Android 11 and older cannot generate a scheme from a colour: any accent becomes black (light) / white (night). */
 	fun apply(activity: Activity, settings: AppSettings) {
 		val seed = settings.accentColor ?: return
-		DynamicColors.applyToActivityIfAvailable(activity, options(seed))
+		if (isSupported()) {
+			DynamicColors.applyToActivityIfAvailable(activity, options(seed))
+		} else {
+			activity.theme.applyStyle(R.style.ThemeOverlay_Monogatari_AccentMono, true)
+		}
 	}
 }
 

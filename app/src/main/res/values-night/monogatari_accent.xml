@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<style name="ThemeOverlay.Monogatari.AccentMono" parent="">
+		<item name="colorPrimary">#FFFFFFFF</item>
+		<item name="colorOnPrimary">#FF000000</item>
+		<item name="colorPrimaryContainer">#FF424242</item>
+		<item name="colorOnPrimaryContainer">#FFFFFFFF</item>
+	</style>
+</resources>
