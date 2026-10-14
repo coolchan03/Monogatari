@@ -62,6 +62,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private lateinit var paneOpen: MaterialButton
     private var paneRow: Row? = null
     private lateinit var mascot: ImageView
+    private lateinit var loading: com.google.android.material.progressindicator.LinearProgressIndicator
     /** Collections: the user's own folders across all media (long-press a title to file it). */
     private var collections: Map<String, Set<String>> = emptyMap()
     private var selectedCollection: String? = null
@@ -135,6 +136,12 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
         count = TextView(this)
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
+        loading = com.google.android.material.progressindicator.LinearProgressIndicator(this).apply {
+            isIndeterminate = true
+            contentDescription = getString(R.string.library_loading)
+            visibility = View.GONE
+        }
+        root.addView(loading, LinearLayout.LayoutParams(-1, -2))
         // Kitsune keeps an empty library company, in the form of the selected tab. Tap her quickly for a surprise.
         mascot = ImageView(this).apply {
             adjustViewBounds = true
@@ -297,7 +304,9 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     override fun onResume() { super.onResume(); if (::search.isInitialized) refresh() }
 
     private fun refresh() {
-        count.text = "Loading your saved items…"
+        count.text = getString(R.string.library_loading)
+        loading.visibility = View.VISIBLE
+        mascot.isVisible = false
         refreshJob?.cancel()
         refreshJob = lifecycleScope.launch {
             all = withContext(Dispatchers.IO) {
@@ -328,6 +337,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                 }
                 (remote + local).sortedBy { it.title.lowercase() }
             }
+            loading.visibility = View.GONE
             render()
         }
     }

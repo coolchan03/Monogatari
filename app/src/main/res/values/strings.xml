@@ -1367,6 +1367,7 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="library_collection_name_hint">Collection name</string>
     <string name="library_collection_none">No collections yet. Create one to group titles from any media.</string>
     <string name="library_collection_delete">Delete collection</string>
+    <string name="library_loading">Loading your library…</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>
