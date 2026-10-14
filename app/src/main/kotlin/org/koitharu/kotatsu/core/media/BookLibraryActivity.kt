@@ -122,6 +122,8 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("All") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_google)
             .setOnClickListener { search("Google Books") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_standard_ebooks)
+            .setOnClickListener { search("Standard Ebooks") }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
                 if (resources.configuration.screenWidthDp >= 600) 2 else 1)
@@ -237,7 +239,7 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun search(source: String) {
         val term = query.text?.toString()?.trim().orEmpty()
-        if (term.isEmpty()) {
+        if (term.isEmpty() && source != "Standard Ebooks") {
             query.error = getString(R.string.monogatari_catalog_search_enter_term)
             query.requestFocus()
             return
@@ -249,7 +251,7 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
-                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books")
+                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks")
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -350,6 +352,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Archive" -> catalog.searchInternetArchive(term)
             "Wikisource" -> catalog.searchWikisource(term)
             "Google Books" -> catalog.searchGoogleBooks(term)
+            "Standard Ebooks" -> catalog.searchStandardEbooksRecent(term)
             else -> emptyList()
         }
 

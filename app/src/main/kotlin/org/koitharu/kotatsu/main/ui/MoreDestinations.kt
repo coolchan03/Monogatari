@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
+import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import org.koitharu.kotatsu.core.qa.NewsFeedActivity
@@ -23,7 +24,7 @@ internal object MoreDestinations {
     val pages = listOf(
         Page("Unified Library", "Manga, books, video and audio",
             R.drawable.ic_monogatari_nav_favorites, UnifiedLibraryActivity::class.java),
-        Page("Books catalog", "Open locally imported ebooks",
+        Page("Books catalog", "Browse fiction and locally imported ebooks",
             R.drawable.ic_monogatari_nav_books, BookLibraryActivity::class.java),
         Page("Downloads", "Saved chapters and offline reading",
             R.drawable.ic_monogatari_nav_local, DownloadsActivity::class.java),
@@ -33,8 +34,10 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_bookmarks, AllBookmarksActivity::class.java),
         Page("Sources", "Installed websites and extension catalog",
             R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java),
-        Page("Discover", "Trending, Boys' Love and 18+ picks from AniList",
+        Page("Discover", "Manga, novels, anime, films and audio across sources",
             R.drawable.ic_monogatari_nav_explore, DiscoverActivity::class.java),
+        Page("Podcasts & video RSS", "Your fiction, film, drama and entertainment subscriptions",
+            R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java),
         Page("News & followed tags", "RSS feeds and saved interests",
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",

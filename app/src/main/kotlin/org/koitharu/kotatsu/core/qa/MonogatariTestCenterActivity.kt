@@ -23,6 +23,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.discover.DiscoverActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
+import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
@@ -270,6 +271,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             TestDestination.BOOKS -> Intent(this, BookLibraryActivity::class.java)
             TestDestination.UNIFIED_LIBRARY -> Intent(this, UnifiedLibraryActivity::class.java)
             TestDestination.NEWS -> Intent(this, NewsFeedActivity::class.java)
+            TestDestination.MEDIA_FEEDS -> Intent(this, MediaFeedActivity::class.java)
             TestDestination.SOURCES -> Intent(this, SettingsActivity::class.java)
                 .setAction("org.koitharu.kotatsu.action.MONOGATARI_SOURCE_TESTS")
             TestDestination.SETTINGS -> Intent(this, SettingsActivity::class.java)

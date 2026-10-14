@@ -78,4 +78,8 @@ jobs:
             smoke-logcat.txt
             smoke-crash-buffer.txt
             smoke-start-output.txt
+            smoke-phone.png
+            smoke-tablet.png
+            smoke-tablet-start.txt
+            smoke-tablet-crash.txt
           if-no-files-found: warn

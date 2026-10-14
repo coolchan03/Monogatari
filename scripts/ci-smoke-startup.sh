@@ -1,60 +1,80 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 PKG="io.github.coolchan03.monogatari.debug"
 ACTIVITY="org.koitharu.kotatsu.main.ui.MainActivity"
 APK="$(find smoke-apk -type f -name '*.apk' -print -quit)"
 test -n "$APK" || { echo 'Missing debug APK'; exit 1; }
 
-adb install -r "$APK"
-adb shell pm list packages "$PKG"
-adb shell am force-stop "$PKG" || true
-adb logcat -c
-adb shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-start-output.txt
-sleep 12
-adb logcat -d -v threadtime > smoke-logcat.txt
-adb logcat -d -b crash -v threadtime > smoke-crash-buffer.txt || true
+# The hosted emulator occasionally disconnects ADB during graphics initialization.
+# Retry transport commands; never convert a real missing process/crash into a pass.
+adb_try() {
+  local attempt
+  for attempt in 1 2 3; do
+    if timeout 25s adb "$@"; then return 0; fi
+    echo "ADB command failed (attempt $attempt): $*" >&2
+    sleep 3
+  done
+  return 1
+}
 
-if ! adb shell pidof "$PKG" | tr -d '\r' | grep -q '[0-9]'; then
-  echo 'FAIL: Monogatari process exited during cold startup.'
-  grep -A 65 -B 8 -E 'FATAL EXCEPTION|Process: io.github.coolchan03.monogatari|AndroidRuntime|Caused by:' smoke-logcat.txt | tail -n 180 || true
-  echo 'CRASH BUFFER:'
-  tail -n 180 smoke-crash-buffer.txt || true
-  exit 1
-fi
-
-if grep -Fq "Process: $PKG," smoke-crash-buffer.txt; then
-  echo 'FAIL: Android recorded a Monogatari fatal exception, even if a background service restarted it.'
-  tail -n 180 smoke-crash-buffer.txt
-  exit 1
-fi
-
-adb exec-out screencap -p > smoke-phone.png
-
-# A single Android emulator can also smoke-test 600dp+ tablet configurations.
 reset_window() {
   adb shell wm size reset >/dev/null 2>&1 || true
   adb shell wm density reset >/dev/null 2>&1 || true
 }
 trap reset_window EXIT
-adb shell wm size 1280x1920
-adb shell wm density 180
-adb shell am force-stop "$PKG" || true
-adb logcat -c
-adb shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-tablet-start.txt
-sleep 9
-adb exec-out screencap -p > smoke-tablet.png
-adb logcat -d -b crash -v threadtime > smoke-tablet-crash.txt || true
 
-if ! adb shell pidof "$PKG" | tr -d '\r' | grep -q '[0-9]'; then
-  echo 'FAIL: Monogatari exited during tablet-width cold startup.'
-  tail -n 120 smoke-tablet-crash.txt
-  exit 1
-fi
-if grep -Fq "Process: $PKG," smoke-tablet-crash.txt; then
-  echo 'FAIL: Monogatari recorded a tablet-width startup fatal exception.'
-  tail -n 120 smoke-tablet-crash.txt
-  exit 1
-fi
+capture_logs() {
+  local prefix="$1"
+  # Bound the large system log; avoid 255 errors from draining all boot events.
+  adb_try logcat -d -t 1200 -v threadtime > "$prefix-logcat.txt" ||
+    echo 'WARN: main logcat unavailable (ADB transport)' >&2
+  adb_try logcat -d -b crash -t 400 -v threadtime > "$prefix-crash-buffer.txt" ||
+    { echo 'FAIL: crash buffer unavailable after retries'; exit 1; }
+}
 
-echo 'PASS: phone and simulated tablet cold starts survived without fatal Java crashes.'
+verify_launch() {
+  local prefix="$1"
+  local pid
+  if ! pid="$(adb_try shell pidof "$PKG" | tr -d '\r')" ||
+     ! grep -Eq '[0-9]+' <<< "$pid"; then
+    echo "FAIL: Monogatari process missing after $prefix startup."
+    tail -n 120 "$prefix-crash-buffer.txt" || true
+    exit 1
+  fi
+  if grep -Fq "Process: $PKG," "$prefix-crash-buffer.txt"; then
+    echo "FAIL: Monogatari fatal crash recorded after $prefix startup."
+    tail -n 120 "$prefix-crash-buffer.txt"
+    exit 1
+  fi
+  echo "PASS: $prefix cold startup: PID $pid, no app crash recorded."
+}
+
+screenshot() {
+  local file="$1"
+  if ! adb_try exec-out screencap -p > "$file"; then
+    echo "WARN: optional screenshot unavailable ($file)" >&2
+    rm -f "$file"
+  fi
+}
+
+adb_try install -r "$APK"
+adb_try shell pm list packages "$PKG"
+adb_try shell am force-stop "$PKG" || true
+adb_try logcat -c || true
+adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-start-output.txt
+sleep 10
+capture_logs smoke
+verify_launch smoke
+screenshot smoke-phone.png
+
+# Resize same emulator to a real 600dp+ smallest-width configuration.
+adb_try shell wm size 1280x1920
+adb_try shell wm density 180
+adb_try shell am force-stop "$PKG" || true
+adb_try logcat -c || true
+adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-tablet-start.txt
+sleep 10
+capture_logs smoke-tablet
+verify_launch smoke-tablet
+screenshot smoke-tablet.png
+echo 'PASS: phone and simulated tablet cold launches, no Monogatari crashes.'

@@ -1,10 +1,10 @@
-﻿# Monogatari: 88-item implementation tracker
+# Monogatari: 88-item implementation tracker
 
 Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Device QA is separate.
 
-**v0.13.4 source audit:** 19 DONE, 39 PARTIAL, 30 PENDING. Book metadata catalogs, parallel search, sorting and emulator tablet screenshots add partial coverage; no Windows app, full OCR inpainting or mascot yet.
+**v0.13.6 implementation snapshot:** 19 DONE, 41 PARTIAL, 28 PENDING. Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
 
 | # | Status | Requirement |
 |---:|---|---|
@@ -45,13 +45,13 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | PARTIAL | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. |
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. |
-| 38 | PENDING | Standard Ebooks â€” high-quality public-domain EPUB collections/catalog feed. |
+| 38 | PARTIAL | Standard Ebooks â€” high-quality public-domain EPUB collections/catalog feed. |
 | 39 | PARTIAL | Wikisource â€” multilingual public-domain and freely licensed works. |
 | 40 | PENDING | Faded Page / Distributed Proofreaders Canada â€” public-domain ebooks; check region/rights. |
 | 41 | PENDING | Project Gutenberg Australia â€” regional public-domain library; respect copyright territories. |
 | 42 | PENDING | Global Grey Ebooks â€” historical ebooks, where metadata and formats allow. |
-| 43 | PENDING | DOAB / OAPEN â€” open-access academic books; improve licensed EPUB/PDF handling. |
-| 44 | PENDING | OpenStax â€” openly licensed textbooks. |
+| 43 | PENDING | Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links. |
+| 44 | PENDING | Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources. |
 | 45 | PENDING | StoryWeaver â€” multilingual Creative Commons stories, subject to its API/usage rules. |
 | 46 | PARTIAL | Google Books â€” metadata and legally offered previews only, not bypassing access limits. |
 | 47 | PENDING | Baen Free Library â€” legitimately free titles; check format and access. |
@@ -63,11 +63,11 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 53 | PENDING | Bilibili public videos, where regional availability and site restrictions permit. |
 | 54 | PENDING | Odysee public videos and channels; verify licensing and streams. |
 | 55 | PENDING | Twitch publicly accessible clips/VODs, with appropriate API credentials. |
-| 56 | PENDING | TED and other licensed educational public-video catalogs. |
+| 56 | PENDING | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. |
 | 57 | PENDING | Jellyfin home-server libraries through the supported server API (user's own server). |
 | 58 | PENDING | Plex home-server libraries through authenticated APIs, subject to provider constraints. |
 | 59 | PARTIAL | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. |
-| 60 | PENDING | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. |
+| 60 | PARTIAL | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | PARTIAL | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |

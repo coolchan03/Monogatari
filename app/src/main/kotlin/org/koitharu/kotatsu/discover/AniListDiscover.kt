@@ -44,6 +44,9 @@ class AniListDiscover @Inject constructor(
 		val coverUrl: String?,
 		val score: Int?,
 		val isAdult: Boolean = false,
+		/** Public catalog cards open legal provider listings; AniList cards retain global search. */
+		val officialUrl: String? = null,
+		val providerLabel: String? = null,
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)

@@ -101,6 +101,7 @@
 		<activity android:name="org.koitharu.kotatsu.core.media.LocalPdfReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.LocalTextReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.BookLibraryActivity" android:exported="false" />
+		<activity android:name="org.koitharu.kotatsu.core.media.MediaFeedActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.UnifiedLibraryActivity" android:exported="false" />
 		<service android:name="org.koitharu.kotatsu.core.media.AudioPlaybackService" android:exported="true" android:foregroundServiceType="mediaPlayback">
 			<intent-filter><action android:name="androidx.media3.session.MediaSessionService" /></intent-filter>

@@ -15,7 +15,7 @@ enum class ExperienceRating(val label: String) {
 
 enum class TestDestination {
     HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS,
-    LIBRARY, UNIFIED_LIBRARY, DISCOVER, NEWS, IMPORT, NONE,
+    LIBRARY, UNIFIED_LIBRARY, DISCOVER, NEWS, MEDIA_FEEDS, IMPORT, NONE,
 }
 
 data class TestCase(
@@ -144,6 +144,21 @@ object MonogatariTestPlan {
         TestCase("discover_media_hub", "Discover all media kinds",
             "Use the highlighted Manga, Books, Video, Audio and News chips. Are the labels clear? Do books and videos open their own sources instead of manga?",
             TestDestination.DISCOVER, highlight = listOf(R.id.chips_media)),
+        TestCase("discover_public_books", "Browse public ebooks in Discover",
+            "Open Discover > Books, then choose Public ebooks. Are covers, titles and official book pages useful? Switch back to light novels and confirm it searches novel sources.",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("discover_public_videos", "Browse public videos in Discover",
+            "Open Discover > Anime & Video, choose Archive videos and tap a film. Does it open the official video page? Switch back to anime recommendations and confirm global search still works.",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("discover_public_audio", "Browse public audiobooks in Discover",
+            "Open Discover > Audio. Are actual audiobook covers visible? Open a title and try playing the provider's audio, then search installed audio sources.",
+            TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),
+        TestCase("entertainment_feeds", "Fiction podcasts and video RSS feeds",
+            "Open Podcasts & video RSS from More or Discover. Add a real HTTPS fiction/audio-drama or entertainment video feed, check covers, test playback, saved subscriptions, unsubscribe, and filters. Does the UI explain errors?",
+            TestDestination.MEDIA_FEEDS),
+        TestCase("standard_ebooks_public", "Standard Ebooks fiction releases",
+            "In Books Catalog tap Standard Ebooks (new). Check fiction listings without entering a search and open the official page. This is the public new-releases feed, not the members-only OPDS catalog.",
+            TestDestination.BOOKS, highlight = listOf(R.id.monogatari_catalog_standard_ebooks)),
         TestCase("discover_feeds", "Discovery lists and recommendations",
             "Switch popular, BL, light novel and anime feeds. Check that cards search the correct media type and that you like the selection.",
             TestDestination.DISCOVER, highlight = listOf(R.id.chips_feed)),

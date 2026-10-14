@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koitharu.kotatsu.core.network.BaseHttpClient
+import org.koitharu.kotatsu.core.qa.NewsFeedParser
 import org.json.JSONObject
 import java.net.URLEncoder
 import javax.inject.Inject
@@ -87,17 +88,20 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
     }
 
     /** Internet Archive's public video metadata index; open the official playback page. */
-    suspend fun searchInternetArchiveVideos(query: String): List<Book> = withContext(Dispatchers.IO) {
+    suspend fun searchInternetArchiveVideos(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
         val safe = query.replace(Regex("[^\\p{L}\\p{N} ]"), " ").trim()
         if (safe.isBlank()) return@withContext emptyList()
         val expression = "($safe) AND mediatype:movies"
-        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&rows=25&output=json")
+        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&rows=25&page=${page.coerceAtLeast(1)}&output=json")
         val items = json.optJSONObject("response")?.optJSONArray("docs") ?: return@withContext emptyList()
         (0 until items.length()).mapNotNull { i ->
             val entry = items.optJSONObject(i) ?: return@mapNotNull null
             val id = entry.optString("identifier").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             Book(entry.optString("title").ifBlank { id }, entry.optString("creator"),
-                "Internet Archive Video", "https://archive.org/details/${encode(id)}")
+                "Internet Archive Video", "https://archive.org/details/${encode(id)}",
+                coverUrl = "https://archive.org/services/img/${encode(id)}",
+                publicationYear = entry.optInt("year").takeIf { it in 1000..2100 },
+                format = "Public video listing")
         }
     }
 
@@ -119,6 +123,56 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 coverUrl = thumbnail.takeIf { it.startsWith("https://") },
                 publicationYear = year, language = info.optString("language"),
                 format = "Official preview / listing")
+        }
+    }
+
+    /** Free New Releases Atom feed only: the full Standard Ebooks OPDS is membership-gated. */
+    suspend fun searchStandardEbooksRecent(query: String): List<Book> = withContext(Dispatchers.IO) {
+        val xml = fetchText("https://standardebooks.org/feeds/atom/new-releases")
+        NewsFeedParser.parse(xml).asSequence()
+            .filter { query.isBlank() || it.title.contains(query, ignoreCase = true) }
+            .map { entry ->
+                Book(entry.title, "", "Standard Ebooks — new releases", entry.link,
+                    format = "Public-domain listing / EPUB")
+            }.toList()
+    }
+
+    /** Rights-respecting discovery of public audiobook metadata (not a direct download parser). */
+    suspend fun searchInternetArchiveAudio(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
+        val safe = query.replace(Regex("[^\\p{L}\\p{N} ]"), " ").trim()
+        if (safe.isBlank()) return@withContext emptyList()
+        val expression = "($safe) AND mediatype:audio"
+        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&rows=25&page=${page.coerceAtLeast(1)}&output=json")
+        val items = json.optJSONObject("response")?.optJSONArray("docs") ?: return@withContext emptyList()
+        (0 until items.length()).mapNotNull { i ->
+            val entry = items.optJSONObject(i) ?: return@mapNotNull null
+            val id = entry.optString("identifier").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            Book(entry.optString("title").ifBlank { id }, entry.optString("creator"),
+                "Internet Archive Audio", "https://archive.org/details/${encode(id)}",
+                coverUrl = "https://archive.org/services/img/${encode(id)}",
+                publicationYear = entry.optInt("year").takeIf { it in 1000..2100 },
+                format = "Public audio listing")
+        }
+    }
+
+    private fun fetchText(url: String): String {
+        val request = Request.Builder().url(url)
+            .header("User-Agent", "Monogatari/1.0 (public book catalog)").build()
+        return client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Catalog feed HTTP ${response.code}")
+            val body = response.body ?: error("Empty catalog feed")
+            val bytes = body.byteStream().use { stream ->
+                val buffer = ByteArray(8192)
+                val output = java.io.ByteArrayOutputStream()
+                while (true) {
+                    val size = stream.read(buffer)
+                    if (size <= 0) break
+                    if (output.size() + size > 1_000_000) error("Catalog feed exceeds 1 MB")
+                    output.write(buffer, 0, size)
+                }
+                output.toByteArray()
+            }
+            bytes.toString(Charsets.UTF_8)
         }
     }
 

@@ -56,8 +56,8 @@
 40. Faded Page / Distributed Proofreaders Canada — public-domain ebooks; check region/rights.
 41. Project Gutenberg Australia — regional public-domain library; respect copyright territories.
 42. Global Grey Ebooks — historical ebooks, where metadata and formats allow.
-43. DOAB / OAPEN — open-access academic books; improve licensed EPUB/PDF handling.
-44. OpenStax — openly licensed textbooks.
+43. Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links.
+44. Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources.
 45. StoryWeaver — multilingual Creative Commons stories, subject to its API/usage rules.
 46. Google Books — metadata and legally offered previews only, not bypassing access limits.
 47. Baen Free Library — legitimately free titles; check format and access.
@@ -71,7 +71,7 @@
 53. Bilibili public videos, where regional availability and site restrictions permit.
 54. Odysee public videos and channels; verify licensing and streams.
 55. Twitch publicly accessible clips/VODs, with appropriate API credentials.
-56. TED and other licensed educational public-video catalogs.
+56. Independent films, anime trailers, fan videos and entertainment video collections with permitted playback.
 57. Jellyfin home-server libraries through the supported server API (user's own server).
 58. Plex home-server libraries through authenticated APIs, subject to provider constraints.
 59. Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics.

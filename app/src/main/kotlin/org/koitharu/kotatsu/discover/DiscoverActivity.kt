@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
 import android.net.Uri
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.MediaAccents
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import org.koitharu.kotatsu.core.qa.NewsFeedActivity
@@ -48,9 +49,9 @@ class DiscoverActivity : AppCompatActivity() {
 	/** Discover finds what to enjoy; Explore remains the advanced source manager. */
 	private enum class MediaSection(val label: String, val description: String) {
 		MANGA("Manga & Comics", "Trending comics and Boys' Love titles from AniList"),
-		BOOK("Books & Novels", "Light novels, public-domain books and your OPDS catalogs"),
-		VIDEO("Anime & Video", "Anime recommendations plus searchable video websites"),
-		AUDIO("Audio", "Discover audiobooks and audio dramas from installed sources"),
+		BOOK("Books & Novels", "Light novels, free ebooks and public catalogs with cover art"),
+		VIDEO("Anime & Video", "Anime recommendations and public video collections"),
+		AUDIO("Audio", "Browse public audiobooks or search installed audio-drama sources"),
 		NEWS("News", "Read RSS articles and follow your favorite topics"),
 	}
 
@@ -67,6 +68,7 @@ class DiscoverActivity : AppCompatActivity() {
 	private val adapter = ItemsAdapter()
 	private var section = MediaSection.MANGA
 	private var feed = AniListDiscover.Feed.TRENDING_BL
+	private var publicFeedSelected = false
 	private var nextPage = 1
 	private var hasNextPage = true
 	private var loadJob: Job? = null
@@ -95,6 +97,8 @@ class DiscoverActivity : AppCompatActivity() {
 		savedInstanceState?.getString(KEY_FEED)?.let { name ->
 			AniListDiscover.Feed.entries.find { it.name == name }?.let { feed = it }
 		}
+		publicFeedSelected = savedInstanceState?.getBoolean(KEY_PUBLIC_FEED) ?: false
+
 		MediaSection.entries.forEach { media ->
 			binding.chipsMedia.addView(Chip(this).apply {
 				id = media.ordinal + 100
@@ -108,6 +112,7 @@ class DiscoverActivity : AppCompatActivity() {
 			val chosen = checkedIds.firstOrNull()?.let { MediaSection.entries.getOrNull(it - 100) }
 			if (chosen != null && chosen != section) {
 				section = chosen
+				publicFeedSelected = section == MediaSection.AUDIO
 				feed = when (section) {
 					MediaSection.MANGA -> AniListDiscover.Feed.TRENDING_BL
 					MediaSection.BOOK -> AniListDiscover.Feed.LIGHT_NOVELS
@@ -119,10 +124,18 @@ class DiscoverActivity : AppCompatActivity() {
 			}
 		}
 		binding.chipsFeed.setOnCheckedStateChangeListener { _, checkedIds ->
-			val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
-			if (selected != null && selected != feed) {
-				feed = selected
-				reload()
+			if (PUBLIC_CATALOG_FEED_ID in checkedIds) {
+				if (!publicFeedSelected) {
+					publicFeedSelected = true
+					reload()
+				}
+			} else {
+				val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
+				if (selected != null && (selected != feed || publicFeedSelected)) {
+					publicFeedSelected = false
+					feed = selected
+					reload()
+				}
 			}
 		}
 		showSection()
@@ -147,6 +160,7 @@ class DiscoverActivity : AppCompatActivity() {
 		super.onSaveInstanceState(outState)
 		outState.putString(KEY_FEED, feed.name)
 		outState.putString(KEY_SECTION, section.name)
+		outState.putBoolean(KEY_PUBLIC_FEED, publicFeedSelected)
 	}
 
 	override fun onSupportNavigateUp(): Boolean {
@@ -166,13 +180,28 @@ class DiscoverActivity : AppCompatActivity() {
 			}
 		}
 		if (options.isNotEmpty() && feed !in options) feed = options.first()
-		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty()
+		val publicLabel = when (section) {
+			MediaSection.BOOK -> "Public ebooks"
+			MediaSection.VIDEO -> "Archive videos"
+			MediaSection.AUDIO -> "Public audiobooks"
+			else -> null
+		}
+		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty() || publicLabel != null
 		options.forEach { entry ->
 			binding.chipsFeed.addView(Chip(this).apply {
 				id = entry.ordinal + 1
 				setText(entry.titleRes)
 				isCheckable = true
-				isChecked = entry == feed
+				isChecked = entry == feed && !publicFeedSelected
+				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
+			})
+		}
+		publicLabel?.let { label ->
+			binding.chipsFeed.addView(Chip(this).apply {
+				id = PUBLIC_CATALOG_FEED_ID
+				text = label
+				isCheckable = true
+				isChecked = publicFeedSelected
 				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
 			})
 		}
@@ -199,16 +228,23 @@ class DiscoverActivity : AppCompatActivity() {
 			MediaSection.VIDEO -> {
 				action("Search video websites") { askSearch(MediaType.VIDEO) }
 				action("Archive public videos") { searchArchiveVideos() }
+				action("Video RSS feeds") { openMediaFeeds(MediaType.VIDEO) }
 				action("My saved videos") { openLibrary(MediaType.VIDEO) }
 			}
 			MediaSection.AUDIO -> {
 				action("Find audiobooks & dramas") { askSearch(MediaType.AUDIO) }
+				action("Fiction podcasts & audio drama") { openMediaFeeds(MediaType.AUDIO) }
 				action("My audiobooks") { openLibrary(MediaType.AUDIO) }
 			}
 			MediaSection.NEWS -> {
 				action("News & followed tags") { startActivity(Intent(this, NewsFeedActivity::class.java)) }
 			}
 		}
+	}
+
+	private fun openMediaFeeds(type: MediaType) {
+		startActivity(Intent(this, MediaFeedActivity::class.java)
+			.putExtra(MediaFeedActivity.EXTRA_MEDIA_TYPE, type.name))
 	}
 
 	private fun openLibrary(type: MediaType) {
@@ -271,7 +307,8 @@ class DiscoverActivity : AppCompatActivity() {
 		loadJob = null
 		adapter.items = emptyList()
 		nextPage = 1
-		hasNextPage = section in setOf(MediaSection.MANGA, MediaSection.BOOK, MediaSection.VIDEO)
+		hasNextPage = section in setOf(MediaSection.MANGA, MediaSection.BOOK, MediaSection.VIDEO) ||
+			(section == MediaSection.AUDIO && publicFeedSelected)
 		if (hasNextPage) {
 			loadMore()
 		} else {
@@ -287,15 +324,20 @@ class DiscoverActivity : AppCompatActivity() {
 	private fun loadMore() {
 		if (loadJob?.isActive == true || !hasNextPage) return
 		val requestedFeed = feed
+		val requestedSection = section
+		val requestedPublic = publicFeedSelected
 		val page = nextPage
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
 		loadJob = lifecycleScope.launch {
 			try {
-				val result = discover.load(requestedFeed, page)
-				if (requestedFeed != feed) return@launch
-				adapter.items = adapter.items + result.items.filter { new -> adapter.items.none { it.id == new.id } }
-				hasNextPage = result.hasNextPage && result.items.isNotEmpty()
+				val result = if (requestedPublic) loadPublicFeed(requestedSection, page)
+					else discover.load(requestedFeed, page)
+				if (requestedFeed != feed || requestedSection != section ||
+					requestedPublic != publicFeedSelected) return@launch
+				val additions = result.items.filter { new -> adapter.items.none { it.id == new.id } }
+				adapter.items = adapter.items + additions
+				hasNextPage = result.hasNextPage && additions.isNotEmpty()
 				nextPage = page + 1
 				if (adapter.itemCount == 0) {
 					showMessage(getString(R.string.nothing_found))
@@ -310,6 +352,16 @@ class DiscoverActivity : AppCompatActivity() {
 				binding.progress.isVisible = false
 			}
 		}
+	}
+
+	private suspend fun loadPublicFeed(kind: MediaSection, page: Int): AniListDiscover.Page {
+		val books = when (kind) {
+			MediaSection.BOOK -> publicCatalog.searchGutenberg("", page)
+			MediaSection.VIDEO -> publicCatalog.searchInternetArchiveVideos("animation", page)
+			MediaSection.AUDIO -> publicCatalog.searchInternetArchiveAudio("audiobook", page)
+			else -> emptyList()
+		}
+		return PublicDiscoverCatalog.asPage(books, if (kind == MediaSection.BOOK) 32 else 25)
 	}
 
 	private fun showMessage(text: String) {
@@ -336,7 +388,7 @@ class DiscoverActivity : AppCompatActivity() {
 		override fun onBindViewHolder(holder: Holder, position: Int) {
 			val item = items[position]
 			holder.binding.textTitle.text = item.title
-			val badge = listOfNotNull(item.score?.let { "$it%" }, if (item.isAdult) "18+" else null)
+			val badge = listOfNotNull(item.providerLabel, item.score?.let { "$it%" }, if (item.isAdult) "18+" else null)
 			holder.binding.textScore.isVisible = badge.isNotEmpty()
 			holder.binding.textScore.text = badge.joinToString(" · ")
 			holder.binding.imageCover.setImageDrawable(null)
@@ -354,7 +406,13 @@ class DiscoverActivity : AppCompatActivity() {
 				MediaSection.VIDEO -> MediaType.VIDEO
 				else -> MediaType.MANGA
 			}
-			holder.binding.root.setOnClickListener { openTypedSearch(item.title, type) }
+			holder.binding.root.setOnClickListener {
+				val link = item.officialUrl
+				if (link != null && link.startsWith("https://")) {
+					runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+						.onFailure { showMessage("No browser is available for this catalog link.") }
+				} else openTypedSearch(item.title, type)
+			}
 			holder.binding.root.setOnLongClickListener {
 				val alternative = item.alternativeTitle ?: return@setOnLongClickListener false
 				openTypedSearch(alternative, type)
@@ -367,5 +425,7 @@ class DiscoverActivity : AppCompatActivity() {
 
 		const val KEY_FEED = "feed"
 		const val KEY_SECTION = "media_section"
+		const val KEY_PUBLIC_FEED = "public_catalog_feed"
+		const val PUBLIC_CATALOG_FEED_ID = 11000
 	}
 }
