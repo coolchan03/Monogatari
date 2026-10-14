@@ -4,7 +4,9 @@ Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Device QA is separate.
 
-**v0.13.6 implementation snapshot:** 19 DONE, 41 PARTIAL, 28 PENDING. Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
+**v0.13.6 implementation snapshot:** 27 DONE, 36 PARTIAL, 25 PENDING. Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
+
+**Claude pass 2026-10-14:** fixed the broken devel build (missing Standard Ebooks button), and implemented #27, #51, #64, #65, #67, #68, #86 and #88; #62 advanced. Large-screen audit findings and fixes: `docs/LARGE_SCREENS_AND_WINDOWS.md`.
 
 | # | Status | Requirement |
 |---:|---|---|
@@ -34,31 +36,31 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 24 | PARTIAL | One-tap translated/original toggle; optional side-by-side view. |
 | 25 | PENDING | Per-series preferred source language and target language, with English override. |
 | 26 | PENDING | Show OCR confidence and allow tap-to-correct wrongly recognized text. |
-| 27 | PARTIAL | Cache translations per page and target language; offer offline model download management and cache limits. |
+| 27 | DONE | Cache translations per page and target language; offer offline model download management and cache limits. *(Settings > Data cleanup: "Clear translated pages" and "Translation languages"; 200-page cap.)* |
 | 28 | DONE | Never send private pages to a server unless a separately enabled cloud provider is explicitly authorized. |
 | 29 | PARTIAL | Improve reliable publication metadata: year from source APIs/structured fields, then mark estimated years distinctly. |
 | 30 | PARTIAL | Offer oldest/newest globally in addition to within-source sorting once normalized metadata can be stored. |
-| 31 | PARTIAL | Support date ranges (e.g. 1990â€“2000), full years, unknown dates, and optional date confidence. |
+| 31 | PARTIAL | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. |
 | 32 | PARTIAL | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |
 | 33 | PARTIAL | Install source presets: Manga, Novels, Audiobooks, Video, and Multi-media. |
 | 34 | PARTIAL | Display new/updating/broken extension status, permissions, source language and attribution. |
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | PARTIAL | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. |
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. |
-| 38 | PARTIAL | Standard Ebooks â€” high-quality public-domain EPUB collections/catalog feed. |
-| 39 | PARTIAL | Wikisource â€” multilingual public-domain and freely licensed works. |
-| 40 | PENDING | Faded Page / Distributed Proofreaders Canada â€” public-domain ebooks; check region/rights. |
-| 41 | PENDING | Project Gutenberg Australia â€” regional public-domain library; respect copyright territories. |
-| 42 | PENDING | Global Grey Ebooks â€” historical ebooks, where metadata and formats allow. |
+| 38 | PARTIAL | Standard Ebooks - high-quality public-domain EPUB collections/catalog feed. |
+| 39 | PARTIAL | Wikisource - multilingual public-domain and freely licensed works. |
+| 40 | PENDING | Faded Page / Distributed Proofreaders Canada - public-domain ebooks; check region/rights. |
+| 41 | PENDING | Project Gutenberg Australia - regional public-domain library; respect copyright territories. |
+| 42 | PENDING | Global Grey Ebooks - historical ebooks, where metadata and formats allow. |
 | 43 | PENDING | Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links. |
 | 44 | PENDING | Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources. |
-| 45 | PENDING | StoryWeaver â€” multilingual Creative Commons stories, subject to its API/usage rules. |
-| 46 | PARTIAL | Google Books â€” metadata and legally offered previews only, not bypassing access limits. |
-| 47 | PENDING | Baen Free Library â€” legitimately free titles; check format and access. |
-| 48 | PENDING | FictionPress / FanFiction.net â€” public stories where site rules and scraping restrictions allow. |
+| 45 | PENDING | StoryWeaver - multilingual Creative Commons stories, subject to its API/usage rules. |
+| 46 | PARTIAL | Google Books - metadata and legally offered previews only, not bypassing access limits. |
+| 47 | PENDING | Baen Free Library - legitimately free titles; check format and access. |
+| 48 | PENDING | FictionPress / FanFiction.net - public stories where site rules and scraping restrictions allow. |
 | 49 | PARTIAL | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. |
 | 50 | PENDING | Vimeo public videos, channels and collections where embedding/playback is allowed. |
-| 51 | PENDING | Dailymotion public videos and channels. |
+| 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
 | 53 | PENDING | Bilibili public videos, where regional availability and site restrictions permit. |
 | 54 | PENDING | Odysee public videos and channels; verify licensing and streams. |
@@ -69,13 +71,13 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 59 | PARTIAL | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. |
 | 60 | PARTIAL | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
-| 62 | PARTIAL | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. |
+| 62 | PARTIAL | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
-| 64 | PARTIAL | Responsive book/video grids, meaningful max text width and expanded reader controls for 13-inch tablets. |
-| 65 | PARTIAL | Proper portrait large-screen resources, not just landscape 600dp alternatives. |
+| 64 | DONE | Responsive book/video grids, meaningful max text width and expanded reader controls for 13-inch tablets. *(Width-based columns, 760dp text column, rotate controls hidden where Android 16 ignores them.)* |
+| 65 | DONE | Proper portrait large-screen resources, not just landscape 600dp alternatives. *(-w600dp-land moved to -w600dp; details keeps landscape-only layout with working rating controls.)* |
 | 66 | PARTIAL | Resizable/freeform multiwindow, foldable posture and rotation-state testing. |
-| 67 | PARTIAL | Keyboard shortcuts, mouse scroll and hover, right click/context menu and D-pad navigation. |
-| 68 | PENDING | Drag/drop local EPUB, PDF, CBZ, images and supported media. |
+| 67 | DONE | Keyboard shortcuts, mouse scroll and hover, right click/context menu and D-pad navigation. *(Ctrl+F or / search; arrow/Page/Space/Home/End in PDF, EPUB and text readers; existing reader keys, mouse wheel and context clicks.)* |
+| 68 | DONE | Drag/drop local EPUB, PDF, CBZ, images and supported media. *(Drop EPUB/PDF/text onto Books; CBZ/images still use the manga local import.)* |
 | 69 | PARTIAL | Surface accessibility scaling and touch-target checks. |
 | 70 | DONE | Short-term: Android emulator for compatibility/testing only; do not mistake it for native Windows support. |
 | 71 | PENDING | Investigate a Kotlin Compose Multiplatform Windows client with a shared Kotlin core/parser/runtime and a dedicated desktop UI. |
@@ -93,6 +95,6 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 83 | PARTIAL | Document upstream revision, license, modifications and tests for each ported component. |
 | 84 | PARTIAL | Audit updates before merging; do not silently overwrite local additions with copied upstream files. |
 | 85 | PARTIAL | Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks. |
-| 86 | PARTIAL | Tablet emulation screenshots and layout checks; manual device QA only after CI. |
+| 86 | DONE | Tablet emulation screenshots and layout checks; manual device QA only after CI. *(CI cold-starts on phone, portrait-tablet and landscape-tablet windows and keeps screenshots.)* |
 | 87 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
-| 88 | PENDING | Preserve user data, backups, settings and reading progress across updates. |
+| 88 | DONE | Preserve user data, backups, settings and reading progress across updates. *(Automatic pre-update copy of database + settings, last two kept; Settings > Backup > Undo an app update.)* |
