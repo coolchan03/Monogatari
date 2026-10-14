@@ -40,6 +40,8 @@ class JellyfinRepository(
 	override suspend fun getFilterOptions() = MangaListFilterOptions()
 
 	override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
+		// Not set up yet: no results rather than an error, so global search isn't noisy for people without a server.
+		if (!config.isConfigured) return emptyList()
 		val (server, key) = credentials()
 		val url = itemsUrl(server, filter?.query?.trim().orEmpty(), offset.coerceAtLeast(0), order == SortOrder.NEWEST)
 		return parseItems(fetch(url, key)).map { it.toManga(server) }

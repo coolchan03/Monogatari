@@ -39,10 +39,8 @@ class DirectStreamRepository(cache: MemoryContentCache, private val client: OkHt
 	override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
 		val link = filter?.query?.trim().orEmpty()
 		if (link.isEmpty()) return emptyList()
-		if (!StreamLinks.isHttpUrl(link)) {
-			throw IOException("Paste a direct http(s) link to a .m3u8, .mpd, .m3u, video or audio file into the search box")
-		}
-		if (offset > 0) return emptyList()
+		// Ordinary searches (a title, not a link) simply have no results here, so global search stays quiet.
+		if (!StreamLinks.isHttpUrl(link) || offset > 0) return emptyList()
 		val kind = StreamLinks.kindFromUrl(link)
 		if (kind == StreamLinks.Kind.DASH || kind == StreamLinks.Kind.FILE) return listOf(entryManga(StreamLinks.Entry(titleOf(link), link)))
 		val text = fetchText(link)
