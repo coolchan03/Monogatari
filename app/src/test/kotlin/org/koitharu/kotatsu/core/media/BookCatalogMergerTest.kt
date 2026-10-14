@@ -24,6 +24,18 @@ class BookCatalogMergerTest {
         assertEquals("Gutenberg", group.primary.catalog)
         assertTrue(group.providers.contains("Open Library"))
     }
+    @Test fun preferredSourceOverridesAutomaticPrimaryWithoutLosingProviders() {
+        val copies = listOf(
+            book("Jane Eyre", "Charlotte Brontë", "Open Library", 1847),
+            book("Jane-Eyre", "Charlotte Brontë", "Gutenberg", 1847,
+                "https://example.org/epub")
+        )
+        val group = BookCatalogMerger.merge(copies).single()
+        assertEquals("Open Library", group.preferred("Open Library").catalog)
+        assertEquals("Gutenberg", group.preferred("No longer installed").catalog)
+        assertEquals(group.identity, BookCatalogMerger.merge(copies.reversed()).single().identity)
+    }
+
     @Test fun unknownAuthorsAreNotMergedAcrossUnrelatedProviders() {
         val rows = listOf(book("Same title", "", "Source A"), book("Same title", "", "Source B"))
         assertEquals(2, BookCatalogMerger.merge(rows).size)

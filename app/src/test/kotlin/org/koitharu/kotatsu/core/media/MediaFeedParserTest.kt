@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,6 +62,32 @@ class MediaFeedParserTest {
         )
         assertEquals(listOf("Intro", "Part two"), chapters.map { it.title })
         assertEquals(emptyList<MediaFeedParser.Chapter>(), MediaFeedParser.parseChapters("not json"))
+    }
+
+    @Test fun transcriptAndAdaptiveStreamDetectedSafely() {
+        val feed = """<rss xmlns:podcast="https://podcastindex.org/namespace/1.0"><channel><item>
+            <title>Film podcast</title><link>https://video.example/episode</link>
+            <enclosure url="https://media.example/stream.mpd" type="application/dash+xml"/>
+            <podcast:chapters url="http://unsafe.example/chapters.json"/>
+            <podcast:transcript url="https://media.example/subtitles.vtt" type="text/vtt"/>
+            </item></channel></rss>"""
+        val episode = MediaFeedParser.parse(feed).single()
+        assertEquals(MediaFeedParser.Kind.VIDEO, episode.kind)
+        assertEquals("https://media.example/subtitles.vtt", episode.transcriptUrl)
+        assertNull(episode.chaptersUrl)
+    }
+
+    @Test fun atomPrefersPublicationDate() {
+        val feed = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>First release</title>
+            <published>2026-01-01</published><updated>2026-10-01</updated>
+            <link href="https://example.org/story"/></entry></feed>"""
+        assertEquals("2026-01-01", MediaFeedParser.parse(feed).single().published)
+    }
+
+    @Test fun normalizedHttpsUrlAndNoUserinfo() {
+        assertTrue(MediaFeedRepository.validUrl("  https://feeds.example/podcast.xml  "))
+        assertFalse(MediaFeedRepository.validUrl("http://feeds.example/podcast.xml"))
+        assertFalse(MediaFeedRepository.validUrl("https://u:pass@feeds.example/podcast.xml"))
     }
 
     @Test fun feedCarriesDurationAndChaptersUrl() {

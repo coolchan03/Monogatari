@@ -11,11 +11,13 @@ import javax.inject.Inject
 /** HTTPS-only, bounded, cancellable feed retrieval via the app's existing HTTP client. */
 class MediaFeedRepository @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
     suspend fun read(url: String): List<MediaFeedParser.Episode> = withContext(Dispatchers.IO) {
-        require(validUrl(url)) { "Enter a public HTTPS podcast or video RSS feed URL" }
-        val request = Request.Builder().url(url)
+        val normalized = url.trim()
+        require(validUrl(normalized)) { "Enter a public HTTPS podcast or video RSS feed URL" }
+        val request = Request.Builder().url(normalized)
             .header("Accept", "application/rss+xml, application/atom+xml, text/xml, application/xml")
             .header("User-Agent", "Monogatari/1.0 (podcast feed)").build()
         val xml = client.newCall(request).execute().use { response ->
+            require(response.request.url.scheme == "https") { "Feed redirected to an insecure URL" }
             require(response.isSuccessful) { "Feed HTTP ${response.code}" }
             val stream = response.body?.byteStream() ?: error("Empty feed")
             stream.use { input ->
@@ -34,9 +36,11 @@ class MediaFeedRepository @Inject constructor(@BaseHttpClient private val client
     }
     /** Fetches a Podcasting 2.0 chapters file (small, HTTPS only). */
     suspend fun readChapters(url: String): List<MediaFeedParser.Chapter> = withContext(Dispatchers.IO) {
-        require(validUrl(url)) { "Chapters must come from an HTTPS address" }
-        val request = Request.Builder().url(url).header("User-Agent", "Monogatari/1.0 (podcast chapters)").build()
+        val normalized = url.trim()
+        require(validUrl(normalized)) { "Chapters must come from an HTTPS address" }
+        val request = Request.Builder().url(normalized).header("User-Agent", "Monogatari/1.0 (podcast chapters)").build()
         val text = client.newCall(request).execute().use { response ->
+            require(response.request.url.scheme == "https") { "Chapters redirected to an insecure URL" }
             require(response.isSuccessful) { "Chapters HTTP ${response.code}" }
             val source = response.body?.source() ?: error("Empty chapters file")
             source.request(200_001)
@@ -47,10 +51,11 @@ class MediaFeedRepository @Inject constructor(@BaseHttpClient private val client
     }
     companion object {
         fun validUrl(value: String): Boolean {
-            val uri = runCatching { URI(value.trim()) }.getOrNull() ?: return false
+            val normalized = value.trim()
+            val uri = runCatching { URI(normalized) }.getOrNull() ?: return false
             return uri.scheme.equals("https", true) &&
                 !uri.host.isNullOrBlank() && uri.userInfo == null &&
-                value.length in 9..2048
+                normalized.length in 9..2048
         }
     }
 }

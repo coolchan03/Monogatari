@@ -57,6 +57,7 @@ class BookLibraryActivity : AppCompatActivity() {
     private var currentProviderErrors = emptyList<String>()
     private var catalogJob: Job? = null
     private var catalogOrder = BookCatalogSorter.Order.RELEVANCE
+    private val catalogPrefs by lazy { getSharedPreferences("book_catalog_ui", MODE_PRIVATE) }
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         importBooks(uris)
     }
@@ -72,11 +73,22 @@ class BookLibraryActivity : AppCompatActivity() {
                         if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml")) {
                             return@map getString(R.string.monogatari_catalog_import_bad_format, name)
                         }
-                        val dest = File.createTempFile("book-", "-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}", dir)
-                        contentResolver.openInputStream(uri)?.use { input -> dest.outputStream().use { input.copyTo(it) } }
-                            ?: error(getString(R.string.monogatari_catalog_import_read_failed))
+                        val safeName = name.replace(Regex("[^a-zA-Z0-9._ -]"), "_").take(120)
+                        val dest = File.createTempFile("book-", "-$safeName", dir)
+                        var completed = false
+                        try {
+                            contentResolver.openInputStream(uri)?.use { input ->
+                                dest.outputStream().use { input.copyTo(it) }
+                            } ?: error(getString(R.string.monogatari_catalog_import_read_failed))
+                            require(dest.length() > 0) { "The selected book is empty" }
+                            completed = true
+                        } finally {
+                            // Failed or cancelled copies must never appear on the user's book shelf.
+                            if (!completed) dest.delete()
+                        }
                         getString(R.string.monogatari_catalog_imported, name)
-                    } catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
+                    } catch (cancel: CancellationException) { throw cancel }
+                    catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
                 }
             }
             showLines(report)
@@ -338,7 +350,8 @@ class BookLibraryActivity : AppCompatActivity() {
             return
         }
         resultsAdapter.show(groups.map { group ->
-            val book = group.primary
+            val preferredCatalog = catalogPrefs.getString("preferred:${group.identity}", null)
+            val book = group.preferred(preferredCatalog)
             val description = listOfNotNull(
                 book.author.takeIf { it.isNotBlank() }, group.providers,
                 group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
@@ -348,7 +361,7 @@ class BookLibraryActivity : AppCompatActivity() {
             ).joinToString(" · ")
             CatalogRow(
                 title = book.title, subtitle = description,
-                coverUrl = group.entries.firstNotNullOfOrNull { it.coverUrl },
+                coverUrl = book.coverUrl ?: group.entries.firstNotNullOfOrNull { it.coverUrl },
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
             )
@@ -360,11 +373,17 @@ class BookLibraryActivity : AppCompatActivity() {
             openBookListing(group.entries.first())
             return
         }
+        val preferred = catalogPrefs.getString("preferred:${group.identity}", null)
         MaterialAlertDialogBuilder(this)
-            .setTitle(group.primary.title)
+            .setTitle("Choose a source for ${group.primary.title}")
             .setItems(group.entries.map {
-                "${it.catalog} · ${it.format ?: "Source listing"}"
-            }.toTypedArray()) { _, position -> openBookListing(group.entries[position]) }
+                "${if (it.catalog == preferred) "★ " else ""}${it.catalog} · ${it.format ?: "Source listing"}"
+            }.toTypedArray()) { _, position ->
+                val selected = group.entries[position]
+                catalogPrefs.edit().putString("preferred:${group.identity}", selected.catalog).apply()
+                renderCatalogBooks()
+                openBookListing(selected)
+            }
             .setNegativeButton(android.R.string.cancel, null).show()
     }
 

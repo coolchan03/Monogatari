@@ -1,5 +1,14 @@
 # Monogatari work checkpoint
 
+## 2026-10-14 — Continue partial/pending requirements (active)
+
+- Canonical integration target: GitHub `devel`. Claude's more recent `ccr-94e2bfd8-3w4etd` at `d3119cb` is 45 commits ahead of the stale default, including mascot, large-screen, OCR, backups and media providers. Keep ALL of those changes.
+- Protected: original dirty `P:\\AI Projects\\Monogatari`; development worktree `C:\\Users\\coolc\\Monogatari-Audit-Final` from the newest Claude branch. Previous stale-baseline repair commit `f6598a7` is retained but not integrated wholesale.
+- Implemented in current working batch: preferred book catalog provider and stable grouped identity; import cleanup after failed/cancelled file copy; feed HTTPS URL normalization and redirect checking; Podcasting 2.0 transcript/subtitle links, duration/chapters preservation, DASH/HLS classification; cancellation of removed feed in-flight loads; regression tests.
+- Next exact operation: check diffs and tests, commit and push through Tunnel to Surface, then run GitHub Actions. No Android SDK/JDK installed locally; device-only playback and OEM startup must not be claimed as verified.
+- The 88-feature roadmap still contains partial/pending work. Do not claim all done; the 5 Windows-client milestones were dropped by the owner in favor of an emulator.
+
+
 ## 2026-10-13 — Startup crash diagnosis (current)
 
 - **Canonical GitHub branch:** `devel` (only active remote branch; old tips preserved by archive tags). Do not create another development branch.

@@ -17,6 +17,8 @@ object MediaFeedParser {
         val durationSeconds: Int? = null,
         /** Podcasting 2.0 chapters file (podcast:chapters), HTTPS only. */
         val chaptersUrl: String? = null,
+        /** Public transcript or subtitle sidecar (Podcasting 2.0). */
+        val transcriptUrl: String? = null,
     )
 
     data class Chapter(val startSeconds: Int, val title: String)
@@ -90,19 +92,25 @@ object MediaFeedParser {
             if (media == null && page == null) return@mapNotNull null
             val kind = if (mime?.startsWith("video/", true) == true ||
                 media?.substringBefore('?')?.endsWith(".mp4", true) == true ||
-                media?.substringBefore('?')?.endsWith(".webm", true) == true
+                media?.substringBefore('?')?.endsWith(".webm", true) == true ||
+                media?.substringBefore('?')?.endsWith(".m3u8", true) == true ||
+                media?.substringBefore('?')?.endsWith(".mpd", true) == true ||
+                mime?.contains("dash+xml", true) == true
             ) Kind.VIDEO else Kind.AUDIO
             val cover = https(first("media:thumbnail")?.getAttribute("url"))
                 ?: https(first("itunes:image")?.getAttribute("href"))
-            Episode(title, page, media, mime, text(if (atom) "updated" else "pubDate").take(95),
-                cover, kind,
+            val published = if (atom) text("published").ifBlank { text("updated") }
+                else text("pubDate")
+            Episode(title, page, media, mime, published.take(95), cover, kind,
                 durationSeconds = parseDuration(text("itunes:duration")),
-                chaptersUrl = https(first("podcast:chapters")?.getAttribute("url")))
+                chaptersUrl = https(first("podcast:chapters")?.getAttribute("url")),
+                transcriptUrl = https(first("podcast:transcript")?.getAttribute("url"))
+                    ?: https(first("media:subTitle")?.getAttribute("href")))
         }
     }
 
     private fun https(value: String?): String? {
-        val candidate = value?.takeIf { it.length in 9..2048 } ?: return null
+        val candidate = value?.trim()?.takeIf { it.length in 9..2048 } ?: return null
         val parsed = runCatching { URI(candidate) }.getOrNull() ?: return null
         return candidate.takeIf { parsed.scheme.equals("https", true) &&
             !parsed.host.isNullOrBlank() && parsed.userInfo == null }

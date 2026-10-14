@@ -133,6 +133,7 @@ class MediaFeedActivity : AppCompatActivity() {
                     .setItems(options.toTypedArray()) { _, i ->
                         saved.edit().putStringSet("urls", subscribed() - options[i]).apply()
                         if (currentUrl == options[i]) {
+                            loadJob?.cancel()
                             currentUrl = null
                             entries = emptyList()
                             render()
@@ -172,10 +173,11 @@ class MediaFeedActivity : AppCompatActivity() {
                 subtitle = listOfNotNull(episode.kind.name.lowercase().replaceFirstChar { it.uppercaseChar() },
                     episode.durationSeconds?.let(MediaFeedParser::formatDuration),
                     if (episode.chaptersUrl != null) "chapters" else null,
+                    if (episode.transcriptUrl != null) "transcript" else null,
                     episode.published.takeIf { it.isNotBlank() }).joinToString(" · "),
                 coverUrl = episode.coverUrl,
                 onOpen = { openEpisode(episode) },
-                onLongPress = { openPage(episode.pageUrl) },
+                onLongPress = { openEpisode(episode) },
             )
         })
     }
@@ -185,11 +187,16 @@ class MediaFeedActivity : AppCompatActivity() {
         val options = buildList {
             add("Play episode")
             if (entry.chaptersUrl != null) add("Show chapters")
+            if (entry.transcriptUrl != null) add("View transcript or subtitles")
             if (entry.pageUrl != null) add("Open show website")
         }.toTypedArray()
         MaterialAlertDialogBuilder(this).setTitle(entry.title)
             .setItems(options) { _, index ->
                 if (options[index] == "Show chapters") { showChapters(entry); return@setItems }
+                if (options[index] == "View transcript or subtitles") {
+                    openPage(entry.transcriptUrl)
+                    return@setItems
+                }
                 if (index == 0) {
                     runCatching {
                         startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(
