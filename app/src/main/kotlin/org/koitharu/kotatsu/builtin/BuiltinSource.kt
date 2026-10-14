@@ -22,6 +22,9 @@ sealed class BuiltinSource(
     data object WIKISOURCE : BuiltinSource("builtin:wikisource", "Wikisource", MediaType.BOOK)
     data object JELLYFIN : BuiltinSource("builtin:jellyfin", "Jellyfin (my server)", MediaType.VIDEO)
     data object DIRECT_STREAMS : BuiltinSource("builtin:directstreams", "Direct links (HLS, DASH, M3U)", MediaType.VIDEO)
+    data object PLEX : BuiltinSource("builtin:plex", "Plex (my server)", MediaType.VIDEO)
+    data object TWITCH : BuiltinSource("builtin:twitch", "Twitch", MediaType.VIDEO)
+    data object VIMEO : BuiltinSource("builtin:vimeo", "Vimeo", MediaType.VIDEO)
     data object ODYSEE : BuiltinSource("builtin:odysee", "Odysee", MediaType.VIDEO)
     data object IA_BOOKS : BuiltinSource("builtin:ia_books", "Internet Archive Books", MediaType.BOOK)
     data object IA_VIDEO : BuiltinSource("builtin:ia_video", "Internet Archive Video", MediaType.VIDEO)
@@ -33,7 +36,7 @@ sealed class BuiltinSource(
         // can expose partially initialized data-object singletons in JVM tests.
         val entries: List<BuiltinSource> by lazy {
             listOf(GUTENBERG, OPEN_LIBRARY, AO3, ROYAL_ROAD, SCRIBBLE_HUB, LIBRIVOX,
-                YOUTUBE, PEERTUBE, SOUNDCLOUD, DAILYMOTION, WIKISOURCE, ODYSEE, JELLYFIN, DIRECT_STREAMS, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS)
+                YOUTUBE, PEERTUBE, SOUNDCLOUD, DAILYMOTION, WIKISOURCE, ODYSEE, JELLYFIN, PLEX, TWITCH, VIMEO, DIRECT_STREAMS, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS)
         }
         fun fromName(name: String): BuiltinSource? = entries.firstOrNull { it.name == name }
     }

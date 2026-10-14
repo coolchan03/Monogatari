@@ -1373,6 +1373,15 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="source_adult">adult</string>
     <string name="source_needs_cloudflare">may need a CAPTCHA check</string>
     <string name="source_from_repo">from %1$s</string>
+    <string name="api_keys_title">API keys &amp; accounts</string>
+    <string name="api_keys_explanation">Some services need your own key. Create one with the Sign-up button, paste it here and Save. Keys stay on this device (and in your own device backups); they are never part of the app\'s code or sent anywhere except to the service they belong to.</string>
+    <string name="api_keys_saved">saved</string>
+    <string name="api_keys_not_set">not set</string>
+    <string name="api_keys_signup">Sign up / find my key</string>
+    <string name="api_keys_signup_for">Sign up or find your key for %1$s</string>
+    <string name="api_keys_save">Save</string>
+    <string name="api_keys_remove">Remove</string>
+    <string name="api_keys_saved_secret">%1$s saved (%2$s). Leave the box empty to keep it.</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>

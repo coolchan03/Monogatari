@@ -9,7 +9,7 @@ import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
-import org.koitharu.kotatsu.builtin.jellyfin.JellyfinSetupActivity
+import org.koitharu.kotatsu.core.keys.ApiKeysActivity
 import org.koitharu.kotatsu.sourcehealth.SourceLogActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaFeedActivity
@@ -42,8 +42,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java),
         Page("News & followed tags", "RSS feeds and saved interests",
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
-        Page("Jellyfin server", "Connect your own Jellyfin library with its address and API key",
-            R.drawable.ic_monogatari_nav_local, JellyfinSetupActivity::class.java),
+        Page("API keys & accounts", "Your own keys for Jellyfin, Plex, Twitch and Vimeo, with sign-up links",
+            R.drawable.ic_monogatari_nav_local, ApiKeysActivity::class.java),
         Page("Source activity log", "See which sources worked or failed, and open a site in the browser",
             R.drawable.ic_monogatari_nav_explore, SourceLogActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
@@ -65,7 +65,7 @@ internal object MoreDestinations {
         "Unified Library" to "Library", "Books catalog" to "Library", "Downloads" to "Library",
         "Bookmarks" to "Library", "Reading statistics" to "Library",
         "Discover" to "Find something", "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
-        "News & followed tags" to "Find something", "Jellyfin server" to "Find something",
+        "News & followed tags" to "Find something", "API keys & accounts" to "Find something",
         "Source activity log" to "Find something",
         "Manual WebDAV backups" to "Backup and import", "Import from Kotatsu / Mangayomi" to "Backup and import",
     )

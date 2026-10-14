@@ -15,6 +15,10 @@ import org.koitharu.kotatsu.builtin.librivox.LibriVoxRepository
 import org.koitharu.kotatsu.builtin.dailymotion.DailymotionRepository
 import org.koitharu.kotatsu.builtin.directstream.DirectStreamRepository
 import org.koitharu.kotatsu.builtin.jellyfin.JellyfinConfig
+import org.koitharu.kotatsu.builtin.plex.PlexRepository
+import org.koitharu.kotatsu.builtin.twitch.TwitchRepository
+import org.koitharu.kotatsu.builtin.vimeo.VimeoRepository
+import org.koitharu.kotatsu.core.keys.ApiKeys
 import org.koitharu.kotatsu.builtin.jellyfin.JellyfinRepository
 import org.koitharu.kotatsu.builtin.odysee.OdyseeRepository
 import org.koitharu.kotatsu.builtin.wikisource.WikisourceRepository
@@ -28,6 +32,7 @@ class BuiltinRepositoryFactory @Inject constructor(
     private val settings: AppSettings,
     private val bookMetadata: BookMetadataProvider,
     private val jellyfinConfig: JellyfinConfig,
+    private val apiKeys: ApiKeys,
 ) {
     fun create(source: BuiltinSource): MangaRepository {
         val client = mangaClient.newBuilder()
@@ -44,6 +49,9 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.WIKISOURCE -> WikisourceRepository(cache, client)
             BuiltinSource.ODYSEE -> OdyseeRepository(cache, client)
             BuiltinSource.DIRECT_STREAMS -> DirectStreamRepository(cache, client)
+            BuiltinSource.PLEX -> PlexRepository(cache, client, apiKeys)
+            BuiltinSource.TWITCH -> TwitchRepository(cache, client, apiKeys)
+            BuiltinSource.VIMEO -> VimeoRepository(cache, client, apiKeys)
             BuiltinSource.JELLYFIN -> JellyfinRepository(cache, client, jellyfinConfig)
             BuiltinSource.YOUTUBE, BuiltinSource.PEERTUBE, BuiltinSource.SOUNDCLOUD -> NewPipeVideoRepository(cache, source, client)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->

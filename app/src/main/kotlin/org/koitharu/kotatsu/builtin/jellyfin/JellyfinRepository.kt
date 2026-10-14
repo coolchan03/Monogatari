@@ -96,7 +96,7 @@ class JellyfinRepository(
 		val server = config.server
 		val key = config.apiKey
 		if (server == null || key == null) {
-			throw IOException("Jellyfin isn't set up yet. Open More > Jellyfin server and enter your server address and API key.")
+			throw IOException("Jellyfin isn't set up yet. Open More > API keys & accounts and enter your server address and API key.")
 		}
 		return server to key
 	}
