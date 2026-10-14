@@ -28,4 +28,30 @@ class PublicationYearSorterTest {
             "A Tale Without Dates", null, null,
         ))
     }
+
+    @Test fun titleKeyIgnoresCasePunctuationAndBracketedTags() {
+        assertEquals("given", PublicationYearSorter.titleKey("Given (2019) [Official]"))
+        assertEquals(PublicationYearSorter.titleKey("Given: Manga!"), PublicationYearSorter.titleKey("given manga"))
+        assertEquals("", PublicationYearSorter.titleKey("(2019)"))
+    }
+
+    @Test fun globalSortMergesSourcesDropsDuplicatesAndKeepsUnknownLast() {
+        val sourceA = listOf("Alpha (2010)", "Beta", "Gamma (1999)")
+        val sourceB = listOf("alpha", "Delta (2005)")
+        val years = mapOf("Alpha (2010)" to 2010, "alpha" to 2010, "Gamma (1999)" to 1999, "Delta (2005)" to 2005)
+        val oldest = PublicationYearSorter.sortedGlobal(
+            listOf(sourceA, sourceB), PublicationYearOrder.OLDEST_FIRST_GLOBAL, { it }, { years[it] },
+        )
+        assertEquals(listOf("Gamma (1999)", "Delta (2005)", "Alpha (2010)", "Beta"), oldest)
+        val newest = PublicationYearSorter.sortedGlobal(
+            listOf(sourceA, sourceB), PublicationYearOrder.NEWEST_FIRST_GLOBAL, { it }, { years[it] },
+        )
+        assertEquals(listOf("Alpha (2010)", "Delta (2005)", "Gamma (1999)", "Beta"), newest)
+    }
+
+    @Test fun orderFlags() {
+        assertEquals(true, PublicationYearOrder.OLDEST_FIRST_GLOBAL.isGlobal)
+        assertEquals(false, PublicationYearOrder.NEWEST_FIRST.isGlobal)
+        assertEquals(true, PublicationYearOrder.NEWEST_FIRST_GLOBAL.isNewestFirst)
+    }
 }

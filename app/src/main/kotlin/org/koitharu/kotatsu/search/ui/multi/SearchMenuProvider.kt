@@ -143,6 +143,8 @@ class SearchMenuProvider(
 					activity.getString(R.string.publication_year_sort_relevance),
 					activity.getString(R.string.publication_year_sort_ascending),
 					activity.getString(R.string.publication_year_sort_descending),
+					activity.getString(R.string.publication_year_sort_ascending_global),
+					activity.getString(R.string.publication_year_sort_descending_global),
 				),
 			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 			setSelection(ordering.indexOf(viewModel.publicationYearOrder).coerceAtLeast(0))

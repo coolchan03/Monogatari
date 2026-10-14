@@ -932,7 +932,10 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="publication_year_sort_relevance">Best match (default)</string>
     <string name="publication_year_sort_ascending">Oldest to newest (estimated)</string>
     <string name="publication_year_sort_descending">Newest to oldest (estimated)</string>
-    <string name="publication_year_sort_hint">Uses publication years when available in titles or descriptions. Unknown dates come last. Sorts within each source.</string>
+    <string name="publication_year_sort_ascending_global">Oldest to newest, all sources together (estimated)</string>
+    <string name="publication_year_sort_descending_global">Newest to oldest, all sources together (estimated)</string>
+    <string name="search_all_sources_by_year">All sources, by estimated year</string>
+    <string name="publication_year_sort_hint">Uses publication years when available in titles or descriptions. Unknown dates come last. The first two choices sort within each source; the "all sources together" choices merge them and show a title found by several sources once.</string>
     <string name="publication_year_from">From year</string>
     <string name="publication_year_to">To year</string>
     <string name="publication_year_filter_hint">Only sources that support searching with this year range will be included.</string>

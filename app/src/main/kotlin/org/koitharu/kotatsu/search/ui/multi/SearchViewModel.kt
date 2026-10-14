@@ -129,10 +129,35 @@ class SearchViewModel @Inject constructor(
 	)
 	private val displayResults = combine(results, publicationSort) { sections, order ->
 		if (order == PublicationYearOrder.RELEVANCE) sections
+		else if (order.isGlobal) mergeGlobally(sections.sortedForDisplay(), order)
 		else sections.map { section ->
 			section.copy(list = PublicationYearSorter.sorted(section.list, order))
 		}
 	}
+	/** One combined, globally ordered section replaces the per-source ones (sections with errors stay visible). */
+	private fun mergeGlobally(
+		sections: List<SearchResultsListModel>,
+		order: PublicationYearOrder,
+	): List<SearchResultsListModel> {
+		val withResults = sections.filter { it.list.isNotEmpty() }
+		if (withResults.isEmpty()) return sections
+		val merged = PublicationYearSorter.sortedGlobal(
+			lists = withResults.map { it.list },
+			order = order,
+			titleOf = { it.manga.title },
+			yearOf = { PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description) },
+		)
+		val combined = SearchResultsListModel(
+			titleResId = R.string.search_all_sources_by_year,
+			source = withResults.first().source,
+			listFilter = null,
+			sortOrder = null,
+			list = merged,
+			error = null,
+		)
+		return listOf(combined) + sections.filter { it.list.isEmpty() && it.error != null }
+	}
+
 	/** Public catalog links use real URLs rather than invented Manga parser entries. */
 	private data class CatalogState(
 		val items: List<BookCatalogListModel> = emptyList(),
