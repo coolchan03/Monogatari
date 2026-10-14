@@ -113,6 +113,7 @@ class AppearanceSettingsFragment :
             }
 
             AppSettings.KEY_COLOR_THEME,
+            AppSettings.KEY_ACCENT_COLOR,
             AppSettings.KEY_THEME_AMOLED,
             MediaAccents.KEY,
                 -> {
@@ -136,6 +137,11 @@ class AppearanceSettingsFragment :
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         return when (preference.key) {
+            AppSettings.KEY_ACCENT_COLOR -> {
+                AccentColorDialog.show(requireContext(), settings)
+                true
+            }
+
             AppSettings.KEY_PROTECT_APP -> {
                 val pref = (preference as? TwoStatePreference ?: return false)
                 if (pref.isChecked) {
