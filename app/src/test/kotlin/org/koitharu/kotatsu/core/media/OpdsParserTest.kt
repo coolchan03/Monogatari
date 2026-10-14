@@ -35,7 +35,7 @@ class OpdsParserTest {
 		val description = """<OpenSearchDescription><Url type="text/html" template="/web?q={searchTerms}"/>
 			<Url type="application/atom+xml" template="/opds/search?query={searchTerms}{&amp;page}"/></OpenSearchDescription>"""
 		val template = OpdsParser.searchTemplateFromDescription(description, base)
-		assertEquals("https://lib.example.org/opds/search?query={searchTerms}{&page}", template)
+		assertEquals("https://lib.example.org/opds/search?query={searchTerms}", template)
 		assertEquals("https://lib.example.org/opds/search?query=a%20b", OpdsParser.searchUrl(template!!, "a b"))
 	}
 

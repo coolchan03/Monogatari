@@ -88,7 +88,9 @@ internal object OpdsParser {
 	/** Resolves a search template against the catalog URL while keeping the {searchTerms} placeholder intact. */
 	private fun resolveTemplate(base: URI, template: String): String? {
 		val token = "SEARCHTERMSPLACEHOLDER"
-		return resolve(base, template.replace("{searchTerms}", token))?.replace(token, "{searchTerms}")
+		// Other template expressions such as {&page} are optional parameters: dropped, as braces are not valid in a URI.
+		val simple = template.replace(Regex("\\{(?!searchTerms)[^}]*\\}"), "")
+		return resolve(base, simple.replace("{searchTerms}", token))?.replace(token, "{searchTerms}")
 	}
 
 	/** The Atom search URL template inside an OpenSearch description document, if any. */
