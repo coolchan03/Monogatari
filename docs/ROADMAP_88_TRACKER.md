@@ -4,7 +4,7 @@ Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Device QA is separate.
 
-**Implementation snapshot after the follow-up pass (2026-10-14):** 47 DONE, 25 PARTIAL, 16 PENDING (5 of the PENDING items are the dropped Windows app). Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
+**Implementation snapshot after the follow-up pass (2026-10-14):** 56 DONE, 17 PARTIAL, 15 PENDING (5 of the PENDING items are the dropped Windows app). Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#76/#78/#79), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -24,11 +24,11 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 10 | DONE | Retain the one global search instead of duplicating searches per media type. |
 | 11 | PARTIAL | Use one shared card/toolbar/nav system for More, Settings, and all specialized screens. |
 | 12 | PARTIAL | Replace the current special-purpose More screen's card list with the same design language and spacing as Settings. |
-| 13 | PARTIAL | Redesign News & Followed Tags: readable feed, topic chips, follow/unfollow, saved stories, newest-first and source filter. |
+| 13 | DONE | Redesign News & Followed Tags: readable feed, topic chips, follow/unfollow, saved stories, newest-first and source filter. **Done:** topic chips, site filter, newest/oldest order, saved stories, followed tags. |
 | 14 | PARTIAL | Redesign Books Catalog: covers, author/series/year/language, providers, formats and download/borrow/open buttons. |
-| 15 | PARTIAL | Redesign Unified Library: Manga, Books, Videos, Audio tabs and All; unified folders/collections; progress and continue-reading/watch. **Added:** a "Continue" strip of recent titles that follows the selected tab (All/Manga/Book/Video/Audio). Still missing: unified folders/collections. |
-| 16 | PARTIAL | Show source health (working, limited, unreachable) and the last successful scan without noisy alerts. |
-| 17 | PARTIAL | Use thoughtful empty states, per-source error explanations, search-state restoration and loading skeletons. |
+| 15 | DONE | Redesign Unified Library: Manga, Books, Videos, Audio tabs and All; unified folders/collections; progress and continue-reading/watch. **Done:** tabs, Continue strip, and your own collections across all media (long-press a title; chips filter). |
+| 16 | DONE | Show source health (working, limited, unreachable) and the last successful scan without noisy alerts. **Done:** More > Source activity log shows Working / Limited / Unreachable per source with when it last worked. In-memory, no alerts. |
+| 17 | PARTIAL | Use thoughtful empty states, per-source error explanations, search-state restoration and loading skeletons. **Added:** library loading bar, clearer empty states. Per-source error text already existed; no skeleton rows elsewhere. |
 | 18 | PARTIAL | Consistent typography, controls, dark mode, edge-to-edge behavior and accessibility descriptions. |
 | 19 | DONE | Preserve the unified list and private-category visibility settings. |
 | 20 | DONE | Keep ML Kit OCR for Japanese/Chinese/Korean/Latin, translate locally, then overlay English directly onto original page. |
@@ -42,12 +42,12 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 28 | DONE | Never send private pages to a server unless a separately enabled cloud provider is explicitly authorized. |
 | 29 | PARTIAL | Improve reliable publication metadata: year from source APIs/structured fields, then mark estimated years distinctly. |
 | 30 | DONE | Offer oldest/newest globally in addition to within-source sorting once normalized metadata can be stored. **Done:** "all sources together" oldest/newest choices in Publication years merge every source into one list. |
-| 31 | PARTIAL | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. |
+| 31 | DONE | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. **Done:** year range (existing), plus "include titles with no known year"; years are estimates. Per-title date confidence not shown. |
 | 32 | PARTIAL | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |
-| 33 | PARTIAL | Install source presets: Manga, Novels, Audiobooks, Video, and Multi-media. |
+| 33 | DONE | Install source presets: Manga, Novels, Audiobooks, Video, and Multi-media. **Done:** Multi-media preset added to the first-run presets. |
 | 34 | PARTIAL | Display new/updating/broken extension status, permissions, source language and attribution. |
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
-| 36 | PARTIAL | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. |
+| 36 | DONE | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. **Done:** Source activity log with Open a source's website and Copy log; lists already offer Open in browser on errors. |
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Partly:** in the new global ordering a title found by several sources is shown once, from the highest-ranked source. No merging in the normal per-source view and no per-title preferred-source setting yet. |
 | 38 | PARTIAL | Standard Ebooks - high-quality public-domain EPUB collections/catalog feed. |
 | 39 | DONE | Wikisource - multilingual public-domain and freely licensed works. **Done:** English Wikisource through the MediaWiki API (search, featured texts, chapters from sub-pages). |
@@ -57,21 +57,21 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 43 | DONE | Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links. **Done:** Project Gutenberg search takes `genre:horror`, `genre:fantasy`, `genre:romance`, `genre:"science fiction"` (EPUB links). |
 | 44 | DONE | Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources. **Done:** AO3 search accepts fandom:, ship:, rating:, lang: and updated: tokens (limited by your content level). |
 | 45 | PENDING | StoryWeaver - multilingual Creative Commons stories, subject to its API/usage rules. |
-| 46 | PARTIAL | Google Books - metadata and legally offered previews only, not bypassing access limits. |
+| 46 | DONE | Google Books - metadata and legally offered previews only, not bypassing access limits. **Done:** labels say exactly what is allowed (free EPUB, free to read, preview, listing only); official free EPUB downloads; free titles first. |
 | 47 | PENDING | Baen Free Library - legitimately free titles; check format and access. |
 | 48 | PENDING | FictionPress / FanFiction.net - public stories where site rules and scraping restrictions allow. |
-| 49 | PARTIAL | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. |
+| 49 | DONE | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. **Done:** OPDS 1.x Atom and 2.0 JSON, next-page paging, catalog search (OpenSearch), covers, and password catalogs (https://user:password@host/path). |
 | 50 | PENDING | Vimeo public videos, channels and collections where embedding/playback is allowed. |
 | 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
 | 53 | PENDING | Bilibili public videos, where regional availability and site restrictions permit. |
 | 54 | DONE | Odysee public videos and channels; verify licensing and streams. **Done:** Odysee public free videos via the LBRY claim_search proxy; mature tags excluded. |
 | 55 | PENDING | Twitch publicly accessible clips/VODs, with appropriate API credentials. |
-| 56 | PENDING | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. |
+| 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
 | 58 | PENDING | Plex home-server libraries through authenticated APIs, subject to provider constraints. |
 | 59 | DONE | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. **Done:** "Direct links" source: paste an .m3u8 / .mpd / video-or-audio file / .m3u playlist link into video search; quality names show resolution, codecs and bitrate. |
-| 60 | PARTIAL | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. |
+| 60 | PARTIAL | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. **Added:** episode durations and Podcasting 2.0 chapter lists. Subtitle tracks not done. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | DONE | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* **Done:** windows at least 1000dp wide start with the labelled, expanded side drawer (collapsible). |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
