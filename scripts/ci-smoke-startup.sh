@@ -59,6 +59,8 @@ screenshot() {
 
 adb_try install -r "$APK"
 adb_try shell pm list packages "$PKG"
+# The notification permission prompt would otherwise stay on top and swallow later launches.
+adb shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
 adb_try shell am force-stop "$PKG" || true
 adb_try logcat -c || true
 adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-start-output.txt
@@ -74,8 +76,10 @@ tablet_run() {
   adb_try shell wm size "$size"
   adb_try shell wm density 240
   adb_try shell am force-stop "$PKG" || true
+  # Leave any leftover system dialog (permissions, ANR) before relaunching.
+  adb shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
   adb_try logcat -c || true
-  adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee "$name-start.txt"
+  adb_try shell am start -S -W -n "$PKG/$ACTIVITY" | tee "$name-start.txt"
   sleep 10
   capture_logs "$name"
   verify_launch "$name"
