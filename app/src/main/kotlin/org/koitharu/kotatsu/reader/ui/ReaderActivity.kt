@@ -5,6 +5,7 @@ import org.koitharu.kotatsu.BuildConfig
 import com.google.mlkit.nl.translate.TranslateLanguage
 import org.koitharu.kotatsu.reader.translate.PageTranslator
 import org.koitharu.kotatsu.reader.translate.TranslatedPageActivity
+import org.koitharu.kotatsu.reader.translate.TranslationModels
 import java.util.Locale
 import android.app.assist.AssistContent
 import android.content.DialogInterface
@@ -553,6 +554,34 @@ class ReaderActivity :
                 viewModel.setPageTranslationLanguages(source?.let(tags::get), target?.let(tags::get))
                 Snackbar.make(viewBinding.container, R.string.page_translation_languages_saved, Snackbar.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    /** Lists the offline translation packs on the device and lets the user delete some to free space. */
+    override fun onTranslateModelsClick() {
+        lifecycleScope.launch {
+            val tags = try {
+                TranslationModels.downloaded()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (tags.isEmpty()) {
+                Snackbar.make(viewBinding.container, R.string.translation_models_none, Snackbar.LENGTH_SHORT).show()
+                return@launch
+            }
+            val names = tags.map { Locale(it).getDisplayLanguage() }.toTypedArray()
+            val chosen = BooleanArray(tags.size)
+            buildAlertDialog(this@ReaderActivity) {
+                setTitle(R.string.translation_models_manage)
+                setMultiChoiceItems(names, chosen) { _, which, checked -> chosen[which] = checked }
+                setNegativeButton(android.R.string.cancel, null)
+                setPositiveButton(R.string.translation_models_delete) { _, _ ->
+                    lifecycleScope.launch {
+                        tags.filterIndexed { i, _ -> chosen[i] }.forEach { runCatching { TranslationModels.delete(it) } }
+                        Snackbar.make(viewBinding.container, R.string.translation_models_deleted, Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+            }.show()
         }
     }
 

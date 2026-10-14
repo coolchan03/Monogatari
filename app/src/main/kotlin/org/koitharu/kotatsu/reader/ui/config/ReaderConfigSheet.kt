@@ -103,6 +103,7 @@ class ReaderConfigSheet :
         binding.buttonSavePage.setOnClickListener(this)
         binding.buttonTranslatePage.setOnClickListener(this)
         binding.buttonTranslateLanguages.setOnClickListener(this)
+        binding.buttonTranslateModels.setOnClickListener(this)
         binding.buttonScreenRotate.setOnClickListener(this)
         binding.buttonSettings.setOnClickListener(this)
         binding.buttonImageServer.setOnClickListener(this)
@@ -162,6 +163,11 @@ class ReaderConfigSheet :
 
             R.id.button_translate_languages -> {
                 findParentCallback(Callback::class.java)?.onTranslateLanguagesClick() ?: return
+                dismissAllowingStateLoss()
+            }
+
+            R.id.button_translate_models -> {
+                findParentCallback(Callback::class.java)?.onTranslateModelsClick() ?: return
                 dismissAllowingStateLoss()
             }
 
@@ -300,6 +306,8 @@ class ReaderConfigSheet :
         fun onTranslatePageClick()
 
         fun onTranslateLanguagesClick()
+
+        fun onTranslateModelsClick()
 
         fun onScrollTimerClick(isLongClick: Boolean)
 
