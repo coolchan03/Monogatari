@@ -66,6 +66,15 @@ internal object TranslationLayout {
 	/** True if the text is worth translating: it has letters/ideographs, not just numbers, dots or sound marks. */
 	fun isMeaningful(text: String): Boolean = text.any { it.isLetter() }
 
+	fun union(a: Box, b: Box) = Box(min(a.left, b.left), min(a.top, b.top), max(a.right, b.right), max(a.bottom, b.bottom))
+
+	/** [box] pulled in by [n] pixels on every side (never inverted). */
+	fun shrink(box: Box, n: Int): Box {
+		val l = min(box.left + n, (box.left + box.right) / 2)
+		val t = min(box.top + n, (box.top + box.bottom) / 2)
+		return Box(l, t, max(box.right - n, l), max(box.bottom - n, t))
+	}
+
 	/** Per-channel linear blend of two opaque colours; [t] is 0 for [a] and 1 for [b]. */
 	fun lerpColor(a: Int, b: Int, t: Float): Int {
 		fun channel(shift: Int): Int {

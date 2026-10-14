@@ -47,7 +47,10 @@ internal object TranslatedPageRenderer {
 				if (smooth) fillSmooth(canvas, region, edges) else canvas.drawRoundRect(region.toRectF(), corner, corner, fill)
 			}
 			paint(covered)
-			val widened = TranslationLayout.widenForHorizontalText(covered, width, height)
+			// A closed speech bubble around the text lets the translation use the whole bubble, not just the old text's footprint.
+			val bubble = findBubble(source, covered, background, pad)
+			val area = if (bubble != null) TranslationLayout.union(covered, bubble) else covered
+			val widened = TranslationLayout.widenForHorizontalText(area, width, height)
 			val target = growIfNeeded(block.translation, widened, pad, height, textPaint)
 			if (target != covered) {
 				paint(target)
@@ -92,6 +95,24 @@ internal object TranslatedPageRenderer {
 			.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
 			.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
 			.build()
+
+	/** The bubble interior around [covered], shrunk a little off its outline, or null when none can be told apart. */
+	private fun findBubble(source: Bitmap, covered: TranslationLayout.Box, paper: Int, pad: Int): TranslationLayout.Box? {
+		val reach = (max(covered.width, covered.height) / 2).coerceAtLeast(pad * 4)
+		val window = TranslationLayout.inflate(covered, reach, source.width, source.height)
+		val w = window.width
+		val h = window.height
+		if (w <= 0 || h <= 0 || w.toLong() * h > 2_500_000L) return null
+		val pixels = IntArray(w * h)
+		source.getPixels(pixels, 0, w, window.left, window.top, w, h)
+		val local = TranslationLayout.Box(covered.left - window.left, covered.top - window.top, covered.right - window.left, covered.bottom - window.top)
+		val found = BubbleFinder.interiorBounds(pixels, w, h, BubbleFinder.seedsAround(local, 2), paper) ?: return null
+		val inner = TranslationLayout.shrink(
+			TranslationLayout.Box(found.left + window.left, found.top + window.top, found.right + window.left, found.bottom + window.top),
+			pad * 2,
+		)
+		return inner.takeIf { it.width > covered.width && it.height > 0 }
+	}
 
 	/** Smooth fill from the edge colours [left, right, top, bottom] (see [sampleEdges]). */
 	private fun fillSmooth(canvas: Canvas, region: TranslationLayout.Box, edges: IntArray) {
