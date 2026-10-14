@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.core.keys
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.WindowManager
 import android.text.InputType
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -31,6 +32,8 @@ class ApiKeysActivity : AppCompatActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
+		// Keep credentials out of screenshots and the Android recent-apps preview.
+		window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 		setTitle(R.string.api_keys_title)
 		val pad = (12 * resources.displayMetrics.density).toInt()
 		val root = LinearLayout(this).apply {
