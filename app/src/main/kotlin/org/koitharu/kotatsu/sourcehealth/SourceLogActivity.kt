@@ -20,6 +20,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.MangaSource
 import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.MonogatariSectionStyle
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import javax.inject.Inject
 
@@ -92,8 +93,7 @@ class SourceLogActivity : AppCompatActivity() {
 		val pad = (10 * resources.displayMetrics.density).toInt()
 		for (entry in entries.take(150)) {
 			val card = MaterialCardView(this).apply {
-				radius = 12 * resources.displayMetrics.density
-				cardElevation = 0f
+				MonogatariSectionStyle.card(this)
 				setContentPadding(pad, pad, pad, pad)
 			}
 			card.addView(TextView(this).apply { text = SourceLogFormat.line(entry, now).replace(entry.source, titleOf(entry.source)) })

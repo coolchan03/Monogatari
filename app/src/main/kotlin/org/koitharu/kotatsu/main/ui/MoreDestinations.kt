@@ -23,6 +23,11 @@ import org.koitharu.kotatsu.stats.ui.StatsActivity
 internal object MoreDestinations {
     data class Page(val title: String, val subtitle: String,
         val icon: Int, val target: Class<out Activity>, val viewUri: String? = null)
+    sealed interface Entry {
+        data class Header(val name: String) : Entry
+        data class Link(val page: Page) : Entry
+    }
+
     val pages = listOf(
         Page("Unified Library", "Manga, books, video and audio",
             R.drawable.ic_monogatari_nav_favorites, UnifiedLibraryActivity::class.java),
@@ -72,13 +77,23 @@ internal object MoreDestinations {
     private const val DEFAULT_GROUP = "App and tools"
     val groupOrder = listOf("Library", "Find something", "Backup and import", DEFAULT_GROUP)
 
-    /** Section titles (String) interleaved with their destinations (Page). */
-    val sections: List<Any> = buildList {
-        for (group in groupOrder) {
-            val members = pages.filter { (groupOf[it.title] ?: DEFAULT_GROUP) == group }
-            if (members.isEmpty()) continue
-            add(group)
-            addAll(members)
+    /** Typed section entries, stable order, also used for search filtering. */
+    val sections: List<Entry> = filteredSections("")
+
+    fun filteredSections(query: String): List<Entry> {
+        val term = query.trim()
+        return buildList {
+            for (group in groupOrder) {
+                val members = pages.filter { page ->
+                    (groupOf[page.title] ?: DEFAULT_GROUP) == group &&
+                        (term.isBlank() || group.contains(term, true) ||
+                            page.title.contains(term, true) || page.subtitle.contains(term, true))
+                }
+                if (members.isNotEmpty()) {
+                    add(Entry.Header(group))
+                    addAll(members.map { Entry.Link(it) })
+                }
+            }
         }
     }
 

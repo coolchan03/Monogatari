@@ -1408,4 +1408,18 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="tablet_search_read">Start reading</string>
     <string name="tablet_search_website">Open catalog listing</string>
     <string name="tablet_search_no_description">No description is available for this title.</string>
+    <!-- Free-fiction discovery. Sources without a permitted API remain official-site links. -->
+    <string name="monogatari_catalog_baen">Baen Free Library</string>
+    <string name="monogatari_catalog_other_sources">More free-fiction catalogs</string>
+    <string name="monogatari_catalog_globalgrey">Global Grey — free classic fiction (official site)</string>
+    <string name="monogatari_catalog_australia">Project Gutenberg Australia — browse official catalog</string>
+    <string name="monogatari_catalog_fadedpage">Faded Page — Canadian public-domain editions</string>
+    <string name="monogatari_catalog_regional_rights_title">Check copyright in your country</string>
+    <string name="monogatari_catalog_regional_rights">This library may include books that are public-domain in Australia or Canada but still copyrighted where you live. Check local copyright rules before downloading.</string>
+    <string name="monogatari_catalog_visit_site">Visit official site</string>
+    <string name="monogatari_catalog_fanfiction">FanFiction.net — stories on the official site</string>
+    <string name="monogatari_catalog_fictionpress">FictionPress — original fiction on the official site</string>
+    <string name="monogatari_more_filter">Find something in More</string>
+    <string name="monogatari_more_no_results">No matching destinations. Try another search.</string>
+    <string name="monogatari_catalog_opds_https_credentials">Password-protected catalogs must use HTTPS.</string>
 </resources>

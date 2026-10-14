@@ -17,7 +17,7 @@ class SourceActivityLog @Inject constructor() {
 
 	@Synchronized
 	fun record(source: String, ok: Boolean, message: String?, now: Long = System.currentTimeMillis()) {
-		entries.addFirst(Entry(now, source, ok, message?.take(300)))
+		entries.addFirst(Entry(now, source, ok, message?.let(SourceLogSanitizer::redact)?.take(300)))
 		while (entries.size > MAX_ENTRIES) entries.removeLast()
 	}
 
@@ -50,7 +50,7 @@ internal object SourceLogFormat {
 
 	fun line(entry: SourceActivityLog.Entry, now: Long): String {
 		val state = if (entry.ok) "OK" else "FAILED"
-		val detail = entry.message?.takeIf { it.isNotBlank() }?.let { " - $it" }.orEmpty()
+		val detail = entry.message?.takeIf { it.isNotBlank() }?.let { " - ${SourceLogSanitizer.redact(it)}" }.orEmpty()
 		return "${ago(now, entry.timeMs)} · ${entry.source} · $state$detail"
 	}
 

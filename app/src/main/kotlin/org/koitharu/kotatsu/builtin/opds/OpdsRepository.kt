@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.OpdsCatalog
+import org.koitharu.kotatsu.core.media.OpdsAuth
 import org.koitharu.kotatsu.core.media.OpdsParser
 import org.koitharu.kotatsu.core.media.epub.EpubBook
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
@@ -74,14 +75,14 @@ class OpdsRepository(
     private suspend fun searchServerSide(query: String): List<OpdsCatalog.Entry>? = runCatching {
         val root = catalog.loadPage(source.url)
         val template = catalog.searchTemplate(root, source.url) ?: return@runCatching null
-        val results = catalog.loadPage(org.koitharu.kotatsu.core.media.OpdsParser.searchUrl(template, query))
+        val results = catalog.loadPage(org.koitharu.kotatsu.core.media.OpdsParser.searchUrl(template, query), source.url)
         val all = results.entries.toMutableList()
         var next = results.next
         var pages = 1
         while (pages < 5 && all.size < 300) {
             val current = next ?: break
             if (!canFollow(URI(source.url), current)) break
-            val page = runCatching { catalog.loadPage(current) }.getOrNull() ?: break
+            val page = runCatching { catalog.loadPage(current, source.url) }.getOrNull() ?: break
             all += page.entries
             next = page.next
             pages++
@@ -99,7 +100,7 @@ class OpdsRepository(
         while (pending.isNotEmpty() && visited.size < 24 && found.size < 300) {
             val (url, depth) = pending.removeFirst()
             if (!visited.add(url)) continue
-            val page = if (depth == 0) catalog.loadPage(url) else runCatching { catalog.loadPage(url) }.getOrNull() ?: continue
+            val page = if (depth == 0) catalog.loadPage(url) else runCatching { catalog.loadPage(url, source.url) }.getOrNull() ?: continue
             page.entries.forEach { entry ->
                 if (entry.acquisition) {
                     if (isEpubAcquisition(entry)) found.putIfAbsent(entry.href, entry)
@@ -165,7 +166,10 @@ class OpdsRepository(
         if (target.isFile && target.length() > 0L) return@withContext target
         val temp = File(target.path + ".tmp")
         try {
-            client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            val request = Request.Builder().url(url).apply {
+                OpdsAuth.headerFor(source.url, url)?.let { header("Authorization", it) }
+            }.build()
+            client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("OPDS download HTTP ${response.code}")
                 response.body?.byteStream()?.use { input ->
                     temp.outputStream().use { output ->

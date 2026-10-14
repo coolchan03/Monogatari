@@ -157,6 +157,34 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         }
     }
 
+    /** Catalog-only official Baen Free Library titles; the user chooses a download on Baen's site. */
+    suspend fun searchBaenFreeLibrary(query: String): List<Book> = withContext(Dispatchers.IO) {
+        // The official Baen catalog has multiple pages (typically 12 books each).
+        // Do not silently hide titles that aren't on the first page.
+        val listings = linkedMapOf<String, BaenFreeLibrary.Listing>()
+        for (page in 1..10) {
+            val pageItems = try {
+                BaenFreeLibrary.parse(fetchText(BaenFreeLibrary.pageUrl(page)))
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (page == 1) throw error
+                break // A failed later page must not discard earlier free results.
+            }
+            if (pageItems.isEmpty()) break
+            val before = listings.size
+            pageItems.forEach { listings.putIfAbsent(it.url, it) }
+            if (before == listings.size) break
+        }
+        if (listings.isEmpty()) error("Baen Free Library returned no free listings; its format may have changed")
+        listings.values.asSequence()
+            .filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }
+            .map { item ->
+                Book(item.title, "", "Baen Free Library", item.url,
+                    coverUrl = item.cover, format = "Free official listing · EPUB on Baen")
+            }.take(100).toList()
+    }
+
     private fun fetchText(url: String): String {
         val request = Request.Builder().url(url)
             .header("User-Agent", "Monogatari/1.0 (public book catalog)").build()

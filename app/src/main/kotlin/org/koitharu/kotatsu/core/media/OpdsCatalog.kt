@@ -14,14 +14,17 @@ class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttp
         val mediaType: String? = null, val cover: String? = null,
     )
 
-    suspend fun load(url: String): List<Entry> = loadPage(url).entries
+    suspend fun load(url: String, credentialSource: String? = null): List<Entry> = loadPage(url, credentialSource).entries
 
-    internal suspend fun loadPage(url: String): OpdsParser.Page = withContext(Dispatchers.IO) {
+    internal suspend fun loadPage(url: String, credentialSource: String? = null): OpdsParser.Page = withContext(Dispatchers.IO) {
         require(OpdsParser.isWeb(url)) { "Use an HTTP(S) catalog URL" }
         val (clean, auth) = OpdsParser.splitCredentials(url)
+        require(auth == null || clean.startsWith("https://", ignoreCase = true)) {
+            "Authenticated OPDS catalogs require HTTPS"
+        }
         val request = Request.Builder().url(clean)
             .header("Accept", "application/opds+json, application/atom+xml, application/xml;q=0.9, */*;q=0.5")
-            .apply { if (auth != null) header("Authorization", auth) }
+            .apply { (auth ?: credentialSource?.let { OpdsAuth.headerFor(it, clean) })?.let { header("Authorization", it) } }
             .build()
         client.newCall(request).execute().use {
             if (it.code == 401) error("This catalog needs a login: add it as https://user:password@host/path")
@@ -38,7 +41,10 @@ class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttp
         val (clean, auth) = OpdsParser.splitCredentials(description)
         return withContext(Dispatchers.IO) {
             runCatching {
-                val request = Request.Builder().url(clean).apply { if (auth != null) header("Authorization", auth) }.build()
+                val request = Request.Builder().url(clean).apply {
+                    (auth?.takeIf { clean.startsWith("https://", true) } ?: OpdsAuth.headerFor(base, clean))
+                        ?.let { header("Authorization", it) }
+                }.build()
                 client.newCall(request).execute().use {
                     if (!it.isSuccessful) return@use null
                     OpdsParser.searchTemplateFromDescription(it.body?.string().orEmpty(), java.net.URI(base))

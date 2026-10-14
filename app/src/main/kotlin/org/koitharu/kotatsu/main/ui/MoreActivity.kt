@@ -13,10 +13,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import org.koitharu.kotatsu.core.media.MediaAccents
 import android.content.res.ColorStateList
-import androidx.core.view.ViewCompat
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.textfield.TextInputLayout
+import com.google.android.material.textfield.TextInputEditText
+import org.koitharu.kotatsu.core.ui.MonogatariSectionStyle
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.MaterialColors
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.BookShelfCard
 import org.koitharu.kotatsu.core.ui.Mascot
@@ -25,6 +28,12 @@ import org.koitharu.kotatsu.core.ui.TapCounter
 
 /** Full-screen, theme-aware More hub; no duplicate hard-coded menu destinations. */
 class MoreActivity : AppCompatActivity() {
+    private lateinit var searchBox: TextInputEditText
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (::searchBox.isInitialized) outState.putString("more_filter", searchBox.text?.toString())
+        super.onSaveInstanceState(outState)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = "More"
@@ -50,16 +59,36 @@ class MoreActivity : AppCompatActivity() {
         }
         header.addView(mascot, LinearLayout.LayoutParams((72 * resources.displayMetrics.density).toInt(), (72 * resources.displayMetrics.density).toInt()))
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
+        val destinationsAdapter = DestinationsAdapter()
+        val emptyNotice = TextView(this).apply {
+            setText(R.string.monogatari_more_no_results)
+            isVisible = false
+        }
+        root.addView(TextInputLayout(this).apply {
+            hint = getString(R.string.monogatari_more_filter)
+            addView(TextInputEditText(this@MoreActivity).apply {
+                isSingleLine = true
+                setText(savedInstanceState?.getString("more_filter").orEmpty())
+                searchBox = this
+                doAfterTextChanged {
+                    destinationsAdapter.filter(it?.toString().orEmpty())
+                    emptyNotice.isVisible = destinationsAdapter.itemCount == 0
+                }
+            })
+        }, LinearLayout.LayoutParams(-1, -2))
+        root.addView(emptyNotice, LinearLayout.LayoutParams(-1, -2))
+        destinationsAdapter.filter(savedInstanceState?.getString("more_filter").orEmpty())
+        emptyNotice.isVisible = destinationsAdapter.itemCount == 0
         root.addView(RecyclerView(this).apply {
             val columns = MonogatariChrome.columns(context)
             layoutManager = GridLayoutManager(this@MoreActivity, columns).apply {
                 // Section titles span the whole row, like category headings in Settings.
                 spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                     override fun getSpanSize(position: Int): Int =
-                        if (MoreDestinations.sections[position] is String) columns else 1
+                        if (destinationsAdapter.isHeading(position)) columns else 1
                 }
             }
-            adapter = DestinationsAdapter()
+            adapter = destinationsAdapter
             clipToPadding = false
         }, LinearLayout.LayoutParams(-1, 0, 1f))
         setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
@@ -70,34 +99,39 @@ class MoreActivity : AppCompatActivity() {
     private class HeaderHolder(val title: TextView) : RecyclerView.ViewHolder(title)
 
     private inner class DestinationsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun getItemCount(): Int = MoreDestinations.sections.size
+        private var entries = MoreDestinations.sections
 
-        override fun getItemViewType(position: Int): Int = if (MoreDestinations.sections[position] is String) 1 else 0
+        fun filter(term: String) {
+            entries = MoreDestinations.filteredSections(term)
+            notifyDataSetChanged()
+        }
+
+        fun isHeading(position: Int): Boolean = entries.getOrNull(position) is MoreDestinations.Entry.Header
+
+        override fun getItemCount(): Int = entries.size
+
+        override fun getItemViewType(position: Int): Int = if (isHeading(position)) 1 else 0
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             if (viewType == 1) {
-                val density = parent.resources.displayMetrics.density
-                return HeaderHolder(TextView(parent.context).apply {
+                return HeaderHolder(MonogatariSectionStyle.heading(parent.context).apply {
                     layoutParams = ViewGroup.LayoutParams(-1, -2)
-                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
-                    setTextColor(MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary))
-                    setPadding((8 * density).toInt(), (16 * density).toInt(), 0, (4 * density).toInt())
-                    ViewCompat.setAccessibilityHeading(this, true)
                 })
             }
             val card = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_monogatari_book, parent, false) as MaterialCardView
+            MonogatariSectionStyle.card(card)
             return Holder(card)
         }
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val item = MoreDestinations.sections[position]
+            val item = entries[position]
             if (holder is HeaderHolder) {
-                holder.title.text = item as String
+                holder.title.text = (item as MoreDestinations.Entry.Header).name
                 return
             }
             holder as Holder
-            val page = item as MoreDestinations.Page
+            val page = (item as MoreDestinations.Entry.Link).page
             BookShelfCard.bind(holder.card, page.title, page.subtitle) {
                 val destination = Intent(this@MoreActivity, page.target)
                 page.viewUri?.let { uri ->

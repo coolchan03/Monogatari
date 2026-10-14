@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Monogatari source/UI guardrails
+        run: python3 scripts/qa/verify_bucket345.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

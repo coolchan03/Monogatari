@@ -168,6 +168,10 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("Google Books") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_standard_ebooks)
             .setOnClickListener { search("Standard Ebooks") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_baen)
+            .setOnClickListener { search("Baen Free Library") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_external)
+            .setOnClickListener { showOtherFictionLibraries() }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
                 MonogatariChrome.columns(context))
@@ -227,6 +231,10 @@ class BookLibraryActivity : AppCompatActivity() {
         }
         val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
         val saved = prefs.getStringSet("urls", emptySet()).orEmpty().toMutableSet()
+        if (parsed?.rawUserInfo != null && parsed?.scheme != "https") {
+            showLines(listOf(getString(R.string.monogatari_catalog_opds_https_credentials)))
+            return
+        }
         saved.add(url)
         OpdsSourceRegistry.register(url)
         prefs.edit().putStringSet("urls", saved).apply()
@@ -242,7 +250,7 @@ class BookLibraryActivity : AppCompatActivity() {
         }
         resultsAdapter.show(urls.map { url ->
             CatalogRow(
-                url, getString(R.string.monogatari_catalog_opds_saved),
+                OpdsAuth.displayUrl(url), getString(R.string.monogatari_catalog_opds_saved),
                 onOpen = { openOpds(url) },
                 onLongPress = {
                     val prefs = getSharedPreferences("opds_catalogs", MODE_PRIVATE)
@@ -256,7 +264,7 @@ class BookLibraryActivity : AppCompatActivity() {
         })
     }
 
-    private fun openOpds(url: String) {
+    private fun openOpds(url: String, credentialSource: String = url) {
         if (!url.startsWith("https://") && !url.startsWith("http://")) {
             showLines(listOf(getString(R.string.monogatari_catalog_opds_full_url)))
             return
@@ -264,12 +272,12 @@ class BookLibraryActivity : AppCompatActivity() {
         showLines(listOf(getString(R.string.monogatari_catalog_opds_loading)))
         lifecycleScope.launch {
             try {
-                val entries = opds.load(url)
+                val entries = opds.load(url, credentialSource)
                 if (entries.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_opds_empty)))
                 else resultsAdapter.show(entries.map { entry ->
                     CatalogRow(entry.title, entry.author, onOpen = {
                         if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
-                        else openOpds(entry.href)
+                        else openOpds(entry.href, credentialSource)
                     })
                 })
             } catch (error: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty()))) }
@@ -283,7 +291,7 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun search(source: String) {
         val term = query.text?.toString()?.trim().orEmpty()
-        if (term.isEmpty() && source != "Standard Ebooks") {
+        if (term.isEmpty() && source !in setOf("Standard Ebooks", "Baen Free Library")) {
             query.error = getString(R.string.monogatari_catalog_search_enter_term)
             query.requestFocus()
             return
@@ -295,7 +303,7 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
-                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks")
+                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks", "Baen Free Library")
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -380,6 +388,42 @@ class BookLibraryActivity : AppCompatActivity() {
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
+    /** A book lover's catalog shortlist. Website-only sources are never disguised as search parsers. */
+    private fun showOtherFictionLibraries() {
+        val titles = arrayOf(
+            getString(R.string.monogatari_catalog_globalgrey),
+            getString(R.string.monogatari_catalog_australia),
+            getString(R.string.monogatari_catalog_fadedpage),
+            getString(R.string.monogatari_catalog_fanfiction),
+            getString(R.string.monogatari_catalog_fictionpress),
+        )
+        val links = arrayOf(
+            "https://www.globalgreyebooks.com/index.html",
+            "https://www.gutenberg.net.au/plusfifty.html",
+            "https://www.fadedpage.com/",
+            "https://www.fanfiction.net/",
+            "https://www.fictionpress.com/",
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.monogatari_catalog_other_sources)
+            .setItems(titles) { _, which ->
+                if (which !in setOf(1, 2)) {
+                    openOfficialLink(links[which])
+                } else {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.monogatari_catalog_regional_rights_title)
+                        .setMessage(R.string.monogatari_catalog_regional_rights)
+                        .setPositiveButton(R.string.monogatari_catalog_visit_site) { _, _ ->
+                            openOfficialLink(links[which])
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun openOfficialLink(url: String) {
         if (!url.startsWith("https://")) {
             catalogStatus.text = "Only secure official catalog links can be opened."
@@ -397,6 +441,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Wikisource" -> catalog.searchWikisource(term)
             "Google Books" -> catalog.searchGoogleBooks(term)
             "Standard Ebooks" -> catalog.searchStandardEbooksRecent(term)
+            "Baen Free Library" -> catalog.searchBaenFreeLibrary(term)
             else -> emptyList()
         }
 
