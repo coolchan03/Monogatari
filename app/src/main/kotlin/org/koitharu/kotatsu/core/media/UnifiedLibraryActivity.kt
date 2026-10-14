@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.TapCounter
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
@@ -59,6 +61,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private lateinit var paneDescription: TextView
     private lateinit var paneOpen: MaterialButton
     private var paneRow: Row? = null
+    private lateinit var mascot: ImageView
+    private val eggTaps = TapCounter()
     private lateinit var continueLabel: TextView
     private lateinit var continueRow: LinearLayout
     private lateinit var continueScroll: HorizontalScrollView
@@ -120,6 +124,14 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
         count = TextView(this)
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
+        // Kitsune keeps an empty library company, in the form of the selected tab. Tap her quickly for a surprise.
+        mascot = ImageView(this).apply {
+            adjustViewBounds = true
+            setOnClickListener { if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@UnifiedLibraryActivity) }
+        }
+        root.addView(mascot, LinearLayout.LayoutParams((160 * resources.displayMetrics.density).toInt(), -2).apply {
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        })
         val list = RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@UnifiedLibraryActivity,
                 MonogatariChrome.columns(context))
@@ -248,6 +260,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }
         adapter.setRows(filtered.take(1000))
         renderContinue()
+        mascot.isVisible = filtered.isEmpty()
+        Mascot.bind(mascot, Mascot.formFor(selected))
         val category = selected?.name?.lowercase() ?: "saved"
         count.text = when {
             filtered.isEmpty() && q.isNotBlank() -> "No matching ${category} titles"

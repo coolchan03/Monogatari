@@ -1343,6 +1343,16 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="library_pane_open">Open</string>
     <string name="library_pane_cover">Cover</string>
     <string name="library_pane_no_description">No description available</string>
+    <string name="mascot_default">Kitsune, the spirit fox</string>
+    <string name="mascot_manga">Kitsune with a bookmark and a speech bubble</string>
+    <string name="mascot_book">Kitsune with glasses and an open book</string>
+    <string name="mascot_video">Kitsune glowing with a play button</string>
+    <string name="mascot_audio">Kitsune wearing headphones</string>
+    <string name="mascot_news">Kitsune with a newspaper</string>
+    <string name="mascot_egg_description">Kitsune-kun, a very muscular fox spirit</string>
+    <string name="mascot_egg_title">Kitsune-kun</string>
+    <string name="mascot_egg_message">Spirit foxes can take any shape. This one chose gym day. You found the secret form!</string>
+    <string name="mascot_egg_ok">Nice</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>

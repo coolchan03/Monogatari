@@ -1,23 +1,32 @@
-# Mascot: a small cast instead of one character (#80, #81)
+# Kitsune, the spirit fox (#80, #81)
 
-Status: **idea only, nothing drawn yet.** You are unsure about a single mascot, so here is a way to avoid choosing one: a small cast,
-one creature per kind of media, each shown only in quiet places.
+Decision (owner): the mascot is **Kitsune**, a spirit fox who takes a different form for each kind of media, drawn in an anime style,
+with a hidden muscular form as an Easter egg.
 
-| Section | Creature | Why it fits |
+## What exists
+
+Hand-drawn vector art in `app/src/main/res/drawable/` (one file per form, so any of them can be replaced with better artwork without touching code):
+
+| File | Form | Shown for |
 |---|---|---|
-| Manga / Comics | Teal fox with a bookmark-shaped tail | The bookmark tail is the hook; foxes are classic "reader" characters |
-| Books / Novels | Owl or a small paper crane | Late-night reading; the crane folds from a page |
-| Video / Anime | Glow-moth | Drawn to screens and light |
-| Audio | Tanuki drumming on its belly | A built-in sound gag |
-| News | Magpie | Collects shiny bits of information |
+| `kitsune_default.xml` | Teal fox with a spirit flame | Unified library "All" tab |
+| `kitsune_manga.xml` | Teal fox, bookmark ribbon, speech bubble | Manga tab |
+| `kitsune_book.xml` | Amber fox, round glasses, open book | Book tab |
+| `kitsune_video.xml` | Violet fox, glow aura, play button | Video tab |
+| `kitsune_audio.xml` | Coral fox, headphones, music note | Audio tab |
+| `kitsune_news.xml` | Blue fox, newspaper | (ready; not shown anywhere yet) |
+| `kitsune_buff.xml` | Kitsune-kun, the muscular form | Easter egg |
 
-**Rules so it never gets in the way**
-- App icon: one simple shape (the bookmark tail or a monogram), not the whole cast.
-- The cast appears only in empty states (empty library tab, no results) and first-run tips; never as decoration on working screens.
-- One style: flat, two or three colours from the app's accent palette, so it follows the chosen accent colour.
+Code: `core/ui/Mascot.kt` (`MascotForm`, `Mascot.formFor`, `TapCounter`). Kitsune appears in the **empty state** of the unified library, in the
+form of the selected tab. **Easter egg:** tap her quickly 7 times (each tap within 2 seconds of the last) to meet Kitsune-kun.
 
-**How it would be built (small):** a `MascotCast` table mapping media type to a vector drawable; empty states pick the drawable for the
-section they are in. Each creature is a single vector file, so any of them can be dropped without touching code.
+## Honest limits
 
-**What I need from you:** which creatures to keep (all five, or a subset), and whether the app icon should be the fox's bookmark tail.
-Once you pick, I will draw the vectors and wire the empty states.
+This is stylised flat vector art made by hand-writing shapes: big anime eyes with highlights, cheek marks, blush, pointed ears. It is not
+professional illustration. If you commission or draw real artwork, replace the files above (keep the names) and everything else keeps working.
+
+## Not done yet
+
+- App icon still the old one (a Kitsune bookmark-tail icon would be the next step; launcher icons need several sizes and a build check).
+- First-run tips and the News screen empty state do not show Kitsune yet (`kitsune_news.xml` is ready).
+- More Easter-egg entrances, if you want them (for example the About screen).

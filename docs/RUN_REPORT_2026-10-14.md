@@ -75,3 +75,7 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 - **Mascot:** a cast of small creatures instead of one, proposal in `docs/MASCOT_IDEAS.md`; waiting for your pick.
 - **"GitHub project that gives API access to anything":** I could not identify it from the description. Tools like RSSHub or RSS-Bridge turn websites into feeds; the app's Podcasts & video RSS and News screens already read feeds, so such a feed URL works today. Send the project's name or link and I will check whether a source can be built on it.
 - **Still open:** #40/#41/#42/#45 (need an official feed or the project above), #29/#31/#32, #16-#18, #36 (list screens already have "open in browser"), #66/#69, #13/#14, #47/#48/#50/#53/#56, #55/#58 (credentials).
+
+## Mascot (decided)
+
+Kitsune, a spirit fox with a form per media type, anime-style vector art, plus a hidden muscular form (tap her 7 times quickly in the unified library empty state). See `docs/MASCOT_IDEAS.md`. App icon not changed yet.
