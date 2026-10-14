@@ -13,7 +13,44 @@ object MediaFeedParser {
         val title: String, val pageUrl: String?, val mediaUrl: String?,
         val mimeType: String?, val published: String,
         val coverUrl: String?, val kind: Kind,
+        /** From itunes:duration, when the feed gives one. */
+        val durationSeconds: Int? = null,
+        /** Podcasting 2.0 chapters file (podcast:chapters), HTTPS only. */
+        val chaptersUrl: String? = null,
     )
+
+    data class Chapter(val startSeconds: Int, val title: String)
+
+    /** "1:02:03", "42:10" or plain seconds to seconds; null when it isn't a duration. */
+    fun parseDuration(text: String?): Int? {
+        val parts = text?.trim()?.split(':')?.takeIf { it.isNotEmpty() && it.size <= 3 } ?: return null
+        val numbers = parts.map { it.toIntOrNull() ?: return null }
+        if (numbers.any { it < 0 }) return null
+        return numbers.fold(0) { total, n -> total * 60 + n }.takeIf { it > 0 }
+    }
+
+    /** "42 min" or "1 h 05 min" for display. */
+    fun formatDuration(seconds: Int): String {
+        val minutes = (seconds + 30) / 60
+        return if (minutes >= 60) "${minutes / 60} h %02d min".format(minutes % 60) else "$minutes min"
+    }
+
+    /** Chapters from a Podcasting 2.0 JSON file: {"chapters":[{"startTime":0,"title":"Intro"}, ...]}. */
+    fun parseChapters(json: String): List<Chapter> {
+        val array = runCatching { org.json.JSONObject(json).optJSONArray("chapters") }.getOrNull() ?: return emptyList()
+        return (0 until minOf(array.length(), 200)).mapNotNull { i ->
+            val item = array.optJSONObject(i) ?: return@mapNotNull null
+            val start = item.optDouble("startTime", -1.0)
+            val title = item.optString("title").trim().take(160)
+            if (start < 0 || title.isEmpty() || item.optBoolean("toc", true).not()) null else Chapter(start.toInt(), title)
+        }.sortedBy { it.startSeconds }
+    }
+
+    /** "0:00", "12:34" or "1:02:03" for a chapter list. */
+    fun formatTimestamp(seconds: Int): String {
+        val h = seconds / 3600; val m = seconds % 3600 / 60; val s = seconds % 60
+        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+    }
     fun parse(xml: String): List<Episode> {
         require(xml.length <= 1_000_000) { "RSS feed too large" }
         require(!Regex("<!\\s*(DOCTYPE|ENTITY)", RegexOption.IGNORE_CASE).containsMatchIn(xml)) {
@@ -58,7 +95,9 @@ object MediaFeedParser {
             val cover = https(first("media:thumbnail")?.getAttribute("url"))
                 ?: https(first("itunes:image")?.getAttribute("href"))
             Episode(title, page, media, mime, text(if (atom) "updated" else "pubDate").take(95),
-                cover, kind)
+                cover, kind,
+                durationSeconds = parseDuration(text("itunes:duration")),
+                chaptersUrl = https(first("podcast:chapters")?.getAttribute("url")))
         }
     }
 

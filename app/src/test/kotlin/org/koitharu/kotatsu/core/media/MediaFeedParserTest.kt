@@ -45,4 +45,31 @@ class MediaFeedParserTest {
         assertNull(parsed.mediaUrl)
         assertEquals("https://stories.example/post", parsed.pageUrl)
     }
+
+    @Test fun durationsChaptersAndFormatting() {
+        assertEquals(3723, MediaFeedParser.parseDuration("1:02:03"))
+        assertEquals(2530, MediaFeedParser.parseDuration("42:10"))
+        assertEquals(90, MediaFeedParser.parseDuration("90"))
+        assertNull(MediaFeedParser.parseDuration("soon"))
+        assertNull(MediaFeedParser.parseDuration("0"))
+        assertEquals("42 min", MediaFeedParser.formatDuration(2530))
+        assertEquals("1 h 02 min", MediaFeedParser.formatDuration(3723))
+        assertEquals("1:02:03", MediaFeedParser.formatTimestamp(3723))
+        assertEquals("0:05", MediaFeedParser.formatTimestamp(5))
+        val chapters = MediaFeedParser.parseChapters(
+            """{"version":"1.2.0","chapters":[{"startTime":300,"title":"Part two"},{"startTime":0,"title":"Intro"},{"startTime":9,"title":"Hidden","toc":false},{"startTime":-1,"title":"bad"}]}""",
+        )
+        assertEquals(listOf("Intro", "Part two"), chapters.map { it.title })
+        assertEquals(emptyList<MediaFeedParser.Chapter>(), MediaFeedParser.parseChapters("not json"))
+    }
+
+    @Test fun feedCarriesDurationAndChaptersUrl() {
+        val feed = """<rss version="2.0" xmlns:itunes="x" xmlns:podcast="y"><channel><item><title>Ep</title>
+            <link>https://show.example/ep</link><enclosure url="https://cdn.example/e.mp3" type="audio/mpeg"/>
+            <itunes:duration>12:30</itunes:duration>
+            <podcast:chapters url="https://cdn.example/ch.json" type="application/json+chapters"/></item></channel></rss>"""
+        val item = MediaFeedParser.parse(feed).single()
+        assertEquals(750, item.durationSeconds)
+        assertEquals("https://cdn.example/ch.json", item.chaptersUrl)
+    }
 }

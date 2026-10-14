@@ -170,6 +170,8 @@ class MediaFeedActivity : AppCompatActivity() {
             CatalogRow(
                 title = episode.title,
                 subtitle = listOfNotNull(episode.kind.name.lowercase().replaceFirstChar { it.uppercaseChar() },
+                    episode.durationSeconds?.let(MediaFeedParser::formatDuration),
+                    if (episode.chaptersUrl != null) "chapters" else null,
                     episode.published.takeIf { it.isNotBlank() }).joinToString(" · "),
                 coverUrl = episode.coverUrl,
                 onOpen = { openEpisode(episode) },
@@ -180,10 +182,14 @@ class MediaFeedActivity : AppCompatActivity() {
     private fun openEpisode(entry: MediaFeedParser.Episode) {
         val media = entry.mediaUrl
         if (media == null) { openPage(entry.pageUrl); return }
-        val options = if (entry.pageUrl != null) arrayOf("Play episode", "Open show website")
-            else arrayOf("Play episode")
+        val options = buildList {
+            add("Play episode")
+            if (entry.chaptersUrl != null) add("Show chapters")
+            if (entry.pageUrl != null) add("Open show website")
+        }.toTypedArray()
         MaterialAlertDialogBuilder(this).setTitle(entry.title)
             .setItems(options) { _, index ->
+                if (options[index] == "Show chapters") { showChapters(entry); return@setItems }
                 if (index == 0) {
                     runCatching {
                         startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(
@@ -195,6 +201,24 @@ class MediaFeedActivity : AppCompatActivity() {
                     }.onFailure { status.text = "No compatible media player available." }
                 } else openPage(entry.pageUrl)
             }.show()
+    }
+    private fun showChapters(entry: MediaFeedParser.Episode) {
+        val url = entry.chaptersUrl ?: return
+        status.text = "Loading chapters..."
+        lifecycleScope.launch {
+            try {
+                val chapters = repository.readChapters(url)
+                if (chapters.isEmpty()) { status.text = "This episode lists no chapters."; return@launch }
+                status.text = ""
+                MaterialAlertDialogBuilder(this@MediaFeedActivity).setTitle("Chapters")
+                    .setItems(chapters.map { "${MediaFeedParser.formatTimestamp(it.startSeconds)}  ${it.title}" }.toTypedArray(), null)
+                    .setPositiveButton(android.R.string.ok, null).show()
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                status.text = "Chapters unavailable: ${error.message.orEmpty().take(120)}"
+            }
+        }
     }
     private fun openPage(link: String?) {
         if (link?.startsWith("https://") == true) {

@@ -32,6 +32,19 @@ class MediaFeedRepository @Inject constructor(@BaseHttpClient private val client
         }
         MediaFeedParser.parse(xml)
     }
+    /** Fetches a Podcasting 2.0 chapters file (small, HTTPS only). */
+    suspend fun readChapters(url: String): List<MediaFeedParser.Chapter> = withContext(Dispatchers.IO) {
+        require(validUrl(url)) { "Chapters must come from an HTTPS address" }
+        val request = Request.Builder().url(url).header("User-Agent", "Monogatari/1.0 (podcast chapters)").build()
+        val text = client.newCall(request).execute().use { response ->
+            require(response.isSuccessful) { "Chapters HTTP ${response.code}" }
+            val source = response.body?.source() ?: error("Empty chapters file")
+            source.request(200_001)
+            require(source.buffer.size <= 200_000) { "Chapters file too large" }
+            source.buffer.readUtf8()
+        }
+        MediaFeedParser.parseChapters(text)
+    }
     companion object {
         fun validUrl(value: String): Boolean {
             val uri = runCatching { URI(value.trim()) }.getOrNull() ?: return false
