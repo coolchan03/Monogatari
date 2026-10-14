@@ -38,6 +38,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
 import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
 import javax.inject.Inject
@@ -76,20 +77,9 @@ class DiscoverActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		binding = ActivityDiscoverBinding.inflate(layoutInflater)
-		setContentView(binding.root)
 		setTitle(R.string.discover)
-		supportActionBar?.setDisplayHomeAsUpEnabled(true)
-		ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-			// Edge-to-edge (enforced on recent Android): keep content clear of the system bars.
-			val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-			view.updatePadding(
-				left = bars.left,
-				right = bars.right,
-				top = if (supportActionBar == null) bars.top else 0,
-				bottom = bars.bottom,
-			)
-			insets
-		}
+		// Toolbar with Up, plus edge-to-edge insets (status/navigation bars, cutouts, ChromeOS caption bar).
+		setMonogatariContent(binding.root)
 
 		savedInstanceState?.getString(KEY_SECTION)?.let { name ->
 			MediaSection.entries.find { it.name == name }?.let { section = it }

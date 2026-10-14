@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.ImageView
@@ -88,11 +90,11 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
         val list = RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@UnifiedLibraryActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = this@UnifiedLibraryActivity.adapter
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
+        setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
         refresh()
     }
 

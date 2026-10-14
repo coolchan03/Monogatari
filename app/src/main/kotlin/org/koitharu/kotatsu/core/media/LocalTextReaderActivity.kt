@@ -1,9 +1,13 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.text.Html
 import android.speech.tts.TextToSpeech
+import android.view.KeyEvent
 import android.view.Menu
+import android.view.View
 import android.view.MenuItem
 import java.util.Locale
 import android.widget.ScrollView
@@ -32,12 +36,14 @@ class LocalTextReaderActivity : AppCompatActivity() {
         book = file
         title = file.name.substringAfter('-', file.name)
         val text = TextView(this).apply {
-            setPadding(32, 28, 32, 48)
+            val d = resources.displayMetrics.density
+            setPadding((20 * d).toInt(), (16 * d).toInt(), (20 * d).toInt(), (32 * d).toInt())
             textSize = 18f
             setTextIsSelectable(true)
         }
-        scroll = ScrollView(this).apply { addView(text) }
-        setContentView(scroll)
+        // Focusable so Page Up/Down, Space and arrow keys scroll on keyboards (tablets, ChromeOS, laptops).
+        scroll = ScrollView(this).apply { addView(text); isFocusable = true; isFocusableInTouchMode = false }
+        setMonogatariContent(scroll, MonogatariChrome.TEXT_MAX_WIDTH_DP)
         try {
             if (file.length() > 8L * 1024 * 1024) error("Text file is too large for this reader")
             val contents = file.readText()
@@ -55,6 +61,14 @@ class LocalTextReaderActivity : AppCompatActivity() {
         } catch (error: Exception) {
             text.text = "Unable to read book: ${error.message}"
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
+        KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_SPACE -> scroll.pageScroll(View.FOCUS_DOWN)
+        KeyEvent.KEYCODE_PAGE_UP -> scroll.pageScroll(View.FOCUS_UP)
+        KeyEvent.KEYCODE_MOVE_HOME -> scroll.fullScroll(View.FOCUS_UP)
+        KeyEvent.KEYCODE_MOVE_END -> scroll.fullScroll(View.FOCUS_DOWN)
+        else -> super.onKeyDown(keyCode, event)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

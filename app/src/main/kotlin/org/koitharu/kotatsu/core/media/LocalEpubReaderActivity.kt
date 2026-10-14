@@ -1,7 +1,11 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.text.Html
+import android.view.KeyEvent
+import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -31,8 +35,13 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         }
         fileKey = file.name
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        position = TextView(this).apply { setPadding(16, 12, 16, 12) }
-        body = TextView(this).apply { textSize = 18f; setPadding(24, 16, 24, 32); setTextIsSelectable(true) }
+        val d = resources.displayMetrics.density
+        position = TextView(this).apply { setPadding((16 * d).toInt(), (8 * d).toInt(), (16 * d).toInt(), (8 * d).toInt()) }
+        body = TextView(this).apply {
+            textSize = 18f
+            setPadding((20 * d).toInt(), (12 * d).toInt(), (20 * d).toInt(), (24 * d).toInt())
+            setTextIsSelectable(true)
+        }
         scroll = ScrollView(this).apply { addView(body) }
         val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         nav.addView(Button(this).apply {
@@ -60,7 +69,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         layout.addView(position)
         layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         layout.addView(nav)
-        setContentView(layout)
+        setMonogatariContent(layout, MonogatariChrome.TEXT_MAX_WIDTH_DP)
         try {
             if (file.length() > 128L * 1024 * 1024) error("EPUB exceeds 128 MB limit")
             book = EpubBook.open(file)
@@ -72,6 +81,20 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             position.text = "Unable to open EPUB"
             body.text = error.message
         }
+    }
+
+    /** Keyboard: Page Up/Down and Space scroll, arrow keys or [ ] change chapter, Ctrl +/- change text size. */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val handled = when (keyCode) {
+            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_SPACE -> scroll.pageScroll(View.FOCUS_DOWN)
+            KeyEvent.KEYCODE_PAGE_UP -> scroll.pageScroll(View.FOCUS_UP)
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_RIGHT_BRACKET -> { showChapter(index + 1); true }
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_LEFT_BRACKET -> { showChapter(index - 1); true }
+            KeyEvent.KEYCODE_EQUALS, KeyEvent.KEYCODE_PLUS -> if (event.isCtrlPressed) { changeTextSize(2f); true } else false
+            KeyEvent.KEYCODE_MINUS -> if (event.isCtrlPressed) { changeTextSize(-2f); true } else false
+            else -> false
+        }
+        return handled || super.onKeyDown(keyCode, event)
     }
 
     private fun changeTextSize(delta: Float) {

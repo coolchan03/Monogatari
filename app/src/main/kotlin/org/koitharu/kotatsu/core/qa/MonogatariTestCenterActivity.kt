@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.discover.DiscoverActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
@@ -58,6 +59,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         ui = ActivityMonogatariTestCenterBinding.inflate(layoutInflater)
         setContentView(ui.root)
+        MonogatariChrome.applyInsets(ui.root)
         ui.qaToolbar.setNavigationIcon(android.R.drawable.ic_media_previous)
         ui.qaToolbar.setNavigationContentDescription(android.R.string.cancel)
         ui.qaToolbar.setNavigationOnClickListener { finish() }

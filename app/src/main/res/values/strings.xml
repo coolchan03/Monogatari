@@ -1290,6 +1290,10 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="discover_trending_bl">Trending BL</string>
     <string name="discover_popular_bl">Popular BL</string>
     <string name="discover_adult_bl">BL 18+</string>
+    <string name="clear_translated_pages_cache">Clear translated pages</string>
+    <string name="translation_models_title">Translation languages</string>
+    <string name="translation_models_summary">Delete downloaded on-device translation languages (about 30 MB each)</string>
+    <string name="translation_models_none">No translation languages downloaded</string>
     <string name="discover_trending_anime">Trending anime</string>
     <string name="discover_bl_anime">BL anime</string>
     <string name="discover_light_novels">Light novels</string>

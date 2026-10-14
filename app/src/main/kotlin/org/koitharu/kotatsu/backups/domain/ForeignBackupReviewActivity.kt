@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -70,7 +72,7 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 			LinearLayout.LayoutParams(-1, 0, 1f),
 		)
 		root.addView(action)
-		setContentView(root)
+		setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
 	}
 
 	private fun displayName(uri: Uri): String =

@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.qa
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -106,7 +108,7 @@ class NewsFeedActivity : AppCompatActivity() {
         entries = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         listScroll.addView(entries)
         root.addView(listScroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
+        setMonogatariContent(root)
     }
 
     private fun followedTags(): Set<String> = prefs.getStringSet("tags", emptySet()).orEmpty().toSet()

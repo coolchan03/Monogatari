@@ -1,6 +1,10 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
+import android.view.DragEvent
+import androidx.core.app.ActivityCompat
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
@@ -51,6 +55,11 @@ class BookLibraryActivity : AppCompatActivity() {
     private var catalogJob: Job? = null
     private var catalogOrder = BookCatalogSorter.Order.RELEVANCE
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        importBooks(uris)
+    }
+
+    /** Copies picked or drag-and-dropped files into the local library. */
+    private fun importBooks(uris: List<Uri>) {
         lifecycleScope.launch {
             val report = withContext(Dispatchers.IO) {
                 val dir = File(filesDir, "imported-books").apply { mkdirs() }
@@ -68,6 +77,35 @@ class BookLibraryActivity : AppCompatActivity() {
                 }
             }
             showLines(report)
+        }
+    }
+
+    /**
+     * Drag and drop (ChromeOS, desktop windows, tablets in split screen): dropping EPUB/PDF/text files anywhere
+     * on this screen imports them, the same as the Import button.
+     */
+    private fun enableFileDrop(target: View) {
+        target.setOnDragListener { _, event ->
+            when (event.action) {
+                // Accept any file drag; unsupported formats are reported by the import itself.
+                DragEvent.ACTION_DRAG_STARTED -> event.clipDescription != null
+
+                DragEvent.ACTION_DROP -> {
+                    val clip = event.clipData ?: return@setOnDragListener false
+                    val permissions = ActivityCompat.requestDragAndDropPermissions(this, event)
+                    val uris = (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
+                    if (uris.isEmpty()) {
+                        permissions?.release()
+                        return@setOnDragListener false
+                    }
+                    importBooks(uris)
+                    // Keep the grant until the copy has had time to open the files.
+                    target.postDelayed({ permissions?.release() }, 60_000L)
+                    true
+                }
+
+                else -> true
+            }
         }
     }
 
@@ -104,7 +142,9 @@ class BookLibraryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.monogatari_catalog_title)
-        setContentView(R.layout.activity_monogatari_book_catalog)
+        val content = layoutInflater.inflate(R.layout.activity_monogatari_book_catalog, null)
+        setMonogatariContent(content, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        enableFileDrop(content)
         query = findViewById(R.id.monogatari_catalog_query)
         catalogStatus = findViewById(R.id.monogatari_catalog_status)
         resultsAdapter.imageLoader = imageLoader
@@ -126,7 +166,7 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("Standard Ebooks") }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = resultsAdapter
         }
         findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources).apply {

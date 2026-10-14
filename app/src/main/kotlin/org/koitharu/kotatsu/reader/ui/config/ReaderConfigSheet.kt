@@ -243,8 +243,9 @@ class ReaderConfigSheet :
         orientationHelper.observeAutoOrientation()
             .onEach {
                 with(requireViewBinding()) {
-                    buttonScreenRotate.isGone = it
-                    switchScreenLockRotation.isVisible = it
+                    val controllable = orientationHelper.isOrientationControllable
+                    buttonScreenRotate.isGone = it || !controllable
+                    switchScreenLockRotation.isVisible = it && controllable
                     updateOrientationLockSwitch()
                 }
             }.launchIn(viewLifecycleScope)

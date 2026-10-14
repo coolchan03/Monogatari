@@ -81,5 +81,8 @@ jobs:
             smoke-phone.png
             smoke-tablet.png
             smoke-tablet-start.txt
-            smoke-tablet-crash.txt
+            smoke-tablet-crash-buffer.txt
+            smoke-tablet-land.png
+            smoke-tablet-land-start.txt
+            smoke-tablet-land-crash-buffer.txt
           if-no-files-found: warn

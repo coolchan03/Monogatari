@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.activity.viewModels
@@ -220,6 +221,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.searchView.addTransitionListener(exitCallback)
 		initSearch()
 		if (savedInstanceState == null) handleRepositorySetupLink(intent)
+	}
+
+	/** Keyboards (tablets, ChromeOS, laptops): Ctrl+F or "/" opens search. */
+	override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+		val isSearchShortcut = (keyCode == KeyEvent.KEYCODE_F && event.isCtrlPressed) ||
+			(keyCode == KeyEvent.KEYCODE_SLASH && !event.hasModifiers(KeyEvent.META_SHIFT_ON))
+		if (isSearchShortcut && !viewBinding.searchView.isShowing) {
+			viewBinding.searchView.show()
+			return true
+		}
+		return super.onKeyDown(keyCode, event)
 	}
 
 	override fun onNewIntent(intent: Intent) {

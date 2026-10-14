@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -87,11 +89,11 @@ class MediaFeedActivity : AppCompatActivity() {
         root.addView(status)
         root.addView(RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@MediaFeedActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = results
         }, LinearLayout.LayoutParams(-1, 0, 1f))
         results.imageLoader = imageLoader
-        setContentView(root)
+        setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
         val choices = subscribed()
         if (currentUrl == null && choices.size == 1) currentUrl = choices.first()
         currentUrl?.let(::load) ?: render()

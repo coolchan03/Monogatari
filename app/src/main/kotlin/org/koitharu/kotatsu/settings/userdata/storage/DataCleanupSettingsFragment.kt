@@ -18,6 +18,10 @@ import org.koitharu.kotatsu.core.util.ext.getQuantityStringSafe
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.local.data.CacheDir
+import com.google.mlkit.common.model.RemoteModelManager
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.TranslateRemoteModel
+import java.util.Locale
 
 @AndroidEntryPoint
 class DataCleanupSettingsFragment : BasePreferenceFragment(R.string.data_removal) {
@@ -33,6 +37,7 @@ class DataCleanupSettingsFragment : BasePreferenceFragment(R.string.data_removal
         super.onViewCreated(view, savedInstanceState)
         findPreference<Preference>(AppSettings.KEY_PAGES_CACHE_CLEAR)?.bindBytesSizeSummary(checkNotNull(viewModel.cacheSizes[CacheDir.PAGES]))
         findPreference<Preference>(AppSettings.KEY_THUMBS_CACHE_CLEAR)?.bindBytesSizeSummary(checkNotNull(viewModel.cacheSizes[CacheDir.THUMBS]))
+        findPreference<Preference>(KEY_TRANSLATED_PAGES_CLEAR)?.bindBytesSizeSummary(checkNotNull(viewModel.cacheSizes[CacheDir.TRANSLATED_PAGES]))
         findPreference<Preference>(AppSettings.KEY_HTTP_CACHE_CLEAR)?.bindBytesSizeSummary(viewModel.httpCacheSize)
         findPreference<Preference>(AppSettings.KEY_SEARCH_HISTORY_CLEAR)?.let { pref ->
             viewModel.searchHistoryCount.observe(viewLifecycleOwner) {
@@ -78,6 +83,16 @@ class DataCleanupSettingsFragment : BasePreferenceFragment(R.string.data_removal
 
         AppSettings.KEY_PAGES_CACHE_CLEAR -> {
             viewModel.clearCache(preference.key, CacheDir.PAGES)
+            true
+        }
+
+        KEY_TRANSLATION_MODELS -> {
+            manageTranslationModels()
+            true
+        }
+
+        KEY_TRANSLATED_PAGES_CLEAR -> {
+            viewModel.clearCache(preference.key, CacheDir.TRANSLATED_PAGES)
             true
         }
 
@@ -170,4 +185,35 @@ class DataCleanupSettingsFragment : BasePreferenceFragment(R.string.data_removal
             }
         }.show()
     }
+
+    /** Lists the downloaded on-device translation languages and deletes the ones the user picks. */
+    private fun manageTranslationModels() {
+        val context = context ?: return
+        val manager = RemoteModelManager.getInstance()
+        manager.getDownloadedModels(TranslateRemoteModel::class.java)
+            .addOnSuccessListener { models ->
+                if (!isAdded) return@addOnSuccessListener
+                // English is built in and can't be deleted.
+                val removable = models.filter { it.language != TranslateLanguage.ENGLISH }
+                    .sortedBy { Locale(it.language).displayLanguage }
+                if (removable.isEmpty()) {
+                    Snackbar.make(listView, R.string.translation_models_none, Snackbar.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+                val labels = removable.map { Locale(it.language).displayLanguage }.toTypedArray()
+                val checked = BooleanArray(removable.size)
+                buildAlertDialog(context) {
+                    setTitle(R.string.translation_models_title)
+                    setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
+                    setNegativeButton(android.R.string.cancel, null)
+                    setPositiveButton(R.string.delete) { _, _ ->
+                        removable.filterIndexed { i, _ -> checked[i] }.forEach { manager.deleteDownloadedModel(it) }
+                    }
+                }.show()
+            }
+    }
 }
+
+private const val KEY_TRANSLATION_MODELS = "translation_models"
+
+private const val KEY_TRANSLATED_PAGES_CLEAR = "translated_pages_cache_clear"

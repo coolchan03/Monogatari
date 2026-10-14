@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -34,11 +36,11 @@ class MoreActivity : AppCompatActivity() {
         root.addView(info, LinearLayout.LayoutParams(-1, -2))
         root.addView(RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@MoreActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = DestinationsAdapter()
             clipToPadding = false
         }, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
+        setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
     }
 
     private class Holder(val card: MaterialCardView) : RecyclerView.ViewHolder(card)

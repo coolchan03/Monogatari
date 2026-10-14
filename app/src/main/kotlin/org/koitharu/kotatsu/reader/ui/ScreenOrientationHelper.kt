@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.database.ContentObserver
+import android.os.Build
 import android.os.Handler
 import android.provider.Settings
 import dagger.hilt.android.scopes.ActivityScoped
@@ -21,6 +22,13 @@ class ScreenOrientationHelper @Inject constructor(
 	private val activity: Activity,
 	private val settings: AppSettings,
 ) {
+
+	/**
+	 * Android 16+ ignores app orientation requests on large screens (smallest width >= 600dp: tablets,
+	 * unfolded foldables, ChromeOS/desktop windows), so rotate/lock controls would do nothing there.
+	 */
+	val isOrientationControllable: Boolean
+		get() = Build.VERSION.SDK_INT < 36 || activity.resources.configuration.smallestScreenWidthDp < 600
 
 	val isAutoRotationEnabled: Boolean
 		get() = Settings.System.getInt(
@@ -50,6 +58,7 @@ class ScreenOrientationHelper @Inject constructor(
 		}
 
 	fun applySettings() {
+		if (!isOrientationControllable) return
 		if (activity.requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
 			// https://developer.android.com/reference/android/R.attr.html#screenOrientation
 			activity.requestedOrientation = settings.readerScreenOrientation
