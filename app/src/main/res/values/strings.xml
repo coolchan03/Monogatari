@@ -1336,6 +1336,10 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="accent_preview_text">Reading text on this surface</string>
     <string name="accent_low_contrast">This colour is hard to see against the background in the current light/dark mode. Pick a stronger one for easier reading.</string>
     <string name="accent_apply">Apply</string>
+    <string name="library_pane_empty">Select a title to see its details</string>
+    <string name="library_pane_open">Open</string>
+    <string name="library_pane_cover">Cover</string>
+    <string name="library_pane_no_description">No description available</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>

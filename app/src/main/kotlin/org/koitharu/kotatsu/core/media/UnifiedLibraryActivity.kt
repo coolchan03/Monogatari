@@ -11,6 +11,8 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ScrollView
+import android.view.View
 import android.widget.HorizontalScrollView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.appcompat.app.AppCompatActivity
@@ -28,6 +30,9 @@ import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.history.data.HistoryRepository
+import org.koitharu.kotatsu.core.image.CoilImageView
+import org.koitharu.kotatsu.main.ui.NavLayoutPolicy
+import androidx.core.text.HtmlCompat
 import org.koitharu.kotatsu.parsers.model.Manga
 import java.io.File
 import javax.inject.Inject
@@ -46,6 +51,14 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private var all = emptyList<Row>()
     /** Most recently opened titles, newest first, for the Continue strip. */
     private var recent = emptyList<Row>()
+    /** At 840dp and wider the library shows a details pane next to the list (#63). */
+    private var twoPane = false
+    private lateinit var paneCover: CoilImageView
+    private lateinit var paneTitle: TextView
+    private lateinit var paneMeta: TextView
+    private lateinit var paneDescription: TextView
+    private lateinit var paneOpen: MaterialButton
+    private var paneRow: Row? = null
     private lateinit var continueLabel: TextView
     private lateinit var continueRow: LinearLayout
     private lateinit var continueScroll: HorizontalScrollView
@@ -113,8 +126,74 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             adapter = this@UnifiedLibraryActivity.adapter
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
+        if (twoPane) {
+            val split = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            split.addView(root, LinearLayout.LayoutParams(0, -1, 1f))
+            split.addView(buildPane(px), LinearLayout.LayoutParams(0, -1, 1f))
+            setMonogatariContent(split, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        } else {
+            setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        }
         refresh()
+    }
+
+    private fun buildPane(px: Int): View {
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px, px, px, px)
+        }
+        paneCover = CoilImageView(this).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = getString(R.string.library_pane_cover)
+        }
+        paneTitle = TextView(this).apply {
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
+        }
+        paneMeta = TextView(this)
+        paneDescription = TextView(this)
+        paneOpen = MaterialButton(this).apply {
+            setText(R.string.library_pane_open)
+            setOnClickListener { paneRow?.let(::openRow) }
+        }
+        column.addView(paneCover, LinearLayout.LayoutParams(-1, (240 * resources.displayMetrics.density).toInt()))
+        column.addView(paneTitle, LinearLayout.LayoutParams(-1, -2))
+        column.addView(paneMeta, LinearLayout.LayoutParams(-1, -2))
+        column.addView(paneOpen, LinearLayout.LayoutParams(-2, -2))
+        column.addView(ScrollView(this).apply { addView(paneDescription) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        showPane(null)
+        return column
+    }
+
+    private fun showPane(row: Row?) {
+        paneRow = row
+        if (row == null) {
+            paneCover.setImageDrawable(null)
+            paneTitle.setText(R.string.library_pane_empty)
+            paneMeta.text = ""
+            paneDescription.text = ""
+            paneOpen.isVisible = false
+            return
+        }
+        paneCover.setImageAsync(row.manga?.coverUrl)
+        paneTitle.text = row.title
+        paneMeta.text = "${row.kind.name.lowercase().replaceFirstChar { it.uppercaseChar() }} · ${row.detail}"
+        val description = row.manga?.description?.takeIf { it.isNotBlank() }
+        paneDescription.text = if (description != null) {
+            HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_COMPACT)
+        } else {
+            getString(R.string.library_pane_no_description)
+        }
+        paneOpen.isVisible = true
+    }
+
+    private fun openRow(row: Row) {
+        val intent = when {
+            row.file != null -> BookShelf.readerIntent(this, row.file)
+            row.manga != null -> AppRouter.detailsIntent(this, row.manga)
+            else -> null
+        }
+        if (intent != null) startActivity(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -220,12 +299,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val row = rows[position]
             BookShelfCard.bind(holder.card, row.title, row.detail) {
-                val intent = when {
-                    row.file != null -> BookShelf.readerIntent(this@UnifiedLibraryActivity, row.file)
-                    row.manga != null -> AppRouter.detailsIntent(this@UnifiedLibraryActivity, row.manga)
-                    else -> null
-                }
-                if (intent != null) startActivity(intent)
+                if (twoPane) showPane(row) else openRow(row)
             }
             holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(
                 when (row.kind) {
