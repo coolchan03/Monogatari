@@ -15,8 +15,16 @@ internal object OpdsParser {
 
 	fun isWeb(url: String) = url.startsWith("https://") || url.startsWith("http://")
 
-	private fun resolve(base: URI, href: String): String? =
-		runCatching { base.resolve(href.trim()).toString() }.getOrNull()?.takeIf(::isWeb)
+	/** Java's URI.resolve drops the file name for a query-only reference ("?page=2"); RFC 3986 keeps it. */
+	private fun resolve(base: URI, href: String): String? {
+		val ref = href.trim()
+		val resolved = if (ref.startsWith("?")) {
+			base.toString().substringBefore('?').substringBefore('#') + ref
+		} else {
+			runCatching { base.resolve(ref).toString() }.getOrNull()
+		}
+		return resolved?.takeIf(::isWeb)
+	}
 
 	fun parse(body: String, base: URI, contentType: String? = null): Page =
 		if (contentType?.contains("json", true) == true || body.trimStart().startsWith("{")) parseJson(body, base) else parseAtom(body, base)
