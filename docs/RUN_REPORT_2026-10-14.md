@@ -64,4 +64,4 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 ## Process notes
 
 - AGENTS.md says to request "Tunnel to Surface" first and never use the GitHub connector to write. No Tunnel tool exists in this unattended session, so I edited and pushed with plain git and used the GitHub tools only to read CI and (as the task required) to open the pull request.
-- Two builds failed along the way and were fixed: an unsupported image-viewer call (`ssiv.state`), caught in the first CI run.
+- One build failed along the way and was fixed: an unsupported image-viewer call (`ssiv.state`), caught by the first CI run.
