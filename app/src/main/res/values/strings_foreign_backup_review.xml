@@ -19,4 +19,10 @@
     <string name="foreign_backup_done_skipped">%1$d titles couldn\'t be imported.</string>
     <string name="foreign_backup_done_install_failed">These extensions failed to install, so their titles were added as unavailable sources: %1$s</string>
     <string name="foreign_backup_default_category">Default</string>
+    <string name="update_snapshots_title">Undo an app update</string>
+    <string name="update_snapshots_summary">Your library, history and settings are copied automatically before each app update. Roll back here if an update lost something.</string>
+    <string name="update_snapshots_empty">No update copies yet. One is made automatically the first time a new version starts.</string>
+    <string name="update_snapshots_item">Before update from version %1$d · %2$s · %3$s</string>
+    <string name="update_snapshots_confirm">Replace your current library, history and settings with this copy? Anything changed since then will be lost. The app will close; open it again to finish.</string>
+    <string name="update_snapshots_restore">Restore and close app</string>
 </resources>
