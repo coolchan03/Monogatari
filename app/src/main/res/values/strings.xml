@@ -1281,7 +1281,6 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="translated_page_show_original">Show original</string>
     <string name="translated_page_show_translated">Show translation</string>
     <string name="translation_models_manage">Offline translation languages</string>
-    <string name="translation_models_none">No offline translation languages are downloaded</string>
     <string name="translation_models_delete">Delete selected</string>
     <string name="translation_models_deleted">Deleted. They download again when needed</string>
     <string name="translated_page_description">Translated manga page</string>
