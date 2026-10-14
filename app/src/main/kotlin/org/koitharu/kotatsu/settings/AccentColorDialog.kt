@@ -72,6 +72,7 @@ internal object AccentColorDialog {
 			selected?.let { setText(AccentPalette.toHex(it)) }
 		}
 		val chips = ChipGroup(context).apply { isSingleSelection = true }
+		var updatingText = false
 		for (preset in AccentPalette.presets) {
 			chips.addView(Chip(context).apply {
 				text = context.getString(titleOf(preset.key))
@@ -79,12 +80,15 @@ internal object AccentColorDialog {
 				isChecked = preset.seed == selected
 				setOnClickListener {
 					selected = preset.seed
+					updatingText = true
 					custom.setText(preset.seed?.let { AccentPalette.toHex(it) }.orEmpty())
+					updatingText = false
 					renderPreview()
 				}
 			})
 		}
 		custom.doAfterTextChanged { text ->
+			if (updatingText) return@doAfterTextChanged
 			val color = AccentPalette.parseHex(text?.toString().orEmpty())
 			if (color != null) {
 				selected = color
