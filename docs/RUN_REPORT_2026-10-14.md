@@ -65,3 +65,13 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 
 - AGENTS.md says to request "Tunnel to Surface" first and never use the GitHub connector to write. No Tunnel tool exists in this unattended session, so I edited and pushed with plain git and used the GitHub tools only to read CI and (as the task required) to open the pull request.
 - One build failed along the way and was fixed: an unsupported image-viewer call (`ssiv.state`), caught by the first CI run.
+
+## Follow-up after your answers (same day)
+
+- **Windows app dropped** (#71-75): you will use an emulator. Marked as dropped in the tracker.
+- **Built-in sources on by default:** already the case (all built-in sources are enabled and pinned); nothing to change.
+- **Accent colour fallback:** Android 11 and older now show any accent as black (light mode) / white (dark mode).
+- **Also finished:** #22 smooth background fill for shaded bubbles, #27 offline translation language management, #43 Gutenberg genre search.
+- **Mascot:** a cast of small creatures instead of one, proposal in `docs/MASCOT_IDEAS.md`; waiting for your pick.
+- **"GitHub project that gives API access to anything":** I could not identify it from the description. Tools like RSSHub or RSS-Bridge turn websites into feeds; the app's Podcasts & video RSS and News screens already read feeds, so such a feed URL works today. Send the project's name or link and I will check whether a source can be built on it.
+- **Still open:** #40/#41/#42/#45 (need an official feed or the project above), #29/#31/#32, #16-#18, #36 (list screens already have "open in browser"), #66/#69, #13/#14, #47/#48/#50/#53/#56, #55/#58 (credentials).
