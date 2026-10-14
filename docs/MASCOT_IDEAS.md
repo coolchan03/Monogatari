@@ -1,32 +1,43 @@
 # Kitsune, the spirit fox (#80, #81)
 
 Decision (owner): the mascot is **Kitsune**, a spirit fox who takes a different form for each kind of media, drawn in an anime style,
-with a hidden muscular form as an Easter egg.
+with line-art variants, replacing all inherited Kotatsu art, and a hidden muscular Easter egg (a human with fox ears).
 
-## What exists
+## Art (generated from code, `scripts/kitsune/`)
 
-Hand-drawn vector art in `app/src/main/res/drawable/` (one file per form, so any of them can be replaced with better artwork without touching code):
+Colour set (hero art) and a matching **line-art set** (`*_line.xml`, one ink colour: dark by day, pale at night):
 
-| File | Form | Shown for |
-|---|---|---|
-| `kitsune_default.xml` | Teal fox with a spirit flame | Unified library "All" tab |
-| `kitsune_manga.xml` | Teal fox, bookmark ribbon, speech bubble | Manga tab |
-| `kitsune_book.xml` | Amber fox, round glasses, open book | Book tab |
-| `kitsune_video.xml` | Violet fox, glow aura, play button | Video tab |
-| `kitsune_audio.xml` | Coral fox, headphones, music note | Audio tab |
-| `kitsune_news.xml` | Blue fox, newspaper | (ready; not shown anywhere yet) |
-| `kitsune_buff.xml` | Kitsune-kun, the muscular form | Easter egg |
+| Form | Look | Colour file | Line file | Where |
+|---|---|---|---|---|
+| Default | teal fox, spirit flames, nine tails | `kitsune_default` | `kitsune_default_line` | library "All" tab; line: generic empty lists |
+| Manga | teal, speech bubble, bookmark ribbon | `kitsune_manga` | `kitsune_manga_line` | library Manga tab; line: empty favourites |
+| Books | amber, round glasses, open book | `kitsune_book` | `kitsune_book_line` | library Book tab; line: empty history |
+| Video | violet, glow aura, play flame | `kitsune_video` | `kitsune_video_line` | library Video tab |
+| Audio | coral, headphones, music note | `kitsune_audio` | `kitsune_audio_line` | library Audio tab; line: empty local list |
+| News | blue, newspaper | `kitsune_news` | `kitsune_news_line` | empty feed (line); colour ready |
+| Kitsune-kun | anime human with fox ears and tails, double-biceps pose | `kitsune_buff` | `kitsune_buff_line` | Easter egg |
 
-Code: `core/ui/Mascot.kt` (`MascotForm`, `Mascot.formFor`, `TapCounter`). Kitsune appears in the **empty state** of the unified library, in the
-form of the selected tab. **Easter egg:** tap her quickly 7 times (each tap within 2 seconds of the last) to meet Kitsune-kun.
+Style: anime eyes with highlights, kitsune cheek marks and forehead diamond, spiky cheek fluff, fan of nine tails, hitodama flames.
+
+## Replaced Kotatsu art
+
+- Launcher icon (adaptive foreground, themed monochrome), legacy launcher PNGs (Android 6-7), Play Store icon, Android 12+ splash icon.
+- Widget preview images (they were a collage of real manga covers).
+- Empty-state illustrations for lists (now Kitsune line art).
+
+Regenerate everything with `python3 scripts/kitsune/build_kitsune.py` (see `scripts/kitsune/README.md`).
+
+## Easter egg
+
+In the unified library, when a tab is empty Kitsune appears; tap her quickly 7 times (each tap within 2 seconds of the last) to meet Kitsune-kun.
 
 ## Honest limits
 
-This is stylised flat vector art made by hand-writing shapes: big anime eyes with highlights, cheek marks, blush, pointed ears. It is not
-professional illustration. If you commission or draw real artwork, replace the files above (keep the names) and everything else keeps working.
+This is hand-coded vector art: stylised and consistent, but not the work of an illustrator. To use real artwork, overwrite the XML/PNG file
+of the same name; nothing else needs to change. Still unchanged: the in-app storybook illustrations (`illustration_monogatari_stories`,
+onboarding hero), which are Monogatari's own, not Kotatsu's.
 
 ## Not done yet
 
-- App icon still the old one (a Kitsune bookmark-tail icon would be the next step; launcher icons need several sizes and a build check).
-- First-run tips and the News screen empty state do not show Kitsune yet (`kitsune_news.xml` is ready).
-- More Easter-egg entrances, if you want them (for example the About screen).
+- First-run tips and the News screen empty state do not show Kitsune yet.
+- More Easter-egg entrances (for example the About screen), if wanted.
