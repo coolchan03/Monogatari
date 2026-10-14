@@ -196,7 +196,7 @@ object MonogatariTestPlan {
             "Choose a Kotatsu or Mangayomi backup, read the summary, then Restore/Import. Check that your titles, categories and reading progress arrived.",
             TestDestination.IMPORT),
         TestCase("translate_toggle", "Translated / original page toggle (#24)",
-            "Translate a raw page (circled options button, then Translate page). On the result, tap the Show original button at the bottom, then Show translation. Zoom should stay where it was.",
+            "Translate a raw page (circled options button, then Translate page). On the result, tap the Show original button at the bottom, then Show translation.",
             TestDestination.HOME, highlight = listOf(R.id.button_options)),
         TestCase("translate_languages", "Per-series translation languages (#25)",
             "In the reader options choose Translation languages for this series. Pick the series language and a target language other than your device language, then translate a page. The language should be remembered for this series only.",

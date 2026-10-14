@@ -103,8 +103,7 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 
 	private fun showImage() {
 		val file = if (showingOriginal) result.originalFile else result.file
-		val keep = viewBinding.ssiv.state
-		viewBinding.ssiv.setImage(ImageSource.file(file), keep)
+		viewBinding.ssiv.setImage(ImageSource.file(file))
 		viewBinding.buttonToggle.setText(
 			if (showingOriginal) R.string.translated_page_show_translated else R.string.translated_page_show_original,
 		)
