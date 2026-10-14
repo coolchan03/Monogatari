@@ -530,7 +530,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			PluginState.INSTALLED -> getString(R.string.plugin_installed)
 			PluginState.UPDATE_AVAILABLE -> getString(R.string.plugin_update_available)
 		}
-		return listOfNotNull("v${e.version}", e.lang.takeIf { it.isNotEmpty() }, type, status).joinToString(" · ")
+		val origin = runCatching { java.net.URI(e.repoUrl).host }.getOrNull()?.removePrefix("www.")?.takeIf { it.isNotBlank() }
+		return listOfNotNull(
+			"v${e.version}", e.lang.takeIf { it.isNotEmpty() }, type, status,
+			getString(R.string.source_adult).takeIf { e.isNsfw },
+			getString(R.string.source_needs_cloudflare).takeIf { e.hasCloudflare },
+			origin?.let { getString(R.string.source_from_repo, it) },
+		).joinToString(" · ")
 	}
 
 	private fun onJsSourceClick(item: JsSourceItem) {

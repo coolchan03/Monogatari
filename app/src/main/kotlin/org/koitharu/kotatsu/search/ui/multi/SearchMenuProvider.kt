@@ -136,6 +136,19 @@ class SearchMenuProvider(
 			isChecked = viewModel.includesUnknownYears
 		}
 		container.addView(unknownBox)
+		val languages = listOf<String?>(null) + viewModel.languagesInResults()
+		container.addView(TextView(activity).apply {
+			setText(R.string.search_language_label)
+			setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+		})
+		val languagePicker = Spinner(activity).apply {
+			adapter = ArrayAdapter(
+				activity, android.R.layout.simple_spinner_item,
+				languages.map { code -> code?.let { java.util.Locale(it).getDisplayLanguage() } ?: activity.getString(R.string.search_language_any) },
+			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+			setSelection(languages.indexOf(viewModel.selectedLanguage).coerceAtLeast(0))
+		}
+		container.addView(languagePicker)
 		val ordering = PublicationYearOrder.entries.toList()
 		container.addView(TextView(activity).apply {
 			setText(R.string.publication_year_sort_label)
@@ -165,11 +178,13 @@ class SearchMenuProvider(
 			.setNeutralButton(R.string.any) { _, _ ->
 				viewModel.setPublicationYearOrder(PublicationYearOrder.RELEVANCE)
 				viewModel.setIncludeUnknownYears(true)
+				viewModel.setLanguageFilter(null)
 				viewModel.setPublicationYearRange(null, null)
 			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
 				viewModel.setIncludeUnknownYears(unknownBox.isChecked)
+				viewModel.setLanguageFilter(languages[languagePicker.selectedItemPosition])
 				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedItemPosition])
 				viewModel.setPublicationYearRange(
 					from.text?.toString()?.trim()?.toIntOrNull(),

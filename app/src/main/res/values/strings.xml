@@ -932,6 +932,8 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="publication_year_sort_relevance">Best match (default)</string>
     <string name="publication_year_sort_ascending">Oldest to newest (estimated)</string>
     <string name="publication_year_sort_descending">Newest to oldest (estimated)</string>
+    <string name="search_language_label">Language of the source</string>
+    <string name="search_language_any">Any language</string>
     <string name="publication_year_include_unknown">Include titles with no known year (years are estimated from titles and descriptions)</string>
     <string name="publication_year_sort_ascending_global">Oldest to newest, all sources together (estimated)</string>
     <string name="publication_year_sort_descending_global">Newest to oldest, all sources together (estimated)</string>
@@ -1368,6 +1370,9 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="library_collection_none">No collections yet. Create one to group titles from any media.</string>
     <string name="library_collection_delete">Delete collection</string>
     <string name="library_loading">Loading your library…</string>
+    <string name="source_adult">adult</string>
+    <string name="source_needs_cloudflare">may need a CAPTCHA check</string>
+    <string name="source_from_repo">from %1$s</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>

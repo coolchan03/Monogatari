@@ -64,4 +64,20 @@ class PublicationYearSorterTest {
         assertEquals(false, YearFilter.isActive(null, null, true))
         assertEquals(true, YearFilter.isActive(null, null, false))
     }
+
+    @Test fun yearBadgeDistinguishesStatedFromGuessed() {
+        val stated = PublicationYearSorter.estimateDetailed("My Story", null, "First published in 1998. Set in 2010.")
+        assertEquals("1998", stated?.badge)
+        val guessed = PublicationYearSorter.estimateDetailed("The Story (2012)", null, null)
+        assertEquals("~2012", guessed?.badge)
+        assertNull(PublicationYearSorter.estimateDetailed("No Dates", null, null))
+    }
+
+    @Test fun languageFilterKeepsMultiLanguageSources() {
+        assertEquals(true, LanguageFilter.matches("en", null))
+        assertEquals(true, LanguageFilter.matches("EN", "en"))
+        assertEquals(false, LanguageFilter.matches("ja", "en"))
+        assertEquals(true, LanguageFilter.matches(null, "en"))
+        assertEquals(listOf("en", "ja"), LanguageFilter.available(listOf("ja", null, "en", "EN", "")))
+    }
 }

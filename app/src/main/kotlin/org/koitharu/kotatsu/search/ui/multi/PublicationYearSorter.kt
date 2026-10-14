@@ -33,6 +33,22 @@ internal object PublicationYearSorter {
         "released", "serialized", "year:",
     )
 
+    /** A year with how it was found: [reliable] when the description states it, a guess when it comes from the title. */
+    data class YearEstimate(val year: Int, val reliable: Boolean) {
+        /** "1998" when stated, "~1998" when guessed. */
+        val badge: String get() = if (reliable) "$year" else "~$year"
+    }
+
+    fun estimateDetailed(title: String, alternate: String?, description: String?): YearEstimate? {
+        val year = estimateYear(title, alternate, description) ?: return null
+        val lower = description.orEmpty().take(1200).lowercase()
+        val stated = metadataLabels.any { label ->
+            val index = lower.indexOf(label)
+            index >= 0 && yearPattern.find(lower.substring(index + label.length, (index + label.length + 35).coerceAtMost(lower.length)))?.value == year.toString()
+        }
+        return YearEstimate(year, stated)
+    }
+
     fun estimateYear(title: String, alternate: String?, description: String?): Int? {
         val synopsis = description.orEmpty().take(1200)
         val lower = synopsis.lowercase()
