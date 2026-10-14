@@ -102,6 +102,7 @@ class ReaderConfigSheet :
         binding.checkableGroup.addOnButtonCheckedListener(this)
         binding.buttonSavePage.setOnClickListener(this)
         binding.buttonTranslatePage.setOnClickListener(this)
+        binding.buttonTranslateLanguages.setOnClickListener(this)
         binding.buttonScreenRotate.setOnClickListener(this)
         binding.buttonSettings.setOnClickListener(this)
         binding.buttonImageServer.setOnClickListener(this)
@@ -156,6 +157,11 @@ class ReaderConfigSheet :
 
             R.id.button_translate_page -> {
                 findParentCallback(Callback::class.java)?.onTranslatePageClick() ?: return
+                dismissAllowingStateLoss()
+            }
+
+            R.id.button_translate_languages -> {
+                findParentCallback(Callback::class.java)?.onTranslateLanguagesClick() ?: return
                 dismissAllowingStateLoss()
             }
 
@@ -292,6 +298,8 @@ class ReaderConfigSheet :
         fun onSavePageClick()
 
         fun onTranslatePageClick()
+
+        fun onTranslateLanguagesClick()
 
         fun onScrollTimerClick(isLongClick: Boolean)
 

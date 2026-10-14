@@ -14,6 +14,11 @@ import kotlin.math.roundToInt
 /** Paints over the original text of each block and draws its translation in the freed space. */
 internal object TranslatedPageRenderer {
 
+	private const val MIN_TEXT_SIZE = 8f
+
+	fun render(source: Bitmap, meta: TranslationMeta): Bitmap =
+		render(source, meta.blocks.map { Block(it.box, it.translation) })
+
 	class Block(val box: TranslationLayout.Box, val translation: String)
 
 	fun render(source: Bitmap, blocks: List<Block>): Bitmap {
@@ -33,7 +38,8 @@ internal object TranslatedPageRenderer {
 			fill.color = background
 			val corner = pad * 2f
 			canvas.drawRoundRect(covered.toRectF(), corner, corner, fill)
-			val target = TranslationLayout.widenForHorizontalText(covered, width, height)
+			val widened = TranslationLayout.widenForHorizontalText(covered, width, height)
+			val target = growIfNeeded(block.translation, widened, pad, height, textPaint)
 			if (target != covered) {
 				canvas.drawRoundRect(target.toRectF(), corner, corner, fill)
 			}
@@ -43,11 +49,18 @@ internal object TranslatedPageRenderer {
 		return out
 	}
 
+	/** Text that cannot fit even at the smallest size gets extra room above/below instead of being clipped. */
+	private fun growIfNeeded(text: String, box: TranslationLayout.Box, pad: Int, imageHeight: Int, paint: TextPaint): TranslationLayout.Box {
+		paint.textSize = MIN_TEXT_SIZE
+		val needed = layout(text, paint, (box.width - pad * 2).coerceAtLeast(1)).height + pad * 2
+		return TranslationLayout.growToFit(box, needed, imageHeight)
+	}
+
 	private fun drawFittedText(canvas: Canvas, text: String, box: TranslationLayout.Box, pad: Int, paint: TextPaint) {
 		val innerWidth = (box.width - pad * 2).coerceAtLeast(1)
 		val innerHeight = (box.height - pad * 2).coerceAtLeast(1)
 		val maxSize = (innerHeight * 0.45f).coerceIn(10f, 64f)
-		val minSize = 8f.coerceAtMost(maxSize)
+		val minSize = MIN_TEXT_SIZE.coerceAtMost(maxSize)
 		val size = TranslationLayout.fitTextSize(minSize, maxSize, innerHeight) { candidate ->
 			paint.textSize = candidate
 			layout(text, paint, innerWidth).height
@@ -67,6 +80,8 @@ internal object TranslatedPageRenderer {
 			.setAlignment(Layout.Alignment.ALIGN_CENTER)
 			.setLineSpacing(0f, 1.0f)
 			.setIncludePad(false)
+			.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
+			.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
 			.build()
 
 	/** Median colour of pixels just outside the box: usually the bubble's paper colour. */

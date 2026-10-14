@@ -1269,6 +1269,25 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="page_translation_unknown_language">Couldn\'t tell which language this page is in</string>
     <string name="page_translation_unreadable">This page image couldn\'t be read for translation</string>
     <string name="page_translation_model_unavailable">The on-device translation model isn\'t available yet. Check your connection and Google Play services, then try again</string>
+    <string name="page_translation_languages">Translation languages for this series</string>
+    <string name="page_translation_source_title">Which language is this series written in?</string>
+    <string name="page_translation_source_auto">Detect automatically</string>
+    <string name="page_translation_target_title">Translate into</string>
+    <string name="page_translation_target_device">My device language</string>
+    <string name="page_translation_languages_saved">Languages saved for this series</string>
+    <string name="translated_page_show_original">Show original</string>
+    <string name="translated_page_show_translated">Show translation</string>
+    <string name="translated_page_hint">Tap any text to check or correct it</string>
+    <string name="translated_page_viewing_original">Original page</string>
+    <plurals name="translated_page_doubtful">
+        <item quantity="one">%d line was hard to read. Tap text to check it</item>
+        <item quantity="other">%d lines were hard to read. Tap text to check them</item>
+    </plurals>
+    <string name="translated_edit_title">Correct this translation</string>
+    <string name="translated_edit_recognised">Recognised text: %1$s (%2$d%% sure)</string>
+    <string name="translated_edit_recognised_unknown">Recognised text: %1$s</string>
+    <string name="translated_edit_hint">Translation text</string>
+    <string name="translated_edit_save">Save correction</string>
     <string name="translation_translate_info">Translate title and description</string>
     <string name="translation_show_original">Show original title and description</string>
     <string name="media_skip_intro">Skip intro (+85 s)</string>

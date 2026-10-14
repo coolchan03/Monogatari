@@ -100,4 +100,66 @@ internal object TranslationLayout {
 		}
 		return lo
 	}
+
+	/** An OCR region with its text, used for bubble grouping. */
+	data class Piece(val box: Box, val text: String, val confidence: Float = -1f)
+
+	/**
+	 * Merges OCR regions that belong to the same speech bubble: boxes that overlap or are closer than [gapFactor] times
+	 * the smaller box dimension. Text is joined in reading order (right-to-left columns for vertical CJK text).
+	 */
+	fun groupPieces(pieces: List<Piece>, isCjk: Boolean, gapFactor: Float = 0.6f): List<Piece> {
+		val n = pieces.size
+		if (n < 2) return pieces
+		val parent = IntArray(n) { it }
+		fun find(i: Int): Int {
+			var r = i
+			while (parent[r] != r) r = parent[r]
+			var c = i
+			while (parent[c] != r) { val next = parent[c]; parent[c] = r; c = next }
+			return r
+		}
+		for (i in 0 until n) for (j in i + 1 until n) {
+			if (isSameBubble(pieces[i].box, pieces[j].box, gapFactor)) parent[find(i)] = find(j)
+		}
+		return pieces.indices.groupBy { find(it) }.values.map { indices ->
+			val members = indices.map { pieces[it] }
+			if (members.size == 1) return@map members[0]
+			val ordered = if (isCjk) {
+				members.sortedWith(compareByDescending<Piece> { (it.box.left + it.box.right) / 2 }.thenBy { it.box.top })
+			} else {
+				members.sortedWith(compareBy<Piece> { it.box.top / 12 }.thenBy { it.box.left })
+			}
+			val union = Box(
+				ordered.minOf { it.box.left }, ordered.minOf { it.box.top },
+				ordered.maxOf { it.box.right }, ordered.maxOf { it.box.bottom },
+			)
+			val known = ordered.map { it.confidence }.filter { it >= 0f }
+			Piece(
+				union,
+				joinLines(ordered.map { it.text }, isCjk),
+				if (known.isEmpty()) -1f else known.min(),
+			)
+		}.sortedWith(compareBy({ it.box.top }, { it.box.left }))
+	}
+
+	private fun isSameBubble(a: Box, b: Box, gapFactor: Float): Boolean {
+		val gapX = max(0, max(a.left, b.left) - min(a.right, b.right))
+		val gapY = max(0, max(a.top, b.top) - min(a.bottom, b.bottom))
+		val limit = (min(min(a.width, a.height), min(b.width, b.height)) * gapFactor).roundToInt()
+		return gapX <= limit && gapY <= limit
+	}
+
+	/**
+	 * Vertical growth needed for text that does not fit even at the smallest size: extends [box] down and up (within
+	 * the page) by at most [maxGrowth] of its height.
+	 */
+	fun growToFit(box: Box, neededHeight: Int, imageHeight: Int, maxGrowth: Float = 0.5f): Box {
+		val missing = neededHeight - box.height
+		if (missing <= 0) return box
+		val allowed = min(missing, (box.height * maxGrowth).roundToInt())
+		val down = min(allowed - allowed / 2, imageHeight - box.bottom)
+		val up = min(allowed - down, box.top)
+		return Box(box.left, box.top - up, box.right, box.bottom + down)
+	}
 }
