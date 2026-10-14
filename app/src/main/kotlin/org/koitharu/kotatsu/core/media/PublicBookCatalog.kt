@@ -119,11 +119,13 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             val preview = info.optString("previewLink").takeIf { it.startsWith("https://") }
                 ?: "https://books.google.com/books?id=${encode(id)}"
             val thumbnail = info.optJSONObject("imageLinks")?.optString("thumbnail").orEmpty()
+            val access = GoogleBooksAccess.describe(volume)
             Book(title, info.optJSONArray("authors")?.optString(0).orEmpty(), "Google Books", preview,
+                downloadUrl = access.epubUrl,
                 coverUrl = thumbnail.takeIf { it.startsWith("https://") },
                 publicationYear = year, language = info.optString("language"),
-                format = "Official preview / listing")
-        }
+                format = access.label) to access.freeToRead
+        }.sortedByDescending { it.second }.map { it.first }
     }
 
     /** Free New Releases Atom feed only: the full Standard Ebooks OPDS is membership-gated. */
