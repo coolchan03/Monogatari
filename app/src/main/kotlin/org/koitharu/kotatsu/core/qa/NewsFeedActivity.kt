@@ -39,6 +39,13 @@ class NewsFeedActivity : AppCompatActivity() {
     private var items = emptyList<NewsFeedParser.Entry>()
     private var onlyFollowing = false
     private var savedOnly = false
+    /** Topic chip currently narrowing the list, and the site and order the user picked. */
+    private var activeTag: String? = null
+    private var sourceFilter: String? = null
+    private var oldestFirst = false
+    private lateinit var chipsRow: LinearLayout
+    private var sourceButton: MaterialButton? = null
+    private var orderButton: MaterialButton? = null
     private var feedJob: Job? = null
     private val prefs by lazy { getSharedPreferences("monogatari_news", MODE_PRIVATE) }
 
@@ -96,12 +103,25 @@ class NewsFeedActivity : AppCompatActivity() {
             savedOnly = !savedOnly
             render()
         }
+        sourceButton = action("Site: all") {
+            sourceFilter = NewsFilters.nextSource(sourceFilter, NewsFilters.sources(items.map { it.link }))
+            render()
+        }
+        orderButton = action("Order: newest first") {
+            oldestFirst = !oldestFirst
+            render()
+        }
         searchInput = EditText(this).apply {
             hint = "Filter articles by title or topic"
             setSingleLine(true)
             doAfterTextChanged { if (::entries.isInitialized) render() }
         }
         root.addView(searchInput, LinearLayout.LayoutParams(-1, -2))
+        chipsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        root.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(chipsRow)
+        }, LinearLayout.LayoutParams(-1, -2))
         message = TextView(this).apply { text = "Choose a feed and refresh · long-press a story to save it" }
         root.addView(message, LinearLayout.LayoutParams(-1, -2))
         val listScroll = ScrollView(this)
@@ -200,6 +220,23 @@ class NewsFeedActivity : AppCompatActivity() {
         }
     }
 
+    /** One chip per followed topic; tap to narrow the list to it, tap again to clear. */
+    private fun renderChips(tags: Set<String>) {
+        chipsRow.removeAllViews()
+        for (tag in tags.sorted()) {
+            chipsRow.addView(com.google.android.material.chip.Chip(this).apply {
+                text = tag
+                isCheckable = true
+                isChecked = tag.equals(activeTag, ignoreCase = true)
+                contentDescription = tag
+                setOnClickListener {
+                    activeTag = if (isChecked) tag else null
+                    render()
+                }
+            })
+        }
+    }
+
     private fun render() {
         entries.removeAllViews()
         val tags = followedTags()
@@ -208,10 +245,18 @@ class NewsFeedActivity : AppCompatActivity() {
         val visible = items.asSequence()
             .filter { !onlyFollowing || FollowedTagPolicy.matches(it.tags, tags) }
             .filter { !savedOnly || it.link in saved }
+            .filter { NewsFilters.matchesTag(it.tags, activeTag) }
+            .filter { NewsFilters.matchesSource(it.link, sourceFilter) }
             .filter { query.isBlank() || it.title.contains(query, ignoreCase = true) ||
                 it.tags.any { tag -> tag.contains(query, ignoreCase = true) } }
-            .sortedWith(compareByDescending { entry: NewsFeedParser.Entry -> dateKey(entry.date) })
+            .sortedWith(
+                if (oldestFirst) compareBy { entry: NewsFeedParser.Entry -> dateKey(entry.date) }
+                else compareByDescending { entry: NewsFeedParser.Entry -> dateKey(entry.date) },
+            )
             .toList()
+        sourceButton?.text = "Site: " + (sourceFilter ?: "all")
+        orderButton?.text = if (oldestFirst) "Order: oldest first" else "Order: newest first"
+        renderChips(tags)
         message.text = "${visible.size} articles · ${tags.size} followed topics · ${saved.size} saved" +
             if (onlyFollowing) " · followed only" else ""
         val pad = (12 * resources.displayMetrics.density).toInt()
