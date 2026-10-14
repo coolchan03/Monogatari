@@ -56,6 +56,28 @@ internal object MoreDestinations {
         Page("About", "Version, credits and app information",
             R.drawable.ic_monogatari_nav_books, SettingsActivity::class.java, "monogatari://about"),
     )
+
+    /** Settings-style section titles, in display order, with the destinations that belong to each. */
+    private val groupOf = mapOf(
+        "Unified Library" to "Library", "Books catalog" to "Library", "Downloads" to "Library",
+        "Bookmarks" to "Library", "Reading statistics" to "Library",
+        "Discover" to "Find something", "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
+        "News & followed tags" to "Find something", "Jellyfin server" to "Find something",
+        "Manual WebDAV backups" to "Backup and import", "Import from Kotatsu / Mangayomi" to "Backup and import",
+    )
+    private const val DEFAULT_GROUP = "App and tools"
+    val groupOrder = listOf("Library", "Find something", "Backup and import", DEFAULT_GROUP)
+
+    /** Section titles (String) interleaved with their destinations (Page). */
+    val sections: List<Any> = buildList {
+        for (group in groupOrder) {
+            val members = pages.filter { (groupOf[it.title] ?: DEFAULT_GROUP) == group }
+            if (members.isEmpty()) continue
+            add(group)
+            addAll(members)
+        }
+    }
+
     fun show(activity: MainActivity) =
         activity.startActivity(Intent(activity, MoreActivity::class.java))
 }
