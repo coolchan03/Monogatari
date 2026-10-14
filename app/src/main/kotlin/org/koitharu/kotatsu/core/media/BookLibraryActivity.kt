@@ -12,6 +12,10 @@ import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import android.widget.EditText
+import android.widget.TextView
+import android.view.View
+import coil3.ImageLoader
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.provider.OpenableColumns
@@ -23,6 +27,11 @@ import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -32,9 +41,15 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class BookLibraryActivity : AppCompatActivity() {
     @Inject lateinit var catalog: PublicBookCatalog
+    @Inject lateinit var imageLoader: ImageLoader
     @Inject lateinit var opds: OpdsCatalog
     private val resultsAdapter = CatalogResultsAdapter()
     private lateinit var query: EditText
+    private lateinit var catalogStatus: TextView
+    private var currentBooks = emptyList<PublicBookCatalog.Book>()
+    private var currentProviderErrors = emptyList<String>()
+    private var catalogJob: Job? = null
+    private var catalogOrder = BookCatalogSorter.Order.RELEVANCE
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         lifecycleScope.launch {
             val report = withContext(Dispatchers.IO) {
@@ -91,6 +106,22 @@ class BookLibraryActivity : AppCompatActivity() {
         title = getString(R.string.monogatari_catalog_title)
         setContentView(R.layout.activity_monogatari_book_catalog)
         query = findViewById(R.id.monogatari_catalog_query)
+        catalogStatus = findViewById(R.id.monogatari_catalog_status)
+        resultsAdapter.imageLoader = imageLoader
+        catalogOrder = runCatching {
+            BookCatalogSorter.Order.valueOf(
+                getSharedPreferences("book_catalog_ui", MODE_PRIVATE)
+                    .getString("sort", BookCatalogSorter.Order.RELEVANCE.name)!!
+            )
+        }.getOrDefault(BookCatalogSorter.Order.RELEVANCE)
+        findViewById<MaterialButton>(R.id.monogatari_catalog_sort).apply {
+            text = "Sort: ${catalogOrder.label}"
+            setOnClickListener { showSortOptions() }
+        }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_all)
+            .setOnClickListener { search("All") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_google)
+            .setOnClickListener { search("Google Books") }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
                 if (resources.configuration.screenWidthDp >= 600) 2 else 1)
@@ -199,26 +230,145 @@ class BookLibraryActivity : AppCompatActivity() {
         }
     }
 
+    private data class ProviderResult(
+        val source: String, val books: List<PublicBookCatalog.Book>,
+        val error: String? = null,
+    )
+
     private fun search(source: String) {
-        val term = query.text.toString().trim()
-        if (term.isEmpty()) { showLines(listOf(getString(R.string.monogatari_catalog_search_enter_term))); return }
-        showLines(listOf(getString(R.string.monogatari_catalog_search_progress, source)))
-        lifecycleScope.launch {
-            try {
-                val books = when (source) {
-                    "Gutenberg" -> catalog.searchGutenberg(term)
-                    "Open Library" -> catalog.searchOpenLibrary(term)
-                    "Wikisource" -> catalog.searchWikisource(term)
-                    else -> catalog.searchInternetArchive(term)
-                }
-                if (books.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_search_none)))
-                else resultsAdapter.show(books.map { book ->
-                    CatalogRow(book.title, "${book.author} · ${book.catalog}", onOpen = {
-                        startActivity(Intent(Intent.ACTION_VIEW, book.url.toUri()))
-                    })
-                })
-            } catch (e: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_search_failed, e.message.orEmpty()))) }
+        val term = query.text?.toString()?.trim().orEmpty()
+        if (term.isEmpty()) {
+            query.error = getString(R.string.monogatari_catalog_search_enter_term)
+            query.requestFocus()
+            return
         }
+        catalogJob?.cancel()
+        currentBooks = emptyList()
+        resultsAdapter.show(emptyList())
+        catalogStatus.visibility = View.VISIBLE
+        catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
+        catalogJob = lifecycleScope.launch {
+            val providers = if (source == "All")
+                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books")
+            else listOf(source)
+            try {
+                // A slow, restricted or unreachable catalog cannot hide other providers' results.
+                val fetched = supervisorScope {
+                    providers.map { provider ->
+                        async(Dispatchers.IO) {
+                            try { ProviderResult(provider, searchProvider(provider, term)) }
+                            catch (e: CancellationException) { throw e }
+                            catch (e: Exception) {
+                                ProviderResult(provider, emptyList(), e.message?.take(100) ?: "Unavailable")
+                            }
+                        }
+                    }.awaitAll()
+                }
+                currentBooks = fetched.flatMap { it.books }
+                currentProviderErrors = fetched.filter { it.error != null }
+                    .map { "${it.source}: ${it.error}" }
+                renderCatalogBooks()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                catalogStatus.text = "Catalog search failed: ${e.message.orEmpty().take(120)}"
+                resultsAdapter.show(emptyList())
+            }
+        }
+    }
+
+    private fun renderCatalogBooks() {
+        val groups = BookCatalogMerger.sort(BookCatalogMerger.merge(currentBooks), catalogOrder)
+        val errorSuffix = if (currentProviderErrors.isEmpty()) "" else
+            "\nUnavailable: " + currentProviderErrors.joinToString(" · ")
+        catalogStatus.text = "${groups.size} titles · ${currentBooks.size} provider results · ${catalogOrder.label}" +
+            errorSuffix
+        if (groups.isEmpty()) {
+            resultsAdapter.show(listOf(CatalogRow(
+                "No catalog titles matched.",
+                if (currentProviderErrors.isEmpty()) "Try a different title or provider."
+                else "Some providers could not be reached; try again or choose one."
+            )))
+            return
+        }
+        resultsAdapter.show(groups.map { group ->
+            val book = group.primary
+            val description = listOfNotNull(
+                book.author.takeIf { it.isNotBlank() }, group.providers,
+                group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
+                book.language?.takeIf { it.isNotBlank() },
+                book.format?.takeIf { it.isNotBlank() },
+                book.downloadUrl?.let { "EPUB available" },
+            ).joinToString(" · ")
+            CatalogRow(
+                title = book.title, subtitle = description,
+                coverUrl = group.entries.firstNotNullOfOrNull { it.coverUrl },
+                onOpen = { openCatalogGroup(group) },
+                onLongPress = { openCatalogGroup(group) },
+            )
+        })
+    }
+
+    private fun openCatalogGroup(group: BookCatalogMerger.Group) {
+        if (group.entries.size == 1) {
+            openBookListing(group.entries.first())
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(group.primary.title)
+            .setItems(group.entries.map {
+                "${it.catalog} · ${it.format ?: "Source listing"}"
+            }.toTypedArray()) { _, position -> openBookListing(group.entries[position]) }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun openBookListing(book: PublicBookCatalog.Book) {
+        val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
+        if (epub == null) {
+            openOfficialLink(book.url)
+            return
+        }
+        MaterialAlertDialogBuilder(this).setTitle(book.title)
+            .setItems(arrayOf("View ${book.catalog} listing", "Open available EPUB")) { _, which ->
+                openOfficialLink(if (which == 1) epub else book.url)
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun openOfficialLink(url: String) {
+        if (!url.startsWith("https://")) {
+            catalogStatus.text = "Only secure official catalog links can be opened."
+            return
+        }
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+            .onFailure { catalogStatus.text = "No browser is available to open that catalog." }
+    }
+
+    private suspend fun searchProvider(source: String, term: String): List<PublicBookCatalog.Book> =
+        when (source) {
+            "Gutenberg" -> catalog.searchGutenberg(term)
+            "Open Library" -> catalog.searchOpenLibrary(term)
+            "Archive" -> catalog.searchInternetArchive(term)
+            "Wikisource" -> catalog.searchWikisource(term)
+            "Google Books" -> catalog.searchGoogleBooks(term)
+            else -> emptyList()
+        }
+
+    private fun showSortOptions() {
+        val options = BookCatalogSorter.Order.entries
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Sort catalog results")
+            .setSingleChoiceItems(
+                options.map { it.label }.toTypedArray(), options.indexOf(catalogOrder)
+            ) { dialog, selected ->
+                catalogOrder = options[selected]
+                getSharedPreferences("book_catalog_ui", MODE_PRIVATE)
+                    .edit().putString("sort", catalogOrder.name).apply()
+                findViewById<MaterialButton>(R.id.monogatari_catalog_sort)
+                    .text = "Sort: ${catalogOrder.label}"
+                if (currentBooks.isNotEmpty()) renderCatalogBooks()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun showLocalBooks(filter: String = "") {

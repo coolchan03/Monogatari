@@ -4,6 +4,8 @@ Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Device QA is separate.
 
+**v0.13.4 source audit:** 19 DONE, 39 PARTIAL, 30 PENDING. Book metadata catalogs, parallel search, sorting and emulator tablet screenshots add partial coverage; no Windows app, full OCR inpainting or mascot yet.
+
 | # | Status | Requirement |
 |---:|---|---|
 | 1 | DONE | Remove the inherited Kotatsu-Redo sponsorship prompt from community onboarding. |
@@ -51,7 +53,7 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 43 | PENDING | DOAB / OAPEN â€” open-access academic books; improve licensed EPUB/PDF handling. |
 | 44 | PENDING | OpenStax â€” openly licensed textbooks. |
 | 45 | PENDING | StoryWeaver â€” multilingual Creative Commons stories, subject to its API/usage rules. |
-| 46 | PENDING | Google Books â€” metadata and legally offered previews only, not bypassing access limits. |
+| 46 | PARTIAL | Google Books â€” metadata and legally offered previews only, not bypassing access limits. |
 | 47 | PENDING | Baen Free Library â€” legitimately free titles; check format and access. |
 | 48 | PENDING | FictionPress / FanFiction.net â€” public stories where site rules and scraping restrictions allow. |
 | 49 | PARTIAL | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. |
@@ -88,9 +90,9 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 80 | PENDING | Replace the inherited bear identity with an original mascot, after choosing among a teal fox with bookmark-shaped tail, a glow-moth or a star-tailed tanuki. |
 | 81 | PENDING | Use the mascot sparingly (app icon, empty state, first-run tips), not as intrusive decoration. |
 | 82 | DONE | Daily meaningful-change watch for Kotatsu-Redo, kotatsu-parsers-redo, Mangayomi and relevant source/runtime projects. |
-| 83 | PENDING | Document upstream revision, license, modifications and tests for each ported component. |
-| 84 | PENDING | Audit updates before merging; do not silently overwrite local additions with copied upstream files. |
+| 83 | PARTIAL | Document upstream revision, license, modifications and tests for each ported component. |
+| 84 | PARTIAL | Audit updates before merging; do not silently overwrite local additions with copied upstream files. |
 | 85 | PARTIAL | Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks. |
-| 86 | PENDING | Tablet emulation screenshots and layout checks; manual device QA only after CI. |
+| 86 | PARTIAL | Tablet emulation screenshots and layout checks; manual device QA only after CI. |
 | 87 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
 | 88 | PENDING | Preserve user data, backups, settings and reading progress across updates. |

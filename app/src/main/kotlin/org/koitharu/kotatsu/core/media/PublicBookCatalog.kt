@@ -17,6 +17,10 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         val catalog: String,
         val url: String,
         val downloadUrl: String? = null,
+        val coverUrl: String? = null,
+        val publicationYear: Int? = null,
+        val language: String? = null,
+        val format: String? = null,
     )
 
     suspend fun searchGutenberg(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
@@ -27,8 +31,11 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             val id = obj.optInt("id").takeIf { it > 0 } ?: return@mapNotNull null
             val formats = obj.optJSONObject("formats")
             val epub = formats?.optString("application/epub+zip")?.takeIf { it.startsWith("https://") }
+            val image = formats?.optString("image/jpeg")?.takeIf { it.startsWith("https://") }
             Book(obj.optString("title"), obj.optJSONArray("authors")?.optJSONObject(0)?.optString("name").orEmpty(),
-                "Project Gutenberg", "https://www.gutenberg.org/ebooks/$id", epub)
+                "Project Gutenberg", "https://www.gutenberg.org/ebooks/$id", epub,
+                coverUrl = image, language = obj.optJSONArray("languages")?.optString(0),
+                format = if (epub != null) "EPUB" else "Online book")
         }
     }
 
@@ -37,21 +44,32 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         val items = json.optJSONArray("docs") ?: return@withContext emptyList()
         (0 until items.length()).mapNotNull { i ->
             val obj = items.optJSONObject(i) ?: return@mapNotNull null
-            val key = obj.optString("key").takeIf { it.startsWith("/works/") } ?: return@mapNotNull null
+            val rawKey = obj.optString("key")
+            val workPath = when {
+                rawKey.startsWith("/works/OL") -> rawKey
+                rawKey.matches(Regex("""OL\d+W""")) -> "/works/$rawKey"
+                else -> return@mapNotNull null
+            }
             Book(obj.optString("title"), obj.optJSONArray("author_name")?.optString(0).orEmpty(),
-                "Open Library", "https://openlibrary.org$key")
+                "Open Library", "https://openlibrary.org$workPath",
+                coverUrl = obj.optInt("cover_i").takeIf { it > 0 }?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" },
+                publicationYear = obj.optInt("first_publish_year").takeIf { it in 1000..2100 },
+                language = obj.optJSONArray("language")?.optString(0), format = "Online catalog")
         }
     }
 
     suspend fun searchInternetArchive(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
         val expression = "(${query.replace(Regex("[^\\p{L}\\p{N} ]"), " ").trim()}) AND mediatype:texts"
-        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&rows=30&page=${page.coerceAtLeast(1)}&output=json")
+        val json = fetch("https://archive.org/advancedsearch.php?q=${encode(expression)}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&rows=30&page=${page.coerceAtLeast(1)}&output=json")
         val items = json.optJSONObject("response")?.optJSONArray("docs") ?: return@withContext emptyList()
         (0 until items.length()).mapNotNull { i ->
             val obj = items.optJSONObject(i) ?: return@mapNotNull null
             val id = obj.optString("identifier").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             Book(obj.optString("title"), obj.optString("creator"), "Internet Archive",
-                "https://archive.org/details/${encode(id)}")
+                "https://archive.org/details/${encode(id)}",
+                coverUrl = "https://archive.org/services/img/${encode(id)}",
+                publicationYear = obj.optInt("year").takeIf { it in 1000..2100 },
+                format = "Available files vary")
         }
     }
 
@@ -63,7 +81,8 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             val entry = items.optJSONObject(i) ?: return@mapNotNull null
             val title = entry.optString("title").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             Book(title, "Wikisource community", "Wikisource",
-                "https://en.wikisource.org/wiki/${encode(title.replace(' ', '_')).replace("+", "%20")}")
+                "https://en.wikisource.org/wiki/${encode(title.replace(' ', '_')).replace("+", "%20")}",
+                format = "Read online")
         }
     }
 
@@ -79,6 +98,27 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             val id = entry.optString("identifier").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             Book(entry.optString("title").ifBlank { id }, entry.optString("creator"),
                 "Internet Archive Video", "https://archive.org/details/${encode(id)}")
+        }
+    }
+
+    /** Google Books public metadata/official previews only; no paid-book download bypass. */
+    suspend fun searchGoogleBooks(query: String): List<Book> = withContext(Dispatchers.IO) {
+        val url = "https://www.googleapis.com/books/v1/volumes?q=${encode(query)}&maxResults=25"
+        val items = fetch(url).optJSONArray("items") ?: return@withContext emptyList()
+        (0 until items.length()).mapNotNull { i ->
+            val volume = items.optJSONObject(i) ?: return@mapNotNull null
+            val info = volume.optJSONObject("volumeInfo") ?: return@mapNotNull null
+            val title = info.optString("title").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val id = volume.optString("id").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val date = info.optString("publishedDate")
+            val year = date.take(4).toIntOrNull()?.takeIf { it in 1000..2100 }
+            val preview = info.optString("previewLink").takeIf { it.startsWith("https://") }
+                ?: "https://books.google.com/books?id=${encode(id)}"
+            val thumbnail = info.optJSONObject("imageLinks")?.optString("thumbnail").orEmpty()
+            Book(title, info.optJSONArray("authors")?.optString(0).orEmpty(), "Google Books", preview,
+                coverUrl = thumbnail.takeIf { it.startsWith("https://") },
+                publicationYear = year, language = info.optString("language"),
+                format = "Official preview / listing")
         }
     }
 

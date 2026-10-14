@@ -29,4 +29,32 @@ if grep -Fq "Process: $PKG," smoke-crash-buffer.txt; then
   exit 1
 fi
 
-echo 'PASS: Monogatari cold launch survived for 12 seconds without a Java crash.'
+adb exec-out screencap -p > smoke-phone.png
+
+# A single Android emulator can also smoke-test 600dp+ tablet configurations.
+reset_window() {
+  adb shell wm size reset >/dev/null 2>&1 || true
+  adb shell wm density reset >/dev/null 2>&1 || true
+}
+trap reset_window EXIT
+adb shell wm size 1280x1920
+adb shell wm density 180
+adb shell am force-stop "$PKG" || true
+adb logcat -c
+adb shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-tablet-start.txt
+sleep 9
+adb exec-out screencap -p > smoke-tablet.png
+adb logcat -d -b crash -v threadtime > smoke-tablet-crash.txt || true
+
+if ! adb shell pidof "$PKG" | tr -d '\r' | grep -q '[0-9]'; then
+  echo 'FAIL: Monogatari exited during tablet-width cold startup.'
+  tail -n 120 smoke-tablet-crash.txt
+  exit 1
+fi
+if grep -Fq "Process: $PKG," smoke-tablet-crash.txt; then
+  echo 'FAIL: Monogatari recorded a tablet-width startup fatal exception.'
+  tail -n 120 smoke-tablet-crash.txt
+  exit 1
+fi
+
+echo 'PASS: phone and simulated tablet cold starts survived without fatal Java crashes.'
