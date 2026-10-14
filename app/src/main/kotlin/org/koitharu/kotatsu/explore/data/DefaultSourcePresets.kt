@@ -43,6 +43,7 @@ object DefaultSourcePresets {
             Suggestion("Books & fanfic", forType(MediaType.BOOK)),
             Suggestion("Anime & video", forType(MediaType.VIDEO)),
             Suggestion("Audio", forType(MediaType.AUDIO)),
+            Suggestion("Multi-media", manga + forType(MediaType.BOOK) + forType(MediaType.VIDEO) + forType(MediaType.AUDIO)),
         ).filter { it.sources.isNotEmpty() }
     }
 }

@@ -298,6 +298,7 @@
 		<activity android:name="org.koitharu.kotatsu.image.ui.ImageActivity" />
 		<activity android:name="org.koitharu.kotatsu.reader.translate.TranslatedPageActivity" />
 		<activity android:name="org.koitharu.kotatsu.builtin.jellyfin.JellyfinSetupActivity" />
+		<activity android:name="org.koitharu.kotatsu.sourcehealth.SourceLogActivity" />
 		<activity android:name="org.koitharu.kotatsu.favourites.ui.categories.edit.FavouritesCategoryEditActivity" />
 		<activity android:name="org.koitharu.kotatsu.explore.ui.preset.SourcePresetEditActivity" />
 		<activity

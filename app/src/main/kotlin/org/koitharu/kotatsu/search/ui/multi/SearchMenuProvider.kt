@@ -131,6 +131,11 @@ class SearchMenuProvider(
 		container.addView(hint)
 		container.addView(from)
 		container.addView(to)
+		val unknownBox = android.widget.CheckBox(activity).apply {
+			setText(R.string.publication_year_include_unknown)
+			isChecked = viewModel.includesUnknownYears
+		}
+		container.addView(unknownBox)
 		val ordering = PublicationYearOrder.entries.toList()
 		container.addView(TextView(activity).apply {
 			setText(R.string.publication_year_sort_label)
@@ -159,10 +164,12 @@ class SearchMenuProvider(
 			.setView(container)
 			.setNeutralButton(R.string.any) { _, _ ->
 				viewModel.setPublicationYearOrder(PublicationYearOrder.RELEVANCE)
+				viewModel.setIncludeUnknownYears(true)
 				viewModel.setPublicationYearRange(null, null)
 			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
+				viewModel.setIncludeUnknownYears(unknownBox.isChecked)
 				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedItemPosition])
 				viewModel.setPublicationYearRange(
 					from.text?.toString()?.trim()?.toIntOrNull(),

@@ -21,4 +21,12 @@ class DefaultSourcePresetsTest {
         assertEquals(emptyList<DefaultSourcePresets.Suggestion>(),
             DefaultSourcePresets.plan(emptyList(), emptyList()))
     }
+
+    @Test fun multiMediaPresetCombinesEveryKind() {
+        val presets = DefaultSourcePresets.plan(BuiltinSource.entries, emptyList()).associateBy { it.title }
+        val all = presets.getValue("Multi-media").sources
+        assertTrue(BuiltinSource.YOUTUBE.name in all)
+        assertTrue(BuiltinSource.SOUNDCLOUD.name in all)
+        assertTrue(BuiltinSource.GUTENBERG.name in all)
+    }
 }

@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
 import org.koitharu.kotatsu.builtin.jellyfin.JellyfinSetupActivity
+import org.koitharu.kotatsu.sourcehealth.SourceLogActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
@@ -43,6 +44,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
         Page("Jellyfin server", "Connect your own Jellyfin library with its address and API key",
             R.drawable.ic_monogatari_nav_local, JellyfinSetupActivity::class.java),
+        Page("Source activity log", "See which sources worked or failed, and open a site in the browser",
+            R.drawable.ic_monogatari_nav_explore, SourceLogActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
             R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java),
         Page("Import from Kotatsu / Mangayomi", "Bring over your library, categories and reading progress",
@@ -63,6 +66,7 @@ internal object MoreDestinations {
         "Bookmarks" to "Library", "Reading statistics" to "Library",
         "Discover" to "Find something", "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
         "News & followed tags" to "Find something", "Jellyfin server" to "Find something",
+        "Source activity log" to "Find something",
         "Manual WebDAV backups" to "Backup and import", "Import from Kotatsu / Mangayomi" to "Backup and import",
     )
     private const val DEFAULT_GROUP = "App and tools"

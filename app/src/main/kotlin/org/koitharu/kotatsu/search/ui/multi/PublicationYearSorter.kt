@@ -12,6 +12,19 @@ enum class PublicationYearOrder {
     val isNewestFirst: Boolean get() = this == NEWEST_FIRST || this == NEWEST_FIRST_GLOBAL
 }
 
+/** Client-side check that complements the source's own year filter (pure, unit-tested). */
+internal object YearFilter {
+
+    /** Unknown years are kept only when [includeUnknown]; known (estimated) years must lie within the range. */
+    fun matches(year: Int?, from: Int?, to: Int?, includeUnknown: Boolean): Boolean {
+        if (year == null) return includeUnknown
+        return (from == null || year >= from) && (to == null || year <= to)
+    }
+
+    /** True when the filter would change anything, so unfiltered searches skip the work. */
+    fun isActive(from: Int?, to: Int?, includeUnknown: Boolean) = from != null || to != null || !includeUnknown
+}
+
 internal object PublicationYearSorter {
     private val yearPattern = Regex("(18|19|20)[0-9]{2}")
     private val metadataLabels = listOf(

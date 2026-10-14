@@ -106,6 +106,8 @@ class SearchViewModel @Inject constructor(
 	private var hideEmpty = MutableStateFlow(true)
 	private var yearFrom = MutableStateFlow<Int?>(null)
 	private var yearTo = MutableStateFlow<Int?>(null)
+	/** When off, titles whose year can't be estimated are hidden while a year filter or order is in use. */
+	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
     val isVideoModeSearch: Boolean
         get() = effectiveMediaType == MediaType.VIDEO
 
@@ -127,7 +129,17 @@ class SearchViewModel @Inject constructor(
 			?.let { code -> PublicationYearOrder.entries.firstOrNull { it.name == code } }
 			?: PublicationYearOrder.RELEVANCE,
 	)
-	private val displayResults = combine(results, publicationSort) { sections, order ->
+	private val displayResults = combine(results, publicationSort, yearFrom, yearTo, includeUnknownYears) { raw, order, from, to, unknown ->
+		val sections = if (YearFilter.isActive(from, to, unknown)) {
+			raw.map { section ->
+				section.copy(list = section.list.filter {
+					YearFilter.matches(
+						PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description),
+						from, to, unknown,
+					)
+				})
+			}
+		} else raw
 		if (order == PublicationYearOrder.RELEVANCE) sections
 		else if (order.isGlobal) mergeGlobally(sections.sortedForDisplay(), order)
 		else sections.map { section ->
@@ -263,6 +275,14 @@ class SearchViewModel @Inject constructor(
 
 	val publicationYearTo: Int?
 		get() = yearTo.value
+
+	val includesUnknownYears: Boolean
+		get() = includeUnknownYears.value
+
+	fun setIncludeUnknownYears(value: Boolean) {
+		includeUnknownYears.value = value
+		savedStateHandle["include_unknown_years"] = value
+	}
 
 	val hasPublicationYearFilter: Boolean
 		get() = yearFrom.value != null || yearTo.value != null

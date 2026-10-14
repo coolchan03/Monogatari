@@ -54,4 +54,14 @@ class PublicationYearSorterTest {
         assertEquals(false, PublicationYearOrder.NEWEST_FIRST.isGlobal)
         assertEquals(true, PublicationYearOrder.NEWEST_FIRST_GLOBAL.isNewestFirst)
     }
+
+    @Test fun yearFilterRangeAndUnknowns() {
+        assertEquals(true, YearFilter.matches(1995, 1990, 2000, false))
+        assertEquals(false, YearFilter.matches(2005, 1990, 2000, true))
+        assertEquals(true, YearFilter.matches(2005, 1990, null, false))
+        assertEquals(true, YearFilter.matches(null, 1990, 2000, true))
+        assertEquals(false, YearFilter.matches(null, 1990, 2000, false))
+        assertEquals(false, YearFilter.isActive(null, null, true))
+        assertEquals(true, YearFilter.isActive(null, null, false))
+    }
 }

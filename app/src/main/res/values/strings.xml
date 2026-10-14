@@ -932,6 +932,7 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="publication_year_sort_relevance">Best match (default)</string>
     <string name="publication_year_sort_ascending">Oldest to newest (estimated)</string>
     <string name="publication_year_sort_descending">Newest to oldest (estimated)</string>
+    <string name="publication_year_include_unknown">Include titles with no known year (years are estimated from titles and descriptions)</string>
     <string name="publication_year_sort_ascending_global">Oldest to newest, all sources together (estimated)</string>
     <string name="publication_year_sort_descending_global">Newest to oldest, all sources together (estimated)</string>
     <string name="search_all_sources_by_year">All sources, by estimated year</string>
@@ -1353,6 +1354,14 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="mascot_egg_title">Kitsune-kun</string>
     <string name="mascot_egg_message">Spirit foxes can take any shape. This one chose gym day. You found the secret form!</string>
     <string name="mascot_egg_ok">Nice</string>
+    <string name="source_log_title">Source activity log</string>
+    <string name="source_log_open_site">Open a source\'s website</string>
+    <string name="source_log_copy">Copy log</string>
+    <string name="source_log_copied">Log copied</string>
+    <string name="source_log_clear">Clear</string>
+    <string name="source_log_filter">Filter by source or message</string>
+    <string name="source_log_empty">Nothing yet. Search or browse a source and its results appear here.</string>
+    <string name="source_log_no_site">No website known for the sources seen so far</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>
