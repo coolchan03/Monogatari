@@ -27,3 +27,8 @@
 `n## 2026-10-14 - Bucket 1 mascot integration IN PROGRESS`n- Through Tunnel to Surface: editing current checkout ccr-94e2bfd8-3w4etd, commit e89d11adc.`n- Scope: 8 simple Kitsune sticker roles, hidden muscular male form, theme-aware accents, UI placement, retire old vector placeholders, available CI build/test.`n- Do not claim bucket 1 complete until committed, pushed and build checked; phone review remains external.
 
 - Current local milestone: 8 compressed app-ready sticker PNGs and matching legacy/adaptive launcher icons, widgets and store art exported; theme-aware reusable renderer; Home, More, Discover, Books, empty states and hidden male form wired. CI build and push still outstanding.
+
+## 2026-10-14 — Bucket 2 large-screen integration (active)
+- Scope: true search-and-details dual-pane at >=840dp; improve tablet library, book catalog, portrait/landscape details, keyboard usability and large-screen insets.
+- Start head: 1cc79aad8 on ccr-94e2bfd8-3w4etd. Preserve data, apps and source IDs. Do not install SDK locally.
+- Next: inspect layouts, add tested width policy, implement and push via Tunnel to Surface; confirm CI.

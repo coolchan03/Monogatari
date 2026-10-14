@@ -6,7 +6,7 @@ import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.search.ui.multi.BookCatalogListModel
 
 /** Shared search list item for public catalog entries. Opens catalog landing pages. */
-fun bookCatalogAD(onOpen: (String) -> Unit) =
+fun bookCatalogAD(onOpen: (BookCatalogListModel) -> Unit) =
     adapterDelegateViewBinding<BookCatalogListModel, ListModel, ItemMonogatariCatalogBinding>(
         { inflater, parent -> ItemMonogatariCatalogBinding.inflate(inflater, parent, false) },
     ) {
@@ -16,7 +16,7 @@ fun bookCatalogAD(onOpen: (String) -> Unit) =
                 item.author.takeIf { it.isNotBlank() },
                 item.catalog,
             ).filterNotNull().joinToString(" · ")
-            binding.root.setOnClickListener { onOpen(item.url) }
+            binding.root.setOnClickListener { onOpen(item) }
             binding.root.contentDescription = "${item.title}, ${binding.monogatariCatalogItemSummary.text}"
         }
     }

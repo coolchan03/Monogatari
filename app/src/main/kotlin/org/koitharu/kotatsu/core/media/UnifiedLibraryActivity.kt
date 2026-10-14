@@ -62,6 +62,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private lateinit var paneDescription: TextView
     private lateinit var paneOpen: MaterialButton
     private var paneRow: Row? = null
+    private var restoredPaneKey: String? = null
     private lateinit var mascot: ImageView
     private lateinit var loading: com.google.android.material.progressindicator.LinearProgressIndicator
     /** Collections: the user's own folders across all media (long-press a title to file it). */
@@ -91,6 +92,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             MediaType.entries.firstOrNull { it.name == savedInstanceState?.getString("selected_kind") }
         } else requestedKind
         title = "Unified Library"
+        restoredPaneKey = savedInstanceState?.getString("pane_row_key")
+        twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
         val px = (12 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(px, px, px, px) }
         val tabs = LinearLayout(this).apply {
@@ -153,11 +156,10 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         })
         val list = RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@UnifiedLibraryActivity,
-                MonogatariChrome.columns(context))
+                if (twoPane) 1 else MonogatariChrome.columns(context))
             adapter = this@UnifiedLibraryActivity.adapter
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
-        twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
         if (twoPane) {
             val split = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             split.addView(root, LinearLayout.LayoutParams(0, -1, 1f))
@@ -299,6 +301,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("selected_kind", selected?.name ?: "ALL")
+        paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
         super.onSaveInstanceState(outState)
     }
 
@@ -350,6 +353,11 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             (selected == null || row.kind == selected) &&
                 (selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) && (q.isBlank() ||
                 row.title.contains(q, ignoreCase = true) || row.detail.contains(q, ignoreCase = true))
+        }
+        if (twoPane) {
+            val previousKey = paneRow?.let(::keyOf) ?: restoredPaneKey
+            showPane(filtered.firstOrNull { keyOf(it) == previousKey } ?: filtered.firstOrNull())
+            restoredPaneKey = null
         }
         adapter.setRows(filtered.take(1000))
         renderContinue()
@@ -406,8 +414,13 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val row = rows[position]
+            holder.card.isCheckable = twoPane
+            holder.card.isChecked = twoPane && paneRow?.let(::keyOf) == keyOf(row)
             BookShelfCard.bind(holder.card, row.title, row.detail) {
-                if (twoPane) showPane(row) else openRow(row)
+                if (twoPane) {
+                    showPane(row)
+                    notifyDataSetChanged()
+                } else openRow(row)
             }
             holder.card.setOnLongClickListener { chooseCollections(row); true }
             holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(

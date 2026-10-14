@@ -1401,4 +1401,11 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="discover_bl_anime">BL anime</string>
     <string name="discover_light_novels">Light novels</string>
     <string name="discover_load_failed">Couldn\'t load AniList: %1$s\nTap to retry</string>
+    <!-- Tablet search preview: selection stays beside the results list. -->
+    <string name="tablet_search_select">Select a result to preview it here</string>
+    <string name="tablet_search_cover">Selected title cover</string>
+    <string name="tablet_search_open">Open full details</string>
+    <string name="tablet_search_read">Start reading</string>
+    <string name="tablet_search_website">Open catalog listing</string>
+    <string name="tablet_search_no_description">No description is available for this title.</string>
 </resources>

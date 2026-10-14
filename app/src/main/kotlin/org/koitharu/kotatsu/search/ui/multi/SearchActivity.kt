@@ -57,10 +57,17 @@ class SearchActivity :
 
 	private val viewModel by viewModels<SearchViewModel>()
 	private lateinit var selectionController: ListSelectionController
+	private var tabletPreview: SearchTabletPreview? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(ActivitySearchBinding.inflate(layoutInflater))
+		tabletPreview = SearchTabletPreview.attach(
+			root = viewBinding.root,
+			onDetails = { router.openDetails(it) },
+			onRead = { router.openReader(it) },
+			onUrl = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) },
+		)
 		title = when (viewModel.kind) {
 			SearchKind.SIMPLE,
 			SearchKind.TITLE -> viewModel.query
@@ -98,8 +105,9 @@ class SearchActivity :
 			itemClickListener = itemClickListener,
 			sizeResolver = sizeResolver,
 			selectionDecoration = selectionDecoration,
-			onBookOpen = { url ->
-				startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+			onBookOpen = { book ->
+				if (tabletPreview != null) tabletPreview?.show(book)
+				else startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(book.url)))
 			},
 		)
 		viewBinding.recyclerView.adapter = adapter
@@ -122,10 +130,12 @@ class SearchActivity :
 			left = barsInsets.left,
 			right = barsInsets.right,
 		)
+		val preview = viewBinding.root.findViewById<View>(R.id.search_preview_scroll)
+		preview?.updatePadding(right = barsInsets.right, bottom = barsInsets.bottom)
 		viewBinding.recyclerView.setPadding(
 			left = barsInsets.left,
 			top = 0,
-			right = barsInsets.right,
+			right = if (preview != null) 0 else barsInsets.right,
 			bottom = barsInsets.bottom,
 		)
 		return insets.consumeAllSystemBarsInsets()
@@ -133,7 +143,7 @@ class SearchActivity :
 
 	override fun onItemClick(item: MangaListModel, view: View) {
 		if (!selectionController.onItemClick(item.id)) {
-			router.openDetails(item.toMangaWithOverride())
+			if (tabletPreview != null) tabletPreview?.show(item) else router.openDetails(item.toMangaWithOverride())
 		}
 	}
 
