@@ -224,9 +224,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	}
 
 	/** Keyboards (tablets, ChromeOS, laptops): Ctrl+F or "/" opens search. */
-	override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-		val isSearchShortcut = (keyCode == KeyEvent.KEYCODE_F && event.isCtrlPressed) ||
-			(keyCode == KeyEvent.KEYCODE_SLASH && !event.hasModifiers(KeyEvent.META_SHIFT_ON))
+	override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+		val isSearchShortcut = (keyCode == KeyEvent.KEYCODE_F && event?.isCtrlPressed == true) ||
+			(keyCode == KeyEvent.KEYCODE_SLASH && event?.hasModifiers(KeyEvent.META_SHIFT_ON) != true)
 		if (isSearchShortcut && !viewBinding.searchView.isShowing) {
 			viewBinding.searchView.show()
 			return true
