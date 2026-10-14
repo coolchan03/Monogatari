@@ -42,6 +42,9 @@ object SourceWebsiteGroups {
                 BuiltinSource.YOUTUBE -> "https://youtube.com"
                 BuiltinSource.SOUNDCLOUD -> "https://soundcloud.com"
                 BuiltinSource.DAILYMOTION -> "https://dailymotion.com"
+                BuiltinSource.WIKISOURCE -> "https://wikisource.org"
+                BuiltinSource.ODYSEE -> "https://odysee.com"
+                // Jellyfin is the user's own server: no canonical host.
                 BuiltinSource.LIBRIVOX -> "https://librivox.org"
                 BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO,
                 BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS -> "https://archive.org"

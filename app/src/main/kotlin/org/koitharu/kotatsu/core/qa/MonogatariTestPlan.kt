@@ -15,7 +15,7 @@ enum class ExperienceRating(val label: String) {
 
 enum class TestDestination {
     HOME, MANGA_SEARCH, BOOKS, BOOK_SEARCH, ANIME_SEARCH, AUDIO_SEARCH, SOURCES, SETTINGS, DOWNLOADS,
-    LIBRARY, UNIFIED_LIBRARY, DISCOVER, NEWS, MEDIA_FEEDS, IMPORT, NONE,
+    LIBRARY, UNIFIED_LIBRARY, DISCOVER, NEWS, MEDIA_FEEDS, IMPORT, JELLYFIN_SETUP, NONE,
 }
 
 data class TestCase(
@@ -216,6 +216,18 @@ object MonogatariTestPlan {
         TestCase("desktop_drawer", "Desktop-width navigation drawer (#62)",
             "On a window at least 1000dp wide (large tablet landscape, Chromebook, desktop mode) the navigation starts as an expanded labelled side drawer; the menu button collapses it. Phones keep the bottom bar.",
             TestDestination.HOME),
+        TestCase("wikisource", "Wikisource books (#39)",
+            "Search for a classic like Pride and Prejudice in the Wikisource source. Open a work with chapters: you should see one chapter per sub-page and readable text. Leave the search empty to browse featured texts.",
+            TestDestination.BOOK_SEARCH),
+        TestCase("odysee", "Odysee videos (#54)",
+            "Search the Odysee source for something public (for example an animation or audiobook channel) and play a video. Mature-tagged and paid videos should not appear. Report anything that fails to play.",
+            TestDestination.ANIME_SEARCH),
+        TestCase("jellyfin", "Jellyfin on your own server (#57)",
+            "Enter your server address and API key, tap Save and test connection, then search your library in the Jellyfin source and play a movie or an episode. Forget this server must clear both fields.",
+            TestDestination.JELLYFIN_SETUP),
+        TestCase("direct_streams", "Direct HLS / DASH / M3U links (#59)",
+            "In Video search, paste a direct https link to a .m3u8, .mpd, video file or an .m3u playlist and look at the Direct links section. Playlist entries become titles; the quality names show resolution, codecs and bitrate.",
+            TestDestination.ANIME_SEARCH),
         TestCase("stability", "Performance and other bugs",
             "Use the app normally, rotate, switch apps and note crashes, loops, slowdowns and missing features.",
             TestDestination.HOME),

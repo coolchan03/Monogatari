@@ -13,6 +13,11 @@ import org.koitharu.kotatsu.builtin.royalroad.RoyalRoadRepository
 import org.koitharu.kotatsu.builtin.scribblehub.ScribbleHubRepository
 import org.koitharu.kotatsu.builtin.librivox.LibriVoxRepository
 import org.koitharu.kotatsu.builtin.dailymotion.DailymotionRepository
+import org.koitharu.kotatsu.builtin.directstream.DirectStreamRepository
+import org.koitharu.kotatsu.builtin.jellyfin.JellyfinConfig
+import org.koitharu.kotatsu.builtin.jellyfin.JellyfinRepository
+import org.koitharu.kotatsu.builtin.odysee.OdyseeRepository
+import org.koitharu.kotatsu.builtin.wikisource.WikisourceRepository
 import org.koitharu.kotatsu.builtin.newpipe.NewPipeVideoRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 
@@ -22,6 +27,7 @@ class BuiltinRepositoryFactory @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settings: AppSettings,
     private val bookMetadata: BookMetadataProvider,
+    private val jellyfinConfig: JellyfinConfig,
 ) {
     fun create(source: BuiltinSource): MangaRepository {
         val client = mangaClient.newBuilder()
@@ -35,6 +41,10 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.SCRIBBLE_HUB -> ScribbleHubRepository(cache, client)
             BuiltinSource.LIBRIVOX -> LibriVoxRepository(cache, client)
             BuiltinSource.DAILYMOTION -> DailymotionRepository(cache, client)
+            BuiltinSource.WIKISOURCE -> WikisourceRepository(cache, client)
+            BuiltinSource.ODYSEE -> OdyseeRepository(cache, client)
+            BuiltinSource.DIRECT_STREAMS -> DirectStreamRepository(cache, client)
+            BuiltinSource.JELLYFIN -> JellyfinRepository(cache, client, jellyfinConfig)
             BuiltinSource.YOUTUBE, BuiltinSource.PEERTUBE, BuiltinSource.SOUNDCLOUD -> NewPipeVideoRepository(cache, source, client)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)

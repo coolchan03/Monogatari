@@ -9,6 +9,7 @@ import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
+import org.koitharu.kotatsu.builtin.jellyfin.JellyfinSetupActivity
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
@@ -40,6 +41,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java),
         Page("News & followed tags", "RSS feeds and saved interests",
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java),
+        Page("Jellyfin server", "Connect your own Jellyfin library with its address and API key",
+            R.drawable.ic_monogatari_nav_local, JellyfinSetupActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
             R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java),
         Page("Import from Kotatsu / Mangayomi", "Bring over your library, categories and reading progress",

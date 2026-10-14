@@ -280,6 +280,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
             TestDestination.LIBRARY -> Intent(this, MainActivity::class.java)
             TestDestination.DISCOVER -> Intent(this, DiscoverActivity::class.java)
             TestDestination.IMPORT -> Intent(this, ForeignBackupReviewActivity::class.java)
+            TestDestination.JELLYFIN_SETUP -> Intent(this, org.koitharu.kotatsu.builtin.jellyfin.JellyfinSetupActivity::class.java)
             TestDestination.DOWNLOADS -> Intent(this, SettingsActivity::class.java)
                 .setAction(AppRouter.ACTION_MANAGE_DOWNLOADS)
             TestDestination.MANGA_SEARCH, TestDestination.BOOK_SEARCH, TestDestination.ANIME_SEARCH, TestDestination.AUDIO_SEARCH ->
