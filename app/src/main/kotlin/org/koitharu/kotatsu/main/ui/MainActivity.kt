@@ -151,6 +151,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(ActivityMainBinding.inflate(layoutInflater))
+        findViewById<android.widget.ImageView>(R.id.monogatari_masthead_kitsune)?.let {
+            org.koitharu.kotatsu.core.ui.Mascot.bind(it, org.koitharu.kotatsu.core.ui.MascotForm.DEFAULT)
+        }
 		setSupportActionBar(viewBinding.searchBar)
 
 		viewBinding.fab?.setOnClickListener(this)

@@ -39,6 +39,8 @@ import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
 import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
 import javax.inject.Inject
@@ -161,6 +163,13 @@ class DiscoverActivity : AppCompatActivity() {
 
 	private fun showSection() {
 		binding.discoverSectionDescription.text = section.description
+        Mascot.bind(binding.discoverMascot, when (section) {
+            MediaSection.MANGA -> MascotForm.MANGA
+            MediaSection.BOOK -> MascotForm.BOOK
+            MediaSection.VIDEO -> MascotForm.VIDEO
+            MediaSection.AUDIO -> MascotForm.AUDIO
+            MediaSection.NEWS -> MascotForm.NEWS
+        })
 		binding.chipsFeed.removeAllViews()
 		val options = AniListDiscover.Feed.entries.filter { entry ->
 			when (section) {

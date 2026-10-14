@@ -19,6 +19,9 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.BookShelfCard
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
+import org.koitharu.kotatsu.core.ui.TapCounter
 
 /** Full-screen, theme-aware More hub; no duplicate hard-coded menu destinations. */
 class MoreActivity : AppCompatActivity() {
@@ -35,7 +38,18 @@ class MoreActivity : AppCompatActivity() {
             textSize = 15f
             setPadding(0, 0, 0, margin)
         }
-        root.addView(info, LinearLayout.LayoutParams(-1, -2))
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        header.addView(info, LinearLayout.LayoutParams(0, -2, 1f))
+        val tapCounter = TapCounter()
+        val mascot = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            Mascot.bind(this, MascotForm.DEFAULT)
+            setOnClickListener {
+                if (tapCounter.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@MoreActivity)
+            }
+        }
+        header.addView(mascot, LinearLayout.LayoutParams((72 * resources.displayMetrics.density).toInt(), (72 * resources.displayMetrics.density).toInt()))
+        root.addView(header, LinearLayout.LayoutParams(-1, -2))
         root.addView(RecyclerView(this).apply {
             val columns = MonogatariChrome.columns(context)
             layoutManager = GridLayoutManager(this@MoreActivity, columns).apply {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Kitsune line art for empty lists (see docs/MASCOT_IDEAS.md). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/kitsune_manga_line" />
+    <item android:drawable="@drawable/kitsune_sticker_collection" />
 </layer-list>

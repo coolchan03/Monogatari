@@ -2,6 +2,9 @@ package org.koitharu.kotatsu.core.media
 
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
+import android.widget.ImageView
 import android.content.Intent
 import android.view.DragEvent
 import androidx.core.app.ActivityCompat
@@ -144,6 +147,7 @@ class BookLibraryActivity : AppCompatActivity() {
         title = getString(R.string.monogatari_catalog_title)
         val content = layoutInflater.inflate(R.layout.activity_monogatari_book_catalog, null)
         setMonogatariContent(content, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        Mascot.bind(findViewById<ImageView>(R.id.monogatari_catalog_mascot), MascotForm.BOOK)
         enableFileDrop(content)
         query = findViewById(R.id.monogatari_catalog_query)
         catalogStatus = findViewById(R.id.monogatari_catalog_status)

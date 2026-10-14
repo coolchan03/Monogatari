@@ -256,7 +256,7 @@ object MonogatariTestPlan {
             "On Android 11 or older, pick any accent colour: buttons and highlights should be black in light mode and white in dark mode, and text stay readable.",
             TestDestination.SETTINGS),
         TestCase("kitsune_mascot", "Kitsune the spirit fox (#80 #81)",
-            "Open the unified library and switch tabs with nothing saved (or filter to something that doesn't exist): Kitsune shows up in a different form for All, Manga, Book, Video and Audio. Does the art feel right? Then tap her quickly 7 times to find the hidden form.",
+            "Open the unified library and switch tabs with nothing saved (or filter to something that doesn't exist): Kitsune shows up in a different form for All, Manga, Book, Video and Audio. Does the art feel right? Check that the accent marks adapt to your theme. Tap Kitsune 7 times in the empty library, or tap the Kitsune in More 7 times, to find the hidden male form.",
             TestDestination.UNIFIED_LIBRARY, highlight = listOf(R.id.monogatari_library_tabs)),
         TestCase("source_log", "Source activity log (#16 #36)",
             "Search something, then open More > Source activity log. Each source shows Working, Limited or Unreachable with when it last worked; broken ones have their error. Try Open a source's website and Copy log.",

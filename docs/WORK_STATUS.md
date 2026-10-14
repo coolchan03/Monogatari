@@ -24,3 +24,6 @@
 - Important: Only edit/push GitHub through Tunnel to Surface. On every new turn, call Tunnel to Surface FIRST.
 - Safety: Existing untracked .release-temp/ and source-audit/ left untouched. Installed old app backup/restore still requires manual test. Signed releases require keystore; do not publish unsigned APK as signed.
 - Timeout behavior: Cannot detect exact ChatGPT timeout moment; use this file and Git/CI timestamps for last durable checkpoint.
+`n## 2026-10-14 - Bucket 1 mascot integration IN PROGRESS`n- Through Tunnel to Surface: editing current checkout ccr-94e2bfd8-3w4etd, commit e89d11adc.`n- Scope: 8 simple Kitsune sticker roles, hidden muscular male form, theme-aware accents, UI placement, retire old vector placeholders, available CI build/test.`n- Do not claim bucket 1 complete until committed, pushed and build checked; phone review remains external.
+
+- Current local milestone: 8 compressed app-ready sticker PNGs and matching legacy/adaptive launcher icons, widgets and store art exported; theme-aware reusable renderer; Home, More, Discover, Books, empty states and hidden male form wired. CI build and push still outstanding.

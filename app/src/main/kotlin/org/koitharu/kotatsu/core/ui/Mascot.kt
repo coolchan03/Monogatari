@@ -10,12 +10,12 @@ import org.koitharu.kotatsu.core.media.MediaType
 
 /** Kitsune, the spirit fox: one character that takes a different form for each kind of media. */
 enum class MascotForm(@DrawableRes val drawable: Int, @StringRes val description: Int) {
-	DEFAULT(R.drawable.kitsune_default, R.string.mascot_default),
-	MANGA(R.drawable.kitsune_manga, R.string.mascot_manga),
-	BOOK(R.drawable.kitsune_book, R.string.mascot_book),
-	VIDEO(R.drawable.kitsune_video, R.string.mascot_video),
-	AUDIO(R.drawable.kitsune_audio, R.string.mascot_audio),
-	NEWS(R.drawable.kitsune_news, R.string.mascot_news),
+	DEFAULT(R.drawable.kitsune_sticker_welcome, R.string.mascot_default),
+	MANGA(R.drawable.kitsune_sticker_collection, R.string.mascot_manga),
+	BOOK(R.drawable.kitsune_sticker_reading, R.string.mascot_book),
+	VIDEO(R.drawable.kitsune_sticker_celebrate, R.string.mascot_video),
+	AUDIO(R.drawable.kitsune_sticker_rest, R.string.mascot_audio),
+	NEWS(R.drawable.kitsune_sticker_search, R.string.mascot_news),
 }
 
 object Mascot {
@@ -31,14 +31,14 @@ object Mascot {
 
 	/** Shows [form] in [view] with an accessible description. */
 	fun bind(view: ImageView, form: MascotForm) {
-		view.setImageResource(form.drawable)
+		MascotArtwork.bind(view, form.drawable)
 		view.contentDescription = view.context.getString(form.description)
 	}
 
-	/** The hidden form: Kitsune-kun, after a lot of training. Found by tapping Kitsune quickly several times. */
+	/** Human form: the hidden adult Kitsune-kun, discovered by seven quick mascot taps. */
 	fun showEasterEgg(activity: Activity) {
 		val image = ImageView(activity).apply {
-			setImageResource(R.drawable.kitsune_buff)
+			MascotArtwork.bind(this, R.drawable.kitsune_sticker_human)
 			contentDescription = activity.getString(R.string.mascot_egg_description)
 			adjustViewBounds = true
 			val pad = (16 * resources.displayMetrics.density).toInt()

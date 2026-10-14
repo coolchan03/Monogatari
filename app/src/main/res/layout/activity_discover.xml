@@ -6,15 +6,29 @@
 	android:layout_height="match_parent"
 	android:orientation="vertical">
 
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:gravity="center_vertical"
+		android:orientation="horizontal">
 	<TextView
 		android:id="@+id/discover_intro"
-		android:layout_width="match_parent"
+		android:layout_width="0dp"
 		android:layout_height="wrap_content"
 		android:paddingHorizontal="16dp"
 		android:paddingTop="16dp"
 		android:paddingBottom="4dp"
 		android:text="Discover manga, novels, anime, video, audio and news"
+		android:layout_weight="1"
 		android:textAppearance="?attr/textAppearanceTitleMedium" />
+	<ImageView
+		android:id="@+id/discover_mascot"
+		android:layout_width="64dp"
+		android:layout_height="64dp"
+		android:layout_marginEnd="12dp"
+		android:contentDescription="@string/mascot_default"
+		android:scaleType="fitCenter" />
+	</LinearLayout>
 
 	<HorizontalScrollView
 		android:layout_width="match_parent"
