@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
 import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
@@ -354,7 +355,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         renderContinue()
         renderCollections()
         mascot.isVisible = filtered.isEmpty()
-        Mascot.bind(mascot, Mascot.formFor(selected))
+        Mascot.bind(mascot, if (filtered.isEmpty() && q.isNotBlank()) MascotForm.SAD else Mascot.formFor(selected))
         val category = selected?.name?.lowercase() ?: "saved"
         count.text = when {
             filtered.isEmpty() && q.isNotBlank() -> "No matching ${category} titles"

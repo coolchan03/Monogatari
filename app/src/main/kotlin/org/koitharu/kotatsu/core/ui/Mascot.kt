@@ -16,6 +16,7 @@ enum class MascotForm(@DrawableRes val drawable: Int, @StringRes val description
 	VIDEO(R.drawable.kitsune_sticker_celebrate, R.string.mascot_video),
 	AUDIO(R.drawable.kitsune_sticker_rest, R.string.mascot_audio),
 	NEWS(R.drawable.kitsune_sticker_search, R.string.mascot_news),
+	SAD(R.drawable.kitsune_sticker_sad, R.string.mascot_sad),
 }
 
 object Mascot {

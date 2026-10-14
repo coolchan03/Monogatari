@@ -8,7 +8,7 @@ Mascot.bind() supplies accessible descriptions and calls MascotArtwork, which re
 - Home library masthead, Settings and More: simple welcome fox
 - Discover: per-media fox pose
 - Books catalog and saved-books fragment: reading fox
-- Unified Library: per-media empty state
+- Unified Library: per-media empty state, with the apologetic fox for an unsuccessful filter
 - Library favourites/history/local and news empty states: collection, book, sleeping and searching poses
 - Launcher, launch splash, Play Store icon and app-widget previews: the same identity
 

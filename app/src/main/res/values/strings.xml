@@ -1352,6 +1352,7 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="mascot_video">Kitsune celebrating a new discovery</string>
     <string name="mascot_audio">Kitsune curled up and resting</string>
     <string name="mascot_news">Kitsune looking for the latest news</string>
+    <string name="mascot_sad">Kitsune could not find a matching title</string>
     <string name="mascot_egg_description">The secret adult human form of Kitsune, a muscular fox spirit</string>
     <string name="mascot_egg_title">Kitsune-kun</string>
     <string name="mascot_egg_message">Spirit foxes can take any shape. This one chose gym day. You found the secret form!</string>
