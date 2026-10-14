@@ -1362,6 +1362,11 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="source_log_filter">Filter by source or message</string>
     <string name="source_log_empty">Nothing yet. Search or browse a source and its results appear here.</string>
     <string name="source_log_no_site">No website known for the sources seen so far</string>
+    <string name="library_collection_title">Collections for %1$s</string>
+    <string name="library_collection_new">New collection</string>
+    <string name="library_collection_name_hint">Collection name</string>
+    <string name="library_collection_none">No collections yet. Create one to group titles from any media.</string>
+    <string name="library_collection_delete">Delete collection</string>
     <string name="library_continue">Continue</string>
     <string name="library_continue_item">Continue %1$s</string>
     <string name="discover_browse_sources">Browse source websites</string>

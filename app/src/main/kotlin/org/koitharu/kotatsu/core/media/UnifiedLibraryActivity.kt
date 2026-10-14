@@ -62,6 +62,11 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private lateinit var paneOpen: MaterialButton
     private var paneRow: Row? = null
     private lateinit var mascot: ImageView
+    /** Collections: the user's own folders across all media (long-press a title to file it). */
+    private var collections: Map<String, Set<String>> = emptyMap()
+    private var selectedCollection: String? = null
+    private lateinit var collectionRow: LinearLayout
+    private val collectionPrefs by lazy { getSharedPreferences("library_collections", MODE_PRIVATE) }
     private val eggTaps = TapCounter()
     private lateinit var continueLabel: TextView
     private lateinit var continueRow: LinearLayout
@@ -118,6 +123,12 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }
         root.addView(continueLabel, LinearLayout.LayoutParams(-1, -2))
         root.addView(continueScroll, LinearLayout.LayoutParams(-1, -2))
+        collectionRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        root.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(collectionRow)
+        }, LinearLayout.LayoutParams(-1, -2))
+        collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
         search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
         search.doAfterTextChanged { render() }
         search.setText(intent.getStringExtra(EXTRA_FILTER).orEmpty())
@@ -199,6 +210,76 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         paneOpen.isVisible = true
     }
 
+    private fun keyOf(row: Row): String = row.manga?.id?.toString() ?: row.file?.absolutePath.orEmpty()
+
+    private fun saveCollections(value: Map<String, Set<String>>) {
+        collections = value
+        collectionPrefs.edit().putString("data", LibraryCollections.encode(value)).apply()
+        if (selectedCollection != null && selectedCollection !in value) selectedCollection = null
+        render()
+    }
+
+    /** One chip per collection; tap to show only its titles, tap again for everything. */
+    private fun renderCollections() {
+        collectionRow.removeAllViews()
+        for (name in LibraryCollections.names(collections)) {
+            collectionRow.addView(com.google.android.material.chip.Chip(this).apply {
+                text = "$name (${collections[name].orEmpty().size})"
+                isCheckable = true
+                isChecked = name == selectedCollection
+                setOnClickListener {
+                    selectedCollection = if (isChecked) name else null
+                    render()
+                }
+                setOnLongClickListener {
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UnifiedLibraryActivity)
+                        .setTitle(name)
+                        .setPositiveButton(R.string.library_collection_delete) { _, _ -> saveCollections(LibraryCollections.delete(collections, name)) }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                    true
+                }
+            })
+        }
+    }
+
+    /** Long-press a title: tick the collections it belongs to, or start a new one. */
+    private fun chooseCollections(row: Row) {
+        val key = keyOf(row)
+        if (key.isBlank()) return
+        val names = LibraryCollections.names(collections)
+        val checked = BooleanArray(names.size) { key in collections[names[it]].orEmpty() }
+        val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.library_collection_title, row.title))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.library_collection_new) { _, _ -> newCollection(row) }
+        if (names.isNotEmpty()) {
+            builder.setMultiChoiceItems(names.toTypedArray(), checked) { _, which, isChecked -> checked[which] = isChecked }
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    var data = collections
+                    names.forEachIndexed { i, name ->
+                        data = if (checked[i]) LibraryCollections.add(data, name, key) else LibraryCollections.remove(data, name, key)
+                    }
+                    saveCollections(data)
+                }
+        } else {
+            builder.setMessage(R.string.library_collection_none)
+        }
+        builder.show()
+    }
+
+    private fun newCollection(row: Row) {
+        val input = EditText(this).apply { setSingleLine(true); setHint(R.string.library_collection_name_hint) }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.library_collection_new)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                saveCollections(LibraryCollections.add(collections, input.text.toString(), keyOf(row)))
+            }
+            .show()
+    }
+
     private fun openRow(row: Row) {
         val intent = when {
             row.file != null -> BookShelf.readerIntent(this, row.file)
@@ -255,11 +336,13 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         if (!::count.isInitialized) return
         val q = search.text?.toString().orEmpty().trim()
         val filtered = all.filter { row ->
-            (selected == null || row.kind == selected) && (q.isBlank() ||
+            (selected == null || row.kind == selected) &&
+                (selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) && (q.isBlank() ||
                 row.title.contains(q, ignoreCase = true) || row.detail.contains(q, ignoreCase = true))
         }
         adapter.setRows(filtered.take(1000))
         renderContinue()
+        renderCollections()
         mascot.isVisible = filtered.isEmpty()
         Mascot.bind(mascot, Mascot.formFor(selected))
         val category = selected?.name?.lowercase() ?: "saved"
@@ -315,6 +398,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             BookShelfCard.bind(holder.card, row.title, row.detail) {
                 if (twoPane) showPane(row) else openRow(row)
             }
+            holder.card.setOnLongClickListener { chooseCollections(row); true }
             holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(
                 when (row.kind) {
                     MediaType.MANGA -> R.drawable.ic_manga_source
