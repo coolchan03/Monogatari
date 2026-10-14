@@ -102,6 +102,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	View.OnLayoutChangeListener,
 	SearchView.TransitionListener {
 
+	companion object {
+
+		/** Set by Discover's "Browse source websites" button to land on the Explore tab. */
+		const val EXTRA_OPEN_EXPLORE = "open_explore"
+	}
+
 	@Inject
 	lateinit var communitySettings: CommunitySettings
 
@@ -238,6 +244,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		super.onNewIntent(intent)
 		setIntent(intent)
 		handleRepositorySetupLink(intent)
+		if (intent.getBooleanExtra(EXTRA_OPEN_EXPLORE, false)) {
+			navigationDelegate.openExplore()
+		}
 	}
 
 	/** External repo links need explicit user consent; never silently trust install sources. */

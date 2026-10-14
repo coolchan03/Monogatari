@@ -27,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
+import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.parsers.model.Manga
 import java.io.File
 import javax.inject.Inject
@@ -39,9 +40,15 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         const val EXTRA_FILTER = "monogatari_library_filter"
     }
     @Inject lateinit var favorites: FavouritesRepository
+    @Inject lateinit var history: HistoryRepository
     private data class Row(val title: String, val detail: String, val kind: MediaType,
         val manga: Manga? = null, val file: File? = null)
     private var all = emptyList<Row>()
+    /** Most recently opened titles, newest first, for the Continue strip. */
+    private var recent = emptyList<Row>()
+    private lateinit var continueLabel: TextView
+    private lateinit var continueRow: LinearLayout
+    private lateinit var continueScroll: HorizontalScrollView
     /** Null represents All media, including items with an unknown/older source type. */
     private var selected: MediaType? = null
     private var requestedKind: MediaType? = null
@@ -82,6 +89,18 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             isHorizontalScrollBarEnabled = false
             addView(tabs)
         })
+        continueLabel = TextView(this).apply {
+            setText(R.string.library_continue)
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+            setPadding(0, px / 2, 0, 0)
+        }
+        continueRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        continueScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(continueRow)
+        }
+        root.addView(continueLabel, LinearLayout.LayoutParams(-1, -2))
+        root.addView(continueScroll, LinearLayout.LayoutParams(-1, -2))
         search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
         search.doAfterTextChanged { render() }
         search.setText(intent.getStringExtra(EXTRA_FILTER).orEmpty())
@@ -125,6 +144,16 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                     Row(BookShelf.title(file), "Local ${file.extension.uppercase()} · " +
                         BookShelf.progress(this@UnifiedLibraryActivity, file), MediaType.BOOK, file = file)
                 }
+                recent = runCatching { history.getList(0, 30) }.getOrDefault(emptyList()).map { manga ->
+                    val source = manga.source.name
+                    val kind = when {
+                        source in groups.getValue(MediaType.VIDEO) -> MediaType.VIDEO
+                        source in groups.getValue(MediaType.AUDIO) -> MediaType.AUDIO
+                        source in groups.getValue(MediaType.BOOK) -> MediaType.BOOK
+                        else -> MediaType.MANGA
+                    }
+                    Row(manga.title, source, kind, manga = manga)
+                }
                 (remote + local).sortedBy { it.title.lowercase() }
             }
             render()
@@ -139,6 +168,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                 row.title.contains(q, ignoreCase = true) || row.detail.contains(q, ignoreCase = true))
         }
         adapter.setRows(filtered.take(1000))
+        renderContinue()
         val category = selected?.name?.lowercase() ?: "saved"
         count.text = when {
             filtered.isEmpty() && q.isNotBlank() -> "No matching ${category} titles"
@@ -152,6 +182,26 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             val label = type?.name?.lowercase()?.replaceFirstChar { it.uppercaseChar() } ?: "All"
             button.text = "$label ($matching)"
             button.isChecked = type == selected
+        }
+    }
+
+    /** Quick "continue reading / watching / listening" buttons for the selected media tab. */
+    private fun renderContinue() {
+        val items = recent.filter { selected == null || it.kind == selected }.take(10)
+        continueRow.removeAllViews()
+        val visible = items.isNotEmpty()
+        continueLabel.isVisible = visible
+        continueScroll.isVisible = visible
+        for (row in items) {
+            val manga = row.manga ?: continue
+            continueRow.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = row.title
+                isAllCaps = false
+                maxLines = 1
+                maxWidth = (220 * resources.displayMetrics.density).toInt()
+                contentDescription = getString(R.string.library_continue_item, row.title)
+                setOnClickListener { startActivity(AppRouter.detailsIntent(this@UnifiedLibraryActivity, manga)) }
+            }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = (6 * resources.displayMetrics.density).toInt() })
         }
     }
 

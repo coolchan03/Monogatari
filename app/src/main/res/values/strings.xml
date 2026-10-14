@@ -1304,6 +1304,11 @@ Optional â€” skip it and you appear as anon.</string>
     <string name="private_categories_hide">Hide private categories</string>
     <string name="private_categories_no_lock">Set a screen lock on this device to protect private categories</string>
     <string name="discover">Discover</string>
+    <string name="library_continue">Continue</string>
+    <string name="library_continue_item">Continue %1$s</string>
+    <string name="discover_browse_sources">Browse source websites</string>
+    <string name="discover_intro_explained">Discover recommends what to enjoy across manga, books, video, audio and news. To browse or search a specific website, use Explore.</string>
+    <string name="explore_open_discover">Discover recommendations</string>
     <string name="discover_subtitle">Trending and Boys\' Love picks from AniList; tap to find them in your sources</string>
     <string name="discover_trending_manga">Trending manga</string>
     <string name="discover_trending_bl">Trending BL</string>

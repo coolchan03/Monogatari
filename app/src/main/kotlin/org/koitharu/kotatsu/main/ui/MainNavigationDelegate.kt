@@ -148,6 +148,11 @@ class MainNavigationDelegate(
 		setCounter(item.id, counter)
 	}
 
+	/** Switches to the Explore (source browsing) tab, e.g. from the Discover screen. */
+	fun openExplore() {
+		navBar.selectedItemId = R.id.nav_explore
+	}
+
 	fun syncSelectedItem() {
 		val fragment = primaryFragment ?: return
 		onFragmentChanged(fragment, fromUser = false)
@@ -330,6 +335,10 @@ class MainNavigationDelegate(
 			NavigationBarView.LABEL_VISIBILITY_LABELED
 		} else {
 			NavigationBarView.LABEL_VISIBILITY_UNLABELED
+		}
+		// Desktop-width windows start with the labelled side drawer; the expand button still collapses it.
+		if (NavLayoutPolicy.expandRail(navBar.resources.configuration.screenWidthDp, value)) {
+			setNavbarIsExpanded(true)
 		}
 	}
 

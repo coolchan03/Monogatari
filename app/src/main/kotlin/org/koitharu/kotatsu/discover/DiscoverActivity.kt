@@ -78,6 +78,7 @@ class DiscoverActivity : AppCompatActivity() {
 		super.onCreate(savedInstanceState)
 		binding = ActivityDiscoverBinding.inflate(layoutInflater)
 		setTitle(R.string.discover)
+		binding.discoverIntro.setText(R.string.discover_intro_explained)
 		// Toolbar with Up, plus edge-to-edge insets (status/navigation bars, cutouts, ChromeOS caption bar).
 		setMonogatariContent(binding.root)
 
@@ -230,6 +231,16 @@ class DiscoverActivity : AppCompatActivity() {
 				action("News & followed tags") { startActivity(Intent(this, NewsFeedActivity::class.java)) }
 			}
 		}
+		// Discover recommends titles; Explore browses the source websites themselves.
+		action(getString(R.string.discover_browse_sources)) { openExploreTab() }
+	}
+
+	private fun openExploreTab() {
+		startActivity(
+			Intent(this, org.koitharu.kotatsu.main.ui.MainActivity::class.java)
+				.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+				.putExtra(org.koitharu.kotatsu.main.ui.MainActivity.EXTRA_OPEN_EXPLORE, true),
+		)
 	}
 
 	private fun openMediaFeeds(type: MediaType) {

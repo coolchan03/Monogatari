@@ -40,6 +40,11 @@ class ExploreMenuProvider(
 				true
 			}
 
+			R.id.action_discover -> {
+				context.startActivity(android.content.Intent(context, org.koitharu.kotatsu.discover.DiscoverActivity::class.java))
+				true
+			}
+
 			R.id.action_presets -> {
 				context.startActivity(android.content.Intent(context, SourcePresetListActivity::class.java))
 				true
