@@ -19,3 +19,9 @@
 - Static hashes do not detect visually similar but differently encoded images; only byte-identical images were ruled out.
 - Remote manga/anime cover images are downloaded from content providers and may be low-resolution independently of Monogatari; do not stretch them beyond their source image quality.
 - Device screenshots and production asset replacements remain pending, not marked complete in the requirements tracker.
+
+## 2026-10-15 screenshot follow-up
+- Reviewed completed GitHub Actions emulator screenshots for phone and portrait tablet (run 38667817650).
+- The welcome sheet and empty Books shelf still referenced a legacy book/video collage. Replaced them with distinct Kitsune reading and collection stickers at 160dp, not stretched to their old oversized image dimensions. Removed the now-unused collage vector asset.
+- The first-run community notice displayed visibly corrupted legacy punctuation (e.g., `â€”`). Fixed the English text resource encodings (33 corrupted punctuation instances), and corrected an outdated history prompt that told users to discover books in Explore instead of Discover.
+- High-resolution original Kitsune art and exact on-device visual tests remain outstanding. These changes remove identified old art and reduce scaling, not replace the original 256px sticker masters.

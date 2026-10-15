@@ -85,10 +85,11 @@
             android:gravity="center"
             android:orientation="vertical"
             android:padding="24dp">
-            <ImageView android:layout_width="260dp"
-                android:layout_height="174dp"
+            <ImageView android:layout_width="160dp"
+                android:layout_height="160dp"
                 android:contentDescription="@null"
-                android:src="@drawable/illustration_monogatari_stories" />
+                android:scaleType="fitCenter"
+                android:src="@drawable/kitsune_sticker_collection" />
             <TextView android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"

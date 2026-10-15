@@ -26,13 +26,13 @@
 			android:paddingBottom="@dimen/margin_normal">
 
 			<ImageView
-				android:layout_width="match_parent"
-				android:layout_height="200dp"
-				android:layout_marginHorizontal="16dp"
-				android:layout_marginTop="12dp"
+				android:layout_width="160dp"
+				android:layout_height="160dp"
+				android:layout_gravity="center_horizontal"
+				android:layout_marginTop="8dp"
 				android:contentDescription="@string/monogatari_welcome_art_content_description"
 				android:scaleType="fitCenter"
-				android:src="@drawable/illustration_monogatari_stories" />
+				android:src="@drawable/kitsune_sticker_reading" />
 
 			<TextView
 				android:id="@+id/textView_welcome_title"
