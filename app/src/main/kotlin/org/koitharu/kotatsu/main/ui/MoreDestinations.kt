@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity
+import org.koitharu.kotatsu.backups.domain.NearbyOfflineSyncActivity
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
@@ -46,6 +47,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_local, ApiKeysActivity::class.java),
         Page("Source activity log", "See which sources worked or failed, and open a site in the browser",
             R.drawable.ic_monogatari_nav_explore, SourceLogActivity::class.java),
+        Page("Nearby offline sync", "Pair by code; transfer and merge library or send files",
+            R.drawable.ic_monogatari_nav_local, NearbyOfflineSyncActivity::class.java),
         Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
             R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java),
         Page("Import from Kotatsu / Mangayomi", "Bring over your library, categories and reading progress",
@@ -67,6 +70,7 @@ internal object MoreDestinations {
         "Discover" to "Find something", "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
         "News & followed tags" to "Find something", "API keys & accounts" to "Find something",
         "Source activity log" to "Find something",
+        "Nearby offline sync" to "Backup and import",
         "Manual WebDAV backups" to "Backup and import", "Import from Kotatsu / Mangayomi" to "Backup and import",
     )
     private const val DEFAULT_GROUP = "App and tools"

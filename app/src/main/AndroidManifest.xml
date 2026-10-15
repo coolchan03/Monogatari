@@ -36,6 +36,19 @@
 		android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
 		tools:ignore="AllFilesAccessPolicy,ScopedStorage" />
 
+	<!-- Foreground-only Nearby Connections: radio/location access is requested on demand. -->
+	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" android:maxSdkVersion="31" />
+	<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" android:maxSdkVersion="31" />
+	<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="28" />
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:minSdkVersion="29" android:maxSdkVersion="32" />
+	<uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" android:minSdkVersion="31" />
+	<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" android:minSdkVersion="31" />
+	<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:minSdkVersion="31" />
+	<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:minSdkVersion="33" />
+	<uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" android:minSdkVersion="37" />
+
 	<queries>
 		<intent>
 			<action android:name="android.intent.action.PROCESS_TEXT" />
@@ -113,6 +126,9 @@
 			android:exported="false"
 			android:label="@string/discover" />
 		<activity android:name="org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity" android:exported="false" />
+		<activity android:name="org.koitharu.kotatsu.backups.domain.NearbyOfflineSyncActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false" />
         <activity android:name="org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.main.ui.MoreActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.main.ui.OpenSourceLicensesActivity" android:exported="false" />
