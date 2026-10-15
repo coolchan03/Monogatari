@@ -53,8 +53,16 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             echo "Tag already exists: $TAG"; exit 1
           fi
+      # Separating test and release builds prevents Kotlin's release compiler from
+      # inheriting the memory-heavy debug test graph (OOM in run 38798747198).
+      - name: Validate responsive UI and touch targets
+        run: python3 scripts/validate-ui-a11y.py
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Stop test compilers before release build
+        run: ./gradlew --stop
       - name: Build release APK
-        run: ./gradlew testDebugUnitTest assembleRelease --stacktrace
+        run: ./gradlew --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process assembleRelease --stacktrace
       - name: Sign, verify and checksum release APK
         shell: bash
         env:

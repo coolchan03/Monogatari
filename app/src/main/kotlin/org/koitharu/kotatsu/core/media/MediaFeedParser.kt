@@ -8,6 +8,8 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 /** Safe, bounded RSS/Atom podcast and video-feed parsing. */
 object MediaFeedParser {
+    /** Match the repository's bounded 4 MB download limit for large podcast catalogs. */
+    const val MAX_XML_CHARS = MediaFeedRepository.MAX_FEED_BYTES
     enum class Kind { AUDIO, VIDEO }
     data class Episode(
         val title: String, val pageUrl: String?, val mediaUrl: String?,
@@ -54,7 +56,7 @@ object MediaFeedParser {
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
     }
     fun parse(xml: String): List<Episode> {
-        require(xml.length <= 1_000_000) { "RSS feed too large" }
+        require(xml.length <= MAX_XML_CHARS) { "RSS feed exceeds 4 MB safety limit" }
         require(!Regex("<!\\s*(DOCTYPE|ENTITY)", RegexOption.IGNORE_CASE).containsMatchIn(xml)) {
             "External entities are forbidden"
         }

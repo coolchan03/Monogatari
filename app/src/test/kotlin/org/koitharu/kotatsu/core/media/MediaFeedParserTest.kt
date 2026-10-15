@@ -11,6 +11,21 @@ class MediaFeedParserTest {
         // NPR and Megaphone publish feeds larger than 1 MB; a smaller cap breaks Suggested feeds.
         assertTrue(MediaFeedRepository.MAX_FEED_BYTES >= 2_000_000)
         assertTrue(MediaFeedRepository.MAX_FEED_BYTES <= 8_000_000)
+        assertEquals(MediaFeedRepository.MAX_FEED_BYTES, MediaFeedParser.MAX_XML_CHARS)
+    }
+
+    @Test fun largeLegitimatePodcastFeedCanBeParsed() {
+        // Several real suggested podcasts have >1 MB RSS files. The download layer
+        // permits 4 MB, so the parser must not reject a perfectly valid 1.1 MB feed.
+        val extra = "a".repeat(1_100_000)
+        val xml = """<rss><channel><title>Long feed</title>
+            <!-- $extra -->
+            <item><title>Part one</title>
+            <link>https://show.example/one</link>
+            <enclosure url="https://cdn.example/one.mp3" type="audio/mpeg"/>
+            </item></channel></rss>"""
+        assertTrue(xml.length > 1_000_000)
+        assertEquals("Part one", MediaFeedParser.parse(xml).single().title)
     }
 
     @Test fun podcastRssEpisodesAndHttpsArtwork() {

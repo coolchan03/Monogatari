@@ -4,7 +4,7 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 56 DONE, 27 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 57 DONE, 26 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -22,13 +22,13 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 8 | DONE | Explain or consolidate Explore vs Discover: Explore currently browses source websites, Discover is AniList-driven title discovery. Proposed: **Browse** (source/catalog browsing) and **Discover** (personalized recommendations across media), cross-linked. **Done:** Discover now explains itself and every section ends with "Browse source websites" (opens the Explore tab); Explore's menu has "Discover recommendations". The tab names were not renamed. |
 | 9 | DONE | Present clear media selection on every global-search entry point. |
 | 10 | DONE | Retain the one global search instead of duplicating searches per media type. |
-| 11 | PARTIAL | Use one shared card/toolbar/nav system for More, Settings, and all specialized screens. |
-| 12 | PARTIAL | Replace the current special-purpose More screen's card list with the same design language and spacing as Settings. |
+| 11 | PARTIAL | The More screen now uses the app's shared Material/Settings row language and grouped headings; specialized screens still need a final common toolbar/navigation audit. |
+| 12 | DONE | Replaced oversized book-like More tiles with compact Settings-style destination rows, grouped category headings, one-column phone and two-column wide-screen layouts, with screen-reader descriptions and accessible touch targets. Physical appearance review is a separate QA check. |
 | 13 | DONE | Redesign News & Followed Tags: readable feed, topic chips, follow/unfollow, saved stories, newest-first and source filter. **Done:** topic chips, site filter, newest/oldest order, saved stories, followed tags. |
-| 14 | PARTIAL | Redesign Books Catalog: covers, author/series/year/language, providers, formats and download/borrow/open buttons. |
+| 14 | PARTIAL | Books Catalog shows covers/fallbacks, authors, year, language, source and format with explicit Open EPUB / View listing buttons and provider selection. Series detail, borrowing availability, and cross-provider metadata completeness remain to audit. |
 | 15 | DONE | Redesign Unified Library: Manga, Books, Videos, Audio tabs and All; unified folders/collections; progress and continue-reading/watch. **Done:** tabs, Continue strip, and your own collections across all media (long-press a title; chips filter). |
 | 16 | DONE | Show source health (working, limited, unreachable) and the last successful scan without noisy alerts. **Done:** More > Source activity log shows Working / Limited / Unreachable per source with when it last worked. In-memory, no alerts. |
-| 17 | PARTIAL | Use thoughtful empty states, per-source error explanations, search-state restoration and loading skeletons. **Added:** library loading bar, clearer empty states. Per-source error text already existed; no skeleton rows elsewhere. |
+| 17 | PARTIAL | Books Catalog now restores query/provider after Activity recreation, remembers the last query, displays skeleton result cards and preserves per-provider errors. Other search and specialized screens still need equivalent restoration/skeleton coverage. |
 | 18 | PARTIAL | Consistent typography, controls, dark mode, edge-to-edge behavior and accessibility descriptions. |
 | 19 | DONE | Preserve the unified list and private-category visibility settings. |
 | 20 | DONE | Keep ML Kit OCR for Japanese/Chinese/Korean/Latin, translate locally, then overlay English directly onto original page. |
@@ -71,7 +71,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
 | 58 | PARTIAL | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |
 | 59 | DONE | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. **Done:** "Direct links" source: paste an .m3u8 / .mpd / video-or-audio file / .m3u playlist link into video search; quality names show resolution, codecs and bitrate. |
-| 60 | PARTIAL | Video RSS and podcast subscriptions, suggested feeds, saved episode playlists, durations, Podcasting 2.0 chapters and transcript/subtitle links are implemented. Native in-player subtitle tracks and chapter seeking remain. |
+| 60 | PARTIAL | Video RSS and podcast subscriptions, suggested feeds, saved episode playlists, durations, Podcasting 2.0 chapters and transcript/subtitle links are implemented. Large podcast XML is now accepted up to the matching 4 MB bounded download/parser limit. Native in-player subtitle tracks and chapter seeking remain. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | DONE | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* **Done:** windows at least 1000dp wide start with the labelled, expanded side drawer (collapsible). |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
@@ -80,7 +80,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 66 | PARTIAL | Resizable/freeform multiwindow, foldable posture and rotation-state testing. |
 | 67 | DONE | Keyboard shortcuts, mouse scroll and hover, right click/context menu and D-pad navigation. *(Ctrl+F or / search; arrow/Page/Space/Home/End in PDF, EPUB and text readers; existing reader keys, mouse wheel and context clicks.)* |
 | 68 | DONE | Drag/drop local EPUB, PDF, CBZ, images and supported media. *(Drop EPUB/PDF/text onto Books; CBZ/images still use the manga local import.)* |
-| 69 | PARTIAL | Surface accessibility scaling and touch-target checks. |
+| 69 | PARTIAL | Settings-like More rows use scalable text and minimum 72dp row targets; catalog action buttons use 48dp tap targets and descriptive accessibility labels. Full screen-reader/font-scaling/touch-target device audit remains. |
 | 70 | DONE | Android cold-start compatibility is checked on temporary GitHub-hosted runners; no emulator or SDK is installed on user devices. |
 | 71 | DONE | Keep existing light/dark and theme chooser; add a user-picked accent color. **Done:** Settings > Appearance > Accent colour (Android 12+). |
 | 72 | DONE | Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget. |
