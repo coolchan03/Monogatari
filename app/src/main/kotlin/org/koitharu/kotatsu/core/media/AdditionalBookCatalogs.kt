@@ -98,6 +98,15 @@ internal object AdditionalBookCatalogs {
             val link = card.selectFirst("a.product-item-link") ?: return@mapNotNull null
             val title = link.text().trim().takeIf(String::isNotEmpty) ?: return@mapNotNull null
             if (query.isNotBlank() && !title.contains(query, ignoreCase = true)) return@mapNotNull null
+            // Check the original publisher-supplied href before Jsoup resolves it.
+            // URL resolution can normalize away fragments/credentials/ports that
+            // must never be silently accepted as official book links.
+            val raw = link.attr("href").trim()
+            val original = runCatching { URI(raw) }.getOrNull() ?: return@mapNotNull null
+            if ('#' in raw || '@' in raw ||
+                original.rawFragment != null || original.rawUserInfo != null ||
+                (original.port != -1 && original.port != 443))
+                return@mapNotNull null
             val url = officialLink(link.absUrl("href"), "www.baen.com") ?: return@mapNotNull null
             if (!seen.add(url)) return@mapNotNull null
             val cover = card.selectFirst("img.product-image-photo")?.let {
