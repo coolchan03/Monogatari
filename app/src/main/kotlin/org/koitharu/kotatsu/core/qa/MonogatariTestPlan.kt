@@ -37,7 +37,7 @@ object MonogatariTestPlan {
             "Does the app start without crashing? Check its permissions, network status and storage.",
             TestDestination.NONE),
         TestCase("visual", "Interface and navigation",
-            "Check Home, Explore, Books, bottom navigation, settings and the mascot-free design. Look for clipping or old branding.",
+            "Check Home, Discover, Books, Sources, bottom navigation, Settings, and the Kitsune illustrations. Look for clipping, old branding or repeated/pixelated art.",
             TestDestination.HOME),
         TestCase("manga_search", "Manga global search",
             "Search a manga by title, try several sources, and check that broken/empty sources do not overwhelm results.",

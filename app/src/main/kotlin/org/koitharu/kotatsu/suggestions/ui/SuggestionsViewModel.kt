@@ -61,7 +61,7 @@ class SuggestionsViewModel @Inject constructor(
 				listOfNotNull(
 					quickFilter.filterItem(filters),
 					EmptyState(
-						icon = R.drawable.kitsune_sticker_celebrate,
+						icon = R.drawable.kitsune_sticker_search,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_empty_holder_secondary_filtered,
 						actionStringRes = 0,

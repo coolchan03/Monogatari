@@ -7,6 +7,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MediaFeedParserTest {
+    @Test fun feedDownloadBudgetSupportsBundledEntertainmentPodcasts() {
+        // NPR and Megaphone publish feeds larger than 1 MB; a smaller cap breaks Suggested feeds.
+        assertTrue(MediaFeedRepository.MAX_FEED_BYTES >= 2_000_000)
+        assertTrue(MediaFeedRepository.MAX_FEED_BYTES <= 8_000_000)
+    }
+
     @Test fun podcastRssEpisodesAndHttpsArtwork() {
         val feed = """<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
             <channel><title>Fiction Podcast</title><item><title>Episode One</title>

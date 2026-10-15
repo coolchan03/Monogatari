@@ -1,5 +1,14 @@
 # Monogatari work checkpoint
 
+## 2026-10-15 — Release follow-through
+
+- GitHub Actions for `5b5b988` passed both full unit/build/R8 and cold-start emulator jobs (`38667817650`).
+- Independently queried all six built-in entertainment/news RSS endpoints: six HTTP 200 XML responses. Two included podcasts are 1.2–1.7 MB, exceeding the existing 1 MB feed cap. Increased bounded podcast feed budget to 4 MB; HTTPS-to-HTTP redirects are now rejected before following them.
+- Fixed an additional duplicated illustration in filtered Suggestions and outdated QA wording.
+- Aligned the 88-feature tracker with source reality: 56 DONE, 20 PARTIAL, 7 PENDING, 5 DROPPED Windows-only (per owner's emulator decision). Third-party API providers are marked PARTIAL until credential/device testing, not falsely completed.
+- Pending after code release: fresh GitHub CI and device feedback for high-resolution art, video subtitles, live server credentials, and remaining optional sources.
+
+
 ## 2026-10-14 — User-recalled enhancements (source patch prepared, pending GitHub Actions)
 
 - Requests: Kotatsu/Mangayomi-inspired selectable appearance; All/Manga/Books/Video/Audio search modes; included entertainment and news RSS; replace duplicate/stale/blurry imagery; simultaneous multi-source tests that keep the screen awake.

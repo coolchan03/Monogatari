@@ -2,9 +2,9 @@
 
 Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
 
-Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Device QA is separate.
+Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not implemented; DROPPED = explicitly removed from scope. Device QA is separate.
 
-**Implementation snapshot after the follow-up pass (2026-10-14):** 56 DONE, 17 PARTIAL, 15 PENDING (5 of the PENDING items are the dropped Windows app). Newly started: public Standard Ebooks fiction-release browsing (#38) and user-managed entertainment video/podcast RSS (#60). Both still require full device testing. Per the entertainment-only scope, original educational-book/video ideas #43/#44/#56 were replaced by fiction, fanfiction and film-related requirements. No Windows app, full OCR inpainting or mascot yet.
+**Implementation snapshot after the 2026-10-15 finishing pass:** 56 DONE, 20 PARTIAL, 7 PENDING, 5 DROPPED (owner explicitly chose Android emulation instead of a native Windows app). The five skipped Windows-only milestones #71–75 are not outstanding implementation obligations. Vimeo (#50), Twitch (#55) and Plex (#58) have source code/API integration but are partial until live credential/device testing. #60 now has saved episode playlists, Podcasting 2.0 chapter lists and external transcript links, but in-player subtitle tracking remains pending. Kitsune mascot assets are installed; large-screen artwork still needs high-resolution originals. Per the entertainment-only scope, educational-book/video ideas were replaced by fiction, fanfiction and film requirements.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#76/#78/#79), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -48,7 +48,7 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 34 | PARTIAL | Display new/updating/broken extension status, permissions, source language and attribution. |
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | DONE | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. **Done:** Source activity log with Open a source's website and Copy log; lists already offer Open in browser on errors. |
-| 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Partly:** in the new global ordering a title found by several sources is shown once, from the highest-ranked source. No merging in the normal per-source view and no per-title preferred-source setting yet. |
+| 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |
 | 38 | PARTIAL | Standard Ebooks - high-quality public-domain EPUB collections/catalog feed. |
 | 39 | DONE | Wikisource - multilingual public-domain and freely licensed works. **Done:** English Wikisource through the MediaWiki API (search, featured texts, chapters from sub-pages). |
 | 40 | PENDING | Faded Page / Distributed Proofreaders Canada - public-domain ebooks; check region/rights. |
@@ -61,17 +61,17 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 47 | PENDING | Baen Free Library - legitimately free titles; check format and access. |
 | 48 | PENDING | FictionPress / FanFiction.net - public stories where site rules and scraping restrictions allow. |
 | 49 | DONE | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. **Done:** OPDS 1.x Atom and 2.0 JSON, next-page paging, catalog search (OpenSearch), covers, and password catalogs (https://user:password@host/path). |
-| 50 | PENDING | Vimeo public videos, channels and collections where embedding/playback is allowed. |
+| 50 | PARTIAL | Vimeo public-video search via user-supplied API token is implemented; source links out to official Vimeo playback because direct streams are not provided. Channel/collection browsing and credential-backed device QA remain. |
 | 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
 | 53 | PENDING | Bilibili public videos, where regional availability and site restrictions permit. |
 | 54 | DONE | Odysee public videos and channels; verify licensing and streams. **Done:** Odysee public free videos via the LBRY claim_search proxy; mature tags excluded. |
-| 55 | PENDING | Twitch publicly accessible clips/VODs, with appropriate API credentials. |
+| 55 | PARTIAL | Twitch channels/live discovery and VOD lists use user-supplied Helix credentials and link to official playback. Clip discovery and real-device API testing remain. |
 | 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
-| 58 | PENDING | Plex home-server libraries through authenticated APIs, subject to provider constraints. |
+| 58 | PARTIAL | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |
 | 59 | DONE | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. **Done:** "Direct links" source: paste an .m3u8 / .mpd / video-or-audio file / .m3u playlist link into video search; quality names show resolution, codecs and bitrate. |
-| 60 | PARTIAL | Video RSS and podcast feeds, playlists, chapter markers and subtitle tracking. **Added:** episode durations and Podcasting 2.0 chapter lists. Subtitle tracks not done. |
+| 60 | PARTIAL | Video RSS and podcast subscriptions, suggested feeds, saved episode playlists, durations, Podcasting 2.0 chapters and transcript/subtitle links are implemented. Native in-player subtitle tracks and chapter seeking remain. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | DONE | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* **Done:** windows at least 1000dp wide start with the labelled, expanded side drawer (collapsible). |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
@@ -82,11 +82,11 @@ Legend: DONE = code exists; PARTIAL = unfinished; PENDING = not implemented. Dev
 | 68 | DONE | Drag/drop local EPUB, PDF, CBZ, images and supported media. *(Drop EPUB/PDF/text onto Books; CBZ/images still use the manga local import.)* |
 | 69 | PARTIAL | Surface accessibility scaling and touch-target checks. |
 | 70 | DONE | Short-term: Android emulator for compatibility/testing only; do not mistake it for native Windows support. |
-| 71 | PENDING | Investigate a Kotlin Compose Multiplatform Windows client with a shared Kotlin core/parser/runtime and a dedicated desktop UI. **Dropped by owner:** the Android emulator will be used instead; plan kept in `docs/WINDOWS_PLAN.md`. |
-| 72 | PENDING | First desktop milestone: local EPUB/PDF/CBZ library, login-free search, reading progress and storage. **Dropped by owner** (use the emulator). |
-| 73 | PENDING | Second: source repositories, network reading, extensions, video playback and optional sync. **Dropped by owner** (use the emulator). |
-| 74 | PENDING | Explore a browser/PWA interface only for parts where browser CORS, cookies and storage rules allow. **Dropped by owner** (use the emulator). |
-| 75 | PENDING | Validate Windows file dialogs, background updates, multiwindow, hardware decoding and portable packaging. **Dropped by owner** (use the emulator). |
+| 71 | DROPPED | Investigate a Kotlin Compose Multiplatform Windows client with a shared Kotlin core/parser/runtime and a dedicated desktop UI. **Dropped by owner:** the Android emulator will be used instead; plan kept in `docs/WINDOWS_PLAN.md`. |
+| 72 | DROPPED | First desktop milestone: local EPUB/PDF/CBZ library, login-free search, reading progress and storage. **Dropped by owner** (use the emulator). |
+| 73 | DROPPED | Second: source repositories, network reading, extensions, video playback and optional sync. **Dropped by owner** (use the emulator). |
+| 74 | DROPPED | Explore a browser/PWA interface only for parts where browser CORS, cookies and storage rules allow. **Dropped by owner** (use the emulator). |
+| 75 | DROPPED | Validate Windows file dialogs, background updates, multiwindow, hardware decoding and portable packaging. **Dropped by owner** (use the emulator). |
 | 76 | DONE | Keep existing light/dark and theme chooser; add a user-picked accent color. **Done:** Settings > Appearance > Accent colour (Android 12+). |
 | 77 | DONE | Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget. |
 | 78 | DONE | Offer palette presets: ocean-teal, vaporwave teal-purple, pastel, monochrome and system dynamic color where available. **Done:** presets Theme default (system/dynamic), Ocean teal, Vaporwave, Pastel, Monochrome, plus any #hex. |
