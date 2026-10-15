@@ -11,6 +11,11 @@ on:
         description: 'New release tag (for example v2026.10.12)'
         required: true
         type: string
+      dry_run:
+        description: 'Build and verify the signed APK without publishing'
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: write
 jobs:
@@ -79,6 +84,7 @@ jobs:
           name: signed-release
           path: dist/
       - name: Publish public GitHub release
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
