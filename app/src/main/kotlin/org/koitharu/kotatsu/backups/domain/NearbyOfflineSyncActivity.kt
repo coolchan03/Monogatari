@@ -493,6 +493,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 "Keep a backup of this device before importing.")
             .setMultiChoiceItems(choices.map { it.name.replace('_', ' ') }.toTypedArray(),
                 selected) { _, which, checked -> selected[which] = checked }
+            .setCancelable(false)
             .setNegativeButton("Keep existing library") { _, _ ->
                 file.delete()
                 say("Received archive discarded. No changes were made.")
@@ -558,10 +559,18 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 while (destination.exists()) {
                     destination = File(folder, "nearby-" + index++ + "-" + name)
                 }
-                file.inputStream().use { input ->
-                    destination.outputStream().use { input.copyTo(it) }
+                try {
+                    file.inputStream().use { input ->
+                        destination.outputStream().use { input.copyTo(it) }
+                    }
+                    require(destination.length() == file.length()) {
+                        "Imported book does not match received file size"
+                    }
+                    destination
+                } catch (error: Exception) {
+                    destination.delete()
+                    throw error
                 }
-                destination
             } }
             file.delete()
             result.onSuccess { say("Added to Books shelf: " + it.name) }
