@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Light, simplified alpha mask for Material You themed icons. -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M26,51 L23,24 L44,39 L42,45 Z"/>
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M82,51 L85,24 L64,39 L66,45 Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
+        android:strokeWidth="4.5" android:strokeLineJoin="round"
+        android:pathData="M29,53 C28,41 38,34 54,34 C70,34 80,41 79,53
+            C82,66 72,76 54,77 C36,76 26,66 29,53 Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M37,60 Q43,65 49,60 M59,60 Q65,65 71,60"/>
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M50,68 L54,66 L58,68 L54,72 Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8" android:strokeLineJoin="round"
+        android:pathData="M20,76 Q38,70 53,79 L53,91 Q36,84 20,87 Z
+            M88,76 Q70,70 55,79 L55,91 Q72,84 88,87 Z"/>
+</vector>

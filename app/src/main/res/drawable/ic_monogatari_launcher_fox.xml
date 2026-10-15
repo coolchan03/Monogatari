@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compact original Monogatari Kitsune symbol, optimized for small launcher sizes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Tall fox ears. -->
+    <path android:fillColor="#F9F2DF"
+        android:pathData="M30,54 L25,25 Q25,20 29,24 L47,41 L45,58 Z" />
+    <path android:fillColor="#F9F2DF"
+        android:pathData="M78,54 L83,25 Q83,20 79,24 L61,41 L63,58 Z" />
+    <path android:fillColor="#6B91A7"
+        android:pathData="M31,44 L30,31 L42,45 Z" />
+    <path android:fillColor="#6B91A7"
+        android:pathData="M77,44 L78,31 L66,45 Z" />
+    <!-- One smooth, cheerful fox face. -->
+    <path android:fillColor="#F9F2DF"
+        android:pathData="M26,57 C26,41 37,34 54,34 C71,34 82,41 82,57
+            C82,69 70,77 54,78 C38,77 26,69 26,57 Z" />
+    <path android:fillColor="#638DA2"
+        android:pathData="M54,43 Q48,52 54,60 Q60,52 54,43 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#203749"
+        android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M37,60 Q43,67 49,60" />
+    <path android:fillColor="#00000000" android:strokeColor="#203749"
+        android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M59,60 Q65,67 71,60" />
+    <path android:fillColor="#203749"
+        android:pathData="M51,68 Q54,66 57,68 Q55,71 54,71 Q53,71 51,68 Z" />
+    <!-- Small open book, readable as a simple V-shape at 48px. -->
+    <path android:fillColor="#3F7D8D"
+        android:pathData="M20,73 Q37,69 54,78 L54,91 Q37,84 20,87 Z" />
+    <path android:fillColor="#33687D"
+        android:pathData="M88,73 Q71,69 54,78 L54,91 Q71,84 88,87 Z" />
+    <path android:fillColor="#F9F2DF"
+        android:pathData="M26,74 Q39,74 52,80 L52,86 Q39,80 26,81 Z" />
+    <path android:fillColor="#F9F2DF"
+        android:pathData="M82,74 Q69,74 56,80 L56,86 Q69,80 82,81 Z" />
+</vector>

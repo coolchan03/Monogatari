@@ -140,7 +140,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= 33) {
             add(Manifest.permission.NEARBY_WIFI_DEVICES)
         }
-        if (Build.VERSION.SDK_INT in 29..31) add(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (Build.VERSION.SDK_INT in 29..32) add(Manifest.permission.ACCESS_FINE_LOCATION)
         if (Build.VERSION.SDK_INT < 29) add(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
     }.toTypedArray()
@@ -422,6 +422,13 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                         say("Incoming transfer interrupted.")
                     }
                 } else if (update.status == PayloadTransferUpdate.Status.IN_PROGRESS &&
+                    update.totalBytes > NearbySyncProtocol.MAX_BYTES && outgoingId != id) {
+                    client.cancelPayload(id)
+                    received.remove(id)
+                    headers.remove(id)
+                    finished.remove(id)
+                    say("Incoming transfer rejected: larger than 256 MB.")
+                } else if (update.status == PayloadTransferUpdate.Status.IN_PROGRESS &&
                     update.totalBytes > 0) {
                     val pct = (100 * update.bytesTransferred / update.totalBytes)
                         .coerceIn(0, 100)
@@ -470,8 +477,10 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     }
 
     private fun showBackupReview(file: File, report: BackupArchiveInspector.Report) {
-        val choices = report.sections.filter { it != BackupSection.INDEX }.sortedBy { it.name }
-        val selected = choices.map { it != BackupSection.IDENTITY }.toBooleanArray()
+        val choices = report.sections.filter {
+            it != BackupSection.INDEX && it != BackupSection.IDENTITY
+        }.sortedBy { it.name }
+        val selected = BooleanArray(choices.size) { true }
         if (choices.isEmpty()) {
             file.delete()
             say("No importable backup sections were received.")
@@ -480,7 +489,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle("Review received library and settings")
             .setMessage("Archive inspected and verified. Select sections to MERGE into this " +
-                "device. Identity is off by default; enabling it may replace your community identity. " +
+                "device. Private community identity is never imported through nearby transfers. " +
                 "Keep a backup of this device before importing.")
             .setMultiChoiceItems(choices.map { it.name.replace('_', ' ') }.toTypedArray(),
                 selected) { _, which, checked -> selected[which] = checked }
@@ -503,9 +512,12 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                                 } }
                             } finally { file.delete() }
                         }
-                        result.onSuccess { say("Backup sections processed. Restart Monogatari " +
-                            "to apply any changed preferences. Check imported titles in Library.") }
-                            .onFailure { say("Import failed: " + it.message) }
+                        result.onSuccess { summary ->
+                            if (summary.isAllSuccess) say("Selected library sections merged. " +
+                                "Restart Monogatari to apply updated settings.")
+                            else say("${summary.failures.size} import operations failed. " +
+                                "Review your library and preserve your original backup.")
+                        }.onFailure { say("Import failed: " + it.message) }
                     }
                 }
             }.show()
@@ -577,6 +589,15 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         headers.clear()
         received.clear()
         finished.clear()
+    }
+
+    override fun onStop() {
+        // Discovery must not remain active after the app leaves the foreground. Existing
+        // approved transfers may continue while Android opens the system file picker.
+        client.stopAdvertising()
+        client.stopDiscovery()
+        keepAwake(false)
+        super.onStop()
     }
 
     override fun onDestroy() {
