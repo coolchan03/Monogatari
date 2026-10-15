@@ -44,6 +44,7 @@ class MoreActivity : AppCompatActivity() {
         val mascot = ImageView(this).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             Mascot.bind(this, MascotForm.DEFAULT)
+            contentDescription = "Kitsune, the Monogatari mascot"
             setOnClickListener {
                 if (tapCounter.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@MoreActivity)
             }
@@ -51,7 +52,8 @@ class MoreActivity : AppCompatActivity() {
         header.addView(mascot, LinearLayout.LayoutParams((72 * resources.displayMetrics.density).toInt(), (72 * resources.displayMetrics.density).toInt()))
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
         root.addView(RecyclerView(this).apply {
-            val columns = MonogatariChrome.columns(context)
+            // Settings-style rows stay one column on phones; two on wide tablets/foldables.
+            val columns = if (resources.configuration.screenWidthDp >= 720) 2 else 1
             layoutManager = GridLayoutManager(this@MoreActivity, columns).apply {
                 // Section titles span the whole row, like category headings in Settings.
                 spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
@@ -86,7 +88,7 @@ class MoreActivity : AppCompatActivity() {
                 })
             }
             val card = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_monogatari_book, parent, false) as MaterialCardView
+                .inflate(R.layout.item_monogatari_settings_destination, parent, false) as MaterialCardView
             return Holder(card)
         }
 
@@ -108,6 +110,7 @@ class MoreActivity : AppCompatActivity() {
             }
             holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).apply {
                 setImageResource(page.icon)
+                imageTintList = null
                 if (MediaAccents.enabled(this@MoreActivity)) {
                     val kind = when {
                         page.title.contains("Book", ignoreCase = true) -> "BOOK"

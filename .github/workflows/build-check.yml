@@ -30,6 +30,8 @@ jobs:
         shell: bash
         run: printf 'monogatari.repos=%s\n' "$MONOGATARI_REPOS" >> local.properties
       - uses: gradle/actions/setup-gradle@v4
+      - name: Validate responsive UI and touch targets
+        run: python3 scripts/validate-ui-a11y.py
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
       - name: Assemble debug APK

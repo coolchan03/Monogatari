@@ -56,6 +56,7 @@ class BookLibraryActivity : AppCompatActivity() {
     private var currentBooks = emptyList<PublicBookCatalog.Book>()
     private var currentProviderErrors = emptyList<String>()
     private var catalogJob: Job? = null
+    private var lastCatalogProvider: String? = null
     private var catalogOrder = BookCatalogSorter.Order.RELEVANCE
     private val catalogPrefs by lazy { getSharedPreferences("book_catalog_ui", MODE_PRIVATE) }
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -162,6 +163,8 @@ class BookLibraryActivity : AppCompatActivity() {
         Mascot.bind(findViewById<ImageView>(R.id.monogatari_catalog_mascot), MascotForm.BOOK)
         enableFileDrop(content)
         query = findViewById(R.id.monogatari_catalog_query)
+        query.setText(savedInstanceState?.getString("catalog_query")
+            ?: catalogPrefs.getString("last_query", "").orEmpty())
         catalogStatus = findViewById(R.id.monogatari_catalog_status)
         resultsAdapter.imageLoader = imageLoader
         catalogOrder = runCatching {
@@ -217,6 +220,15 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { showLocalBooks() }
         findViewById<MaterialButton>(R.id.monogatari_catalog_filter)
             .setOnClickListener { showLocalBooks(query.text.toString().trim()) }
+        // Preserve query and provider when the phone rotates or Android recreates this Activity.
+        savedInstanceState?.getString("catalog_provider")?.takeIf { it.isNotBlank() }
+            ?.let(::search)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("catalog_query", query.text?.toString().orEmpty())
+        outState.putString("catalog_provider", lastCatalogProvider)
+        super.onSaveInstanceState(outState)
     }
 
     /** Uses the exact same multi-source search UI as manga, scoped only to book sources. */
@@ -331,9 +343,13 @@ class BookLibraryActivity : AppCompatActivity() {
             query.requestFocus()
             return
         }
+        lastCatalogProvider = source
+        catalogPrefs.edit().putString("last_query", term.take(200))
+            .putString("last_provider", source).apply()
         catalogJob?.cancel()
         currentBooks = emptyList()
-        resultsAdapter.show(emptyList())
+        currentProviderErrors = emptyList()
+        resultsAdapter.showLoading()
         catalogStatus.visibility = View.VISIBLE
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
@@ -396,6 +412,12 @@ class BookLibraryActivity : AppCompatActivity() {
                 coverUrl = book.coverUrl ?: group.entries.firstNotNullOfOrNull { it.coverUrl },
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
+                actionLabel = if (book.downloadUrl?.startsWith("https://") == true)
+                    "Open EPUB" else "View listing",
+                onAction = {
+                    val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
+                    openOfficialLink(epub ?: book.url)
+                },
             )
         })
     }
