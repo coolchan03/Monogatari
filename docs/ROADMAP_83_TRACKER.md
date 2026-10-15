@@ -4,7 +4,7 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 57 DONE, 26 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 58 DONE, 25 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -71,7 +71,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
 | 58 | PARTIAL | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |
 | 59 | DONE | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. **Done:** "Direct links" source: paste an .m3u8 / .mpd / video-or-audio file / .m3u playlist link into video search; quality names show resolution, codecs and bitrate. |
-| 60 | PARTIAL | Video RSS and podcast subscriptions, suggested feeds, saved episode playlists, durations, Podcasting 2.0 chapters and transcript/subtitle links are implemented. Large podcast XML is now accepted up to the matching 4 MB bounded download/parser limit. Native in-player subtitle tracks and chapter seeking remain. |
+| 60 | DONE | Podcast/video RSS subscriptions, suggested feeds, episode playlists, long-feed parsing, durations, chapter JSON and transcript links; new HTTPS-only in-app Media3 player with caption sidecars, chapter seeking, resume positions, accessible Play buttons and external-player fallback. Provider and physical-device playback compatibility must still be tested. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | DONE | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* **Done:** windows at least 1000dp wide start with the labelled, expanded side drawer (collapsible). |
 | 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |

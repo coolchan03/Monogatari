@@ -219,15 +219,39 @@ class MediaFeedActivity : AppCompatActivity() {
                     if (episode.transcriptUrl != null) "transcript" else null,
                     episode.published.takeIf { it.isNotBlank() }).joinToString(" · "),
                 coverUrl = episode.coverUrl,
+                mediaKind = if (episode.kind == MediaFeedParser.Kind.VIDEO)
+                    MediaType.VIDEO else MediaType.AUDIO,
                 onOpen = { openEpisode(episode) },
                 onLongPress = { openEpisode(episode) },
+                actionLabel = if (MediaFeedPlaybackSpec.validStream(episode.mediaUrl))
+                    "Play" else null,
+                onAction = if (MediaFeedPlaybackSpec.validStream(episode.mediaUrl))
+                    ({ playEpisode(episode) }) else null,
             )
         })
     }
+    private fun playEpisode(entry: MediaFeedParser.Episode) {
+        val media = entry.mediaUrl?.takeIf(MediaFeedPlaybackSpec::validStream) ?: run {
+            status.text = "This episode does not provide a supported HTTPS media stream."
+            return
+        }
+        startActivity(Intent(this, MediaFeedPlayerActivity::class.java)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_MEDIA_URL, media)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_MIME_TYPE, entry.mimeType)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_TITLE, entry.title)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_KIND, entry.kind.name)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_CHAPTERS_URL, entry.chaptersUrl)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_TRANSCRIPT_URL, entry.transcriptUrl)
+            .putExtra(MediaFeedPlayerActivity.EXTRA_PAGE_URL, entry.pageUrl))
+    }
+
     private fun openEpisode(entry: MediaFeedParser.Episode) {
-        val media = entry.mediaUrl
+        val media = entry.mediaUrl?.takeIf(MediaFeedPlaybackSpec::validStream)
         val options = buildList {
-            if (media != null) add("Play episode")
+            if (media != null) {
+                add("Play in Monogatari")
+                add("Open in another player")
+            }
             add(if (MediaFeedPlaylist.contains(playlist(), entry))
                 "Remove from playlist" else "Save to playlist")
             if (entry.chaptersUrl != null) add("Show chapters")
@@ -241,7 +265,8 @@ class MediaFeedActivity : AppCompatActivity() {
                     "Show chapters" -> showChapters(entry)
                     "View transcript or subtitles" -> openPage(entry.transcriptUrl)
                     "Open show website" -> openPage(entry.pageUrl)
-                    "Play episode" -> if (media != null) {
+                    "Play in Monogatari" -> playEpisode(entry)
+                    "Open in another player" -> if (media != null) {
                         runCatching {
                             startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(
                                 Uri.parse(media), entry.mimeType ?: when (entry.kind) {

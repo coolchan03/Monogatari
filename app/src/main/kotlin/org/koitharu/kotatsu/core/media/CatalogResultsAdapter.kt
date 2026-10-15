@@ -29,6 +29,7 @@ internal data class CatalogRow(
     val onLongPress: (() -> Unit)? = null,
     val actionLabel: String? = null,
     val onAction: (() -> Unit)? = null,
+    val mediaKind: MediaType = MediaType.BOOK,
 )
 
 internal class CatalogResultsAdapter : RecyclerView.Adapter<CatalogResultsAdapter.Holder>() {
@@ -102,7 +103,7 @@ internal class CatalogResultsAdapter : RecyclerView.Adapter<CatalogResultsAdapte
         })
         holder.coverRequest?.dispose()
         holder.coverRequest = null
-        val generated = GeneratedCoverDrawable(row.title, mediaKind = MediaType.BOOK)
+        val generated = GeneratedCoverDrawable(row.title, mediaKind = row.mediaKind)
         holder.cover.setImageDrawable(generated)
         val cover = row.coverUrl?.takeIf { it.startsWith("https://") }
         if (cover != null) {
