@@ -159,12 +159,13 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
 
     /** Search only entries listed by Baen in its officially free library. */
     suspend fun searchBaenFreeLibrary(query: String): List<Book> = withContext(Dispatchers.IO) {
-        // Baen pages are bounded; search at most two public catalog pages per request.
-        (1..2).flatMap { page ->
+        // The official Free Library currently spans three catalog pages (36+36+10).
+        // Bound requests to those three pages; never follow unrelated store listings.
+        (1..3).flatMap { page ->
             val url = "https://www.baen.com/categories/free-library.html" +
                 "?product_list_limit=36&p=" + page
             AdditionalBookCatalogs.baenFreeLibrary(fetchText(url), query)
-        }.distinctBy { it.url }.take(60)
+        }.distinctBy { it.url }.take(120)
     }
 
     /** Filter Global Grey's published public URL sitemap; no site-wide crawling. */

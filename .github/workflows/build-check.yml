@@ -34,6 +34,13 @@ jobs:
         run: python3 scripts/validate-ui-a11y.py
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Preserve failing JVM test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-test-failures
+          path: app/build/test-results/testDebugUnitTest/
+          if-no-files-found: warn
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
@@ -63,6 +70,23 @@ jobs:
       - name: Enable KVM acceleration if available
         run: if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
       - name: Launch on clean Android 15 emulator
+        id: startup_first
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          script: bash scripts/ci-smoke-startup.sh
+      # Preserve real application-test failures. Only retry when GitHub's Android
+      # system-image provisioning failed before our startup script could run.
+      - name: Fail on application startup smoke errors
+        if: steps.startup_first.outcome == 'failure' && hashFiles('smoke-start-output.txt') != ''
+        run: exit 1
+      - name: Retry after transient cloud emulator provisioning failure
+        if: steps.startup_first.outcome == 'failure' && hashFiles('smoke-start-output.txt') == ''
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35

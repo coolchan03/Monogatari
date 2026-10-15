@@ -48,6 +48,22 @@ class AdditionalBookCatalogsTest {
         assertEquals("https://www.baen.com/1632.html", rows.single().url)
     }
 
+    @Test fun catalogLinksRejectFragmentsCustomPortsAndForeignCredentials() {
+        val html = """<ul>
+            <li class="product-item"><a class="product-item-link"
+                href="https://www.baen.com:444/trap.html">Wrong port</a></li>
+            <li class="product-item"><a class="product-item-link"
+                href="https://www.baen.com/good.html#fragment">Fragment</a></li>
+            <li class="product-item"><a class="product-item-link"
+                href="https://someone@www.baen.com/secrets.html">Credentials</a></li>
+            <li class="product-item"><a class="product-item-link"
+                href="https://www.baen.com/clean.html">Allowed</a></li>
+        </ul>"""
+        val rows = AdditionalBookCatalogs.baenFreeLibrary(html, "")
+        assertEquals(1, rows.size)
+        assertEquals("https://www.baen.com/clean.html", rows.single().url)
+    }
+
     @Test fun globalGreyUsesOnlyLegitimateBookPages() {
         val xml = """<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
             <url><loc>https://www.globalgreyebooks.com/book-page/ghosts-i-have-seen-ebook.html</loc></url>

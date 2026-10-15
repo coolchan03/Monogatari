@@ -110,13 +110,50 @@ class VimeoRepository(
 		const val PAGE_SIZE = 20
 		private val ID = Regex("\\d{1,15}")
 
+		/**
+		 * Vimeo's public Video, Channel, Category and Showcase endpoints.
+		 * Search examples:
+		 *   "short film" - regular search
+		 *   "channel:12345" - videos in a channel
+		 *   "showcase:12345/67890" - a user's publicly available showcase
+		 *   "category:animation" - Vimeo's curated category
+		 */
 		fun listUrl(term: String, order: SortOrder, page: Int): String {
+			val text = term.trim()
+			val pageNumber = page.coerceIn(1, 100)
+			val base = "https://api.vimeo.com"
+			val browseArgs = "?per_page=$PAGE_SIZE&page=$pageNumber"
+			val numericId = Regex("[0-9]{1,15}")
+			val channel = text.substringAfter(':').takeIf { text.startsWith("channel:", true) }
+			if (channel != null) {
+				require(numericId.matches(channel)) { "Vimeo channel search needs a numeric channel ID" }
+				return "$base/channels/$channel/videos$browseArgs"
+			}
+			val showcase = when {
+				text.startsWith("showcase:", true) -> text.substringAfter(':')
+				text.startsWith("collection:", true) -> text.substringAfter(':')
+				else -> null
+			}
+			if (showcase != null) {
+				val ids = showcase.split('/')
+				require(ids.size == 2 && ids.all(numericId::matches)) {
+					"Vimeo showcase search expects showcase:USER_ID/SHOWCASE_ID"
+				}
+				return "$base/users/${ids[0]}/albums/${ids[1]}/videos$browseArgs"
+			}
+			val category = text.substringAfter("category:", "").takeIf { text.startsWith("category:", true) }
+			if (category != null) {
+				require(category.matches(Regex("[a-z0-9-]{1,50}"))) {
+					"Vimeo category needs its public lowercase category name"
+				}
+				return "$base/categories/$category/videos$browseArgs"
+			}
 			val sort = when (order) {
 				SortOrder.NEWEST -> "date"
 				SortOrder.POPULARITY -> "plays"
 				else -> "relevant"
 			}
-			return "https://api.vimeo.com/videos?per_page=$PAGE_SIZE&page=$page&sort=$sort&query=${ArchiveMapping.encode(term)}"
+			return "$base/videos?per_page=$PAGE_SIZE&page=$pageNumber&sort=$sort&query=${ArchiveMapping.encode(text)}"
 		}
 
 		fun parseVideos(body: JSONObject): List<Video> {
