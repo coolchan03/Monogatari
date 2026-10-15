@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.reader.ui
 
 import android.content.Context
+import android.os.Build
 import android.content.SharedPreferences
 import android.database.ContentObserver
 import android.provider.Settings
@@ -197,7 +198,9 @@ class ReaderActionsView @JvmOverloads constructor(
 		binding.buttonNext.isVisible = ReaderControl.NEXT_CHAPTER in controls
 		binding.buttonPagesThumbs.isVisible = ReaderControl.PAGES_SHEET in controls
 		binding.buttonComments.isVisible = ReaderControl.COMMENTS in controls
-		binding.buttonScreenRotation.isVisible = ReaderControl.SCREEN_ROTATION in controls
+		// Android 16+ ignores orientation requests on large screens, so the button would do nothing there.
+		binding.buttonScreenRotation.isVisible = ReaderControl.SCREEN_ROTATION in controls &&
+			(Build.VERSION.SDK_INT < 36 || resources.configuration.smallestScreenWidthDp < 600)
 		binding.buttonSave.isVisible = ReaderControl.SAVE_PAGE in controls
 		binding.buttonTimer.isVisible = ReaderControl.TIMER in controls
 		binding.buttonBookmark.isVisible = ReaderControl.BOOKMARK in controls

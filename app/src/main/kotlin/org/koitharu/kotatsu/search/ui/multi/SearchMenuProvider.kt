@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.core.view.MenuProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.search.domain.SearchKind
@@ -79,6 +80,10 @@ class SearchMenuProvider(
 				showPublicationYearsDialog()
 				return true
 			}
+            R.id.action_filter_media -> {
+                showMediaScopeDialog()
+                return true
+            }
 		}
 
 		val newKind = when (menuItem.itemId) {
@@ -89,13 +94,13 @@ class SearchMenuProvider(
 			else -> return false
 		}
 		if (newKind != viewModel.kind) {
-			if (viewModel.mediaTypeOverride == null) {
+			if (viewModel.searchMediaScope == null) {
 				activity.router.openSearch(viewModel.query, newKind)
 			} else {
 				activity.startActivity(Intent(activity, SearchActivity::class.java)
 					.putExtra(AppRouter.KEY_QUERY, viewModel.query)
 					.putExtra(AppRouter.KEY_KIND, newKind)
-					.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, viewModel.mediaTypeOverride?.name))
+					.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, viewModel.searchMediaScope))
 			}
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
 				activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out, 0)
@@ -106,6 +111,34 @@ class SearchMenuProvider(
 		}
 		return true
 	}
+
+	/** Search can be unified or scoped to one media family without changing global settings. */
+    private fun showMediaScopeDialog() {
+        val scopes = listOf("ALL") + MediaType.entries.map { it.name }
+        val labels = scopes.map { scope ->
+            when (scope) {
+                "ALL" -> activity.getString(R.string.search_media_all)
+                MediaType.MANGA.name -> activity.getString(R.string.search_media_manga)
+                MediaType.BOOK.name -> activity.getString(R.string.search_media_books)
+                MediaType.VIDEO.name -> activity.getString(R.string.search_media_video)
+                MediaType.AUDIO.name -> activity.getString(R.string.search_media_audio)
+                else -> scope
+            }
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.search_media_type)
+            .setSingleChoiceItems(labels.toTypedArray(),
+                scopes.indexOf(viewModel.selectedMediaScope).coerceAtLeast(0)) { dialog, index ->
+                val selection = scopes[index]
+                dialog.dismiss()
+                if (viewModel.searchMediaScope == selection) return@setSingleChoiceItems
+                activity.startActivity(Intent(activity, SearchActivity::class.java)
+                    .putExtra(AppRouter.KEY_QUERY, viewModel.query)
+                    .putExtra(AppRouter.KEY_KIND, viewModel.kind)
+                    .putExtra(SearchActivity.EXTRA_MEDIA_TYPE, selection))
+                activity.finish()
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
 
 	private fun showPublicationYearsDialog() {
 		val density = activity.resources.displayMetrics.density
@@ -131,6 +164,24 @@ class SearchMenuProvider(
 		container.addView(hint)
 		container.addView(from)
 		container.addView(to)
+		val unknownBox = android.widget.CheckBox(activity).apply {
+			setText(R.string.publication_year_include_unknown)
+			isChecked = viewModel.includesUnknownYears
+		}
+		container.addView(unknownBox)
+		val languages = listOf<String?>(null) + viewModel.languagesInResults()
+		container.addView(TextView(activity).apply {
+			setText(R.string.search_language_label)
+			setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+		})
+		val languagePicker = Spinner(activity).apply {
+			adapter = ArrayAdapter(
+				activity, android.R.layout.simple_spinner_item,
+				languages.map { code -> code?.let { java.util.Locale(it).getDisplayLanguage() } ?: activity.getString(R.string.search_language_any) },
+			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+			setSelection(languages.indexOf(viewModel.selectedLanguage).coerceAtLeast(0))
+		}
+		container.addView(languagePicker)
 		val ordering = PublicationYearOrder.entries.toList()
 		container.addView(TextView(activity).apply {
 			setText(R.string.publication_year_sort_label)
@@ -143,6 +194,8 @@ class SearchMenuProvider(
 					activity.getString(R.string.publication_year_sort_relevance),
 					activity.getString(R.string.publication_year_sort_ascending),
 					activity.getString(R.string.publication_year_sort_descending),
+					activity.getString(R.string.publication_year_sort_ascending_global),
+					activity.getString(R.string.publication_year_sort_descending_global),
 				),
 			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 			setSelection(ordering.indexOf(viewModel.publicationYearOrder).coerceAtLeast(0))
@@ -157,10 +210,14 @@ class SearchMenuProvider(
 			.setView(container)
 			.setNeutralButton(R.string.any) { _, _ ->
 				viewModel.setPublicationYearOrder(PublicationYearOrder.RELEVANCE)
+				viewModel.setIncludeUnknownYears(true)
+				viewModel.setLanguageFilter(null)
 				viewModel.setPublicationYearRange(null, null)
 			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
+				viewModel.setIncludeUnknownYears(unknownBox.isChecked)
+				viewModel.setLanguageFilter(languages[languagePicker.selectedItemPosition])
 				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedItemPosition])
 				viewModel.setPublicationYearRange(
 					from.text?.toString()?.trim()?.toIntOrNull(),

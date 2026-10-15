@@ -1,7 +1,6 @@
 package org.koitharu.kotatsu.reader.ui
 
 import org.koitharu.kotatsu.core.model.getLocale
-import java.io.File
 import org.koitharu.kotatsu.reader.translate.PageTranslationPrefs
 import org.koitharu.kotatsu.reader.translate.PageTranslator
 import android.net.Uri
@@ -141,7 +140,7 @@ class ReaderViewModel @Inject constructor(
 
     val readerMode = MutableStateFlow<ReaderMode?>(null)
     val onPageSaved = MutableEventFlow<Collection<Uri>>()
-    val onPageTranslated = MutableEventFlow<File>()
+    val onPageTranslated = MutableEventFlow<PageTranslator.Result>()
     val pageTranslationStatus = MutableStateFlow<Int?>(null)
     val onLoadingError = MutableEventFlow<Throwable>()
     val onShowToast = MutableEventFlow<Int>()
@@ -375,6 +374,19 @@ class ReaderViewModel @Inject constructor(
         return PageTranslationPrefs.scriptForLanguage(currentManga.source.getLocale()?.language)
     }
 
+    /** The saved (source, target) language choice of the current series; null means automatic / device language. */
+    fun getPageTranslationLanguages(): Pair<String?, String?> {
+        val id = manga.value?.id ?: return null to null
+        return pageTranslationPrefs.getSourceLanguage(id) to pageTranslationPrefs.getTargetLanguage(id)
+    }
+
+    fun setPageTranslationLanguages(source: String?, target: String?) {
+        val id = manga.value?.id ?: return
+        pageTranslationPrefs.setLanguages(id, source, target)
+        // An explicit source language also fixes the recognizer script for this series.
+        PageTranslationPrefs.scriptForLanguage(source)?.let { pageTranslationPrefs.setScript(id, it) }
+    }
+
     fun translateCurrentPage(pageSaveHelper: PageSaveHelper, script: PageTranslator.Script, remember: Boolean) {
         val prevJob = pageTranslateJob
         pageTranslateJob = launchLoadingJob(Dispatchers.Default) {
@@ -386,7 +398,9 @@ class ReaderViewModel @Inject constructor(
                     pageTranslationPrefs.setScript(currentManga.id, script)
                 }
                 val page = checkNotNull(getCurrentPage()) { "Cannot find current page" }
-                pageTranslator.findCached(page.url, script)?.let { cached ->
+                val (sourceChoice, targetChoice) = getPageTranslationLanguages()
+                val sourceHint = sourceChoice ?: currentManga.source.getLocale()?.language
+                pageTranslator.findCached(page.url, script, sourceHint, targetChoice)?.let { cached ->
                     onPageTranslated.call(cached)
                     return@launchLoadingJob
                 }
@@ -402,13 +416,14 @@ class ReaderViewModel @Inject constructor(
                         page = pageFile,
                         cacheKey = page.url,
                         script = script,
-                        sourceLanguageHint = currentManga.source.getLocale()?.language,
+                        sourceLanguageHint = sourceHint,
+                        targetOverride = targetChoice,
                         onStatus = { pageTranslationStatus.value = it },
                     )
                 } finally {
                     pageFile.delete()
                 }
-                onPageTranslated.call(result.file)
+                onPageTranslated.call(result)
             } finally {
                 pageTranslationStatus.value = null
             }

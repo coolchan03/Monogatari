@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent">
+
+	<com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+		android:id="@+id/ssiv"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		app:restoreStrategy="deferred" />
+
+	<ImageButton
+		android:id="@+id/button_back"
+		android:layout_width="48dp"
+		android:layout_height="48dp"
+		android:layout_margin="@dimen/screen_padding"
+		android:background="@drawable/bg_circle_button"
+		android:contentDescription="@string/back"
+		android:elevation="@dimen/m3_sys_elevation_level1"
+		android:scaleType="center"
+		android:tooltipText="@string/back"
+		app:srcCompat="?homeAsUpIndicator" />
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_gravity="bottom"
+		android:gravity="center_horizontal"
+		android:orientation="vertical"
+		android:padding="@dimen/screen_padding">
+
+		<TextView
+			android:id="@+id/text_hint"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:background="#B3000000"
+			android:paddingHorizontal="16dp"
+			android:textColor="#FFFFFFFF"
+			android:paddingVertical="6dp"
+			android:textAppearance="?attr/textAppearanceBodySmall" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/button_toggle"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:minHeight="48dp"
+			android:text="@string/translated_page_show_original"
+			app:icon="@drawable/ic_language" />
+	</LinearLayout>
+
+</FrameLayout>

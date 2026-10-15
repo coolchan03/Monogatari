@@ -63,6 +63,7 @@ import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.main.domain.CoverRestoreInterceptor
 import org.koitharu.kotatsu.main.ui.protect.AppProtectHelper
 import org.koitharu.kotatsu.main.ui.protect.ScreenshotPolicyHelper
+import org.koitharu.kotatsu.core.ui.AccentColorHelper
 import org.koitharu.kotatsu.parsers.MangaLoaderContext
 import org.koitharu.kotatsu.search.ui.MangaSuggestionsProvider
 import org.koitharu.kotatsu.sync.domain.SyncController
@@ -180,6 +181,7 @@ interface AppModule {
 			screenshotPolicyHelper: ScreenshotPolicyHelper,
 			foregroundActivityHolder: ForegroundActivityHolder,
 			captchaAutoResolveCoordinator: CaptchaAutoResolveCoordinator,
+			accentColorHelper: AccentColorHelper,
 		): Set<@JvmSuppressWildcards Application.ActivityLifecycleCallbacks> = arraySetOf(
 			appProtectHelper,
 			activityRecreationHandle,
@@ -187,6 +189,7 @@ interface AppModule {
 			screenshotPolicyHelper,
 			foregroundActivityHolder,
 			captchaAutoResolveCoordinator,
+			accentColorHelper,
 		)
 
 		@Provides

@@ -13,6 +13,11 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.BackupUtils
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
+import android.text.format.DateUtils
+import android.text.format.Formatter
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.koitharu.kotatsu.backups.domain.UpdateSnapshots
+import java.io.File
 import org.koitharu.kotatsu.backups.ui.backup.BackupService
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
@@ -75,6 +80,11 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
                 true
             }
 
+            "monogatari_update_snapshots" -> {
+                showUpdateSnapshots()
+                true
+            }
+
             "monogatari_foreign_backup_review" -> {
                 startActivity(Intent(requireContext(), ForeignBackupReviewActivity::class.java))
                 true
@@ -88,6 +98,47 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
         if (result != null) {
             router.showBackupRestoreDialog(result)
         }
+    }
+
+    private fun showUpdateSnapshots() {
+        val context = requireContext()
+        val snapshots = UpdateSnapshots(File(context.applicationInfo.dataDir), context.filesDir).list()
+        if (snapshots.isEmpty()) {
+            MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.update_snapshots_title)
+                .setMessage(R.string.update_snapshots_empty)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+        val labels = snapshots.map { snapshot ->
+            getString(
+                R.string.update_snapshots_item,
+                snapshot.fromVersionCode,
+                DateUtils.formatDateTime(context, snapshot.createdAt, DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME),
+                Formatter.formatShortFileSize(context, snapshot.sizeBytes),
+            )
+        }.toTypedArray()
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.update_snapshots_title)
+            .setItems(labels) { _, which -> confirmUpdateRestore(snapshots[which]) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmUpdateRestore(snapshot: UpdateSnapshots.Snapshot) {
+        val context = requireContext()
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.update_snapshots_title)
+            .setMessage(R.string.update_snapshots_confirm)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.update_snapshots_restore) { _, _ ->
+                UpdateSnapshots(File(context.applicationInfo.dataDir), context.filesDir).scheduleRestore(snapshot)
+                // The copy happens on the next start, before the database is opened.
+                requireActivity().finishAffinity()
+                Runtime.getRuntime().exit(0)
+            }
+            .show()
     }
 
     private fun bindPeriodicalBackupSummary() {

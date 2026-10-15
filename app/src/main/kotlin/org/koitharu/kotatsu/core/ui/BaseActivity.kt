@@ -71,6 +71,7 @@ abstract class BaseActivity<B : ViewBinding> :
 			if (isAmoledTheme) {
 				setTheme(R.style.ThemeOverlay_Kotatsu_Amoled)
 			}
+			AccentColors.apply(this, settings)
 		}
 		putDataToExtras(intent)
 		exceptionResolver = entryPoint.exceptionResolverFactory.create(this)

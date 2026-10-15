@@ -42,6 +42,20 @@
                 app:drawableStartCompat="@drawable/ic_language" />
 
             <org.koitharu.kotatsu.core.ui.widgets.ListItemTextView
+                android:id="@+id/button_translate_languages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_translation_languages"
+                app:drawableStartCompat="@drawable/ic_language" />
+
+            <org.koitharu.kotatsu.core.ui.widgets.ListItemTextView
+                android:id="@+id/button_translate_models"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/translation_models_manage"
+                app:drawableStartCompat="@drawable/ic_language" />
+
+            <org.koitharu.kotatsu.core.ui.widgets.ListItemTextView
                 android:id="@+id/button_bookmark"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

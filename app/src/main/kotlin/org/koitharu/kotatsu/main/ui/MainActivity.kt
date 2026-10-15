@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.activity.viewModels
@@ -101,6 +102,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	View.OnLayoutChangeListener,
 	SearchView.TransitionListener {
 
+	companion object {
+
+		/** Set by Discover's "Browse source websites" button to land on the Explore tab. */
+		const val EXTRA_OPEN_EXPLORE = "open_explore"
+	}
+
 	@Inject
 	lateinit var communitySettings: CommunitySettings
 
@@ -144,6 +151,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(ActivityMainBinding.inflate(layoutInflater))
+        findViewById<android.widget.ImageView>(R.id.monogatari_masthead_kitsune)?.let {
+            org.koitharu.kotatsu.core.ui.Mascot.bind(it, org.koitharu.kotatsu.core.ui.MascotForm.DEFAULT)
+        }
 		setSupportActionBar(viewBinding.searchBar)
 
 		viewBinding.fab?.setOnClickListener(this)
@@ -222,10 +232,24 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		if (savedInstanceState == null) handleRepositorySetupLink(intent)
 	}
 
+	/** Keyboards (tablets, ChromeOS, laptops): Ctrl+F or "/" opens search. */
+	override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+		val isSearchShortcut = (keyCode == KeyEvent.KEYCODE_F && event?.isCtrlPressed == true) ||
+			(keyCode == KeyEvent.KEYCODE_SLASH && event?.hasModifiers(KeyEvent.META_SHIFT_ON) != true)
+		if (isSearchShortcut && !viewBinding.searchView.isShowing) {
+			viewBinding.searchView.show()
+			return true
+		}
+		return super.onKeyDown(keyCode, event)
+	}
+
 	override fun onNewIntent(intent: Intent) {
 		super.onNewIntent(intent)
 		setIntent(intent)
 		handleRepositorySetupLink(intent)
+		if (intent.getBooleanExtra(EXTRA_OPEN_EXPLORE, false)) {
+			navigationDelegate.openExplore()
+		}
 	}
 
 	/** External repo links need explicit user consent; never silently trust install sources. */

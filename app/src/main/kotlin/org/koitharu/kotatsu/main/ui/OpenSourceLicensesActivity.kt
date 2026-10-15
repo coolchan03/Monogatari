@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -45,6 +47,6 @@ class OpenSourceLicensesActivity : AppCompatActivity() {
                 }
             })
         }
-        setContentView(ScrollView(this).apply { addView(root) })
+        setMonogatariContent(ScrollView(this).apply { addView(root) }, MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 }

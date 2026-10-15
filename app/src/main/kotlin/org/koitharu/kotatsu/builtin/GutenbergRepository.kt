@@ -39,10 +39,12 @@ class GutenbergRepository(
     override suspend fun getFilterOptions() = MangaListFilterOptions()
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
-        val query = filter?.query?.trim().orEmpty()
+        val parsed = GutenbergGenres.parse(filter?.query?.trim().orEmpty())
+        val query = parsed.text
         val page = offset.coerceAtLeast(0) / 32 + 1
         val url = buildString {
             append("https://gutendex.com/books/?languages=en&page=").append(page)
+            parsed.topic?.let { append("&topic=").append(URLEncoder.encode(it, "UTF-8")) }
             if (query.isNotEmpty()) {
                 append("&search=").append(URLEncoder.encode(query, "UTF-8"))
             } else if (order == SortOrder.UPDATED) {

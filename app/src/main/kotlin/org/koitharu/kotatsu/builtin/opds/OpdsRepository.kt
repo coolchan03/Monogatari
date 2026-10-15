@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.media.ContinuousMediaProvider
 import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.OpdsCatalog
+import org.koitharu.kotatsu.core.media.OpdsParser
 import org.koitharu.kotatsu.core.media.epub.EpubBook
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
 import org.koitharu.kotatsu.parsers.model.ContentRating
@@ -41,11 +42,12 @@ class OpdsRepository(
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
         if (offset > 0) return emptyList()
         val query = filter?.query?.trim().orEmpty()
-        return loadNestedCatalogs()
+        val entries = (if (query.isNotEmpty()) searchServerSide(query) else null) ?: loadNestedCatalogs()
+        return entries
             .filter { entry ->
                 entry.acquisition &&
                     isEpubAcquisition(entry) &&
-                    (query.isEmpty() || entry.title.contains(query, ignoreCase = true))
+                    (query.isEmpty() || entry.title.contains(query, ignoreCase = true) || entry.author.contains(query, ignoreCase = true))
             }
             .map { entry ->
                 Manga(
@@ -56,7 +58,7 @@ class OpdsRepository(
                     publicUrl = entry.href,
                     rating = RATING_UNKNOWN,
                     contentRating = ContentRating.SAFE,
-                    coverUrl = null,
+                    coverUrl = entry.cover,
                     tags = emptySet(),
                     state = null,
                     authors = setOf(entry.author).filter(String::isNotBlank).toSet(),
@@ -68,24 +70,45 @@ class OpdsRepository(
             }
     }
 
-    /** Breadth-first navigation with a hard limit; never follow off-site subcatalogs. */
+    /** Uses the catalog's own search (OpenSearch) when it has one; null falls back to filtering a crawl. */
+    private suspend fun searchServerSide(query: String): List<OpdsCatalog.Entry>? = runCatching {
+        val root = catalog.loadPage(source.url)
+        val template = catalog.searchTemplate(root, source.url) ?: return@runCatching null
+        val results = catalog.loadPage(org.koitharu.kotatsu.core.media.OpdsParser.searchUrl(template, query))
+        val all = results.entries.toMutableList()
+        var next = results.next
+        var pages = 1
+        while (pages < 5 && all.size < 300) {
+            val current = next ?: break
+            if (!canFollow(URI(source.url), current)) break
+            val page = runCatching { catalog.loadPage(current) }.getOrNull() ?: break
+            all += page.entries
+            next = page.next
+            pages++
+        }
+        all.takeIf { it.isNotEmpty() }
+    }.getOrNull()
+
+    /** Breadth-first navigation with a hard limit, following "next" pages; never follow off-site subcatalogs. */
     private suspend fun loadNestedCatalogs(): List<OpdsCatalog.Entry> {
-        val root = URI(source.url)
+        val root = URI(OpdsParser.splitCredentials(source.url).first)
         val pending = ArrayDeque<Pair<String, Int>>()
         val visited = mutableSetOf<String>()
         val found = linkedMapOf<String, OpdsCatalog.Entry>()
         pending.add(source.url to 0)
-        while (pending.isNotEmpty() && visited.size < 12 && found.size < 300) {
+        while (pending.isNotEmpty() && visited.size < 24 && found.size < 300) {
             val (url, depth) = pending.removeFirst()
             if (!visited.add(url)) continue
-            val entries = if (depth == 0) catalog.load(url) else runCatching { catalog.load(url) }.getOrDefault(emptyList())
-            entries.forEach { entry ->
+            val page = if (depth == 0) catalog.loadPage(url) else runCatching { catalog.loadPage(url) }.getOrNull() ?: continue
+            page.entries.forEach { entry ->
                 if (entry.acquisition) {
                     if (isEpubAcquisition(entry)) found.putIfAbsent(entry.href, entry)
                 } else if (depth < 2 && canFollow(root, entry.href) && entry.href !in visited) {
                     pending.add(entry.href to depth + 1)
                 }
             }
+            val next = page.next
+            if (next != null && canFollow(root, next) && next !in visited) pending.addFirst(next to depth)
         }
         return found.values.take(300)
     }

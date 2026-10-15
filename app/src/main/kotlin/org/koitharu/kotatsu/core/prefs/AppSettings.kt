@@ -86,6 +86,13 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val colorScheme: ColorScheme
 		get() = prefs.getEnumValue(KEY_COLOR_THEME, ColorScheme.default)
 
+	/** Seed colour chosen by the user (see AccentColors), or null to keep the colour theme's own palette. */
+	var accentColor: Int?
+		get() = if (prefs.contains(KEY_ACCENT_COLOR)) prefs.getInt(KEY_ACCENT_COLOR, 0) else null
+		set(value) = prefs.edit {
+			if (value == null) remove(KEY_ACCENT_COLOR) else putInt(KEY_ACCENT_COLOR, value)
+		}
+
 	val isAmoledTheme: Boolean
 		get() = prefs.getBoolean(KEY_THEME_AMOLED, true)
 
@@ -847,6 +854,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_LIST_MODE_SUGGESTIONS = "list_mode_suggestions"
 		const val KEY_THEME = "theme"
 		const val KEY_COLOR_THEME = "color_theme"
+		const val KEY_ACCENT_COLOR = "monogatari_accent_color"
 		const val KEY_THEME_AMOLED = "amoled_theme"
 		const val KEY_OFFLINE_DISABLED = "no_offline"
 		const val KEY_PAGES_CACHE_CLEAR = "pages_cache_clear"

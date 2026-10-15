@@ -4,5 +4,8 @@ enum class CacheDir(val dir: String) {
 
 	THUMBS("image_cache"),
 	FAVICONS("favicons"),
-	PAGES("pages");
+	PAGES("pages"),
+
+	/** Pages translated by `reader.translate.PageTranslator`. */
+	TRANSLATED_PAGES("translated_pages");
 }

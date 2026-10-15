@@ -23,7 +23,7 @@ class SearchAdapter(
 	itemClickListener: OnListItemClickListener<SearchResultsListModel>,
 	sizeResolver: ItemSizeResolver,
 	selectionDecoration: MangaSelectionDecoration,
-	onBookOpen: (String) -> Unit,
+	onBookOpen: (BookCatalogListModel) -> Unit,
 ) : BaseListAdapter<ListModel>(), FastScroller.SectionIndexer {
 
 	init {

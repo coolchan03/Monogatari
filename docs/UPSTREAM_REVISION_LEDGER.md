@@ -18,3 +18,25 @@ Checked: October 13, 2026 (GitHub repository metadata and head commits). These a
 5. Update this ledger with *the actually integrated revision*, test evidence, changes and owner. Updating this markdown file alone is never evidence an upstream feature has been ported.
 
 An automated daily watch is configured to report meaningful changes only. **There is no automatic upstream merge or push.**
+
+## Audit gate for upstream updates (#84)
+
+Before any upstream change is merged, fill in this table in the pull request description. A change is **not** merged if any
+"Local-only" file would be overwritten or any answer is "unknown".
+
+| Question | Answer |
+|---|---|
+| Upstream project and exact commit range | |
+| Files touched upstream (list) | |
+| Overlap with Local-only files below | none / list |
+| Licence of every touched file unchanged? | yes / no |
+| Hilt startup, sponsor removal and cold-start smoke test still intact? | yes / no |
+| Unit tests, debug APK, R8 release and emulator smoke green on the PR? | link |
+
+**Local-only files and packages (never overwritten by a copy from upstream; merge by hand):**
+`core/media/`, `core/qa/`, `core/ui/MonogatariChrome.kt`, `core/ui/AccentColors.kt`, `discover/`, `builtin/`, `jsext/`, `sourcerepo/`,
+`sourcescore/`, `sourcehealth/`, `reader/translate/`, `main/ui/MoreDestinations.kt`, `main/ui/NavLayoutPolicy.kt`,
+`explore/data/DefaultSourcePresets.kt`, `docs/`, `scripts/ci-smoke-startup.sh`, `.github/workflows/build-check.yml`, and the
+`ThemeOverlay`/`strings.xml` additions marked Monogatari.
+
+Ported components and their licences are listed in `PORTED_COMPONENTS.md`.

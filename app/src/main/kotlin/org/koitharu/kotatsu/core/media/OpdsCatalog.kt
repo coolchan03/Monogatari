@@ -4,36 +4,46 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.jsoup.Jsoup
-import org.jsoup.parser.Parser
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import javax.inject.Inject
 
-/** OPDS 1.x Atom catalog reader. Links remain restricted to HTTP(S). */
+/** OPDS 1.x (Atom) and 2.0 (JSON) catalog reader with paging, search and basic-auth catalogs. Links stay HTTP(S). */
 class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
-    data class Entry(val title: String, val author: String, val href: String, val acquisition: Boolean, val mediaType: String? = null)
+    data class Entry(
+        val title: String, val author: String, val href: String, val acquisition: Boolean,
+        val mediaType: String? = null, val cover: String? = null,
+    )
 
-    suspend fun load(url: String): List<Entry> = withContext(Dispatchers.IO) {
-        require(url.startsWith("https://") || url.startsWith("http://")) { "Use an HTTP(S) catalog URL" }
-        val request = Request.Builder().url(url).build()
-        val xml = client.newCall(request).execute().use {
+    suspend fun load(url: String): List<Entry> = loadPage(url).entries
+
+    internal suspend fun loadPage(url: String): OpdsParser.Page = withContext(Dispatchers.IO) {
+        require(OpdsParser.isWeb(url)) { "Use an HTTP(S) catalog URL" }
+        val (clean, auth) = OpdsParser.splitCredentials(url)
+        val request = Request.Builder().url(clean)
+            .header("Accept", "application/opds+json, application/atom+xml, application/xml;q=0.9, */*;q=0.5")
+            .apply { if (auth != null) header("Authorization", auth) }
+            .build()
+        client.newCall(request).execute().use {
+            if (it.code == 401) error("This catalog needs a login: add it as https://user:password@host/path")
             if (!it.isSuccessful) error("OPDS HTTP ${it.code}")
-            it.body?.string() ?: error("Empty OPDS response")
+            val body = it.body?.string() ?: error("Empty OPDS response")
+            OpdsParser.parse(body, java.net.URI(clean), it.header("Content-Type"))
         }
-        val base = java.net.URI(url)
-        val doc = Jsoup.parse(xml, "", Parser.xmlParser())
-        doc.select("entry").mapNotNull { entry ->
-            val title = entry.selectFirst("title")?.text()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val author = entry.selectFirst("author > name")?.text().orEmpty()
-            val links = entry.select("link[rel]")
-            val acquisition = links.firstOrNull { it.attr("rel").contains("acquisition") }
-            val navigation = links.firstOrNull { it.attr("rel").contains("subsection") }
-                ?: links.firstOrNull { it.attr("type").contains("atom+xml") }
-            val selected = acquisition ?: navigation ?: return@mapNotNull null
-            val href = runCatching { base.resolve(selected.attr("href")).toString() }.getOrNull()
-                ?: return@mapNotNull null
-            if (!href.startsWith("https://") && !href.startsWith("http://")) return@mapNotNull null
-            Entry(title, author, href, acquisition != null, selected.attr("type").takeIf { it.isNotBlank() })
+    }
+
+    /** Resolves the catalog's search URL template (directly, or via its OpenSearch description). */
+    internal suspend fun searchTemplate(page: OpdsParser.Page, base: String): String? {
+        page.searchTemplate?.let { return it }
+        val description = page.searchDescription ?: return null
+        val (clean, auth) = OpdsParser.splitCredentials(description)
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val request = Request.Builder().url(clean).apply { if (auth != null) header("Authorization", auth) }.build()
+                client.newCall(request).execute().use {
+                    if (!it.isSuccessful) return@use null
+                    OpdsParser.searchTemplateFromDescription(it.body?.string().orEmpty(), java.net.URI(base))
+                }
+            }.getOrNull()
         }
     }
 }

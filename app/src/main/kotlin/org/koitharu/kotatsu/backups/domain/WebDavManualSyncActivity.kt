@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.EditText
@@ -87,7 +89,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                     status.text = "Account removed"
                 }.show()
         }
-        setContentView(root)
+        setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 
     private fun account(): WebDavAccount? = runCatching { accountStore.load() }.getOrNull().also {

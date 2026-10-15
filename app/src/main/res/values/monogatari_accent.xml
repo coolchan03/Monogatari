@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<!-- Accent fallback for Android 11 and older: black controls on light backgrounds (white in values-night). -->
+	<style name="ThemeOverlay.Monogatari.AccentMono" parent="">
+		<item name="colorPrimary">#FF000000</item>
+		<item name="colorOnPrimary">#FFFFFFFF</item>
+		<item name="colorPrimaryContainer">#FFE0E0E0</item>
+		<item name="colorOnPrimaryContainer">#FF000000</item>
+	</style>
+</resources>

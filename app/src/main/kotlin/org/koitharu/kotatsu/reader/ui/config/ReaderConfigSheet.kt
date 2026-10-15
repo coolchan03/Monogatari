@@ -102,6 +102,8 @@ class ReaderConfigSheet :
         binding.checkableGroup.addOnButtonCheckedListener(this)
         binding.buttonSavePage.setOnClickListener(this)
         binding.buttonTranslatePage.setOnClickListener(this)
+        binding.buttonTranslateLanguages.setOnClickListener(this)
+        binding.buttonTranslateModels.setOnClickListener(this)
         binding.buttonScreenRotate.setOnClickListener(this)
         binding.buttonSettings.setOnClickListener(this)
         binding.buttonImageServer.setOnClickListener(this)
@@ -156,6 +158,16 @@ class ReaderConfigSheet :
 
             R.id.button_translate_page -> {
                 findParentCallback(Callback::class.java)?.onTranslatePageClick() ?: return
+                dismissAllowingStateLoss()
+            }
+
+            R.id.button_translate_languages -> {
+                findParentCallback(Callback::class.java)?.onTranslateLanguagesClick() ?: return
+                dismissAllowingStateLoss()
+            }
+
+            R.id.button_translate_models -> {
+                findParentCallback(Callback::class.java)?.onTranslateModelsClick() ?: return
                 dismissAllowingStateLoss()
             }
 
@@ -243,8 +255,9 @@ class ReaderConfigSheet :
         orientationHelper.observeAutoOrientation()
             .onEach {
                 with(requireViewBinding()) {
-                    buttonScreenRotate.isGone = it
-                    switchScreenLockRotation.isVisible = it
+                    val controllable = orientationHelper.isOrientationControllable
+                    buttonScreenRotate.isGone = it || !controllable
+                    switchScreenLockRotation.isVisible = it && controllable
                     updateOrientationLockSwitch()
                 }
             }.launchIn(viewLifecycleScope)
@@ -291,6 +304,10 @@ class ReaderConfigSheet :
         fun onSavePageClick()
 
         fun onTranslatePageClick()
+
+        fun onTranslateLanguagesClick()
+
+        fun onTranslateModelsClick()
 
         fun onScrollTimerClick(isLongClick: Boolean)
 

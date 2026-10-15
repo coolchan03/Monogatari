@@ -1,6 +1,13 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
+import android.widget.ImageView
 import android.content.Intent
+import android.view.DragEvent
+import androidx.core.app.ActivityCompat
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
@@ -50,7 +57,13 @@ class BookLibraryActivity : AppCompatActivity() {
     private var currentProviderErrors = emptyList<String>()
     private var catalogJob: Job? = null
     private var catalogOrder = BookCatalogSorter.Order.RELEVANCE
+    private val catalogPrefs by lazy { getSharedPreferences("book_catalog_ui", MODE_PRIVATE) }
     private val picker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        importBooks(uris)
+    }
+
+    /** Copies picked or drag-and-dropped files into the local library. */
+    private fun importBooks(uris: List<Uri>) {
         lifecycleScope.launch {
             val report = withContext(Dispatchers.IO) {
                 val dir = File(filesDir, "imported-books").apply { mkdirs() }
@@ -60,14 +73,54 @@ class BookLibraryActivity : AppCompatActivity() {
                         if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml")) {
                             return@map getString(R.string.monogatari_catalog_import_bad_format, name)
                         }
-                        val dest = File.createTempFile("book-", "-${name.replace(Regex("[^a-zA-Z0-9._ -]"), "_")}", dir)
-                        contentResolver.openInputStream(uri)?.use { input -> dest.outputStream().use { input.copyTo(it) } }
-                            ?: error(getString(R.string.monogatari_catalog_import_read_failed))
+                        val safeName = name.replace(Regex("[^a-zA-Z0-9._ -]"), "_").take(120)
+                        val dest = File.createTempFile("book-", "-$safeName", dir)
+                        var completed = false
+                        try {
+                            contentResolver.openInputStream(uri)?.use { input ->
+                                dest.outputStream().use { input.copyTo(it) }
+                            } ?: error(getString(R.string.monogatari_catalog_import_read_failed))
+                            require(dest.length() > 0) { "The selected book is empty" }
+                            completed = true
+                        } finally {
+                            // Failed or cancelled copies must never appear on the user's book shelf.
+                            if (!completed) dest.delete()
+                        }
                         getString(R.string.monogatari_catalog_imported, name)
-                    } catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
+                    } catch (cancel: CancellationException) { throw cancel }
+                    catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
                 }
             }
             showLines(report)
+        }
+    }
+
+    /**
+     * Drag and drop (ChromeOS, desktop windows, tablets in split screen): dropping EPUB/PDF/text files anywhere
+     * on this screen imports them, the same as the Import button.
+     */
+    private fun enableFileDrop(target: View) {
+        target.setOnDragListener { _, event ->
+            when (event.action) {
+                // Accept any file drag; unsupported formats are reported by the import itself.
+                DragEvent.ACTION_DRAG_STARTED -> event.clipDescription != null
+
+                DragEvent.ACTION_DROP -> {
+                    val clip = event.clipData ?: return@setOnDragListener false
+                    val permissions = ActivityCompat.requestDragAndDropPermissions(this, event)
+                    val uris = (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
+                    if (uris.isEmpty()) {
+                        permissions?.release()
+                        return@setOnDragListener false
+                    }
+                    importBooks(uris)
+                    // Keep the grant until the copy has had time to open the files.
+                    target.postDelayed({ permissions?.release() }, 60_000L)
+                    true
+                }
+
+                else -> true
+            }
         }
     }
 
@@ -104,7 +157,10 @@ class BookLibraryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.monogatari_catalog_title)
-        setContentView(R.layout.activity_monogatari_book_catalog)
+        val content = layoutInflater.inflate(R.layout.activity_monogatari_book_catalog, null)
+        setMonogatariContent(content, MonogatariChrome.LIST_MAX_WIDTH_DP)
+        Mascot.bind(findViewById<ImageView>(R.id.monogatari_catalog_mascot), MascotForm.BOOK)
+        enableFileDrop(content)
         query = findViewById(R.id.monogatari_catalog_query)
         catalogStatus = findViewById(R.id.monogatari_catalog_status)
         resultsAdapter.imageLoader = imageLoader
@@ -126,7 +182,7 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("Standard Ebooks") }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = resultsAdapter
         }
         findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources).apply {
@@ -294,7 +350,8 @@ class BookLibraryActivity : AppCompatActivity() {
             return
         }
         resultsAdapter.show(groups.map { group ->
-            val book = group.primary
+            val preferredCatalog = catalogPrefs.getString("preferred:${group.identity}", null)
+            val book = group.preferred(preferredCatalog)
             val description = listOfNotNull(
                 book.author.takeIf { it.isNotBlank() }, group.providers,
                 group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
@@ -304,7 +361,7 @@ class BookLibraryActivity : AppCompatActivity() {
             ).joinToString(" · ")
             CatalogRow(
                 title = book.title, subtitle = description,
-                coverUrl = group.entries.firstNotNullOfOrNull { it.coverUrl },
+                coverUrl = book.coverUrl ?: group.entries.firstNotNullOfOrNull { it.coverUrl },
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
             )
@@ -316,11 +373,17 @@ class BookLibraryActivity : AppCompatActivity() {
             openBookListing(group.entries.first())
             return
         }
+        val preferred = catalogPrefs.getString("preferred:${group.identity}", null)
         MaterialAlertDialogBuilder(this)
-            .setTitle(group.primary.title)
+            .setTitle("Choose a source for ${group.primary.title}")
             .setItems(group.entries.map {
-                "${it.catalog} · ${it.format ?: "Source listing"}"
-            }.toTypedArray()) { _, position -> openBookListing(group.entries[position]) }
+                "${if (it.catalog == preferred) "★ " else ""}${it.catalog} · ${it.format ?: "Source listing"}"
+            }.toTypedArray()) { _, position ->
+                val selected = group.entries[position]
+                catalogPrefs.edit().putString("preferred:${group.identity}", selected.catalog).apply()
+                renderCatalogBooks()
+                openBookListing(selected)
+            }
             .setNegativeButton(android.R.string.cancel, null).show()
     }
 

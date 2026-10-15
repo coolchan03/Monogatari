@@ -281,7 +281,7 @@ class DownloadsViewModel @Inject constructor(
 
 	private fun emptyStateList() = listOf(
 		EmptyState(
-			icon = R.drawable.ic_empty_common,
+			icon = R.drawable.kitsune_sticker_reading,
 			textPrimary = R.string.text_downloads_list_holder,
 			textSecondary = 0,
 			actionStringRes = 0,

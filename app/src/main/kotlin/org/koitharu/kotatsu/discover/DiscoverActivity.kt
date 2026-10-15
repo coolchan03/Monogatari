@@ -38,6 +38,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
 import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
 import javax.inject.Inject
@@ -76,20 +79,10 @@ class DiscoverActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		binding = ActivityDiscoverBinding.inflate(layoutInflater)
-		setContentView(binding.root)
 		setTitle(R.string.discover)
-		supportActionBar?.setDisplayHomeAsUpEnabled(true)
-		ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-			// Edge-to-edge (enforced on recent Android): keep content clear of the system bars.
-			val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-			view.updatePadding(
-				left = bars.left,
-				right = bars.right,
-				top = if (supportActionBar == null) bars.top else 0,
-				bottom = bars.bottom,
-			)
-			insets
-		}
+		binding.discoverIntro.setText(R.string.discover_intro_explained)
+		// Toolbar with Up, plus edge-to-edge insets (status/navigation bars, cutouts, ChromeOS caption bar).
+		setMonogatariContent(binding.root)
 
 		savedInstanceState?.getString(KEY_SECTION)?.let { name ->
 			MediaSection.entries.find { it.name == name }?.let { section = it }
@@ -170,6 +163,13 @@ class DiscoverActivity : AppCompatActivity() {
 
 	private fun showSection() {
 		binding.discoverSectionDescription.text = section.description
+        Mascot.bind(binding.discoverMascot, when (section) {
+            MediaSection.MANGA -> MascotForm.MANGA
+            MediaSection.BOOK -> MascotForm.BOOK
+            MediaSection.VIDEO -> MascotForm.VIDEO
+            MediaSection.AUDIO -> MascotForm.AUDIO
+            MediaSection.NEWS -> MascotForm.NEWS
+        })
 		binding.chipsFeed.removeAllViews()
 		val options = AniListDiscover.Feed.entries.filter { entry ->
 			when (section) {
@@ -240,6 +240,16 @@ class DiscoverActivity : AppCompatActivity() {
 				action("News & followed tags") { startActivity(Intent(this, NewsFeedActivity::class.java)) }
 			}
 		}
+		// Discover recommends titles; Explore browses the source websites themselves.
+		action(getString(R.string.discover_browse_sources)) { openExploreTab() }
+	}
+
+	private fun openExploreTab() {
+		startActivity(
+			Intent(this, org.koitharu.kotatsu.main.ui.MainActivity::class.java)
+				.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+				.putExtra(org.koitharu.kotatsu.main.ui.MainActivity.EXTRA_OPEN_EXPLORE, true),
+		)
 	}
 
 	private fun openMediaFeeds(type: MediaType) {

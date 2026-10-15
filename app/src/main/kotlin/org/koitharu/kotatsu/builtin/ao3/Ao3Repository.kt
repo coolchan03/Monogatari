@@ -35,24 +35,35 @@ class Ao3Repository(
     override suspend fun getFilterOptions() = MangaListFilterOptions()
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
-        val query = filter?.query?.trim().orEmpty()
+        val parsed = Ao3Filters.parse(filter?.query?.trim().orEmpty())
         val column = when (order) {
             SortOrder.POPULARITY -> "kudos_count"
             SortOrder.NEWEST -> "created_at"
             else -> "revised_at"
         }
-        val ratings = when (settings.contentLevel) {
+        val allowedRatings = when (settings.contentLevel) {
             "SAFE" -> listOf(10)
             "SUGGESTIVE" -> listOf(10, 11)
             else -> listOf(9, 10, 11, 12, 13)
         }
+        // Filters can narrow the content level's ratings but never widen them.
+        val ratings = Ao3Filters.effectiveRatings(parsed.ratingIds, allowedRatings)
+        if (ratings.isEmpty()) return emptyList()
+        val language = parsed.language ?: filter?.locale?.language?.takeIf { it.isNotBlank() } ?: "en"
         val queryParts = buildList {
             add("page=${offset.coerceAtLeast(0) / 20 + 1}")
-            add("work_search[query]=${ArchiveMapping.encode(query)}")
-            add("work_search[language_id]=en")
+            add("work_search[query]=${ArchiveMapping.encode(parsed.text)}")
+            add("work_search[language_id]=${ArchiveMapping.encode(language)}")
             add("work_search[sort_column]=$column")
             add("work_search[sort_direction]=desc")
             add("work_search[category_ids][]=23")
+            if (parsed.fandoms.isNotEmpty()) {
+                add("work_search[fandom_names]=${ArchiveMapping.encode(parsed.fandoms.joinToString(","))}")
+            }
+            if (parsed.ships.isNotEmpty()) {
+                add("work_search[relationship_names]=${ArchiveMapping.encode(parsed.ships.joinToString(","))}")
+            }
+            parsed.updated?.let { add("work_search[revised_at]=${ArchiveMapping.encode(it)}") }
             ratings.forEach { add("work_search[rating_ids][]=$it") }
         }
         val html = fetch("/works/search?${queryParts.joinToString("&")}")

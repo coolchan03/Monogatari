@@ -21,6 +21,19 @@ class PageTranslationPrefs @Inject constructor(
 		prefs.edit { putString(key(mangaId), script.name) }
 	}
 
+	/** Language the series is written in (an ML Kit tag), or null to detect it automatically. */
+	fun getSourceLanguage(mangaId: Long): String? = prefs.getString("source_$mangaId", null)
+
+	/** Language to translate into for this series, or null to use the device language. */
+	fun getTargetLanguage(mangaId: Long): String? = prefs.getString("target_$mangaId", null)
+
+	fun setLanguages(mangaId: Long, source: String?, target: String?) {
+		prefs.edit {
+			if (source == null) remove("source_$mangaId") else putString("source_$mangaId", source)
+			if (target == null) remove("target_$mangaId") else putString("target_$mangaId", target)
+		}
+	}
+
 	private fun key(mangaId: Long) = "script_$mangaId"
 
 	companion object {

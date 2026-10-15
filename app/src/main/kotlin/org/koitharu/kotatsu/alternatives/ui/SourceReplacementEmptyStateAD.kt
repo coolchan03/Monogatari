@@ -46,7 +46,7 @@ fun sourceReplacementEmptyStateAD(
 
 	bind {
 		binding.icon.isVisible = true
-		binding.icon.setImageAsync(R.drawable.ic_empty_common)
+		binding.icon.setImageAsync(R.drawable.kitsune_sticker_sad)
 		binding.textPrimary.setText(R.string.nothing_found)
 		binding.textSecondary.apply {
 			isVisible = true

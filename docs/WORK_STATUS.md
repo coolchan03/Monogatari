@@ -1,5 +1,33 @@
 # Monogatari work checkpoint
 
+## 2026-10-15 — Release follow-through
+
+- GitHub Actions for `5b5b988` passed both full unit/build/R8 and cold-start emulator jobs (`38667817650`).
+- Independently queried all six built-in entertainment/news RSS endpoints: six HTTP 200 XML responses. Two included podcasts are 1.2–1.7 MB, exceeding the existing 1 MB feed cap. Increased bounded podcast feed budget to 4 MB; HTTPS-to-HTTP redirects are now rejected before following them.
+- Fixed an additional duplicated illustration in filtered Suggestions and outdated QA wording.
+- Aligned the 88-feature tracker with source reality: 56 DONE, 20 PARTIAL, 7 PENDING, 5 DROPPED Windows-only (per owner's emulator decision). Third-party API providers are marked PARTIAL until credential/device testing, not falsely completed.
+- Pending after code release: fresh GitHub CI and device feedback for high-resolution art, video subtitles, live server credentials, and remaining optional sources.
+
+
+## 2026-10-14 — User-recalled enhancements (source patch prepared, pending GitHub Actions)
+
+- Requests: Kotatsu/Mangayomi-inspired selectable appearance; All/Manga/Books/Video/Audio search modes; included entertainment and news RSS; replace duplicate/stale/blurry imagery; simultaneous multi-source tests that keep the screen awake.
+- Files touched: AppearanceSettingsFragment + pref_appearance + strings, SearchMenuProvider/SearchViewModel + opt_search_kind, NewsFeedActivity/Policy and MediaFeedActivity/Playlist, JsSourceDiagnostics/SourceScanManager/SourceSweepCheckpoint, PublicBookCatalog, eight empty-state view models, tests and image audit documentation.
+- Source probes: Kotlin coroutines limited to 4 simultaneous built-in and 2 installed JS sources; checkpoint appends synchronized. Both diagnostic screens already set FLAG_KEEP_SCREEN_ON only when resumed and actively scanning.
+- Images: no exact duplicate binaries among 56 PNG/WebP images; Kitsune sticker originals are 256x256 and need better masters for large usage. Improved Open Library and Google Books remote covers and reassigned repeated empty-state forms; remaining device image inspection is NOT completed.
+- On-device feedback: guided test center now asks separately about theme styles, scoped search, feeds/playlists, image quality and concurrent scans.
+- Local build unrun (no JDK/SDK installed); push then verify GitHub Actions before marking tested. Never replace or reset the user's original dirty P: checkout.
+
+
+## 2026-10-14 — Continue partial/pending requirements (active)
+
+- Canonical integration target: GitHub `devel`. Claude's more recent `ccr-94e2bfd8-3w4etd` at `d3119cb` is 45 commits ahead of the stale default, including mascot, large-screen, OCR, backups and media providers. Keep ALL of those changes.
+- Protected: original dirty `P:\\AI Projects\\Monogatari`; development worktree `C:\\Users\\coolc\\Monogatari-Audit-Final` from the newest Claude branch. Previous stale-baseline repair commit `f6598a7` is retained but not integrated wholesale.
+- Implemented in current working batch: preferred book catalog provider and stable grouped identity; import cleanup after failed/cancelled file copy; feed HTTPS URL normalization and redirect checking; Podcasting 2.0 transcript/subtitle links, duration/chapters preservation, DASH/HLS classification; cancellation of removed feed in-flight loads; regression tests.
+- Next exact operation: check diffs and tests, commit and push through Tunnel to Surface, then run GitHub Actions. No Android SDK/JDK installed locally; device-only playback and OEM startup must not be claimed as verified.
+- The 88-feature roadmap still contains partial/pending work. Do not claim all done; the 5 Windows-client milestones were dropped by the owner in favor of an emulator.
+
+
 ## 2026-10-13 — Startup crash diagnosis (current)
 
 - **Canonical GitHub branch:** `devel` (only active remote branch; old tips preserved by archive tags). Do not create another development branch.
@@ -24,3 +52,11 @@
 - Important: Only edit/push GitHub through Tunnel to Surface. On every new turn, call Tunnel to Surface FIRST.
 - Safety: Existing untracked .release-temp/ and source-audit/ left untouched. Installed old app backup/restore still requires manual test. Signed releases require keystore; do not publish unsigned APK as signed.
 - Timeout behavior: Cannot detect exact ChatGPT timeout moment; use this file and Git/CI timestamps for last durable checkpoint.
+`n## 2026-10-14 - Bucket 1 mascot integration IN PROGRESS`n- Through Tunnel to Surface: editing current checkout ccr-94e2bfd8-3w4etd, commit e89d11adc.`n- Scope: 8 simple Kitsune sticker roles, hidden muscular male form, theme-aware accents, UI placement, retire old vector placeholders, available CI build/test.`n- Do not claim bucket 1 complete until committed, pushed and build checked; phone review remains external.
+
+- Current local milestone: 8 compressed app-ready sticker PNGs and matching legacy/adaptive launcher icons, widgets and store art exported; theme-aware reusable renderer; Home, More, Discover, Books, empty states and hidden male form wired. CI build and push still outstanding.
+
+## 2026-10-14 — Bucket 2 large-screen integration (active)
+- Scope: true search-and-details dual-pane at >=840dp; improve tablet library, book catalog, portrait/landscape details, keyboard usability and large-screen insets.
+- Start head: 1cc79aad8 on ccr-94e2bfd8-3w4etd. Preserve data, apps and source IDs. Do not install SDK locally.
+- Next: inspect layouts, add tested width policy, implement and push via Tunnel to Surface; confirm CI.

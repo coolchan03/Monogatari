@@ -48,7 +48,16 @@ class PageTranslator @Inject constructor(
 		CHINESE(true, TranslateLanguage.CHINESE),
 	}
 
-	class Result(val file: File, val blockCount: Int, val sourceLanguage: String, val targetLanguage: String)
+	class Result(
+		val file: File,
+		/** The page as decoded for OCR (same pixel grid as the block boxes), shown by the original/translated toggle. */
+		val originalFile: File,
+		/** JSON [TranslationMeta] with the recognised and translated blocks. */
+		val metaFile: File,
+		val blockCount: Int,
+		val sourceLanguage: String,
+		val targetLanguage: String,
+	)
 
 	class TranslationException(message: String) : Exception(message)
 
@@ -56,9 +65,45 @@ class PageTranslator @Inject constructor(
 	val targetLanguage: String
 		get() = TranslateLanguage.fromLanguageTag(Locale.getDefault().language) ?: TranslateLanguage.ENGLISH
 
-	/** A page translated earlier (same page URL, script and target language), if still cached. */
-	fun findCached(cacheKey: String, script: Script): File? =
-		outputFile(cacheKey, script, targetLanguage).takeIf { it.exists() && it.length() > 0L }
+	/** Language tag to translate into: the user's per-series choice if valid, else [targetLanguage]. */
+	fun resolveTarget(override: String?): String =
+		override?.let { TranslateLanguage.fromLanguageTag(it) } ?: targetLanguage
+
+	/** A page translated earlier (same page URL, script, languages), if still cached. */
+	fun findCached(cacheKey: String, script: Script, sourceLanguageHint: String?, targetOverride: String?): Result? {
+		val target = resolveTarget(targetOverride)
+		val output = outputFile(cacheKey, script, target, sourceLanguageHint)
+		return cachedResult(output, sourceLanguageHint.orEmpty(), target)
+	}
+
+	private fun cachedResult(output: File, source: String, target: String): Result? {
+		val original = originalOf(output)
+		val meta = metaOf(output)
+		if (!output.exists() || output.length() == 0L || !original.exists() || !meta.exists()) return null
+		val blocks = TranslationSidecar.decode(meta.readText())?.blocks?.size ?: return null
+		return Result(output, original, meta, blocks, source, target)
+	}
+
+	/** Reads the block record of a translated page, or null if it is missing or damaged. */
+	internal fun readMeta(result: Result): TranslationMeta? =
+		runCatching { TranslationSidecar.decode(result.metaFile.readText()) }.getOrNull()
+
+	/** Redraws the page from the stored original and blocks (after the user corrected some text). */
+	internal suspend fun rewrite(result: Result, meta: TranslationMeta) = withContext(Dispatchers.Default) {
+		val bitmap = BitmapFactory.decodeFile(result.originalFile.path)
+			?: throw TranslationException(context.getString(R.string.page_translation_unreadable))
+		try {
+			val rendered = TranslatedPageRenderer.render(bitmap, meta)
+			try {
+				writeJpeg(rendered, result.file)
+			} finally {
+				rendered.recycle()
+			}
+		} finally {
+			bitmap.recycle()
+		}
+		result.metaFile.writeText(TranslationSidecar.encode(meta))
+	}
 
 	/**
 	 * @param page the page image file
@@ -69,13 +114,12 @@ class PageTranslator @Inject constructor(
 		cacheKey: String,
 		script: Script,
 		sourceLanguageHint: String?,
+		targetOverride: String? = null,
 		onStatus: (Int) -> Unit = {},
 	): Result = withContext(Dispatchers.Default) {
-		val target = targetLanguage
-		val output = outputFile(cacheKey, script, target)
-		if (output.exists() && output.length() > 0L) {
-			return@withContext Result(output, -1, sourceLanguageHint.orEmpty(), target)
-		}
+		val target = resolveTarget(targetOverride)
+		val output = outputFile(cacheKey, script, target, sourceLanguageHint)
+		cachedResult(output, sourceLanguageHint.orEmpty(), target)?.let { return@withContext it }
 		val bitmap = decode(page) ?: throw TranslationException(context.getString(R.string.page_translation_unreadable))
 		try {
 			onStatus(R.string.page_translation_reading)
@@ -88,33 +132,43 @@ class PageTranslator @Inject constructor(
 				throw TranslationException(context.getString(R.string.page_translation_same_language))
 			}
 			val translations = translateTexts(blocks.map { it.text }, source, target, onStatus)
-			val rendered = TranslatedPageRenderer.render(
-				bitmap,
-				blocks.mapIndexed { i, block -> TranslatedPageRenderer.Block(block.box, translations[i]) },
+			val meta = TranslationMeta(
+				source, target,
+				blocks.mapIndexed { i, b ->
+					TranslatedBlock(
+						b.box.left, b.box.top, b.box.right, b.box.bottom,
+						original = b.text, translation = translations[i], confidence = b.confidence,
+					)
+				},
 			)
+			val rendered = TranslatedPageRenderer.render(bitmap, meta)
 			try {
+				writeJpeg(bitmap, originalOf(output))
 				writeJpeg(rendered, output)
+				metaOf(output).writeText(TranslationSidecar.encode(meta))
 			} finally {
 				rendered.recycle()
 			}
-			Result(output, blocks.size, source, target)
+			Result(output, originalOf(output), metaOf(output), blocks.size, source, target)
 		} finally {
 			bitmap.recycle()
 		}
 	}
 
-	private class OcrBlock(val box: TranslationLayout.Box, val text: String)
+	private class OcrBlock(val box: TranslationLayout.Box, val text: String, val confidence: Float)
 
 	private suspend fun recognize(bitmap: Bitmap, script: Script): List<OcrBlock> {
 		val recognizer = recognizerFor(script)
 		try {
 			val result = recognizer.process(InputImage.fromBitmap(bitmap, 0)).await()
-			return result.textBlocks.mapNotNull { block ->
+			val pieces = result.textBlocks.mapNotNull { block ->
 				val rect = block.boundingBox ?: return@mapNotNull null
 				val text = TranslationLayout.joinLines(block.lines.map { it.text }, script.isCjk)
 				if (!TranslationLayout.isMeaningful(text)) return@mapNotNull null
-				OcrBlock(TranslationLayout.Box(rect.left, rect.top, rect.right, rect.bottom), text)
+				val confidence = TranslationSidecar.averageConfidence(block.lines.map { it.confidence })
+				TranslationLayout.Piece(TranslationLayout.Box(rect.left, rect.top, rect.right, rect.bottom), text, confidence)
 			}
+			return TranslationLayout.groupPieces(pieces, script.isCjk).map { OcrBlock(it.box, it.text, it.confidence) }
 		} catch (e: com.google.mlkit.common.MlKitException) {
 			throw TranslationException(context.getString(R.string.page_translation_model_unavailable))
 		} finally {
@@ -208,8 +262,12 @@ class PageTranslator @Inject constructor(
 		}
 	}
 
-	private fun outputFile(cacheKey: String, script: Script, target: String): File {
-		val digest = MessageDigest.getInstance("SHA-256").digest("$cacheKey|$script|$target".toByteArray())
+	private fun originalOf(output: File) = File(output.path.removeSuffix(".jpg") + ".orig.jpg")
+
+	private fun metaOf(output: File) = File(output.path.removeSuffix(".jpg") + ".json")
+
+	private fun outputFile(cacheKey: String, script: Script, target: String, sourceHint: String?): File {
+		val digest = MessageDigest.getInstance("SHA-256").digest("$cacheKey|$script|$target|${sourceHint.orEmpty()}".toByteArray())
 		val name = digest.take(12).joinToString("") { "%02x".format(it) }
 		val dir = File(context.cacheDir, CACHE_DIR)
 		pruneCache(dir)
@@ -226,7 +284,7 @@ class PageTranslator @Inject constructor(
 	private companion object {
 
 		const val CACHE_DIR = "translated_pages"
-		const val MAX_CACHED_PAGES = 200
+		const val MAX_CACHED_PAGES = 600
 		const val MAX_SIDE = 2048
 		const val MAX_PIXELS = 12_000_000L
 	}

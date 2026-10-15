@@ -37,6 +37,11 @@ import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
 import org.koitharu.kotatsu.core.model.getLocale
+import org.koitharu.kotatsu.core.ui.model.MangaOverride
+import org.koitharu.kotatsu.list.ui.model.MangaCompactListModel
+import org.koitharu.kotatsu.list.ui.model.MangaDetailedListModel
+import org.koitharu.kotatsu.list.ui.model.MangaGridModel
+import org.koitharu.kotatsu.list.ui.model.MangaListModel
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.parser.ParserMangaRepository
@@ -93,11 +98,14 @@ class SearchViewModel @Inject constructor(
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
 	val kind = savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE
-	val mediaTypeOverride: MediaType? = savedStateHandle.get<String>(SearchActivity.EXTRA_MEDIA_TYPE)
+	val searchMediaScope: String? = savedStateHandle.get(SearchActivity.EXTRA_MEDIA_TYPE)
+	val mediaTypeOverride: MediaType? = searchMediaScope
 		?.let { raw -> MediaType.entries.firstOrNull { it.name == raw } }
+	val selectedMediaScope: String
+		get() = searchMediaScope ?: settings.mediaTypeFilter?.name ?: "ALL"
 
 	private val effectiveMediaType: MediaType?
-		get() = mediaTypeOverride ?: settings.mediaTypeFilter
+		get() = if (searchMediaScope == "ALL") null else mediaTypeOverride ?: settings.mediaTypeFilter
 
 	private var includeDisabledSources = MutableStateFlow(false)
 	private var pinnedOnly = MutableStateFlow(false)
@@ -106,6 +114,9 @@ class SearchViewModel @Inject constructor(
 	private var hideEmpty = MutableStateFlow(true)
 	private var yearFrom = MutableStateFlow<Int?>(null)
 	private var yearTo = MutableStateFlow<Int?>(null)
+	/** When off, titles whose year can't be estimated are hidden while a year filter or order is in use. */
+	private val languageFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("language_filter"))
+	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
     val isVideoModeSearch: Boolean
         get() = effectiveMediaType == MediaType.VIDEO
 
@@ -127,12 +138,77 @@ class SearchViewModel @Inject constructor(
 			?.let { code -> PublicationYearOrder.entries.firstOrNull { it.name == code } }
 			?: PublicationYearOrder.RELEVANCE,
 	)
-	private val displayResults = combine(results, publicationSort) { sections, order ->
-		if (order == PublicationYearOrder.RELEVANCE) sections
+	private val displayResults = combine(
+		combine(results, languageFilter) { all, language ->
+			if (language == null) all else all.filter { LanguageFilter.matches(it.source.getLocale()?.language, language) }
+		},
+		publicationSort, yearFrom, yearTo, includeUnknownYears,
+	) { raw, order, from, to, unknown ->
+		val sections = if (YearFilter.isActive(from, to, unknown)) {
+			raw.map { section ->
+				section.copy(list = section.list.filter {
+					YearFilter.matches(
+						PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description),
+						from, to, unknown,
+					)
+				})
+			}
+		} else raw
+		val ordered = if (order == PublicationYearOrder.RELEVANCE) sections
+		else if (order.isGlobal) mergeGlobally(sections.sortedForDisplay(), order)
 		else sections.map { section ->
 			section.copy(list = PublicationYearSorter.sorted(section.list, order))
 		}
+		// While years matter (an order or a range is chosen) show each year in the title, "~" when it is only a guess.
+		if (order == PublicationYearOrder.RELEVANCE && from == null && to == null) ordered
+		else ordered.map { section -> section.copy(list = section.list.map { it.withYearBadge() }) }
 	}
+	private fun MangaListModel.withYearBadge(): MangaListModel {
+		val estimate = PublicationYearSorter.estimateDetailed(manga.title, manga.altTitle, manga.description) ?: return this
+		val decorated = (override ?: MangaOverride(null, null, null)).copy(title = "$title (${estimate.badge})")
+		return when (this) {
+			is MangaCompactListModel -> copy(override = decorated)
+			is MangaGridModel -> copy(override = decorated)
+			is MangaDetailedListModel -> copy(override = decorated)
+		}
+	}
+
+	/** Languages of the sources that answered so far, for the language filter. */
+	fun languagesInResults(): List<String> =
+		LanguageFilter.available(results.value.map { it.source.getLocale()?.language })
+
+	val selectedLanguage: String?
+		get() = languageFilter.value
+
+	fun setLanguageFilter(language: String?) {
+		languageFilter.value = language
+		savedStateHandle["language_filter"] = language
+	}
+
+	/** One combined, globally ordered section replaces the per-source ones (sections with errors stay visible). */
+	private fun mergeGlobally(
+		sections: List<SearchResultsListModel>,
+		order: PublicationYearOrder,
+	): List<SearchResultsListModel> {
+		val withResults = sections.filter { it.list.isNotEmpty() }
+		if (withResults.isEmpty()) return sections
+		val merged = PublicationYearSorter.sortedGlobal(
+			lists = withResults.map { it.list },
+			order = order,
+			titleOf = { it.manga.title },
+			yearOf = { PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description) },
+		)
+		val combined = SearchResultsListModel(
+			titleResId = R.string.search_all_sources_by_year,
+			source = withResults.first().source,
+			listFilter = null,
+			sortOrder = null,
+			list = merged,
+			error = null,
+		)
+		return listOf(combined) + sections.filter { it.list.isEmpty() && it.error != null }
+	}
+
 	/** Public catalog links use real URLs rather than invented Manga parser entries. */
 	private data class CatalogState(
 		val items: List<BookCatalogListModel> = emptyList(),
@@ -168,7 +244,7 @@ class SearchViewModel @Inject constructor(
 				when {
 					loading || catalog.loading -> LoadingState()
 					else -> EmptyState(
-						icon = R.drawable.ic_empty_common,
+						icon = R.drawable.kitsune_sticker_search,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_search_holder_secondary,
 						actionStringRes = 0,
@@ -238,6 +314,14 @@ class SearchViewModel @Inject constructor(
 
 	val publicationYearTo: Int?
 		get() = yearTo.value
+
+	val includesUnknownYears: Boolean
+		get() = includeUnknownYears.value
+
+	fun setIncludeUnknownYears(value: Boolean) {
+		includeUnknownYears.value = value
+		savedStateHandle["include_unknown_years"] = value
+	}
 
 	val hasPublicationYearFilter: Boolean
 		get() = yearFrom.value != null || yearTo.value != null

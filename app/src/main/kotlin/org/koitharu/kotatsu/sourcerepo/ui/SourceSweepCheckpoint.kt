@@ -14,6 +14,7 @@ internal class SourceSweepCheckpoint(private val file: File) {
 
     data class Record(val key: String, val status: String, val detail: String)
 
+    @Synchronized
     fun read(): Map<String, Record> {
         if (!file.isFile) return emptyMap()
         val result = LinkedHashMap<String, Record>()
@@ -30,6 +31,7 @@ internal class SourceSweepCheckpoint(private val file: File) {
         return result
     }
 
+    @Synchronized
     fun append(record: Record) {
         file.parentFile?.mkdirs()
         val json = buildJsonObject {

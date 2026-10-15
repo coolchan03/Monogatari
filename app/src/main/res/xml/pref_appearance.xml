@@ -4,10 +4,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:title="@string/appearance">
 
+    <Preference
+        android:icon="@drawable/ic_appearance"
+        android:key="monogatari_app_style"
+        android:persistent="false"
+        android:title="@string/app_style_preset_title"
+        android:summary="@string/app_style_preset_summary" />
+
     <org.koitharu.kotatsu.settings.utils.ThemeChooserPreference
         android:icon="@drawable/ic_appearance"
         android:key="color_theme"
         android:title="@string/color_theme" />
+
+    <Preference
+        android:icon="@drawable/ic_appearance"
+        android:key="monogatari_accent_color"
+        android:persistent="false"
+        android:summary="@string/accent_color_summary"
+        android:title="@string/accent_color" />
 
     <SwitchPreferenceCompat
         android:defaultValue="false"

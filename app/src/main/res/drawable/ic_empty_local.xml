@@ -1,29 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original Monogatari illustration: a quiet night over an open storybook. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="200dp" android:height="200dp"
-    android:viewportWidth="200" android:viewportHeight="200">
-    <path android:fillColor="#173C54"
-        android:pathData="M100,15 A80,80 0,1 1,99.9 15Z"/>
-    <path android:fillColor="#21556C"
-        android:pathData="M100,26 A69,69 0,1 1,99.9 26Z"/>
-    <path android:fillColor="#BDE5DC"
-        android:pathData="M42,47 L45,55 L53,58 L45,61 L42,69 L39,61 L31,58 L39,55Z"/>
-    <path android:fillColor="#F8D997"
-        android:pathData="M158,53 L160,60 L167,62 L160,64 L158,71 L156,64 L149,62 L156,60Z"/>
-    <path android:fillColor="#0C273A"
-        android:pathData="M25,129 Q62,108 99,130 Q137,108 175,129 L175,174 Q137,155 100,179 Q62,156 25,174Z"/>
-    <path android:fillColor="#A3DAD2"
-        android:pathData="M31,118 Q65,104 97,120 L97,167 Q65,151 31,164Z"/>
-    <path android:fillColor="#D6ECE2"
-        android:pathData="M103,120 Q136,104 169,118 L169,164 Q136,151 103,167Z"/>
-    <path android:fillColor="@android:color/transparent"
-        android:strokeColor="#478990" android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:pathData="M43,132 Q63,126 83,135 M43,143 Q65,138 83,146 M116,135 Q136,126 157,132 M116,146 Q136,138 157,143"/>
-    <path android:fillColor="#F8D997"
-        android:pathData="M97,120 L103,120 L101,177 L99,177Z"/>
-    <!-- An on-device download arrow over the open book. -->
-    <path android:fillColor="@android:color/transparent" android:strokeColor="#F8D997" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M100,75 L100,106"/>
-    <path android:fillColor="#F8D997" android:pathData="M86,100 L100,118 L114,100 L109,96 L100,106 L91,96Z"/>
-</vector>
+<!-- Kitsune line art for empty lists (see docs/MASCOT_IDEAS.md). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/kitsune_sticker_rest" />
+</layer-list>

@@ -59,6 +59,8 @@ screenshot() {
 
 adb_try install -r "$APK"
 adb_try shell pm list packages "$PKG"
+# The notification permission prompt would otherwise stay on top and swallow later launches.
+adb shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
 adb_try shell am force-stop "$PKG" || true
 adb_try logcat -c || true
 adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-start-output.txt
@@ -67,14 +69,22 @@ capture_logs smoke
 verify_launch smoke
 screenshot smoke-phone.png
 
-# Resize same emulator to a real 600dp+ smallest-width configuration.
-adb_try shell wm size 1280x1920
-adb_try shell wm density 180
-adb_try shell am force-stop "$PKG" || true
-adb_try logcat -c || true
-adb_try shell am start -W -n "$PKG/$ACTIVITY" | tee smoke-tablet-start.txt
-sleep 10
-capture_logs smoke-tablet
-verify_launch smoke-tablet
-screenshot smoke-tablet.png
-echo 'PASS: phone and simulated tablet cold launches, no Monogatari crashes.'
+# Resize the same emulator to real tablet windows. Tablet layouts use -w600dp resources, so both a portrait
+# tablet (800x1280dp) and a landscape tablet/laptop window (1280x800dp) must start cleanly.
+tablet_run() {
+  local name="$1" size="$2"
+  adb_try shell wm size "$size"
+  adb_try shell wm density 240
+  adb_try shell am force-stop "$PKG" || true
+  # Leave any leftover system dialog (permissions, ANR) before relaunching.
+  adb shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
+  adb_try logcat -c || true
+  adb_try shell am start -S -W -n "$PKG/$ACTIVITY" | tee "$name-start.txt"
+  sleep 10
+  capture_logs "$name"
+  verify_launch "$name"
+  screenshot "$name.png"
+}
+tablet_run smoke-tablet 1200x1920
+tablet_run smoke-tablet-land 1920x1200
+echo 'PASS: phone, portrait tablet and landscape tablet cold launches, no Monogatari crashes.'

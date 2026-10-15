@@ -1,17 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="200dp" android:height="200dp"
-    android:viewportWidth="200" android:viewportHeight="200">
-    <!-- Monogatari original motif: an open storybook under the night sky. -->
-    <path android:fillColor="#173C54" android:pathData="M100,15 a78,78 0,1 0,0.1,0Z"/>
-    <path android:fillColor="#21556C" android:pathData="M100,24 a67,67 0,1 0,0.1,0Z"/>
-    <path android:fillColor="#F8D997" android:pathData="M148,38 a24,24 0,1 1,-25,35 a22,22 0,1 0,25,-35Z"/>
-    <path android:fillColor="#BDE5DC" android:pathData="M42,64 L45,71 L52,74 L45,77 L42,84 L39,77 L32,74 L39,71Z"/>
-    <path android:fillColor="#F8D997" android:pathData="M160,97 L163,104 L170,107 L163,110 L160,117 L157,110 L150,107 L157,104Z"/>
-    <path android:fillColor="#BDE5DC" android:pathData="M70,35 L72,40 L77,42 L72,44 L70,49 L68,44 L63,42 L68,40Z"/>
-    <path android:fillColor="#0C273A" android:pathData="M25,126 Q61,104 99,127 Q139,105 175,126 L175,173 Q138,155 100,177 Q61,156 25,173Z"/>
-    <path android:fillColor="#A3DAD2" android:pathData="M31,116 Q64,101 97,118 L97,165 Q65,148 31,164Z"/>
-    <path android:fillColor="#D6ECE2" android:pathData="M103,118 Q137,101 169,116 L169,164 Q136,148 103,165Z"/>
-    <path android:fillColor="#33848B" android:pathData="M100,118 L100,175 L97,165 L97,118Z"/>
-    <path android:strokeColor="#33848B" android:strokeWidth="2" android:fillColor="@android:color/transparent" android:pathData="M42,127 Q66,116 86,129 M42,138 Q65,128 86,140 M114,129 Q139,116 158,127 M114,140 Q137,128 158,138"/>
-</vector>
+<!-- Kitsune line art for empty lists (see docs/MASCOT_IDEAS.md). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/kitsune_sticker_welcome" />
+</layer-list>

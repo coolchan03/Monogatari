@@ -63,4 +63,28 @@ class TranslationLayoutTest {
 		assertTrue(size in 29f..31f && (size * 10).toInt() <= 300)
 		assertEquals(64f, TranslationLayout.fitTextSize(8f, 64f, availableHeight = 1000) { (it * 10).toInt() })
 	}
+
+	@Test
+	fun lerpColorBlendsChannels() {
+		assertEquals(0xFF808080.toInt(), TranslationLayout.lerpColor(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0.5f))
+		assertEquals(0xFF102030.toInt(), TranslationLayout.lerpColor(0xFF102030.toInt(), 0xFFFFFFFF.toInt(), 0f))
+	}
+
+	@Test
+	fun blendEdgesIsFlatWhenEdgesMatchAndSmoothOtherwise() {
+		val grey = 0xFF909090.toInt()
+		assertEquals(grey, TranslationLayout.blendEdges(grey, grey, grey, grey, 0.3f, 0.8f))
+		val dark = 0xFF000000.toInt()
+		val light = 0xFFFFFFFF.toInt()
+		assertEquals(dark, TranslationLayout.blendEdges(dark, dark, dark, dark, 0.5f, 0.5f))
+		// Left dark, right light: the centre is about halfway between.
+		val mid = TranslationLayout.blendEdges(dark, light, 0xFF808080.toInt(), 0xFF808080.toInt(), 0.5f, 0.5f) and 0xFF
+		assertTrue(mid in 120..136)
+	}
+
+	@Test
+	fun colorSpreadMeasuresLargestChannelDifference() {
+		assertEquals(0, TranslationLayout.colorSpread(intArrayOf(0xFF102030.toInt(), 0xFF102030.toInt())))
+		assertEquals(100, TranslationLayout.colorSpread(intArrayOf(0xFF000000.toInt(), 0xFF640000.toInt())))
+	}
 }

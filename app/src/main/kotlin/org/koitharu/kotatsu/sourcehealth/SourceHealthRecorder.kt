@@ -26,6 +26,7 @@ class SourceHealthRecorder @Inject constructor(
     private val jsStore: JsSourceStore,
     private val repairScheduler: SourceRepairWorker.Scheduler,
     private val retirementTracker: SourceRetirementTracker,
+    private val activityLog: SourceActivityLog,
 ) {
     private val dao get() = db.getSourcesDao()
 
@@ -40,6 +41,7 @@ class SourceHealthRecorder @Inject constructor(
 
     suspend fun success(source: MangaSource) {
         if (!isWebsiteSource(source)) return
+        activityLog.record(source.name, true, null)
         ensureIfNotParser(source)
         dao.recordHealthSuccess(source.name, System.currentTimeMillis())
         (source.unwrap() as? JsMangaSource)?.let { jsStore.confirmUpdate(it.id) }
@@ -48,6 +50,7 @@ class SourceHealthRecorder @Inject constructor(
     suspend fun failure(source: MangaSource, error: Throwable) {
         if (error is CancellationException) throw error
         if (!isWebsiteSource(source)) return
+        activityLog.record(source.name, false, if (isCloudflare(error)) "Needs a human check (Cloudflare)" else error.message ?: error.javaClass.simpleName)
         if (isCloudflare(error)) return
         val validated = isOnline()
         val recent = if (validated && ProbeFailureFilter.isConnectionLevel(error)) {

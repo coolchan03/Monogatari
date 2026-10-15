@@ -20,6 +20,7 @@ import org.acra.data.StringFormat
 import org.acra.ktx.initAcra
 import org.conscrypt.Conscrypt
 import org.koitharu.kotatsu.BuildConfig
+import org.koitharu.kotatsu.backups.domain.UpdateSnapshots
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.builtin.newpipe.NewPipeDownloader
@@ -38,6 +39,7 @@ import org.koitharu.kotatsu.local.data.index.LocalMangaIndex
 import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.parsers.util.suspendlazy.getOrNull
 import org.koitharu.kotatsu.settings.work.WorkScheduleManager
+import java.io.File
 import java.security.Security
 import javax.inject.Inject
 import javax.inject.Provider
@@ -115,6 +117,9 @@ open class BaseApp : Application(), Configuration.Provider {
 
 	override fun attachBaseContext(base: Context) {
 		super.attachBaseContext(base)
+		// Before anything opens the database: apply a staged roll-back, or snapshot user data after an update.
+		UpdateSnapshots(File(base.applicationInfo.dataDir), base.filesDir)
+			.onAppStart(BuildConfig.VERSION_CODE.toLong())
 		if (BuildConfig.SENTRY_DSN.isEmpty()) {
 			// Do not access ACRA at all in test builds where it is not initialized.
 			return

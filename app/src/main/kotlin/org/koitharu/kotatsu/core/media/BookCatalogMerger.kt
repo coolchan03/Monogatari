@@ -3,6 +3,9 @@ package org.koitharu.kotatsu.core.media
 /** Merge only a confident match of title + credited author; never lose provider links. */
 internal object BookCatalogMerger {
     data class Group(val entries: List<PublicBookCatalog.Book>) {
+        val identity: String get() = key(entries.first())
+        fun preferred(catalog: String?): PublicBookCatalog.Book =
+            entries.firstOrNull { it.catalog == catalog } ?: primary
         val primary: PublicBookCatalog.Book
             get() = entries.maxByOrNull {
                 (if (it.downloadUrl != null) 4 else 0) +
@@ -13,12 +16,7 @@ internal object BookCatalogMerger {
     }
 
     fun merge(books: List<PublicBookCatalog.Book>): List<Group> =
-        books.filter { it.title.isNotBlank() }.groupBy { book ->
-            val author = normalize(book.author)
-            val title = normalize(book.title)
-            if (author.isBlank()) "$title|unknown|${book.catalog.lowercase()}"
-            else "$title|$author"
-        }.values.map(::Group)
+        books.filter { it.title.isNotBlank() }.groupBy(::key).values.map(::Group)
 
     fun sort(groups: List<Group>, order: BookCatalogSorter.Order): List<Group> {
         fun year(group: Group) = group.entries.mapNotNull {
@@ -37,6 +35,13 @@ internal object BookCatalogMerger {
                     .thenBy { it.primary.title }
             )
         }
+    }
+
+    private fun key(book: PublicBookCatalog.Book): String {
+        val author = normalize(book.author)
+        val title = normalize(book.title)
+        return if (author.isBlank()) "$title|unknown|${book.catalog.lowercase()}"
+            else "$title|$author"
     }
 
     private fun normalize(text: String): String = text.lowercase()

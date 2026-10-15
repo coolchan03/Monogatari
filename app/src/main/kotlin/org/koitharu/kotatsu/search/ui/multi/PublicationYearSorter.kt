@@ -3,7 +3,27 @@ package org.koitharu.kotatsu.search.ui.multi
 import org.koitharu.kotatsu.list.ui.model.MangaListModel
 
 /** Dates are best-effort estimates, not verified publication years. */
-enum class PublicationYearOrder { RELEVANCE, OLDEST_FIRST, NEWEST_FIRST }
+enum class PublicationYearOrder {
+    RELEVANCE, OLDEST_FIRST, NEWEST_FIRST,
+    /** Oldest/newest across every source at once, with the same title from several sources shown once. */
+    OLDEST_FIRST_GLOBAL, NEWEST_FIRST_GLOBAL;
+
+    val isGlobal: Boolean get() = this == OLDEST_FIRST_GLOBAL || this == NEWEST_FIRST_GLOBAL
+    val isNewestFirst: Boolean get() = this == NEWEST_FIRST || this == NEWEST_FIRST_GLOBAL
+}
+
+/** Client-side check that complements the source's own year filter (pure, unit-tested). */
+internal object YearFilter {
+
+    /** Unknown years are kept only when [includeUnknown]; known (estimated) years must lie within the range. */
+    fun matches(year: Int?, from: Int?, to: Int?, includeUnknown: Boolean): Boolean {
+        if (year == null) return includeUnknown
+        return (from == null || year >= from) && (to == null || year <= to)
+    }
+
+    /** True when the filter would change anything, so unfiltered searches skip the work. */
+    fun isActive(from: Int?, to: Int?, includeUnknown: Boolean) = from != null || to != null || !includeUnknown
+}
 
 internal object PublicationYearSorter {
     private val yearPattern = Regex("(18|19|20)[0-9]{2}")
@@ -12,6 +32,22 @@ internal object PublicationYearSorter {
         "publication date", "published", "release year", "release date",
         "released", "serialized", "year:",
     )
+
+    /** A year with how it was found: [reliable] when the description states it, a guess when it comes from the title. */
+    data class YearEstimate(val year: Int, val reliable: Boolean) {
+        /** "1998" when stated, "~1998" when guessed. */
+        val badge: String get() = if (reliable) "$year" else "~$year"
+    }
+
+    fun estimateDetailed(title: String, alternate: String?, description: String?): YearEstimate? {
+        val year = estimateYear(title, alternate, description) ?: return null
+        val lower = description.orEmpty().take(1200).lowercase()
+        val stated = metadataLabels.any { label ->
+            val index = lower.indexOf(label)
+            index >= 0 && yearPattern.find(lower.substring(index + label.length, (index + label.length + 35).coerceAtMost(lower.length)))?.value == year.toString()
+        }
+        return YearEstimate(year, stated)
+    }
 
     fun estimateYear(title: String, alternate: String?, description: String?): Int? {
         val synopsis = description.orEmpty().take(1200)
@@ -34,6 +70,31 @@ internal object PublicationYearSorter {
         }
     }
 
+    /**
+     * One list for all sources, ordered by [order] (years unknown last). The same title found by several sources is
+     * kept once, from the earliest list: callers pass lists in preference order (best source first).
+     */
+    fun <T> sortedGlobal(lists: List<List<T>>, order: PublicationYearOrder, titleOf: (T) -> String, yearOf: (T) -> Int?): List<T> {
+        val seen = HashSet<String>()
+        val unique = lists.flatten().filter { item ->
+            val key = titleKey(titleOf(item))
+            key.isEmpty() || seen.add(key)
+        }
+        val years = unique.map { yearOf(it) }
+        return unique.indices.sortedWith(
+            compareBy<Int> { years[it] == null }
+                .thenBy { index ->
+                    val year = years[index] ?: 0
+                    if (order.isNewestFirst) -year else year
+                },
+        ).map { unique[it] }
+    }
+
+    /** Title with case, punctuation, bracketed tags such as "(2004)" or "[Official]" and spacing removed. */
+    fun titleKey(title: String): String = title.lowercase()
+        .replace(Regex("[(\\[{][^)\\]}]*[)\\]}]"), " ")
+        .replace(Regex("[^\\p{L}\\p{N}]+"), "")
+
     fun sorted(items: List<MangaListModel>, order: PublicationYearOrder): List<MangaListModel> {
         if (order == PublicationYearOrder.RELEVANCE) return items
         val years = items.associateWith {
@@ -43,7 +104,7 @@ internal object PublicationYearSorter {
             compareBy<MangaListModel> { years[it] == null }
                 .thenBy {
                     val year = years[it] ?: 0
-                    if (order == PublicationYearOrder.NEWEST_FIRST) -year else year
+                    if (order.isNewestFirst) -year else year
                 },
         )
     }

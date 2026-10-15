@@ -26,6 +26,26 @@ class SourceSweepCheckpointTest {
         }
     }
 
+    @Test fun concurrentResultWritesAreDurableAndNotInterleaved() {
+        val file = File.createTempFile("monogatari-source-concurrent", ".jsonl")
+        try {
+            val journal = SourceSweepCheckpoint(file)
+            val workers = (0 until 4).map { worker ->
+                Thread {
+                    repeat(25) { index ->
+                        val key = "JS:${worker * 25 + index}"
+                        journal.append(SourceSweepCheckpoint.Record(key, "PASS", "PASS | $key"))
+                    }
+                }
+            }
+            workers.forEach(Thread::start)
+            workers.forEach(Thread::join)
+            assertEquals(100, journal.read().size)
+        } finally {
+            file.delete()
+        }
+    }
+
     @Test fun skipsMalformedRecordsAndPreservesValidEntries() {
         val file = File.createTempFile("monogatari-source-malformed", ".jsonl")
         try {

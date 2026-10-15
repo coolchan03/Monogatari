@@ -237,7 +237,7 @@ open class RemoteListViewModel @Inject constructor(
 
 
 	protected open fun createEmptyState(canResetFilter: Boolean) = EmptyState(
-		icon = R.drawable.ic_empty_common,
+		icon = R.drawable.kitsune_sticker_rest,
 		textPrimary = R.string.nothing_found,
 		textSecondary = 0,
 		actionStringRes = if (canResetFilter) R.string.reset_filter else 0,

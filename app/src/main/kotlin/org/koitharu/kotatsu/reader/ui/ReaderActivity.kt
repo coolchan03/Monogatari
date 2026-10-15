@@ -2,7 +2,11 @@ package org.koitharu.kotatsu.reader.ui
 
 import androidx.core.content.FileProvider
 import org.koitharu.kotatsu.BuildConfig
+import com.google.mlkit.nl.translate.TranslateLanguage
 import org.koitharu.kotatsu.reader.translate.PageTranslator
+import org.koitharu.kotatsu.reader.translate.TranslatedPageActivity
+import org.koitharu.kotatsu.reader.translate.TranslationModels
+import java.util.Locale
 import android.app.assist.AssistContent
 import android.content.DialogInterface
 import android.content.Intent
@@ -185,10 +189,8 @@ class ReaderActivity :
         }
         viewModel.readerMode.observe(this, Lifecycle.State.STARTED, this::onInitReader)
         viewModel.onPageSaved.observeEvent(this, PagesSavedObserver(viewBinding.container))
-        viewModel.onPageTranslated.observeEvent(this) { file ->
-            // A content:// URI: handing a file:// URI to another activity throws FileUriExposedException.
-            val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.files", file)
-            router.openImage(uri.toString(), null)
+        viewModel.onPageTranslated.observeEvent(this) { result ->
+            startActivity(TranslatedPageActivity.newIntent(this, result))
         }
         viewModel.pageTranslationStatus.observe(this) { status ->
             if (status != null) viewBinding.toastView.show(status)
@@ -537,6 +539,59 @@ class ReaderActivity :
             setTitle(R.string.page_translation_choose_language)
             setItems(labels) { _, which ->
                 viewModel.translateCurrentPage(pageSaveHelper, scripts[which], remember = true)
+            }
+            setNegativeButton(android.R.string.cancel, null)
+        }.show()
+    }
+
+    override fun onTranslateLanguagesClick() {
+        val tags = TranslateLanguage.getAllLanguages().sortedBy { Locale(it).getDisplayLanguage() }
+        val names = tags.map { Locale(it).getDisplayLanguage() }
+        val (savedSource, savedTarget) = viewModel.getPageTranslationLanguages()
+        // Index 0 is "automatic" for the page language and "device language" for the target.
+        pickLanguage(R.string.page_translation_source_title, R.string.page_translation_source_auto, names, tags.indexOf(savedSource)) { source ->
+            pickLanguage(R.string.page_translation_target_title, R.string.page_translation_target_device, names, tags.indexOf(savedTarget)) { target ->
+                viewModel.setPageTranslationLanguages(source?.let(tags::get), target?.let(tags::get))
+                Snackbar.make(viewBinding.container, R.string.page_translation_languages_saved, Snackbar.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /** Lists the offline translation packs on the device and lets the user delete some to free space. */
+    override fun onTranslateModelsClick() {
+        lifecycleScope.launch {
+            val tags = try {
+                TranslationModels.downloaded()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (tags.isEmpty()) {
+                Snackbar.make(viewBinding.container, R.string.translation_models_none, Snackbar.LENGTH_SHORT).show()
+                return@launch
+            }
+            val names = tags.map { Locale(it).getDisplayLanguage() }.toTypedArray()
+            val chosen = BooleanArray(tags.size)
+            buildAlertDialog(this@ReaderActivity) {
+                setTitle(R.string.translation_models_manage)
+                setMultiChoiceItems(names, chosen) { _, which, checked -> chosen[which] = checked }
+                setNegativeButton(android.R.string.cancel, null)
+                setPositiveButton(R.string.translation_models_delete) { _, _ ->
+                    lifecycleScope.launch {
+                        tags.filterIndexed { i, _ -> chosen[i] }.forEach { runCatching { TranslationModels.delete(it) } }
+                        Snackbar.make(viewBinding.container, R.string.translation_models_deleted, Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+            }.show()
+        }
+    }
+
+    private fun pickLanguage(titleRes: Int, defaultLabel: Int, names: List<String>, current: Int, onPicked: (Int?) -> Unit) {
+        val labels = (listOf(getString(defaultLabel)) + names).toTypedArray()
+        buildAlertDialog(this) {
+            setTitle(titleRes)
+            setSingleChoiceItems(labels, current + 1) { dialog, which ->
+                dialog.dismiss()
+                onPicked(if (which == 0) null else which - 1)
             }
             setNegativeButton(android.R.string.cancel, null)
         }.show()

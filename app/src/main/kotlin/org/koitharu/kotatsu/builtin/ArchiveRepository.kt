@@ -35,9 +35,12 @@ class ArchiveRepository(
     override suspend fun getFilterOptions() = MangaListFilterOptions()
 
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> {
-        val term = filter?.query?.replace(Regex("""[^\p{L}\p{N} ]"""), " ")?.trim().orEmpty()
+        val parsed = ArchiveCollections.parse(filter?.query.orEmpty())
+        val term = parsed.term.replace(Regex("""[^\p{L}\p{N} ]"""), " ").trim()
+        val collection = parsed.collection.takeIf { source == BuiltinSource.IA_VIDEO || source == BuiltinSource.IA_AUDIO }
         val expression = listOfNotNull(
             term.takeIf { it.isNotBlank() }?.let { "($it)" },
+            collection?.let { "collection:($it)" },
             when (source) {
                 BuiltinSource.IA_BOOKS ->
                     "mediatype:texts AND language:(English OR eng) AND -collection:inlibrary AND -collection:printdisabled"

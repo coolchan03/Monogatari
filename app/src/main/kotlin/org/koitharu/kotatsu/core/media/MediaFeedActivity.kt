@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -33,6 +35,7 @@ class MediaFeedActivity : AppCompatActivity() {
     private var entries = emptyList<MediaFeedParser.Episode>()
     private var filter: MediaFeedParser.Kind? = null
     private var loadJob: Job? = null
+    private var playlistOnly = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +44,7 @@ class MediaFeedActivity : AppCompatActivity() {
             MediaFeedParser.Kind.entries.firstOrNull { kind -> kind.name == it }
         }
         currentUrl = savedInstanceState?.getString("feed")
+        playlistOnly = savedInstanceState?.getBoolean("playlist_only") == true
         title = "Entertainment feeds"
         val dp = resources.displayMetrics.density
         val pad = (16 * dp).toInt()
@@ -71,7 +75,18 @@ class MediaFeedActivity : AppCompatActivity() {
             }
         addButton("Add feed") { addFeed() }
         addButton("My feeds") { chooseFeed() }
+        addButton("Suggested feeds") { chooseSuggestedFeed() }
         addButton("Refresh") { currentUrl?.let(::load) ?: chooseFeed() }
+        addButton("My playlist") {
+            playlistOnly = !playlistOnly
+            if (playlistOnly) {
+                loadJob?.cancel()
+                entries = playlist()
+                render()
+            } else {
+                currentUrl?.let(::load) ?: run { entries = emptyList(); render() }
+            }
+        }
         kindButton = addButton("All") {
             filter = when (filter) {
                 null -> MediaFeedParser.Kind.VIDEO
@@ -87,23 +102,38 @@ class MediaFeedActivity : AppCompatActivity() {
         root.addView(status)
         root.addView(RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@MediaFeedActivity,
-                if (resources.configuration.screenWidthDp >= 600) 2 else 1)
+                MonogatariChrome.columns(context))
             adapter = results
         }, LinearLayout.LayoutParams(-1, 0, 1f))
         results.imageLoader = imageLoader
-        setContentView(root)
+        setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
         val choices = subscribed()
         if (currentUrl == null && choices.size == 1) currentUrl = choices.first()
-        currentUrl?.let(::load) ?: render()
+        if (playlistOnly) { entries = playlist(); render() }
+        else currentUrl?.let(::load) ?: render()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("feed", currentUrl)
         outState.putString("kind", filter?.name)
+        outState.putBoolean("playlist_only", playlistOnly)
         super.onSaveInstanceState(outState)
     }
 
     private fun subscribed(): Set<String> = saved.getStringSet("urls", emptySet()).orEmpty().toSet()
+    private fun playlist(): List<MediaFeedParser.Episode> =
+        MediaFeedPlaylist.decode(saved.getString("playlist_episodes", null))
+
+    private fun togglePlaylist(entry: MediaFeedParser.Episode) {
+        val existing = playlist()
+        val alreadySaved = MediaFeedPlaylist.contains(existing, entry)
+        val next = if (alreadySaved) MediaFeedPlaylist.remove(existing, entry)
+            else MediaFeedPlaylist.add(existing, entry)
+        saved.edit().putString("playlist_episodes", MediaFeedPlaylist.encode(next)).apply()
+        if (playlistOnly) { entries = next; render() }
+        else status.text = if (alreadySaved) "Episode removed from playlist."
+            else "Episode saved to your playlist."
+    }
     private fun persist(url: String) {
         saved.edit().putStringSet("urls", subscribed() + url).apply()
     }
@@ -121,6 +151,19 @@ class MediaFeedActivity : AppCompatActivity() {
                 } else load(url, subscribe = true)
             }.show()
     }
+    private fun chooseSuggestedFeed() {
+        val presets = listOf(
+            "Escape Pod · science fiction stories" to "https://escapepod.org/feed/podcast/",
+            "Welcome to Night Vale · fiction podcast" to "https://feeds.megaphone.fm/SBP4591212513",
+            "Pop Culture Happy Hour · films and entertainment" to "https://feeds.npr.org/510282/podcast.xml",
+        )
+        MaterialAlertDialogBuilder(this).setTitle("Included entertainment feeds")
+            .setItems(presets.map { it.first }.toTypedArray()) { _, index ->
+                load(presets[index].second, subscribe = true)
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
     private fun chooseFeed() {
         val options = subscribed().sorted()
         if (options.isEmpty()) { status.text = "No feeds saved yet. Choose Add feed."; return }
@@ -131,6 +174,7 @@ class MediaFeedActivity : AppCompatActivity() {
                     .setItems(options.toTypedArray()) { _, i ->
                         saved.edit().putStringSet("urls", subscribed() - options[i]).apply()
                         if (currentUrl == options[i]) {
+                            loadJob?.cancel()
                             currentUrl = null
                             entries = emptyList()
                             render()
@@ -139,6 +183,7 @@ class MediaFeedActivity : AppCompatActivity() {
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
     private fun load(url: String, subscribe: Boolean = false) {
+        playlistOnly = false
         loadJob?.cancel()
         status.text = "Loading feed..."
         loadJob = lifecycleScope.launch {
@@ -162,37 +207,70 @@ class MediaFeedActivity : AppCompatActivity() {
             MediaFeedParser.Kind.AUDIO -> "Audio"
         }
         val visible = entries.filter { filter == null || it.kind == filter }
-        status.text = if (currentUrl == null) "Add an entertainment podcast or video RSS feed."
+        status.text = if (playlistOnly) "${visible.size} saved episodes · select an episode to manage it"
+            else if (currentUrl == null) "Add an entertainment podcast or video RSS feed."
             else "${visible.size} episodes · ${subscribed().size} subscriptions"
         results.show(visible.map { episode ->
             CatalogRow(
                 title = episode.title,
                 subtitle = listOfNotNull(episode.kind.name.lowercase().replaceFirstChar { it.uppercaseChar() },
+                    episode.durationSeconds?.let(MediaFeedParser::formatDuration),
+                    if (episode.chaptersUrl != null) "chapters" else null,
+                    if (episode.transcriptUrl != null) "transcript" else null,
                     episode.published.takeIf { it.isNotBlank() }).joinToString(" · "),
                 coverUrl = episode.coverUrl,
                 onOpen = { openEpisode(episode) },
-                onLongPress = { openPage(episode.pageUrl) },
+                onLongPress = { openEpisode(episode) },
             )
         })
     }
     private fun openEpisode(entry: MediaFeedParser.Episode) {
         val media = entry.mediaUrl
-        if (media == null) { openPage(entry.pageUrl); return }
-        val options = if (entry.pageUrl != null) arrayOf("Play episode", "Open show website")
-            else arrayOf("Play episode")
+        val options = buildList {
+            if (media != null) add("Play episode")
+            add(if (MediaFeedPlaylist.contains(playlist(), entry))
+                "Remove from playlist" else "Save to playlist")
+            if (entry.chaptersUrl != null) add("Show chapters")
+            if (entry.transcriptUrl != null) add("View transcript or subtitles")
+            if (entry.pageUrl != null) add("Open show website")
+        }.toTypedArray()
         MaterialAlertDialogBuilder(this).setTitle(entry.title)
             .setItems(options) { _, index ->
-                if (index == 0) {
-                    runCatching {
-                        startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(
-                            Uri.parse(media), entry.mimeType ?: when (entry.kind) {
-                                MediaFeedParser.Kind.VIDEO -> "video/*"
-                                MediaFeedParser.Kind.AUDIO -> "audio/*"
-                            }
-                        ))
-                    }.onFailure { status.text = "No compatible media player available." }
-                } else openPage(entry.pageUrl)
+                when (options[index]) {
+                    "Save to playlist", "Remove from playlist" -> togglePlaylist(entry)
+                    "Show chapters" -> showChapters(entry)
+                    "View transcript or subtitles" -> openPage(entry.transcriptUrl)
+                    "Open show website" -> openPage(entry.pageUrl)
+                    "Play episode" -> if (media != null) {
+                        runCatching {
+                            startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(
+                                Uri.parse(media), entry.mimeType ?: when (entry.kind) {
+                                    MediaFeedParser.Kind.VIDEO -> "video/*"
+                                    MediaFeedParser.Kind.AUDIO -> "audio/*"
+                                }
+                            ))
+                        }.onFailure { status.text = "No compatible media player available." }
+                    }
+                }
             }.show()
+    }
+    private fun showChapters(entry: MediaFeedParser.Episode) {
+        val url = entry.chaptersUrl ?: return
+        status.text = "Loading chapters..."
+        lifecycleScope.launch {
+            try {
+                val chapters = repository.readChapters(url)
+                if (chapters.isEmpty()) { status.text = "This episode lists no chapters."; return@launch }
+                status.text = ""
+                MaterialAlertDialogBuilder(this@MediaFeedActivity).setTitle("Chapters")
+                    .setItems(chapters.map { "${MediaFeedParser.formatTimestamp(it.startSeconds)}  ${it.title}" }.toTypedArray(), null)
+                    .setPositiveButton(android.R.string.ok, null).show()
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                status.text = "Chapters unavailable: ${error.message.orEmpty().take(120)}"
+            }
+        }
     }
     private fun openPage(link: String?) {
         if (link?.startsWith("https://") == true) {
