@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.core.view.MenuProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.search.domain.SearchKind
@@ -79,6 +80,10 @@ class SearchMenuProvider(
 				showPublicationYearsDialog()
 				return true
 			}
+            R.id.action_filter_media -> {
+                showMediaScopeDialog()
+                return true
+            }
 		}
 
 		val newKind = when (menuItem.itemId) {
@@ -89,13 +94,13 @@ class SearchMenuProvider(
 			else -> return false
 		}
 		if (newKind != viewModel.kind) {
-			if (viewModel.mediaTypeOverride == null) {
+			if (viewModel.searchMediaScope == null) {
 				activity.router.openSearch(viewModel.query, newKind)
 			} else {
 				activity.startActivity(Intent(activity, SearchActivity::class.java)
 					.putExtra(AppRouter.KEY_QUERY, viewModel.query)
 					.putExtra(AppRouter.KEY_KIND, newKind)
-					.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, viewModel.mediaTypeOverride?.name))
+					.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, viewModel.searchMediaScope))
 			}
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
 				activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out, 0)
@@ -106,6 +111,34 @@ class SearchMenuProvider(
 		}
 		return true
 	}
+
+	/** Search can be unified or scoped to one media family without changing global settings. */
+    private fun showMediaScopeDialog() {
+        val scopes = listOf("ALL") + MediaType.entries.map { it.name }
+        val labels = scopes.map { scope ->
+            when (scope) {
+                "ALL" -> activity.getString(R.string.search_media_all)
+                MediaType.MANGA.name -> activity.getString(R.string.search_media_manga)
+                MediaType.BOOK.name -> activity.getString(R.string.search_media_books)
+                MediaType.VIDEO.name -> activity.getString(R.string.search_media_video)
+                MediaType.AUDIO.name -> activity.getString(R.string.search_media_audio)
+                else -> scope
+            }
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.search_media_type)
+            .setSingleChoiceItems(labels.toTypedArray(),
+                scopes.indexOf(viewModel.selectedMediaScope).coerceAtLeast(0)) { dialog, index ->
+                val selection = scopes[index]
+                dialog.dismiss()
+                if (viewModel.searchMediaScope == selection) return@setSingleChoiceItems
+                activity.startActivity(Intent(activity, SearchActivity::class.java)
+                    .putExtra(AppRouter.KEY_QUERY, viewModel.query)
+                    .putExtra(AppRouter.KEY_KIND, viewModel.kind)
+                    .putExtra(SearchActivity.EXTRA_MEDIA_TYPE, selection))
+                activity.finish()
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
 
 	private fun showPublicationYearsDialog() {
 		val density = activity.resources.displayMetrics.density

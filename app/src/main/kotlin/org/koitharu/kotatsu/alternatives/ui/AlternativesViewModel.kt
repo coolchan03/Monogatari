@@ -99,7 +99,7 @@ class AlternativesViewModel @Inject constructor(
 					LoadingState()
 				} else {
 					EmptyState(
-						icon = R.drawable.ic_empty_common,
+						icon = R.drawable.kitsune_sticker_sad,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_search_holder_secondary,
 						actionStringRes = 0,

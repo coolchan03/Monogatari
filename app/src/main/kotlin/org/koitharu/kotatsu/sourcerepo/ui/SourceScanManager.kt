@@ -100,10 +100,12 @@ class SourceScanManager @Inject constructor(
         activeJob?.cancel()
     }
 
+    @Synchronized
     private fun updateProgress(mode: String, done: Int, total: Int) {
+        val latest = maxOf(done, status.value.done)
         status.value = status.value.copy(
-            mode = mode, done = done, total = total,
-            message = "Checked $done of $total sources. Hiding this dialog will not stop the scan.",
+            mode = mode, done = latest, total = total,
+            message = "Checked $latest of $total sources (up to 4 concurrently). Leaving this screen will not stop the scan.",
         )
     }
 

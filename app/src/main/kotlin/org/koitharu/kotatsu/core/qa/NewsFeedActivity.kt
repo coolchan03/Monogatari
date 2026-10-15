@@ -81,6 +81,7 @@ class NewsFeedActivity : AppCompatActivity() {
         root.addView(feedInput, LinearLayout.LayoutParams(-1, -2))
         action("Save feed and refresh") { saveAndLoad() }
         action("Saved feeds / remove feed") { showSavedFeeds() }
+        action("Suggested news feeds") { showSuggestedFeeds() }
         tagInput = EditText(this).apply {
             id = R.id.monogatari_news_filter
             hint = "Tags to follow, separated by commas"
@@ -142,6 +143,20 @@ class NewsFeedActivity : AppCompatActivity() {
             if (parsed != null) return parsed
         }
         return Long.MIN_VALUE
+    }
+
+    private fun showSuggestedFeeds() {
+        val choices = listOf(
+            "Anime News Network" to "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us",
+            "Anime Expo updates" to "https://www.anime-expo.org/blog/feed/",
+            "Standard Ebooks · new fiction and classics" to "https://standardebooks.org/feeds/atom/new-releases",
+        )
+        AlertDialog.Builder(this).setTitle("Built-in entertainment feeds")
+            .setItems(choices.map { it.first }.toTypedArray()) { _, index ->
+                feedInput.setText(choices[index].second)
+                saveAndLoad()
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun saveAndLoad() {

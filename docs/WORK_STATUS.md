@@ -1,5 +1,15 @@
 # Monogatari work checkpoint
 
+## 2026-10-14 — User-recalled enhancements (source patch prepared, pending GitHub Actions)
+
+- Requests: Kotatsu/Mangayomi-inspired selectable appearance; All/Manga/Books/Video/Audio search modes; included entertainment and news RSS; replace duplicate/stale/blurry imagery; simultaneous multi-source tests that keep the screen awake.
+- Files touched: AppearanceSettingsFragment + pref_appearance + strings, SearchMenuProvider/SearchViewModel + opt_search_kind, NewsFeedActivity/Policy and MediaFeedActivity/Playlist, JsSourceDiagnostics/SourceScanManager/SourceSweepCheckpoint, PublicBookCatalog, eight empty-state view models, tests and image audit documentation.
+- Source probes: Kotlin coroutines limited to 4 simultaneous built-in and 2 installed JS sources; checkpoint appends synchronized. Both diagnostic screens already set FLAG_KEEP_SCREEN_ON only when resumed and actively scanning.
+- Images: no exact duplicate binaries among 56 PNG/WebP images; Kitsune sticker originals are 256x256 and need better masters for large usage. Improved Open Library and Google Books remote covers and reassigned repeated empty-state forms; remaining device image inspection is NOT completed.
+- On-device feedback: guided test center now asks separately about theme styles, scoped search, feeds/playlists, image quality and concurrent scans.
+- Local build unrun (no JDK/SDK installed); push then verify GitHub Actions before marking tested. Never replace or reset the user's original dirty P: checkout.
+
+
 ## 2026-10-14 — Continue partial/pending requirements (active)
 
 - Canonical integration target: GitHub `devel`. Claude's more recent `ccr-94e2bfd8-3w4etd` at `d3119cb` is 45 commits ahead of the stale default, including mascot, large-screen, OCR, backups and media providers. Keep ALL of those changes.

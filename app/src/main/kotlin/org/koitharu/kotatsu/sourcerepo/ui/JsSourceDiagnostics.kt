@@ -2,7 +2,14 @@ package org.koitharu.kotatsu.sourcerepo.ui
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.atomic.AtomicInteger
 import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.MissingJsHostDiagnostics
 import org.koitharu.kotatsu.core.parser.MangaRepository
@@ -63,7 +70,11 @@ class JsSourceDiagnostics @Inject constructor(
         var pass = 0
         var partial = 0
         var fail = 0
-        builtins.forEachIndexed { index, source ->
+        val builtinFinished = AtomicInteger(0)
+        val builtinLimiter = Semaphore(4)
+        coroutineScope {
+            builtins.map { source -> async(Dispatchers.IO) {
+                builtinLimiter.withPermit {
             val key = "KOTATSU:${source.name}"
             val line = completed[key] ?: try {
                 val repo = mangaRepositories.create(source)
@@ -81,14 +92,18 @@ class JsSourceDiagnostics @Inject constructor(
                 val description = "${error.javaClass.simpleName}: ${error.message.orEmpty().replace('\n', ' ').take(160)}"
                 "FAIL | KOTATSU | ${source.name} | category=${sourceFailureCategory(description)} | $description"
             }
-            when {
-                line.startsWith("PASS |") -> pass++
-                line.startsWith("PARTIAL |") -> partial++
-                else -> fail++
+            synchronized(lines) {
+                when {
+                    line.startsWith("PASS |") -> pass++
+                    line.startsWith("PARTIAL |") -> partial++
+                    else -> fail++
+                }
+                lines += line
             }
-            lines += line
             if (key !in completed) onResult(key, line)
-            onProgress(index + 1, builtins.size + installed.size)
+            onProgress(builtinFinished.incrementAndGet(), builtins.size + installed.size)
+                }
+            } }.awaitAll()
         }
         // Reuse the installed-JS diagnostic checks instead of maintaining a second copy.
         val jsReport = run(
@@ -123,17 +138,23 @@ class JsSourceDiagnostics @Inject constructor(
         var working = 0
         var partial = 0
         var failed = 0
-        sources.forEachIndexed { index, source ->
+        val jsFinished = AtomicInteger(0)
+        val jsLimiter = Semaphore(2)
+        coroutineScope {
+            sources.map { source -> async(Dispatchers.IO) {
+                jsLimiter.withPermit {
             val key = "JS:${source.id}"
             completed[key]?.let { cached ->
-                lines += cached
-                when {
-                    cached.startsWith("PASS |") -> working++
-                    cached.startsWith("FAIL |") -> failed++
-                    else -> partial++
+                synchronized(lines) {
+                    lines += cached
+                    when {
+                        cached.startsWith("PASS |") -> working++
+                        cached.startsWith("FAIL |") -> failed++
+                        else -> partial++
+                    }
                 }
-                onProgress(index + 1, sources.size)
-                return@forEachIndexed
+                onProgress(jsFinished.incrementAndGet(), sources.size)
+                return@withPermit
             }
             val result = mutableListOf<String>()
             try {
@@ -174,10 +195,12 @@ class JsSourceDiagnostics @Inject constructor(
                 result.any { it.startsWith("content=") } -> "PASS"
                 else -> "PARTIAL"
             }
-            when (status) {
-                "PASS" -> working++
-                "FAIL" -> failed++
-                else -> partial++
+            synchronized(lines) {
+                when (status) {
+                    "PASS" -> working++
+                    "FAIL" -> failed++
+                    else -> partial++
+                }
             }
             val problem = result.firstOrNull { it.startsWith("error=") || it.startsWith("search_error=") }
             val category = when {
@@ -187,9 +210,11 @@ class JsSourceDiagnostics @Inject constructor(
                 else -> sourceFailureCategory(problem)
             }
             val line = "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | category=$category | ${result.joinToString(" ")}"
-            lines += line
+            synchronized(lines) { lines += line }
             onResult(key, line)
-            onProgress(index + 1, sources.size)
+            onProgress(jsFinished.incrementAndGet(), sources.size)
+                }
+            } }.awaitAll()
         }
         lines.add(2, "Summary: PASS=$working PARTIAL=$partial FAIL=$failed")
         lines += "PASS means sampled listing/detail/content calls returned without throwing; usable content and playback are not verified."

@@ -9,6 +9,8 @@ import android.provider.Settings
 import android.view.View
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.ListPreference
+import androidx.preference.PreferenceManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
 import androidx.preference.TwoStatePreference
@@ -16,6 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.os.AppShortcutManager
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.ColorScheme
 import org.koitharu.kotatsu.core.media.MediaAccents
 import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.prefs.ProgressIndicatorMode
@@ -137,6 +140,7 @@ class AppearanceSettingsFragment :
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         return when (preference.key) {
+            "monogatari_app_style" -> { showStylePresetDialog(); true }
             AppSettings.KEY_ACCENT_COLOR -> {
                 AccentColorDialog.show(requireContext(), settings)
                 true
@@ -155,6 +159,32 @@ class AppearanceSettingsFragment :
 
             else -> super.onPreferenceTreeClick(preference)
         }
+    }
+
+    private fun showStylePresetDialog() {
+        val choices = arrayOf(
+            getString(R.string.app_style_monogatari),
+            getString(R.string.app_style_kotatsu),
+            getString(R.string.app_style_mangayomi),
+        )
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val selected = prefs.getInt("monogatari_style_preset_selected", 0).coerceIn(0, 2)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.app_style_preset_title)
+            .setSingleChoiceItems(choices, selected) { dialog, which ->
+                val (color, list, multicolor) = when (which) {
+                    1 -> Triple(ColorScheme.DEFAULT, ListMode.GRID, false)
+                    2 -> Triple(ColorScheme.BLUEBERRY, ListMode.DETAILED_LIST, false)
+                    else -> Triple(ColorScheme.default, ListMode.GRID, true)
+                }
+                prefs.edit().putInt("monogatari_style_preset_selected", which)
+                    .putString(AppSettings.KEY_COLOR_THEME, color.name)
+                    .putString(AppSettings.KEY_LIST_MODE, list.name)
+                    .putBoolean(MediaAccents.KEY, multicolor).apply()
+                settings.accentColor = if (which == 2) 0xFF7452AA.toInt() else null
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun postRestart() {

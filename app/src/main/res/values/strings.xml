@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_style_preset_title">Appearance style presets</string>
+    <string name="app_style_preset_summary">Switch between Monogatari, classic Kotatsu and Mangayomi-inspired styles.</string>
+    <string name="app_style_monogatari">Monogatari (modern, coordinated media accents)</string>
+    <string name="app_style_kotatsu">Classic Kotatsu (original colors and familiar grid)</string>
+    <string name="app_style_mangayomi">Mangayomi-inspired (purple and detailed lists)</string>
+    <string name="search_media_type">Search media type</string>
+    <string name="search_media_all">All media (unified)</string>
+    <string name="search_media_manga">Manga &amp; comics</string>
+    <string name="search_media_books">Books &amp; novels</string>
+    <string name="search_media_video">Anime &amp; video</string>
+    <string name="search_media_audio">Audio &amp; podcasts</string>
     <string name="backup_source_repositories">Source repositories</string>
     <string name="backup_js_sources">Installed JavaScript sources</string>
     <string name="backup_opds_catalogs">OPDS book catalogs</string>

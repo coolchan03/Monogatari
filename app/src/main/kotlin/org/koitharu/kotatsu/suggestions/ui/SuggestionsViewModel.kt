@@ -51,7 +51,7 @@ class SuggestionsViewModel @Inject constructor(
 			list.isEmpty() -> if (filters.isEmpty()) {
 				listOf(
 					EmptyState(
-						icon = R.drawable.ic_empty_common,
+						icon = R.drawable.kitsune_sticker_celebrate,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_suggestion_holder,
 						actionStringRes = 0,
@@ -61,7 +61,7 @@ class SuggestionsViewModel @Inject constructor(
 				listOfNotNull(
 					quickFilter.filterItem(filters),
 					EmptyState(
-						icon = R.drawable.ic_empty_common,
+						icon = R.drawable.kitsune_sticker_celebrate,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_empty_holder_secondary_filtered,
 						actionStringRes = 0,

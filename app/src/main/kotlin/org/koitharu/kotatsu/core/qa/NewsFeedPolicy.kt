@@ -5,7 +5,8 @@ import java.net.URI
 /** Step 64: allow-listed HTTPS RSS endpoints; no network fetch is performed. */
 internal object NewsFeedPolicy {
     private val permittedHosts = setOf("animenewsnetwork.com", "www.animenewsnetwork.com",
-        "www.youtube.com", "youtube.com", "www.reddit.com", "reddit.com")
+        "www.youtube.com", "youtube.com", "www.reddit.com", "reddit.com",
+        "standardebooks.org", "www.standardebooks.org", "anime-expo.org", "www.anime-expo.org")
     fun trustedFeed(url: String): Boolean = runCatching {
         val uri = URI(url)
         uri.scheme.equals("https", ignoreCase = true) &&

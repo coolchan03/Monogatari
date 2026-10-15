@@ -53,7 +53,7 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             }
             Book(obj.optString("title"), obj.optJSONArray("author_name")?.optString(0).orEmpty(),
                 "Open Library", "https://openlibrary.org$workPath",
-                coverUrl = obj.optInt("cover_i").takeIf { it > 0 }?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" },
+                coverUrl = obj.optInt("cover_i").takeIf { it > 0 }?.let { "https://covers.openlibrary.org/b/id/$it-L.jpg" },
                 publicationYear = obj.optInt("first_publish_year").takeIf { it in 1000..2100 },
                 language = obj.optJSONArray("language")?.optString(0), format = "Online catalog")
         }
@@ -118,11 +118,14 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             val year = date.take(4).toIntOrNull()?.takeIf { it in 1000..2100 }
             val preview = info.optString("previewLink").takeIf { it.startsWith("https://") }
                 ?: "https://books.google.com/books?id=${encode(id)}"
-            val thumbnail = info.optJSONObject("imageLinks")?.optString("thumbnail").orEmpty()
+            val images = info.optJSONObject("imageLinks")
+            val cover = sequenceOf("extraLarge", "large", "medium", "small", "thumbnail", "smallThumbnail")
+                .map { images?.optString(it).orEmpty() }
+                .firstOrNull { it.startsWith("https://") }
             val access = GoogleBooksAccess.describe(volume)
             Book(title, info.optJSONArray("authors")?.optString(0).orEmpty(), "Google Books", preview,
                 downloadUrl = access.epubUrl,
-                coverUrl = thumbnail.takeIf { it.startsWith("https://") },
+                coverUrl = cover,
                 publicationYear = year, language = info.optString("language"),
                 format = access.label) to access.freeToRead
         }.sortedByDescending { it.second }.map { it.first }

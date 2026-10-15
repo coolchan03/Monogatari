@@ -4,6 +4,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:title="@string/appearance">
 
+    <Preference
+        android:icon="@drawable/ic_appearance"
+        android:key="monogatari_app_style"
+        android:persistent="false"
+        android:title="@string/app_style_preset_title"
+        android:summary="@string/app_style_preset_summary" />
+
     <org.koitharu.kotatsu.settings.utils.ThemeChooserPreference
         android:icon="@drawable/ic_appearance"
         android:key="color_theme"

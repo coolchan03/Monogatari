@@ -98,11 +98,14 @@ class SearchViewModel @Inject constructor(
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
 	val kind = savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE
-	val mediaTypeOverride: MediaType? = savedStateHandle.get<String>(SearchActivity.EXTRA_MEDIA_TYPE)
+	val searchMediaScope: String? = savedStateHandle.get(SearchActivity.EXTRA_MEDIA_TYPE)
+	val mediaTypeOverride: MediaType? = searchMediaScope
 		?.let { raw -> MediaType.entries.firstOrNull { it.name == raw } }
+	val selectedMediaScope: String
+		get() = searchMediaScope ?: settings.mediaTypeFilter?.name ?: "ALL"
 
 	private val effectiveMediaType: MediaType?
-		get() = mediaTypeOverride ?: settings.mediaTypeFilter
+		get() = if (searchMediaScope == "ALL") null else mediaTypeOverride ?: settings.mediaTypeFilter
 
 	private var includeDisabledSources = MutableStateFlow(false)
 	private var pinnedOnly = MutableStateFlow(false)
@@ -241,7 +244,7 @@ class SearchViewModel @Inject constructor(
 				when {
 					loading || catalog.loading -> LoadingState()
 					else -> EmptyState(
-						icon = R.drawable.ic_empty_common,
+						icon = R.drawable.kitsune_sticker_search,
 						textPrimary = R.string.nothing_found,
 						textSecondary = R.string.text_search_holder_secondary,
 						actionStringRes = 0,

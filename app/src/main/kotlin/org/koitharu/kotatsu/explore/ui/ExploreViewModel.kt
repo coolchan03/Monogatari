@@ -273,7 +273,7 @@ class ExploreViewModel @Inject constructor(
             }
 		} else {
 			result += EmptyHint(
-				icon = R.drawable.ic_empty_common,
+				icon = R.drawable.kitsune_sticker_search,
 				textPrimary = R.string.no_manga_sources,
 				textSecondary = R.string.no_manga_sources_text,
 				actionStringRes = R.string.catalog,
