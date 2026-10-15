@@ -20,6 +20,9 @@ Built from the latest `devel` branch (including the new signed-release workflow)
   and reset Gradle compiler daemons between them, with a bounded release worker
   count. This addresses the earlier Kotlin release compiler heap OOM; the fix
   still needs a successful signed-release dry run.
+- **Podcast fix:** Matched RSS/Atom parser limits to the 4 MB bounded download
+  limit so the large official entertainment feeds can load. Added a >1 MB
+  legitimate podcast XML regression test.
 - **Automated UI regression:** Added a Python check to both GitHub workflows for
   accessible target sizes, responsiveness, catalog actions, static XML validity,
   loading skeletons, and state preservation. Added guided device checks.
