@@ -4,7 +4,7 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 67 DONE, 16 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 68 DONE, 15 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -45,7 +45,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 31 | DONE | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. **Done:** year range (existing), plus "include titles with no known year"; years are estimates. Per-title date confidence not shown. |
 | 32 | PARTIAL | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |
 | 33 | DONE | Install source presets: Manga, Novels, Audiobooks, Video, and Multi-media. **Done:** Multi-media preset added to the first-run presets. |
-| 34 | PARTIAL | Display new/updating/broken extension status, permissions, source language and attribution. |
+| 34 | DONE | Source list shows local install/update state and publisher-reported new/updating/working/stale-broken index health. Before installing JS, source details show language, author, license, repository/code origin, declared permissions or their absence, and a third-party-code warning; metadata persists after installation. Real-site trust and compatibility remain subject to device tests. |
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | DONE | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. **Done:** Source activity log with Open a source's website and Copy log; lists already offer Open in browser on errors. |
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |

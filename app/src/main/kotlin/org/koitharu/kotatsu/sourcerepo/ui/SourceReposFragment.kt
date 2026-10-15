@@ -48,6 +48,7 @@ import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
+import org.koitharu.kotatsu.jsext.repo.JsSourceDisclosure
 import org.koitharu.kotatsu.jsext.source.JsExtensionProvider
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
 import org.koitharu.kotatsu.sourcerepo.domain.JsSourceItem
@@ -535,13 +536,14 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			"v${e.version}", e.lang.takeIf { it.isNotEmpty() }, type, status,
 			getString(R.string.source_adult).takeIf { e.isNsfw },
 			getString(R.string.source_needs_cloudflare).takeIf { e.hasCloudflare },
+			JsSourceDisclosure.indexState(e),
 			origin?.let { getString(R.string.source_from_repo, it) },
 		).joinToString(" · ")
 	}
 
 	private fun onJsSourceClick(item: JsSourceItem) {
 		when (item.state) {
-			PluginState.NOT_INSTALLED -> viewModel.installJs(item.entry)
+			PluginState.NOT_INSTALLED -> showJsSourceDisclosure(item.entry, offerInstall = true)
 			PluginState.INSTALLED -> showJsSourceActions(item, canUpdate = false)
 			PluginState.UPDATE_AVAILABLE -> showJsSourceActions(item, canUpdate = true)
 		}
@@ -554,6 +556,8 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			labels += getString(R.string.update)
 			actions += { viewModel.installJs(item.entry) }
 		}
+		labels += "Source details and permissions"
+		actions += { showJsSourceDisclosure(item.entry, offerInstall = false) }
 		labels += getString(R.string.settings)
 		actions += { openJsSourceSettings(item.entry) }
 		if (item.entry.baseUrl.startsWith("http")) {
@@ -576,6 +580,19 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			.setItems(labels.toTypedArray()) { _, which -> actions[which]() }
 			.setNegativeButton(android.R.string.cancel, null)
 			.show()
+	}
+
+	/** Third-party repository metadata is shown before initial JS installation. */
+	private fun showJsSourceDisclosure(entry: JsSourceEntry, offerInstall: Boolean) {
+		val dialog = MaterialAlertDialogBuilder(requireContext())
+			.setTitle(entry.name)
+			.setMessage(JsSourceDisclosure.details(entry))
+			.setNegativeButton(android.R.string.cancel, null)
+		if (offerInstall) dialog.setPositiveButton("Install source") { _, _ ->
+			viewModel.installJs(entry)
+		}
+		else dialog.setPositiveButton(android.R.string.ok, null)
+		dialog.show()
 	}
 
 	private fun confirmJsSourceRemove(entry: JsSourceEntry) {

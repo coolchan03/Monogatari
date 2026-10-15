@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -207,6 +208,13 @@ class JsSourceStore(private val dir: File) {
 		put("notes", e.notes)
 		put("repoUrl", e.repoUrl)
 		e.sha256?.let { put("sha256", it) }
+		e.indexStatus?.let { put("indexStatus", it) }
+		e.indexCheckedAt?.let { put("indexCheckedAt", it) }
+		e.author?.let { put("author", it) }
+		e.license?.let { put("license", it) }
+		if (e.declaredPermissions.isNotEmpty()) {
+			put("declaredPermissions", JsonArray(e.declaredPermissions.take(12).map { JsonPrimitive(it) }))
+		}
 	}
 
 	private fun fromJson(text: String): JsSourceEntry {
@@ -232,6 +240,13 @@ class JsSourceStore(private val dir: File) {
 			notes = s("notes"),
 			repoUrl = s("repoUrl"),
 			sha256 = s("sha256").ifEmpty { null },
+			indexStatus = s("indexStatus").ifEmpty { null },
+			indexCheckedAt = s("indexCheckedAt").ifEmpty { null },
+			author = s("author").ifEmpty { null },
+			license = s("license").ifEmpty { null },
+			declaredPermissions = (o["declaredPermissions"] as? JsonArray)
+				?.mapNotNull { (it as? JsonPrimitive)?.content?.takeIf(String::isNotBlank)?.take(120) }
+				?.take(12) ?: emptyList(),
 		)
 	}
 }
