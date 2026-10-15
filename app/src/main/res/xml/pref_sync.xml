@@ -4,6 +4,13 @@
 	xmlns:app="http://schemas.android.com/apk/res-auto">
 
 	<Preference
+		android:key="monogatari_nearby_sync"
+		android:icon="@drawable/ic_sync"
+		android:persistent="false"
+		android:title="Nearby offline sync"
+		android:summary="Pair devices to transfer and merge libraries, settings and files" />
+
+	<Preference
 		android:enabled="@bool/is_sync_enabled"
 		android:icon="@drawable/ic_sync"
 		android:key="sync"

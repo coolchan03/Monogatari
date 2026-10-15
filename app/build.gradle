@@ -235,6 +235,7 @@ dependencies {
 	implementation libs.lifecycle.process
 	implementation libs.androidx.constraintlayout
 	implementation libs.androidx.documentfile
+	implementation libs.nearby.connections
 	implementation libs.androidx.swiperefreshlayout
 	implementation libs.androidx.recyclerview
 	implementation libs.androidx.viewpager2

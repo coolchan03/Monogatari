@@ -2,6 +2,8 @@ package org.koitharu.kotatsu.settings
 
 import android.accounts.AccountManager
 import android.os.Bundle
+import android.content.Intent
+import org.koitharu.kotatsu.backups.domain.NearbyOfflineSyncActivity
 import android.view.View
 import androidx.fragment.app.FragmentResultListener
 import androidx.preference.ListPreference
@@ -67,6 +69,10 @@ class SyncSettingsFragment : BasePreferenceFragment(R.string.sync_settings), Fra
 
 	override fun onPreferenceTreeClick(preference: Preference): Boolean {
 		return when (preference.key) {
+            "monogatari_nearby_sync" -> {
+                startActivity(Intent(requireContext(), NearbyOfflineSyncActivity::class.java))
+                true
+            }
 			SyncSettings.KEY_SYNC_URL -> {
 				SyncHostDialogFragment.show(childFragmentManager, null)
 				true
