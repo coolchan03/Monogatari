@@ -10,7 +10,10 @@ import java.util.Locale
 internal object AdditionalBookCatalogs {
     private fun officialLink(url: String, domain: String): String? =
         runCatching { URI(url) }.getOrNull()?.let {
-            if (it.scheme.equals("https", true) && it.host.equals(domain, true) && it.userInfo == null)
+            if (it.scheme.equals("https", true) &&
+                it.host.equals(domain, true) &&
+                it.userInfo == null && it.fragment == null &&
+                (it.port == -1 || it.port == 443))
                 url else null
         }
 

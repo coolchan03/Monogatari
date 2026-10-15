@@ -17,6 +17,35 @@ class VimeoRepositoryTest {
 	}
 
 	@Test
+	fun browsesOfficialChannelsShowcasesAndCuratedCategories() {
+		assertEquals(
+			"https://api.vimeo.com/channels/12345/videos?per_page=20&page=2",
+			VimeoRepository.listUrl("channel:12345", SortOrder.RELEVANCE, 2),
+		)
+		assertEquals(
+			"https://api.vimeo.com/channels/12345/videos?per_page=20&page=1",
+			VimeoRepository.listUrl("CHANNEL:12345", SortOrder.NEWEST, 1),
+		)
+		assertEquals(
+			"https://api.vimeo.com/users/12345/albums/67890/videos?per_page=20&page=1",
+			VimeoRepository.listUrl("showcase:12345/67890", SortOrder.RELEVANCE, 1),
+		)
+		assertEquals(
+			"https://api.vimeo.com/users/12345/albums/67890/videos?per_page=20&page=1",
+			VimeoRepository.listUrl("collection:12345/67890", SortOrder.RELEVANCE, 1),
+		)
+		assertEquals(
+			"https://api.vimeo.com/categories/animation/videos?per_page=20&page=3",
+			VimeoRepository.listUrl("category:animation", SortOrder.POPULARITY, 3),
+		)
+	}
+
+	@Test(expected = IllegalArgumentException::class)
+	fun rejectsMalformedShowcaseIdentifiers() {
+		VimeoRepository.listUrl("showcase:123/../../bad", SortOrder.RELEVANCE, 1)
+	}
+
+	@Test
 	fun parsesVideosPicksAThumbnailAndSkipsBadIds() {
 		val body = JSONObject("""{"data":[
 			{"uri":"/videos/12345","name":"Short","link":"https://vimeo.com/12345","user":{"name":"Studio"},"description":"d",

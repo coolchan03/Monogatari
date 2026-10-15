@@ -41,7 +41,7 @@ class PublicCatalogRepository(
         return items.asSequence()
             .filter { approvedUrl(it.url) }
             .distinctBy { it.url }
-            .take(60).map { it.toManga() }.toList()
+            .take(120).map { it.toManga() }.toList()
     }
 
     private fun approvedUrl(url: String): Boolean {

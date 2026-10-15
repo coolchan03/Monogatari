@@ -52,7 +52,7 @@ internal object ApiServices {
 		),
 		ApiService(
 			VIMEO, "Vimeo",
-			"Searches Vimeo's public videos through its official API. Create a free app and a personal access token with the Public scope. Playback happens on vimeo.com.",
+			"Search public Vimeo videos, or browse channel:12345, category:animation, and showcase:USER_ID/SHOWCASE_ID in Video search. Requires your own public-scope access token. Playback opens vimeo.com.",
 			"https://developer.vimeo.com/apps",
 			listOf(ApiField("access_token", "Access token", true)),
 		),
