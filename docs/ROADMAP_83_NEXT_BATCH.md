@@ -1,6 +1,6 @@
 # Next implementation batch
 
-The implementation tracker marks all 88 requirements by status and links to the original roadmap. The practical next batch is:
+The implementation tracker marks all 83 active Android requirements by status and links to the original roadmap. The practical next batch is:
 
 - Book catalog: fetch trustworthy cover art, language, original publication year, and legal format availability; show provider names clearly.
 - Global discovery: let users search across supported book metadata catalogs with partial-failure reporting and source deduplication.

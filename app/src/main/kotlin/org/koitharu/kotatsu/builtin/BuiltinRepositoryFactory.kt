@@ -13,6 +13,7 @@ import org.koitharu.kotatsu.builtin.royalroad.RoyalRoadRepository
 import org.koitharu.kotatsu.builtin.scribblehub.ScribbleHubRepository
 import org.koitharu.kotatsu.builtin.librivox.LibriVoxRepository
 import org.koitharu.kotatsu.builtin.dailymotion.DailymotionRepository
+import org.koitharu.kotatsu.builtin.bilibili.BilibiliRepository
 import org.koitharu.kotatsu.builtin.directstream.DirectStreamRepository
 import org.koitharu.kotatsu.builtin.jellyfin.JellyfinConfig
 import org.koitharu.kotatsu.builtin.plex.PlexRepository
@@ -46,6 +47,7 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.SCRIBBLE_HUB -> ScribbleHubRepository(cache, client)
             BuiltinSource.LIBRIVOX -> LibriVoxRepository(cache, client)
             BuiltinSource.DAILYMOTION -> DailymotionRepository(cache, client)
+            BuiltinSource.BILIBILI -> BilibiliRepository(cache, client)
             BuiltinSource.WIKISOURCE -> WikisourceRepository(cache, client)
             BuiltinSource.ODYSEE -> OdyseeRepository(cache, client)
             BuiltinSource.DIRECT_STREAMS -> DirectStreamRepository(cache, client)

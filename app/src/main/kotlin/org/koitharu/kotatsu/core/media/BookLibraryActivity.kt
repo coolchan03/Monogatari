@@ -326,7 +326,7 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun search(source: String) {
         val term = query.text?.toString()?.trim().orEmpty()
-        if (term.isEmpty() && source != "Standard Ebooks") {
+        if (term.isEmpty() && source !in setOf("Standard Ebooks", "Gutenberg Australia", "Global Grey", "Baen Free Library")) {
             query.error = getString(R.string.monogatari_catalog_search_enter_term)
             query.requestFocus()
             return

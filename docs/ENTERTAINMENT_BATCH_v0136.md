@@ -1,7 +1,7 @@
 # Monogatari v0.13.6: Entertainment-first pending-feature batch
 
 ## Changed scope
-Per user feedback, Monogatari is an **entertainment reader/watcher/listener**, not a textbook or education app. Removed the uncommitted OpenStax integration; no TED educational videos are included. Requirements #43, #44 and #56 were rewritten as fiction, fanfiction and entertainment-video goals while preserving all 88 numbered slots.
+Per user feedback, Monogatari is an **entertainment reader/watcher/listener**, not a textbook or education app. Removed the uncommitted OpenStax integration; no TED educational videos are included. Requirements #43, #44 and #56 were rewritten as fiction, fanfiction and entertainment-video goals while preserving all active Android requirements.
 
 ## Implemented / available for testing
 - #38 (Partial): Standard Ebooks **public new-releases Atom feed**, surfaced as an optional Books Catalog provider; links open legitimate title pages. The complete OPDS collection requires membership and is **not** claimed to work unauthenticated.

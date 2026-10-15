@@ -25,7 +25,7 @@
 - Devices require a compatible Google Play services Nearby Connections provider, Bluetooth and Wi-Fi enabled.
 - Host credentials/private identity not sent as part of the one-shot transfer. Backups may still include ordinary app settings.
 - Test on the actual Motorola Razr and onn tablet before marking near-field sync fully validated.
-- The broader 88-item feature tracker still contains PARTIAL and PENDING items, including some provider credentials, manga source preferred provider integration and high-resolution illustration sources.
+- The broader 83-item Android-only feature tracker still contains PARTIAL and PENDING items, including some provider credentials, manga source preferred provider integration and high-resolution illustration sources.
 
 ## Final user-facing device test
 1. Install same test version on two physical Android devices.

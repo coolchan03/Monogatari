@@ -64,7 +64,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 50 | PARTIAL | Vimeo public-video search via user-supplied API token is implemented; source links out to official Vimeo playback because direct streams are not provided. Channel/collection browsing and credential-backed device QA remain. |
 | 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
-| 53 | PARTIAL | Bilibili — official video search link available, but native video-source integration/playback is pending. |
+| 53 | PARTIAL | Bilibili — built-in public video search/rankings source now returns titles, creators and thumbnails using provider metadata; playback opens the official site and physical-device/region validation is still pending. |
 | 54 | DONE | Odysee public videos and channels; verify licensing and streams. **Done:** Odysee public free videos via the LBRY claim_search proxy; mature tags excluded. |
 | 55 | PARTIAL | Twitch channels/live discovery and VOD lists use user-supplied Helix credentials and link to official playback. Clip discovery and real-device API testing remain. |
 | 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
