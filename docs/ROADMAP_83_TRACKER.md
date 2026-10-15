@@ -4,7 +4,7 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 58 DONE, 25 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 60 DONE, 23 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -49,7 +49,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | DONE | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. **Done:** Source activity log with Open a source's website and Copy log; lists already offer Open in browser on errors. |
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |
-| 38 | PARTIAL | Standard Ebooks - high-quality public-domain EPUB collections/catalog feed. |
+| 38 | DONE | Standard Ebooks: searchable official public book catalog (without patron-only OPDS access), cover art and author metadata, unified Books search, and per-book verified compatible EPUB download links resolved on demand. Provider page/device verification remains for user QA. |
 | 39 | DONE | Wikisource - multilingual public-domain and freely licensed works. **Done:** English Wikisource through the MediaWiki API (search, featured texts, chapters from sub-pages). |
 | 40 | PARTIAL | Faded Page — official search endpoint, title/author/year/cover metadata and official reading links; device verification pending. |
 | 41 | PARTIAL | Project Gutenberg Australia — live official CSV catalog, title/author lookup, HTML/text links and regional copyright warning; device verification pending. |
@@ -66,7 +66,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
 | 53 | PARTIAL | Bilibili — built-in public video search/rankings source now returns titles, creators and thumbnails using provider metadata; playback opens the official site and physical-device/region validation is still pending. |
 | 54 | DONE | Odysee public videos and channels; verify licensing and streams. **Done:** Odysee public free videos via the LBRY claim_search proxy; mature tags excluded. |
-| 55 | PARTIAL | Twitch channels/live discovery and VOD lists use user-supplied Helix credentials and link to official playback. Clip discovery and real-device API testing remain. |
+| 55 | DONE | Twitch public channels, live discovery, VOD and clip listings use the authorized Helix API and construct official Twitch playback URLs; clip IDs are validated and deduplicated. Credential/live-device QA follows with the user's first official release test. |
 | 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
 | 58 | PARTIAL | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |

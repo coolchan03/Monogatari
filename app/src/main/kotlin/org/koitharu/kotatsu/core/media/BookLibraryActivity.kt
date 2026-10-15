@@ -412,11 +412,17 @@ class BookLibraryActivity : AppCompatActivity() {
                 coverUrl = book.coverUrl ?: group.entries.firstNotNullOfOrNull { it.coverUrl },
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
-                actionLabel = if (book.downloadUrl?.startsWith("https://") == true)
-                    "Open EPUB" else "View listing",
+                actionLabel = when {
+                    book.catalog == "Standard Ebooks" -> "Get EPUB"
+                    book.downloadUrl?.startsWith("https://") == true -> "Open EPUB"
+                    else -> "View listing"
+                },
                 onAction = {
-                    val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
-                    openOfficialLink(epub ?: book.url)
+                    if (book.catalog == "Standard Ebooks") openStandardEpub(book)
+                    else {
+                        val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
+                        openOfficialLink(epub ?: book.url)
+                    }
                 },
             )
         })
@@ -441,7 +447,32 @@ class BookLibraryActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null).show()
     }
 
+    private fun openStandardEpub(book: PublicBookCatalog.Book) {
+        if (!StandardEbooksCatalog.officialPage(book.url)) {
+            catalogStatus.text = "Invalid Standard Ebooks link."
+            return
+        }
+        catalogStatus.text = "Finding the compatible EPUB for ${book.title}..."
+        lifecycleScope.launch {
+            // Resolve only after a user click; no bulk scraping or invented download links.
+            val link = withContext(Dispatchers.IO) {
+                runCatching { catalog.resolveStandardEbooksEpub(book.url) }.getOrNull()
+            }
+            if (link == null) catalogStatus.text =
+                "Compatible EPUB unavailable. Opening the official listing instead."
+            openOfficialLink(link ?: book.url)
+        }
+    }
+
     private fun openBookListing(book: PublicBookCatalog.Book) {
+        if (book.catalog == "Standard Ebooks") {
+            MaterialAlertDialogBuilder(this).setTitle(book.title)
+                .setItems(arrayOf("View official listing", "Open compatible EPUB")) { _, which ->
+                    if (which == 1) openStandardEpub(book) else openOfficialLink(book.url)
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
+            return
+        }
         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
         if (epub == null) {
             openOfficialLink(book.url)
@@ -469,7 +500,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Archive" -> catalog.searchInternetArchive(term)
             "Wikisource" -> catalog.searchWikisource(term)
             "Google Books" -> catalog.searchGoogleBooks(term)
-            "Standard Ebooks" -> catalog.searchStandardEbooksRecent(term)
+            "Standard Ebooks" -> catalog.searchStandardEbooks(term)
             "Faded Page" -> catalog.searchFadedPage(term)
             "Gutenberg Australia" -> catalog.searchGutenbergAustralia(term)
             "Global Grey" -> catalog.searchGlobalGrey(term)
