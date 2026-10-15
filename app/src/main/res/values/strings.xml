@@ -5,6 +5,7 @@
     <string name="app_style_monogatari">Monogatari (modern, coordinated media accents)</string>
     <string name="app_style_kotatsu">Classic Kotatsu (original colors and familiar grid)</string>
     <string name="app_style_mangayomi">Mangayomi-inspired (purple and detailed lists)</string>
+    <string name="monogatari_catalog_more_public">More public catalogs</string>
     <string name="search_media_type">Search media type</string>
     <string name="search_media_all">All media (unified)</string>
     <string name="search_media_manga">Manga &amp; comics</string>

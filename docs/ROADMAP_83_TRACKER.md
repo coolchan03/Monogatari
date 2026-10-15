@@ -1,14 +1,14 @@
-# Monogatari: 88-item implementation tracker
+# Monogatari: 83-item implementation tracker
 
-Source: [Full 88-item roadmap](FINISHING_ROADMAP_20261013.md)
+Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
-Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not implemented; DROPPED = explicitly removed from scope. Device QA is separate.
+Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Implementation snapshot after the 2026-10-15 finishing pass:** 56 DONE, 20 PARTIAL, 7 PENDING, 5 DROPPED (owner explicitly chose Android emulation instead of a native Windows app). The five skipped Windows-only milestones #71–75 are not outstanding implementation obligations. Vimeo (#50), Twitch (#55) and Plex (#58) have source code/API integration but are partial until live credential/device testing. #60 now has saved episode playlists, Podcasting 2.0 chapter lists and external transcript links, but in-player subtitle tracking remains pending. Kitsune mascot assets are installed; large-screen artwork still needs high-resolution originals. Per the entertainment-only scope, educational-book/video ideas were replaced by fiction, fanfiction and film requirements.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 56 DONE, 27 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
-**Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#76/#78/#79), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
+**Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
-**Claude pass 2026-10-14 (first run):** fixed the broken devel build (missing Standard Ebooks button), and implemented #27, #51, #64, #65, #67, #68, #86 and #88; #62 advanced. Large-screen audit findings and fixes: `docs/LARGE_SCREENS_AND_WINDOWS.md`.
+**Claude pass 2026-10-14 (first run):** fixed the broken devel build (missing Standard Ebooks button), and implemented #27, #51, #64, #65, #67, #68, #81 and #83; #62 advanced. Large-screen audit findings and fixes: `docs/LARGE_SCREENS.md`.
 
 | # | Status | Requirement |
 |---:|---|---|
@@ -51,20 +51,20 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |
 | 38 | PARTIAL | Standard Ebooks - high-quality public-domain EPUB collections/catalog feed. |
 | 39 | DONE | Wikisource - multilingual public-domain and freely licensed works. **Done:** English Wikisource through the MediaWiki API (search, featured texts, chapters from sub-pages). |
-| 40 | PENDING | Faded Page / Distributed Proofreaders Canada - public-domain ebooks; check region/rights. |
-| 41 | PENDING | Project Gutenberg Australia - regional public-domain library; respect copyright territories. |
-| 42 | PENDING | Global Grey Ebooks - historical ebooks, where metadata and formats allow. |
+| 40 | PARTIAL | Faded Page — official search endpoint, title/author/year/cover metadata and official reading links; device verification pending. |
+| 41 | PARTIAL | Project Gutenberg Australia — live official CSV catalog, title/author lookup, HTML/text links and regional copyright warning; device verification pending. |
+| 42 | PARTIAL | Global Grey — searchable official sitemap with safe book/online-text links; device verification pending. |
 | 43 | DONE | Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links. **Done:** Project Gutenberg search takes `genre:horror`, `genre:fantasy`, `genre:romance`, `genre:"science fiction"` (EPUB links). |
 | 44 | DONE | Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources. **Done:** AO3 search accepts fandom:, ship:, rating:, lang: and updated: tokens (limited by your content level). |
-| 45 | PENDING | StoryWeaver - multilingual Creative Commons stories, subject to its API/usage rules. |
+| 45 | PARTIAL | StoryWeaver — official-site search from Books, but native metadata/reader integration still pending. |
 | 46 | DONE | Google Books - metadata and legally offered previews only, not bypassing access limits. **Done:** labels say exactly what is allowed (free EPUB, free to read, preview, listing only); official free EPUB downloads; free titles first. |
-| 47 | PENDING | Baen Free Library - legitimately free titles; check format and access. |
-| 48 | PENDING | FictionPress / FanFiction.net - public stories where site rules and scraping restrictions allow. |
+| 47 | PARTIAL | Baen Free Library — actual free-library catalog cards with covers and official book links; device verification pending. |
+| 48 | PARTIAL | FictionPress and FanFiction.net — official-site search available, but the sites require browser verification; native metadata parsing is pending. |
 | 49 | DONE | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. **Done:** OPDS 1.x Atom and 2.0 JSON, next-page paging, catalog search (OpenSearch), covers, and password catalogs (https://user:password@host/path). |
 | 50 | PARTIAL | Vimeo public-video search via user-supplied API token is implemented; source links out to official Vimeo playback because direct streams are not provided. Channel/collection browsing and credential-backed device QA remain. |
 | 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
 | 52 | DONE | Internet Archive Moving Image collection with direct public media files. |
-| 53 | PENDING | Bilibili public videos, where regional availability and site restrictions permit. |
+| 53 | PARTIAL | Bilibili — built-in public video search/rankings source now returns titles, creators and thumbnails using provider metadata; playback opens the official site and physical-device/region validation is still pending. |
 | 54 | DONE | Odysee public videos and channels; verify licensing and streams. **Done:** Odysee public free videos via the LBRY claim_search proxy; mature tags excluded. |
 | 55 | PARTIAL | Twitch channels/live discovery and VOD lists use user-supplied Helix credentials and link to official playback. Clip discovery and real-device API testing remain. |
 | 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
@@ -81,22 +81,17 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 67 | DONE | Keyboard shortcuts, mouse scroll and hover, right click/context menu and D-pad navigation. *(Ctrl+F or / search; arrow/Page/Space/Home/End in PDF, EPUB and text readers; existing reader keys, mouse wheel and context clicks.)* |
 | 68 | DONE | Drag/drop local EPUB, PDF, CBZ, images and supported media. *(Drop EPUB/PDF/text onto Books; CBZ/images still use the manga local import.)* |
 | 69 | PARTIAL | Surface accessibility scaling and touch-target checks. |
-| 70 | DONE | Short-term: Android emulator for compatibility/testing only; do not mistake it for native Windows support. |
-| 71 | DROPPED | Investigate a Kotlin Compose Multiplatform Windows client with a shared Kotlin core/parser/runtime and a dedicated desktop UI. **Dropped by owner:** the Android emulator will be used instead; plan kept in `docs/WINDOWS_PLAN.md`. |
-| 72 | DROPPED | First desktop milestone: local EPUB/PDF/CBZ library, login-free search, reading progress and storage. **Dropped by owner** (use the emulator). |
-| 73 | DROPPED | Second: source repositories, network reading, extensions, video playback and optional sync. **Dropped by owner** (use the emulator). |
-| 74 | DROPPED | Explore a browser/PWA interface only for parts where browser CORS, cookies and storage rules allow. **Dropped by owner** (use the emulator). |
-| 75 | DROPPED | Validate Windows file dialogs, background updates, multiwindow, hardware decoding and portable packaging. **Dropped by owner** (use the emulator). |
-| 76 | DONE | Keep existing light/dark and theme chooser; add a user-picked accent color. **Done:** Settings > Appearance > Accent colour (Android 12+). |
-| 77 | DONE | Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget. |
-| 78 | DONE | Offer palette presets: ocean-teal, vaporwave teal-purple, pastel, monochrome and system dynamic color where available. **Done:** presets Theme default (system/dynamic), Ocean teal, Vaporwave, Pastel, Monochrome, plus any #hex. |
-| 79 | DONE | Preview color palette live and preserve contrast/readability in dark mode. **Done:** live preview in the current light/dark mode and a low-contrast warning; Material generates the full scheme from the seed. |
-| 80 | DONE | Replace the inherited bear identity with an original mascot, after choosing among a teal fox with bookmark-shaped tail, a glow-moth or a star-tailed tanuki. **Done:** Kitsune (anime spirit fox, form per media type, colour + line-art sets, hidden muscular human-with-fox-ears Easter egg) replaces the Kotatsu launcher/Play Store/legacy icons, widget previews and empty-state art. See `docs/MASCOT_IDEAS.md`. |
-| 81 | DONE | Use the mascot sparingly (app icon, empty state, first-run tips), not as intrusive decoration. **Done:** launcher icon and splash, library empty states (a form per tab), list empty states (line art), Easter egg. First-run tips not yet. |
-| 82 | DONE | Daily meaningful-change watch for Kotatsu-Redo, kotatsu-parsers-redo, Mangayomi and relevant source/runtime projects. |
-| 83 | DONE | Document upstream revision, license, modifications and tests for each ported component. **Done:** `docs/PORTED_COMPONENTS.md`. |
-| 84 | DONE | Audit updates before merging; do not silently overwrite local additions with copied upstream files. **Done:** audit gate and local-only file list in `docs/UPSTREAM_REVISION_LEDGER.md`. |
-| 85 | PARTIAL | Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks. |
-| 86 | DONE | Tablet emulation screenshots and layout checks; manual device QA only after CI. *(CI cold-starts on phone, portrait-tablet and landscape-tablet windows and keeps screenshots.)* |
-| 87 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
-| 88 | DONE | Preserve user data, backups, settings and reading progress across updates. *(Automatic pre-update copy of database + settings, last two kept; Settings > Backup > Undo an app update.)* |
+| 70 | DONE | Android cold-start compatibility is checked on temporary GitHub-hosted runners; no emulator or SDK is installed on user devices. |
+| 71 | DONE | Keep existing light/dark and theme chooser; add a user-picked accent color. **Done:** Settings > Appearance > Accent colour (Android 12+). |
+| 72 | DONE | Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget. |
+| 73 | DONE | Offer palette presets: ocean-teal, vaporwave teal-purple, pastel, monochrome and system dynamic color where available. **Done:** presets Theme default (system/dynamic), Ocean teal, Vaporwave, Pastel, Monochrome, plus any #hex. |
+| 74 | DONE | Preview color palette live and preserve contrast/readability in dark mode. **Done:** live preview in the current light/dark mode and a low-contrast warning; Material generates the full scheme from the seed. |
+| 75 | DONE | Replace the inherited bear identity with an original mascot, after choosing among a teal fox with bookmark-shaped tail, a glow-moth or a star-tailed tanuki. **Done:** Kitsune (anime spirit fox, form per media type, colour + line-art sets, hidden muscular human-with-fox-ears Easter egg) replaces the Kotatsu launcher/Play Store/legacy icons, widget previews and empty-state art. See `docs/MASCOT_IDEAS.md`. |
+| 76 | DONE | Use the mascot sparingly (app icon, empty state, first-run tips), not as intrusive decoration. **Done:** launcher icon and splash, library empty states (a form per tab), list empty states (line art), Easter egg. First-run tips not yet. |
+| 77 | DONE | Daily meaningful-change watch for Kotatsu-Redo, kotatsu-parsers-redo, Mangayomi and relevant source/runtime projects. |
+| 78 | DONE | Document upstream revision, license, modifications and tests for each ported component. **Done:** `docs/PORTED_COMPONENTS.md`. |
+| 79 | DONE | Audit updates before merging; do not silently overwrite local additions with copied upstream files. **Done:** audit gate and local-only file list in `docs/UPSTREAM_REVISION_LEDGER.md`. |
+| 80 | PARTIAL | Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks. |
+| 81 | DONE | Tablet emulation screenshots and layout checks; manual device QA only after CI. *(CI cold-starts on phone, portrait-tablet and landscape-tablet windows and keeps screenshots.)* |
+| 82 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
+| 83 | DONE | Preserve user data, backups, settings and reading progress across updates. *(Automatic pre-update copy of database + settings, last two kept; Settings > Backup > Undo an app update.)* |

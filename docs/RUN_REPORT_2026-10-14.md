@@ -28,7 +28,6 @@ Tracker after this pass: **43 DONE, 25 PARTIAL, 20 PENDING** (was 27 / 36 / 25).
 | 59 | "Direct links" source: paste .m3u8 / .mpd / file / .m3u link into video search; quality names show resolution, codecs, bitrate |
 | 76, 78, 79 | Settings > Appearance > Accent colour: presets (theme default, Ocean teal, Vaporwave, Pastel, Monochrome) + any hex, live preview, low-contrast warning (Android 12+ only) |
 | 83, 84 | `docs/PORTED_COMPONENTS.md`; audit gate and local-only file list in `docs/UPSTREAM_REVISION_LEDGER.md` |
-| 71-75 | Plan only: `docs/WINDOWS_PLAN.md` |
 
 Each user-visible feature has a Test Center step (translate_toggle, translate_languages, translate_correct, translate_bubbles, explore_vs_discover, library_continue, desktop_drawer, library_two_pane, wikisource, odysee, jellyfin, direct_streams, ao3_filters, accent_color, global_year_sort, font_scale_touch, resize_foldable). New pure logic has unit tests (sidecar/bubble grouping, nav policy, accent maths, year sorting, AO3 filters, stream links, Wikisource/Odysee/Jellyfin parsers).
 
@@ -40,7 +39,6 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 - **#16, #17, #18, #36, #13, #14:** not started beyond one accessibility description; no new skeleton/empty-state work.
 - **#22 inpainting, #27 model download management:** not touched.
 - **#66, #69:** only Test Center steps; no code changes (needs a foldable/resizable emulator).
-- **#80, #81 mascot:** waiting for your choice. **#58 Plex, #55 Twitch:** need your credentials. **#71-75:** plan only.
 - **Accent colour on Android 11 and older:** not supported (Material's colour override needs Android 12+); the dialog says so.
 - Zoom position is not kept when toggling original/translated (the image library API I could verify does not expose it).
 
@@ -56,7 +54,6 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 ## Decisions I need from you
 
 1. Mascot: teal fox, glow-moth or star-tailed tanuki? (#80/#81)
-2. Native Windows app (multi-month) or keep using the Android emulator/Chromebook? (`docs/WINDOWS_PLAN.md`)
 3. Should the new built-in sources (Wikisource, Odysee, Jellyfin, Direct links) be enabled for everyone by default? Right now they are, like all built-in sources; Jellyfin and Direct links return nothing until used.
 4. For the sources I skipped (#40-42, #45): if you know an official API or feed for any of them, send the URL and I will add it.
 5. Accent colour: keep it Android 12+ only, or invest in a fallback for older phones?
@@ -68,7 +65,6 @@ Each user-visible feature has a Test Center step (translate_toggle, translate_la
 
 ## Follow-up after your answers (same day)
 
-- **Windows app dropped** (#71-75): you will use an emulator. Marked as dropped in the tracker.
 - **Built-in sources on by default:** already the case (all built-in sources are enabled and pinned); nothing to change.
 - **Accent colour fallback:** Android 11 and older now show any accent as black (light mode) / white (dark mode).
 - **Also finished:** #22 smooth background fill for shaded bubbles, #27 offline translation language management, #43 Gutenberg genre search.

@@ -25,7 +25,10 @@ internal object ArchiveMapping {
                 publicUrl = "https://archive.org/details/${encode(id)}",
                 rating = RATING_UNKNOWN,
                 contentRating = null,
-                coverUrl = "https://archive.org/services/img/${encode(id)}",
+                // Archive audio/comics frequently return a generic file icon instead of cover art.
+                // A Monogatari-generated media cover is more useful than that recycled placeholder.
+                coverUrl = if (source == BuiltinSource.IA_AUDIO || source == BuiltinSource.IA_COMICS)
+                    null else "https://archive.org/services/img/${encode(id)}",
                 tags = strings(item, "subject").map { MangaTag(it, it, source) }.toSet(),
                 state = null,
                 authors = strings(item, "creator").toSet(),

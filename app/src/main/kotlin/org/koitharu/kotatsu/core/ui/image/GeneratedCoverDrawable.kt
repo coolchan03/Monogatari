@@ -7,9 +7,11 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.drawable.Drawable
 import kotlin.math.min
+import org.koitharu.kotatsu.core.media.MediaType
 
 /** Deterministic offline cover for missing artwork; draws only locally supplied title text. */
-class GeneratedCoverDrawable(private val title: String, private val author: String? = null) : Drawable() {
+class GeneratedCoverDrawable(private val title: String, private val author: String? = null,
+    private val mediaKind: MediaType? = null) : Drawable() {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var alphaValue = 255
     private val palette = intArrayOf(0xFF204B54.toInt(), 0xFF38456C.toInt(),
@@ -18,7 +20,13 @@ class GeneratedCoverDrawable(private val title: String, private val author: Stri
     override fun draw(canvas: Canvas) {
         val rect = bounds
         if (rect.isEmpty) return
-        paint.color = palette[(title.hashCode().toLong() and Long.MAX_VALUE).rem(palette.size).toInt()]
+        paint.color = when (mediaKind) {
+            MediaType.AUDIO -> 0xFF294B70.toInt()
+            MediaType.VIDEO -> 0xFF493D69.toInt()
+            MediaType.BOOK -> 0xFF31565A.toInt()
+            MediaType.MANGA -> 0xFF594767.toInt()
+            else -> palette[(title.hashCode().toLong() and Long.MAX_VALUE).rem(palette.size).toInt()]
+        }
         paint.alpha = alphaValue
         canvas.drawRect(rect, paint)
         paint.color = Color.WHITE
@@ -26,6 +34,19 @@ class GeneratedCoverDrawable(private val title: String, private val author: Stri
         paint.textAlign = Paint.Align.CENTER
         paint.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
         val label = title.trim().ifEmpty { "Monogatari" }
+        // An elegant media badge instead of the generic Archive file/audio thumbnail.
+        mediaKind?.let { kind ->
+            val tag = when (kind) {
+                MediaType.AUDIO -> "♪  AUDIO"
+                MediaType.VIDEO -> "▶  VIDEO"
+                MediaType.BOOK -> "◇  BOOK"
+                MediaType.MANGA -> "◇  COMICS"
+            }
+            paint.textSize = min(rect.width() * 0.085f, rect.height() * 0.043f).coerceAtLeast(10f)
+            paint.typeface = android.graphics.Typeface.create(
+                "sans-serif-medium", android.graphics.Typeface.BOLD)
+            canvas.drawText(tag, rect.exactCenterX(), rect.top + rect.height() * 0.22f, paint)
+        }
         paint.textSize = min(rect.width() * 0.12f, rect.height() * 0.065f).coerceAtLeast(12f)
         val maxWidth = rect.width() * 0.82f
         val words = label.split(Regex("\\s+"))

@@ -14,6 +14,8 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
+import coil3.asImage
 
 /** Same reusable Material result row for web book search and OPDS catalogs. */
 internal data class CatalogRow(
@@ -48,13 +50,15 @@ internal class CatalogResultsAdapter : RecyclerView.Adapter<CatalogResultsAdapte
         holder.subtitle.isVisible = row.subtitle.isNotBlank()
         holder.coverRequest?.dispose()
         holder.coverRequest = null
-        holder.cover.setImageResource(R.drawable.ic_monogatari_nav_explore)
+        val generated = GeneratedCoverDrawable(row.title, mediaKind = MediaType.BOOK)
+        holder.cover.setImageDrawable(generated)
         val cover = row.coverUrl?.takeIf { it.startsWith("https://") }
         if (cover != null) {
             holder.coverRequest = imageLoader?.enqueue(
                 ImageRequest.Builder(holder.itemView.context)
                     .data(cover)
                     .crossfade(true)
+                    .error(generated.asImage())
                     .target(holder.cover)
                     .build()
             )

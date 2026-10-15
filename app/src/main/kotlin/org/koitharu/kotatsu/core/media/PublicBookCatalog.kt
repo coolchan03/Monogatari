@@ -4,14 +4,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.FormBody
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.qa.NewsFeedParser
 import org.json.JSONObject
 import java.net.URLEncoder
 import javax.inject.Inject
+import java.util.concurrent.ConcurrentHashMap
 
 /** Public-domain and library catalog discovery; availability is never assumed. */
 class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
+    private data class CachedCatalog(val fetchedMs: Long, val text: String)
+    private val catalogTextCache = ConcurrentHashMap<String, CachedCatalog>()
+    private val catalogCacheTtlMs = 6 * 60 * 60 * 1000L
+    private val catalogTextMaxBytes = 6_000_000
+
     data class Book(
         val title: String,
         val author: String,
@@ -131,6 +138,41 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         }.sortedByDescending { it.second }.map { it.first }
     }
 
+    /** Server-provided catalog search using Faded Page's public website search endpoint. */
+    suspend fun searchFadedPage(query: String): List<Book> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        val body = FormBody.Builder().add("title", query.take(120)).add("sort", "auto").build()
+        val request = Request.Builder().url("https://www.fadedpage.com/csearc2.php")
+            .post(body).header("User-Agent", "Monogatari/0.13 (public catalog)").build()
+        val json = client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Faded Page HTTP " + response.code)
+            JSONObject(response.body?.string() ?: error("Empty Faded Page response"))
+        }
+        AdditionalBookCatalogs.fadedPage(json, query)
+    }
+
+    /** Public CSV index published by Project Gutenberg Australia; respects regional copyright. */
+    suspend fun searchGutenbergAustralia(query: String): List<Book> = withContext(Dispatchers.IO) {
+        AdditionalBookCatalogs.gutenbergAustralia(
+            fetchText("https://www.gutenberg.net.au/catalogue.txt"), query)
+    }
+
+    /** Search only entries listed by Baen in its officially free library. */
+    suspend fun searchBaenFreeLibrary(query: String): List<Book> = withContext(Dispatchers.IO) {
+        // Baen pages are bounded; search at most two public catalog pages per request.
+        (1..2).flatMap { page ->
+            val url = "https://www.baen.com/categories/free-library.html" +
+                "?product_list_limit=36&p=" + page
+            AdditionalBookCatalogs.baenFreeLibrary(fetchText(url), query)
+        }.distinctBy { it.url }.take(60)
+    }
+
+    /** Filter Global Grey's published public URL sitemap; no site-wide crawling. */
+    suspend fun searchGlobalGrey(query: String): List<Book> = withContext(Dispatchers.IO) {
+        AdditionalBookCatalogs.globalGreySitemap(
+            fetchText("https://www.globalgreyebooks.com/sitemap.xml"), query)
+    }
+
     /** Free New Releases Atom feed only: the full Standard Ebooks OPDS is membership-gated. */
     suspend fun searchStandardEbooksRecent(query: String): List<Book> = withContext(Dispatchers.IO) {
         val xml = fetchText("https://standardebooks.org/feeds/atom/new-releases")
@@ -161,9 +203,16 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
     }
 
     private fun fetchText(url: String): String {
+        val cacheable = url == "https://www.gutenberg.net.au/catalogue.txt" ||
+            url == "https://www.globalgreyebooks.com/sitemap.xml"
+        val now = System.currentTimeMillis()
+        if (cacheable) catalogTextCache[url]?.let { saved ->
+            if (now >= saved.fetchedMs && now - saved.fetchedMs < catalogCacheTtlMs)
+                return saved.text
+        }
         val request = Request.Builder().url(url)
             .header("User-Agent", "Monogatari/1.0 (public book catalog)").build()
-        return client.newCall(request).execute().use { response ->
+        val text = client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Catalog feed HTTP ${response.code}")
             val body = response.body ?: error("Empty catalog feed")
             val bytes = body.byteStream().use { stream ->
@@ -171,14 +220,17 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 val output = java.io.ByteArrayOutputStream()
                 while (true) {
                     val size = stream.read(buffer)
-                    if (size <= 0) break
-                    if (output.size() + size > 1_000_000) error("Catalog feed exceeds 1 MB")
+                    if (size < 0) break
+                    if (size == 0) continue
+                    if (output.size() + size > catalogTextMaxBytes) error("Catalog feed exceeds 6 MB safe limit")
                     output.write(buffer, 0, size)
                 }
                 output.toByteArray()
             }
-            bytes.toString(Charsets.UTF_8)
+            bytes.toString(body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8)
         }
+        if (cacheable) catalogTextCache[url] = CachedCatalog(now, text)
+        return text
     }
 
     private fun fetch(url: String): JSONObject {
