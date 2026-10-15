@@ -8,6 +8,7 @@ import org.koitharu.kotatsu.core.network.MangaHttpClient
 import org.koitharu.kotatsu.core.cache.MemoryContentCache
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.media.BookMetadataProvider
+import org.koitharu.kotatsu.core.media.PublicBookCatalog
 import org.koitharu.kotatsu.builtin.ao3.Ao3Repository
 import org.koitharu.kotatsu.builtin.royalroad.RoyalRoadRepository
 import org.koitharu.kotatsu.builtin.scribblehub.ScribbleHubRepository
@@ -32,6 +33,7 @@ class BuiltinRepositoryFactory @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settings: AppSettings,
     private val bookMetadata: BookMetadataProvider,
+    private val publicCatalog: PublicBookCatalog,
     private val jellyfinConfig: JellyfinConfig,
     private val apiKeys: ApiKeys,
 ) {
@@ -42,6 +44,9 @@ class BuiltinRepositoryFactory @Inject constructor(
         return when (source) {
             BuiltinSource.GUTENBERG -> GutenbergRepository(cache, client, context, bookMetadata)
             BuiltinSource.OPEN_LIBRARY -> OpenLibraryRepository(cache, client, context, settings, bookMetadata)
+            BuiltinSource.FADED_PAGE, BuiltinSource.GUTENBERG_AU,
+            BuiltinSource.GLOBAL_GREY, BuiltinSource.BAEN_FREE ->
+                PublicCatalogRepository(source, cache, publicCatalog)
             BuiltinSource.AO3 -> Ao3Repository(cache, client, settings)
             BuiltinSource.ROYAL_ROAD -> RoyalRoadRepository(cache, client)
             BuiltinSource.SCRIBBLE_HUB -> ScribbleHubRepository(cache, client)

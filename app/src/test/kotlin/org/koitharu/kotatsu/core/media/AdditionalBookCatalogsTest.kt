@@ -59,6 +59,18 @@ class AdditionalBookCatalogsTest {
         assertEquals("Ghosts I Have Seen", rows.single().title)
     }
 
+    @Test fun globalGreyAcceptsPublishedOnlineBooksPaths() {
+        val xml = """<urlset>
+            <url><loc>https://www.globalgreyebooks.com/online-books-2/ghosts_of_the_past-ebook.html</loc></url>
+            <url><loc>https://www.globalgreyebooks.com/online-books-2/20230801_ghosts-at-dawn-ebook.html</loc></url>
+            <url><loc>https://untrusted.example/online-books-2/ghosts-hidden-ebook.html</loc></url>
+            </urlset>"""
+        val results = AdditionalBookCatalogs.globalGreySitemap(xml, "ghosts")
+        assertEquals(2, results.size)
+        assertEquals("Ghosts Of The Past", results[0].title)
+        assertEquals("Ghosts At Dawn", results[1].title)
+    }
+
     @Test fun officialSiteSearchUrlsEncodeInputWithoutChangingHosts() {
         val url = OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FANFICTION, "anise & snow")
         assertTrue(url.startsWith("https://www.fanfiction.net/search/"))

@@ -112,12 +112,19 @@ internal object AdditionalBookCatalogs {
         return document.select("loc").asSequence().mapNotNull { element ->
             val url = officialLink(element.text(), "www.globalgreyebooks.com")
                 ?: return@mapNotNull null
-            if (!url.contains("/book-page/") && !url.contains("/online-ebooks/"))
+            // The publisher also indexes titles under /online-books-2/.
+            val path = runCatching { URI(url).path }.getOrNull().orEmpty()
+            if (!path.contains("/book-page/") && !path.contains("/online-ebooks/") &&
+                !Regex("^/online-books(?:-[0-9]+)?/").containsMatchIn(path))
                 return@mapNotNull null
             if (!seen.add(url)) return@mapNotNull null
-            val slug = url.substringAfterLast('/').substringBefore(".html")
-                .substringAfterLast('_').removeSuffix("-ebook").removeSuffix("-complete-text")
-            val title = slug.replace('-', ' ').trim()
+            val rawSlug = url.substringAfterLast('/').substringBefore(".html")
+            val suffixless = rawSlug.removeSuffix("_complete-text")
+                .removeSuffix("-complete-text").removeSuffix("-ebook")
+            // Strip only a numeric ID prefix, never the first word of a title.
+            val slug = if (suffixless.substringBefore('_').matches(Regex("[0-9]{4,10}")))
+                suffixless.substringAfter('_') else suffixless
+            val title = slug.replace('_', ' ').replace('-', ' ').trim()
                 .split(' ').filter(String::isNotBlank)
                 .joinToString(" ") { word -> word.replaceFirstChar { it.titlecase(Locale.ROOT) } }
                 .takeIf(String::isNotBlank) ?: return@mapNotNull null

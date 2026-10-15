@@ -10,9 +10,15 @@ import org.koitharu.kotatsu.core.qa.NewsFeedParser
 import org.json.JSONObject
 import java.net.URLEncoder
 import javax.inject.Inject
+import java.util.concurrent.ConcurrentHashMap
 
 /** Public-domain and library catalog discovery; availability is never assumed. */
 class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
+    private data class CachedCatalog(val fetchedMs: Long, val text: String)
+    private val catalogTextCache = ConcurrentHashMap<String, CachedCatalog>()
+    private val catalogCacheTtlMs = 6 * 60 * 60 * 1000L
+    private val catalogTextMaxBytes = 6_000_000
+
     data class Book(
         val title: String,
         val author: String,
@@ -197,9 +203,16 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
     }
 
     private fun fetchText(url: String): String {
+        val cacheable = url == "https://www.gutenberg.net.au/catalogue.txt" ||
+            url == "https://www.globalgreyebooks.com/sitemap.xml"
+        val now = System.currentTimeMillis()
+        if (cacheable) catalogTextCache[url]?.let { saved ->
+            if (now >= saved.fetchedMs && now - saved.fetchedMs < catalogCacheTtlMs)
+                return saved.text
+        }
         val request = Request.Builder().url(url)
             .header("User-Agent", "Monogatari/1.0 (public book catalog)").build()
-        return client.newCall(request).execute().use { response ->
+        val text = client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Catalog feed HTTP ${response.code}")
             val body = response.body ?: error("Empty catalog feed")
             val bytes = body.byteStream().use { stream ->
@@ -207,14 +220,17 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 val output = java.io.ByteArrayOutputStream()
                 while (true) {
                     val size = stream.read(buffer)
-                    if (size <= 0) break
-                    if (output.size() + size > 1_000_000) error("Catalog feed exceeds 1 MB")
+                    if (size < 0) break
+                    if (size == 0) continue
+                    if (output.size() + size > catalogTextMaxBytes) error("Catalog feed exceeds 6 MB safe limit")
                     output.write(buffer, 0, size)
                 }
                 output.toByteArray()
             }
-            bytes.toString(Charsets.UTF_8)
+            bytes.toString(body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8)
         }
+        if (cacheable) catalogTextCache[url] = CachedCatalog(now, text)
+        return text
     }
 
     private fun fetch(url: String): JSONObject {

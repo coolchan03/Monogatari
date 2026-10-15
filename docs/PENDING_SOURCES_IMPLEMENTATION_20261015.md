@@ -7,7 +7,7 @@
 
 | Former missing # | Provider | Implementation | Limitations |
 |---|---|---|---|
-| 40 | Faded Page | Actual public website search POST; real title, author, year, cover and official link | Canadian public-domain rules; reading on provider site; local copyright differs |
+| 40 | Faded Page | Actual public website search POST; title/author/year/cover in Books Catalog and first-class Books source for unified search | Canadian public-domain rules; reading on provider site; local copyright differs |
 | 41 | Project Gutenberg Australia | Search official `catalogue.txt` across thousands of entries, choose HTML over duplicate plain-text listing | Publication is under Australian law; user must check local rights |
 | 42 | Global Grey Ebooks | Search entries listed in official `sitemap.xml`; no site-wide crawling | Metadata derived from book-page URLs; publisher site handles downloads |
 | 45 | StoryWeaver | Official-site search and browse reachable in Books Catalog | Full in-app catalog/API and image-book reader not implemented |
