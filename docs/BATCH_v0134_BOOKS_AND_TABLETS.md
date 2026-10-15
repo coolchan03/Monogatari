@@ -1,6 +1,6 @@
 # Monogatari v0.13.4 — Books, source provenance, and QA
 
-Parent: [88-item tracker](ROADMAP_88_TRACKER.md), single development branch `devel`.
+Parent: [83-item tracker](ROADMAP_83_TRACKER.md), single development branch `devel`.
 
 ## Implementation
 - Books Catalog: "Search all catalogs" queries Gutenberg, Open Library, Internet Archive, Wikisource and Google Books concurrently with partial-failure reporting.
@@ -21,5 +21,5 @@ Parent: [88-item tracker](ROADMAP_88_TRACKER.md), single development branch `dev
 ## Still incomplete
 - In-reader borrowing/DRM for protected titles is not supported. Official listings/previews link to the legitimate provider.
 - Some providers may require keys, throttle requests, or be inaccessible by region. Such providers are reported as unavailable, not silently considered healthy.
-- OPDS 2.0 features, two-pane reader layouts, artwork-preserving OCR inpainting and native Windows remain Partial/Pending in the 88-item tracker.
+- OPDS 2.0 features, two-pane reader layouts, artwork-preserving OCR inpainting remain Partial/Pending in the 83-item tracker.
 - Preserve user-installed source extensions, favorites, downloads and reading progress; don't clear app data to update an APK.

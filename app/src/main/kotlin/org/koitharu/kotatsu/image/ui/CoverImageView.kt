@@ -31,6 +31,7 @@ import org.koitharu.kotatsu.core.exceptions.UnsupportedSourceException
 import org.koitharu.kotatsu.core.image.CoilImageView
 import org.koitharu.kotatsu.core.ui.image.AnimatedPlaceholderDrawable
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.ui.image.TextDrawable
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
 import org.koitharu.kotatsu.core.util.ext.bookmarkExtra
@@ -140,7 +141,8 @@ class CoverImageView @JvmOverloads constructor(
         .mangaExtra(manga)
         .apply {
             manga?.let {
-                val generated = GeneratedCoverDrawable(it.title, it.authors.firstOrNull())
+                val generated = GeneratedCoverDrawable(it.title, it.authors.firstOrNull(),
+                    (it.source as? BuiltinSource)?.type)
                 fallback(generated.asImage())
                 error(generated.asImage())
             }

@@ -88,27 +88,21 @@
 68. Drag/drop local EPUB, PDF, CBZ, images and supported media.
 69. Surface accessibility scaling and touch-target checks.
 
-## Priority 5 — Windows
-70. Short-term: Android emulator for compatibility/testing only; do not mistake it for native Windows support.
-71. Investigate a Kotlin Compose Multiplatform Windows client with a shared Kotlin core/parser/runtime and a dedicated desktop UI.
-72. First desktop milestone: local EPUB/PDF/CBZ library, login-free search, reading progress and storage.
-73. Second: source repositories, network reading, extensions, video playback and optional sync.
-74. Explore a browser/PWA interface only for parts where browser CORS, cookies and storage rules allow.
-75. Validate Windows file dialogs, background updates, multiwindow, hardware decoding and portable packaging.
-
+## Priority 5 — Android compatibility
+70. Check startup on temporary GitHub-hosted Android test devices; no local emulator installation.
 ## Priority 6 — Theme and branding
-76. Keep existing light/dark and theme chooser; add a user-picked accent color.
-77. Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget.
-78. Offer palette presets: ocean-teal, vaporwave teal-purple, pastel, monochrome and system dynamic color where available.
-79. Preview color palette live and preserve contrast/readability in dark mode.
-80. Replace the inherited bear identity with an original mascot, after choosing among a teal fox with bookmark-shaped tail, a glow-moth or a star-tailed tanuki.
-81. Use the mascot sparingly (app icon, empty state, first-run tips), not as intrusive decoration.
+71. Keep existing light/dark and theme chooser; add a user-picked accent color.
+72. Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget.
+73. Offer palette presets: ocean-teal, vaporwave teal-purple, pastel, monochrome and system dynamic color where available.
+74. Preview color palette live and preserve contrast/readability in dark mode.
+75. Replace the inherited bear identity with an original mascot, after choosing among a teal fox with bookmark-shaped tail, a glow-moth or a star-tailed tanuki.
+76. Use the mascot sparingly (app icon, empty state, first-run tips), not as intrusive decoration.
 
 ## Priority 7 — Upstream and release quality
-82. Daily meaningful-change watch for Kotatsu-Redo, kotatsu-parsers-redo, Mangayomi and relevant source/runtime projects.
-83. Document upstream revision, license, modifications and tests for each ported component.
-84. Audit updates before merging; do not silently overwrite local additions with copied upstream files.
-85. Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks.
-86. Tablet emulation screenshots and layout checks; manual device QA only after CI.
-87. Clearly distinguish debug preview, release signing and verified device-tested version.
-88. Preserve user data, backups, settings and reading progress across updates.
+77. Daily meaningful-change watch for Kotatsu-Redo, kotatsu-parsers-redo, Mangayomi and relevant source/runtime projects.
+78. Document upstream revision, license, modifications and tests for each ported component.
+79. Audit updates before merging; do not silently overwrite local additions with copied upstream files.
+80. Android CI: unit tests, assembler/R8 and actual emulator cold-start + basic navigation smoke checks.
+81. Tablet emulation screenshots and layout checks; manual device QA only after CI.
+82. Clearly distinguish debug preview, release signing and verified device-tested version.
+83. Preserve user data, backups, settings and reading progress across updates.

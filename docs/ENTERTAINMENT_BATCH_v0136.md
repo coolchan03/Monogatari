@@ -13,6 +13,6 @@ Per user feedback, Monogatari is an **entertainment reader/watcher/listener**, n
 - Android JVM unit tests cover RSS/Atom parsing, URL filtering, DTD/XXE blocking, media type classification, legal public links and the earlier cross-catalog sorting behavior.
 - GitHub Actions compiles unit/debug/R8 and cold-starts Android emulators at phone and simulated tablet widths. Actual Motorola/tablet and individual RSS playback remain device tests.
 - Subscription URLs stay on the device in private app preferences; this feature does not ask for account passwords, credentials, or background subscriptions.
-- URL redirects/rate limits, subtitle/chapter support, authorized premium streams, local drag-drop, true Windows support and a final original mascot remain unfinished requirements.
+- URL redirects/rate limits, subtitle/chapter support, authorized premium streams, local drag-drop and a final original mascot remain unfinished requirements.
 
-See [all 88 roadmap statuses](ROADMAP_88_TRACKER.md).
+See [all 83 roadmap statuses](ROADMAP_83_TRACKER.md).

@@ -1,4 +1,4 @@
-# Large screens and Windows (2026-10-14)
+# Large-screen Android layouts (2026-10-14)
 
 ## Large-screen audit: what was wrong and what changed
 
@@ -17,14 +17,3 @@ Already good: no orientation locks or `uses-feature` blockers in the manifest (i
 navigation rail, mouse-wheel and right-click support in lists and the reader, foldable-aware double-page mode, PiP video.
 
 Still open: desktop-width navigation drawer (#62), true two-pane library/search/details (#63), foldable posture testing (#66).
-
-## Windows: options and honest effort
-
-| Option | What you get | Effort |
-|---|---|---|
-| **Run the Android APK on Windows** - Google Play Games for PC developer emulator, BlueStacks, or the Android Studio emulator. | The whole app, today, with the tablet layouts above. Microsoft's Windows Subsystem for Android was discontinued in March 2025. | None in code. Good enough for personal use. |
-| **ChromeOS / Chromebook** | Runs the APK natively in a resizable window; this is what the large-screen work targets. | None. |
-| **Native Windows app with Compose Multiplatform** (roadmap #71-75) | A real `.exe`/MSIX. Kotlin parsers, the JS extension runtime (QuickJS has JVM bindings), networking and backups can be shared; the UI (all XML layouts/fragments), Room, WorkManager, Media3 video, ML Kit OCR/translation and Android file/notification APIs must be replaced on desktop (e.g. SQLDelight, VLCJ/JavaFX media, Tesseract/ONNX). | A multi-month separate project: first extract a shared `:core` module, then a desktop UI. Milestone 1 (local EPUB/PDF/CBZ library + reading progress) is the realistic starting point. |
-| **Web/PWA** (#74) | Limited: browsers block the cross-site requests most sources need (CORS/cookies). | Not recommended for sources. |
-
-Recommendation: use an Android emulator or a Chromebook now; start the Compose Multiplatform `:core` extraction only once the Android app is stable.

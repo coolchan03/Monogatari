@@ -11,4 +11,4 @@ Thirteen built-in adapters are declared in `builtin/BuiltinSource.kt` and constr
 
 For **every** built-in source, test source classification, public search, metadata, covers, language, date when known, reading/playback, permitted access fallback, error handling, rate limits and mobile/tablet UI. Distinguish source metadata, valid titles and actual playable/readable content. Never count a proposed source as installed before verifying its adapter and provider permissions.
 
-Additional candidate sources #38-61 appear in [the roadmap tracker](ROADMAP_88_TRACKER.md), and imported/upstream code revisions in [the revision ledger](UPSTREAM_REVISION_LEDGER.md).
+Additional candidate sources #38-61 appear in [the roadmap tracker](ROADMAP_83_TRACKER.md), and imported/upstream code revisions in [the revision ledger](UPSTREAM_REVISION_LEDGER.md).

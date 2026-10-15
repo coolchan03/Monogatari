@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.FormBody
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.qa.NewsFeedParser
 import org.json.JSONObject
@@ -129,6 +130,41 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 publicationYear = year, language = info.optString("language"),
                 format = access.label) to access.freeToRead
         }.sortedByDescending { it.second }.map { it.first }
+    }
+
+    /** Server-provided catalog search using Faded Page's public website search endpoint. */
+    suspend fun searchFadedPage(query: String): List<Book> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+        val body = FormBody.Builder().add("title", query.take(120)).add("sort", "auto").build()
+        val request = Request.Builder().url("https://www.fadedpage.com/csearc2.php")
+            .post(body).header("User-Agent", "Monogatari/0.13 (public catalog)").build()
+        val json = client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Faded Page HTTP " + response.code)
+            JSONObject(response.body?.string() ?: error("Empty Faded Page response"))
+        }
+        AdditionalBookCatalogs.fadedPage(json, query)
+    }
+
+    /** Public CSV index published by Project Gutenberg Australia; respects regional copyright. */
+    suspend fun searchGutenbergAustralia(query: String): List<Book> = withContext(Dispatchers.IO) {
+        AdditionalBookCatalogs.gutenbergAustralia(
+            fetchText("https://www.gutenberg.net.au/catalogue.txt"), query)
+    }
+
+    /** Search only entries listed by Baen in its officially free library. */
+    suspend fun searchBaenFreeLibrary(query: String): List<Book> = withContext(Dispatchers.IO) {
+        // Baen pages are bounded; search at most two public catalog pages per request.
+        (1..2).flatMap { page ->
+            val url = "https://www.baen.com/categories/free-library.html" +
+                "?product_list_limit=36&p=" + page
+            AdditionalBookCatalogs.baenFreeLibrary(fetchText(url), query)
+        }.distinctBy { it.url }.take(60)
+    }
+
+    /** Filter Global Grey's published public URL sitemap; no site-wide crawling. */
+    suspend fun searchGlobalGrey(query: String): List<Book> = withContext(Dispatchers.IO) {
+        AdditionalBookCatalogs.globalGreySitemap(
+            fetchText("https://www.globalgreyebooks.com/sitemap.xml"), query)
     }
 
     /** Free New Releases Atom feed only: the full Standard Ebooks OPDS is membership-gated. */

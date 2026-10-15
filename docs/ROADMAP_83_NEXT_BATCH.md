@@ -7,6 +7,5 @@ The implementation tracker marks all 88 requirements by status and links to the 
 - Quality: expand Android emulator smoke tests beyond cold startup to main destinations, verify large-screen controls and capture screenshots.
 - Media: add one verified, rights-respecting public video catalog at a time; log inaccessible and broken providers.
 - Translation: enhance the existing on-device overlay with a one-tap original view and better text fitting before attempting artwork inpainting.
-- Portability: document a Windows desktop architecture separately; an Android APK is not a Windows executable.
 
-All remaining requirements stay in [the 88-item tracker](ROADMAP_88_TRACKER.md), without being checked off prematurely.
+All remaining requirements stay in [the 83-item tracker](ROADMAP_83_TRACKER.md), without being checked off prematurely.

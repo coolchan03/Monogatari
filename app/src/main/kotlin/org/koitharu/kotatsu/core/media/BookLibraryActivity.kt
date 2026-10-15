@@ -180,6 +180,8 @@ class BookLibraryActivity : AppCompatActivity() {
             .setOnClickListener { search("Google Books") }
         findViewById<MaterialButton>(R.id.monogatari_catalog_standard_ebooks)
             .setOnClickListener { search("Standard Ebooks") }
+        findViewById<MaterialButton>(R.id.monogatari_catalog_more_public)
+            .setOnClickListener { showAdditionalCatalogs() }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
                 MonogatariChrome.columns(context))
@@ -218,6 +220,35 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     /** Uses the exact same multi-source search UI as manga, scoped only to book sources. */
+    private fun showAdditionalCatalogs() {
+        val providers = listOf(
+            "Faded Page · Canadian public-domain books",
+            "Gutenberg Australia · regional classics",
+            "Global Grey · classics and historical books",
+            "Baen Free Library · science fiction and fantasy",
+            "StoryWeaver · illustrated stories (official website)",
+            "FictionPress · original fiction (official website)",
+            "FanFiction.net · fanfiction (official website)",
+            "Bilibili · public videos (official website)",
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle("More entertainment catalogs")
+            .setItems(providers.toTypedArray()) { _, which ->
+                val term = query.text?.toString()?.trim().orEmpty()
+                when (which) {
+                    0 -> search("Faded Page")
+                    1 -> search("Gutenberg Australia")
+                    2 -> search("Global Grey")
+                    3 -> search("Baen Free Library")
+                    4 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.STORYWEAVER, term))
+                    5 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FICTIONPRESS, term))
+                    6 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FANFICTION, term))
+                    7 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.BILIBILI, term))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
     private fun searchInstalledBookSources() {
         val term = query.text?.toString()?.trim().orEmpty()
         if (term.isEmpty()) {
@@ -307,7 +338,8 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
-                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks")
+                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks",
+                    "Faded Page", "Gutenberg Australia", "Global Grey", "Baen Free Library")
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -416,6 +448,10 @@ class BookLibraryActivity : AppCompatActivity() {
             "Wikisource" -> catalog.searchWikisource(term)
             "Google Books" -> catalog.searchGoogleBooks(term)
             "Standard Ebooks" -> catalog.searchStandardEbooksRecent(term)
+            "Faded Page" -> catalog.searchFadedPage(term)
+            "Gutenberg Australia" -> catalog.searchGutenbergAustralia(term)
+            "Global Grey" -> catalog.searchGlobalGrey(term)
+            "Baen Free Library" -> catalog.searchBaenFreeLibrary(term)
             else -> emptyList()
         }
 
