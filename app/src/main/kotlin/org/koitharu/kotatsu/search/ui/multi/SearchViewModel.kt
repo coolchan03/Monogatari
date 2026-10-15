@@ -368,6 +368,7 @@ class SearchViewModel @Inject constructor(
 				val publicResults = supervisorScope {
 					listOf(
 						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
+						async { safeCatalogSearch { publicBookCatalog.searchStandardEbooks(query) } },
 						async { searchSavedOpds(query) },
 					).awaitAll().flatten()
 				}

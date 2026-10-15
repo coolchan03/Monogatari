@@ -173,15 +173,16 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             fetchText("https://www.globalgreyebooks.com/sitemap.xml"), query)
     }
 
-    /** Free New Releases Atom feed only: the full Standard Ebooks OPDS is membership-gated. */
-    suspend fun searchStandardEbooksRecent(query: String): List<Book> = withContext(Dispatchers.IO) {
-        val xml = fetchText("https://standardebooks.org/feeds/atom/new-releases")
-        NewsFeedParser.parse(xml).asSequence()
-            .filter { query.isBlank() || it.title.contains(query, ignoreCase = true) }
-            .map { entry ->
-                Book(entry.title, "", "Standard Ebooks — new releases", entry.link,
-                    format = "Public-domain listing / EPUB")
-            }.toList()
+    /** The public browsable book catalog, not the restricted patron-only OPDS feed. */
+    suspend fun searchStandardEbooks(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
+        val html = fetchText(StandardEbooksCatalog.browseUrl(query, page))
+        StandardEbooksCatalog.parseListing(html)
+    }
+
+    /** Read the actual compatible EPUB link after the user selects a book. */
+    suspend fun resolveStandardEbooksEpub(bookUrl: String): String? = withContext(Dispatchers.IO) {
+        if (!StandardEbooksCatalog.officialPage(bookUrl)) return@withContext null
+        StandardEbooksCatalog.parseCompatibleEpub(fetchText(bookUrl), bookUrl)
     }
 
     /** Rights-respecting discovery of public audiobook metadata (not a direct download parser). */

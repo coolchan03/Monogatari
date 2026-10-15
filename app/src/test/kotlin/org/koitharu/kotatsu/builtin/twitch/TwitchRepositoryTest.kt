@@ -29,6 +29,21 @@ class TwitchRepositoryTest {
 	}
 
 	@Test
+	fun parsesOfficialClipsAndRejectsMalformedIds() {
+		val response = JSONObject("""{"data":[
+			{"id":"CleverClip-abc_123","title":"Funny scene","created_at":"2026-10-15T10:00:00Z"},
+			{"id":"../../untrusted","title":"Invalid"},
+			{"id":"CleverClip-abc_123","title":"Duplicate"},
+			{"id":"OtherClip999","title":"Another"}
+		]}""")
+		val clips = TwitchRepository.parseClips(response)
+		assertEquals(2, clips.size)
+		assertEquals("2026-10-15 - Clip: Funny scene", clips.first().title)
+		assertEquals("https://clips.twitch.tv/CleverClip-abc_123", clips.first().url)
+		assertEquals("https://clips.twitch.tv/OtherClip999", clips.last().url)
+	}
+
+	@Test
 	fun storedUrlsAreValidated() {
 		assertEquals("chan" to "7", TwitchRepository.splitUrl("/channel/chan/7"))
 		assertEquals("chan" to null, TwitchRepository.splitUrl("/channel/chan"))

@@ -58,9 +58,13 @@ class TwitchRepository(
 	override suspend fun getDetailsImpl(manga: Manga): Manga {
 		val (login, id) = splitUrl(manga.url) ?: throw IOException("Invalid Twitch channel")
 		val videos = if (id != null) parseVideos(helix("videos?first=20&type=archive&user_id=$id")) else emptyList()
+		val clips = if (id != null) try {
+			parseClips(helix("clips?broadcaster_id=$id&first=20"))
+		} catch (_: IOException) { emptyList() } else emptyList()
 		val chapters = buildList {
 			add(Video("live", "Live channel (opens twitch.tv)", "https://www.twitch.tv/$login"))
 			addAll(videos)
+			addAll(clips)
 		}
 		return manga.copy(chapters = chapters.mapIndexed { index, v ->
 			MangaChapter(
@@ -183,6 +187,23 @@ class TwitchRepository(
 					https(s.optString("thumbnail_url")),
 				)
 			}
+		}
+
+		/** Public Helix clip search. Use validated IDs to generate official playback URLs. */
+		fun parseClips(body: JSONObject): List<Video> {
+			val data = body.optJSONArray("data") ?: return emptyList()
+			val clipIds = Regex("[A-Za-z0-9_-]{2,130}")
+			return (0 until data.length()).mapNotNull { index ->
+				val clip = data.optJSONObject(index) ?: return@mapNotNull null
+				val id = clip.optString("id").takeIf { clipIds.matches(it) }
+					?: return@mapNotNull null
+				val date = clip.optString("created_at").take(10)
+				val title = clip.optString("title").ifBlank { "Highlight clip" }.take(180)
+				Video(id,
+					(if (date.isBlank()) "" else "$date - ") + "Clip: " + title,
+					"https://clips.twitch.tv/$id",
+				)
+			}.distinctBy { it.id }
 		}
 
 		fun parseVideos(body: JSONObject): List<Video> {
