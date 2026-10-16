@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
