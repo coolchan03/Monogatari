@@ -49,6 +49,14 @@ class PublicationYearSorterTest {
         assertEquals(listOf("Alpha (2010)", "Delta (2005)", "Gamma (1999)", "Beta"), newest)
     }
 
+    @Test fun globalSortCanRetainUnlikeCreatorsSharingATitle() {
+        val results = PublicationYearSorter.sortedGlobal(
+            listOf(listOf("One Story", "One Story")), PublicationYearOrder.NEWEST_FIRST_GLOBAL,
+            { it }, { 2007 }, deduplicate = false,
+        )
+        assertEquals(2, results.size)
+    }
+
     @Test fun orderFlags() {
         assertEquals(true, PublicationYearOrder.OLDEST_FIRST_GLOBAL.isGlobal)
         assertEquals(false, PublicationYearOrder.NEWEST_FIRST.isGlobal)

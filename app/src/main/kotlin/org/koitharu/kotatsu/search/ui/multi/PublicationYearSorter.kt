@@ -74,9 +74,10 @@ internal object PublicationYearSorter {
      * One list for all sources, ordered by [order] (years unknown last). The same title found by several sources is
      * kept once, from the earliest list: callers pass lists in preference order (best source first).
      */
-    fun <T> sortedGlobal(lists: List<List<T>>, order: PublicationYearOrder, titleOf: (T) -> String, yearOf: (T) -> Int?): List<T> {
+    fun <T> sortedGlobal(lists: List<List<T>>, order: PublicationYearOrder, titleOf: (T) -> String, yearOf: (T) -> Int?, deduplicate: Boolean = true): List<T> {
         val seen = HashSet<String>()
-        val unique = lists.flatten().filter { item ->
+        // Callers with author-aware duplicate grouping must retain unlike works sharing a short title.
+        val unique = if (!deduplicate) lists.flatten() else lists.flatten().filter { item ->
             val key = titleKey(titleOf(item))
             key.isEmpty() || seen.add(key)
         }

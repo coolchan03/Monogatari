@@ -34,6 +34,7 @@ import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.media.filterByMediaType
+import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
 import org.koitharu.kotatsu.core.model.getLocale
@@ -133,13 +134,17 @@ class SearchViewModel @Inject constructor(
     }
 
 	private val results = MutableStateFlow<List<SearchResultsListModel>>(emptyList())
+	private val preferredMangaSources by lazy {
+		applicationContext.getSharedPreferences("preferred_manga_source", Context.MODE_PRIVATE)
+	}
+	private val preferredSourceVersion = MutableStateFlow(0)
 	private val publicationSort = MutableStateFlow(
 		savedStateHandle.get<String>("publication_sort")
 			?.let { code -> PublicationYearOrder.entries.firstOrNull { it.name == code } }
 			?: PublicationYearOrder.RELEVANCE,
 	)
 	private val displayResults = combine(
-		combine(results, languageFilter) { all, language ->
+		combine(results, languageFilter, preferredSourceVersion) { all, language, _ ->
 			if (language == null) all else all.filter { LanguageFilter.matches(it.source.getLocale()?.language, language) }
 		},
 		publicationSort, yearFrom, yearTo, includeUnknownYears,
@@ -160,8 +165,9 @@ class SearchViewModel @Inject constructor(
 			section.copy(list = PublicationYearSorter.sorted(section.list, order))
 		}
 		// While years matter (an order or a range is chosen) show each year in the title, "~" when it is only a guess.
-		if (order == PublicationYearOrder.RELEVANCE && from == null && to == null) ordered
-		else ordered.map { section -> section.copy(list = section.list.map { it.withYearBadge() }) }
+		val grouped = groupConfidentDuplicates(ordered)
+		if (order == PublicationYearOrder.RELEVANCE && from == null && to == null) grouped
+		else grouped.map { section -> section.copy(list = section.list.map { it.withYearBadge() }) }
 	}
 	private fun MangaListModel.withYearBadge(): MangaListModel {
 		val estimate = PublicationYearSorter.estimateDetailed(manga.title, manga.altTitle, manga.description) ?: return this
@@ -171,6 +177,23 @@ class SearchViewModel @Inject constructor(
 			is MangaGridModel -> copy(override = decorated)
 			is MangaDetailedListModel -> copy(override = decorated)
 		}
+	}
+
+	private val crossSourceGrouper = MangaCrossSourceGrouper(applicationContext)
+
+	/** Title/creator evidence is mandatory; similarly named but unrelated works remain separate. */
+	private fun groupConfidentDuplicates(sections: List<SearchResultsListModel>) =
+		crossSourceGrouper.group(sections)
+
+	fun alternativeSources(manga: Manga): List<Manga> =
+		crossSourceGrouper.alternatives(results.value, manga)
+
+	fun preferredSourceName(manga: Manga): String? =
+		crossSourceGrouper.preferredName(results.value, manga)
+
+	fun rememberPreferredSource(manga: Manga) {
+		crossSourceGrouper.choose(results.value, manga)
+		preferredSourceVersion.value++
 	}
 
 	/** Languages of the sources that answered so far, for the language filter. */
@@ -197,6 +220,7 @@ class SearchViewModel @Inject constructor(
 			order = order,
 			titleOf = { it.manga.title },
 			yearOf = { PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description) },
+			deduplicate = false,
 		)
 		val combined = SearchResultsListModel(
 			titleResId = R.string.search_all_sources_by_year,

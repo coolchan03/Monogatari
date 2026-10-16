@@ -8,6 +8,8 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.koitharu.kotatsu.core.model.getTitle
 import androidx.appcompat.view.ActionMode
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -64,8 +66,8 @@ class SearchActivity :
 		setContentView(ActivitySearchBinding.inflate(layoutInflater))
 		tabletPreview = SearchTabletPreview.attach(
 			root = viewBinding.root,
-			onDetails = { router.openDetails(it) },
-			onRead = { router.openReader(it) },
+			onDetails = { openMangaWithSourceChoice(it, false) },
+			onRead = { openMangaWithSourceChoice(it, true) },
 			onUrl = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) },
 		)
 		title = when (viewModel.kind) {
@@ -143,7 +145,7 @@ class SearchActivity :
 
 	override fun onItemClick(item: MangaListModel, view: View) {
 		if (!selectionController.onItemClick(item.id)) {
-			if (tabletPreview != null) tabletPreview?.show(item) else router.openDetails(item.toMangaWithOverride())
+			if (tabletPreview != null) tabletPreview?.show(item) else openMangaWithSourceChoice(item.toMangaWithOverride(), false)
 		}
 	}
 
@@ -157,7 +159,7 @@ class SearchActivity :
 
 	override fun onReadClick(manga: Manga, view: View) {
 		if (!selectionController.onItemClick(manga.id)) {
-			router.openReader(manga)
+			openMangaWithSourceChoice(manga, true)
 		}
 	}
 
@@ -165,6 +167,30 @@ class SearchActivity :
 		if (!selectionController.onItemClick(manga.id)) {
 			router.openList(tag)
 		}
+	}
+
+	/** Cross-source choices are explicit. Picking one also persists the preferred provider for this work. */
+	private fun openMangaWithSourceChoice(manga: Manga, read: Boolean) {
+		val alternatives = viewModel.alternativeSources(manga)
+		if (alternatives.size < 2) {
+			if (read) router.openReader(manga) else router.openDetails(manga)
+			return
+		}
+		val preferred = viewModel.preferredSourceName(manga)
+		val ordered = alternatives.sortedWith(compareByDescending<Manga> { it.source.name == preferred }
+			.thenBy { it.source.name })
+		MaterialAlertDialogBuilder(this)
+			.setTitle(getString(R.string.search_choose_source, manga.title))
+			.setItems(ordered.map {
+				(if (it.source.name == preferred) "★ " else "") +
+					it.source.getTitle(this).toString()
+			}.toTypedArray()) { _, index ->
+				val selection = ordered[index]
+				viewModel.rememberPreferredSource(selection)
+				if (read) router.openReader(selection) else router.openDetails(selection)
+			}
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
 	}
 
 	override fun onRetryClick(error: Throwable) {
