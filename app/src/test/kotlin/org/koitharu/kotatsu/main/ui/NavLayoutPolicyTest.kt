@@ -15,8 +15,9 @@ class NavLayoutPolicyTest {
 	}
 
 	@Test
-	fun twoPaneStartsAt840() {
-		assertFalse(NavLayoutPolicy.useTwoPane(839))
+	fun twoPaneStartsAt600() {
+		assertFalse(NavLayoutPolicy.useTwoPane(599))
+		assertTrue(NavLayoutPolicy.useTwoPane(600))
 		assertTrue(NavLayoutPolicy.useTwoPane(840))
 	}
 }

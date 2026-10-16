@@ -107,13 +107,13 @@ class SearchViewModel @Inject constructor(
 	private val effectiveMediaType: MediaType?
 		get() = if (searchMediaScope == "ALL") null else mediaTypeOverride ?: settings.mediaTypeFilter
 
-	private var includeDisabledSources = MutableStateFlow(false)
-	private var pinnedOnly = MutableStateFlow(false)
+	private var includeDisabledSources = MutableStateFlow(savedStateHandle.get<Boolean>("include_disabled_sources") ?: false)
+	private var pinnedOnly = MutableStateFlow(savedStateHandle.get<Boolean>("pinned_only") ?: false)
 	// The combined search is most useful as a single clean answer, so dead/empty sources stay hidden
 	// unless the user explicitly asks to see them.
-	private var hideEmpty = MutableStateFlow(true)
-	private var yearFrom = MutableStateFlow<Int?>(null)
-	private var yearTo = MutableStateFlow<Int?>(null)
+	private var hideEmpty = MutableStateFlow(savedStateHandle.get<Boolean>("hide_empty") ?: true)
+	private var yearFrom = MutableStateFlow<Int?>(savedStateHandle.get<Int>("year_from"))
+	private var yearTo = MutableStateFlow<Int?>(savedStateHandle.get<Int>("year_to"))
 	/** When off, titles whose year can't be estimated are hidden while a year filter or order is in use. */
 	private val languageFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("language_filter"))
 	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
@@ -286,18 +286,21 @@ class SearchViewModel @Inject constructor(
 		catalogState.value = CatalogState(loading = effectiveMediaType == MediaType.BOOK)
 
 		includeDisabledSources.value = false
+		savedStateHandle["include_disabled_sources"] = false
 		doSearch()
 	}
 
 	fun setPinnedOnly(value: Boolean) {
 		if (pinnedOnly.value != value) {
 			pinnedOnly.value = value
+			savedStateHandle["pinned_only"] = value
 			retry()
 		}
 	}
 
 	fun setHideEmpty(value: Boolean) {
 		hideEmpty.value = value
+		savedStateHandle["hide_empty"] = value
 	}
 
 	val isHideEmptyEnabled: Boolean
@@ -337,6 +340,8 @@ class SearchViewModel @Inject constructor(
 		if (yearFrom.value == normalizedFrom && yearTo.value == normalizedTo) return
 		yearFrom.value = normalizedFrom
 		yearTo.value = normalizedTo
+		savedStateHandle["year_from"] = normalizedFrom
+		savedStateHandle["year_to"] = normalizedTo
 		retry()
 	}
 
@@ -347,6 +352,7 @@ class SearchViewModel @Inject constructor(
 		val prevJob = searchJob
 		searchJob = launchLoadingJob(Dispatchers.Default) {
 			includeDisabledSources.value = true
+			savedStateHandle["include_disabled_sources"] = true
 			prevJob?.join()
 			val sources = if (pinnedOnly.value) {
 				emptyList()

@@ -29,6 +29,11 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         val publicationYear: Int? = null,
         val language: String? = null,
         val format: String? = null,
+        /** Catalog-listed series, not a guessed volume from the title. */
+        val series: String? = null,
+        val editionCount: Int? = null,
+        /** Metadata describes access conditions, not a guarantee that lending is available now. */
+        val availability: String? = null,
     )
 
     suspend fun searchGutenberg(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
@@ -62,7 +67,10 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 "Open Library", "https://openlibrary.org$workPath",
                 coverUrl = obj.optInt("cover_i").takeIf { it > 0 }?.let { "https://covers.openlibrary.org/b/id/$it-L.jpg" },
                 publicationYear = obj.optInt("first_publish_year").takeIf { it in 1000..2100 },
-                language = obj.optJSONArray("language")?.optString(0), format = "Online catalog")
+                language = obj.optJSONArray("language")?.optString(0), format = "Online catalog",
+                series = obj.optJSONArray("series")?.optString(0)?.takeIf { it.isNotBlank() },
+                editionCount = obj.optInt("edition_count").takeIf { it > 0 },
+                availability = BookAccessMetadata.openLibraryAccess(obj.optString("ebook_access")))
         }
     }
 

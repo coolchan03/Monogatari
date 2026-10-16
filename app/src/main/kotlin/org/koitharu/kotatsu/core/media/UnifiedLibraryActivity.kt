@@ -134,9 +134,10 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             addView(collectionRow)
         }, LinearLayout.LayoutParams(-1, -2))
         collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
+        selectedCollection = savedInstanceState?.getString("selected_collection")?.takeIf { it in collections }
         search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
         search.doAfterTextChanged { render() }
-        search.setText(intent.getStringExtra(EXTRA_FILTER).orEmpty())
+        search.setText(savedInstanceState?.getString("library_query") ?: intent.getStringExtra(EXTRA_FILTER).orEmpty())
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
         count = TextView(this)
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
@@ -301,6 +302,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("selected_kind", selected?.name ?: "ALL")
+        outState.putString("selected_collection", selectedCollection)
+        if (::search.isInitialized) outState.putString("library_query", search.text?.toString().orEmpty())
         paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
         super.onSaveInstanceState(outState)
     }
@@ -402,6 +405,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     private inner class Rows : RecyclerView.Adapter<Rows.Holder>() {
         private var rows = emptyList<Row>()
+        init { stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY }
         fun setRows(value: List<Row>) {
             rows = value
             notifyDataSetChanged()

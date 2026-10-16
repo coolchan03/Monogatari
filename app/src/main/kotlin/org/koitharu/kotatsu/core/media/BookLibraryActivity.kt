@@ -405,6 +405,9 @@ class BookLibraryActivity : AppCompatActivity() {
                 group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
                 book.language?.takeIf { it.isNotBlank() },
                 book.format?.takeIf { it.isNotBlank() },
+                book.series?.let { getString(R.string.monogatari_catalog_series, it) },
+                book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
+                book.availability,
                 book.downloadUrl?.let { "EPUB available" },
             ).joinToString(" · ")
             CatalogRow(
@@ -467,6 +470,7 @@ class BookLibraryActivity : AppCompatActivity() {
     private fun openBookListing(book: PublicBookCatalog.Book) {
         if (book.catalog == "Standard Ebooks") {
             MaterialAlertDialogBuilder(this).setTitle(book.title)
+                .setMessage(bookMetadataSummary(book))
                 .setItems(arrayOf("View official listing", "Open compatible EPUB")) { _, which ->
                     if (which == 1) openStandardEpub(book) else openOfficialLink(book.url)
                 }
@@ -474,15 +478,22 @@ class BookLibraryActivity : AppCompatActivity() {
             return
         }
         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
-        if (epub == null) {
-            openOfficialLink(book.url)
-            return
-        }
         MaterialAlertDialogBuilder(this).setTitle(book.title)
-            .setItems(arrayOf("View ${book.catalog} listing", "Open available EPUB")) { _, which ->
-                openOfficialLink(if (which == 1) epub else book.url)
+            .setMessage(bookMetadataSummary(book))
+            .setItems(if (epub == null) arrayOf("View ${book.catalog} listing")
+                else arrayOf("View ${book.catalog} listing", "Open available EPUB")) { _, which ->
+                openOfficialLink(if (which == 1 && epub != null) epub else book.url)
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
+
+    /** A clear series/edition/access summary without implying unrestricted access or a guaranteed loan. */
+    private fun bookMetadataSummary(book: PublicBookCatalog.Book): String = listOfNotNull(
+        book.author.takeIf { it.isNotBlank() }, book.catalog,
+        book.publicationYear?.toString(), book.language,
+        book.series?.let { getString(R.string.monogatari_catalog_series, it) },
+        book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
+        book.format, book.availability,
+    ).joinToString("\n")
 
     private fun openOfficialLink(url: String) {
         if (!url.startsWith("https://")) {

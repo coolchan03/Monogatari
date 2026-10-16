@@ -7,7 +7,7 @@ internal object NavLayoutPolicy {
 	const val DESKTOP_WIDTH_DP = 1000
 
 	/** The two-pane layouts need at least this width. */
-	const val TWO_PANE_WIDTH_DP = 840
+	const val TWO_PANE_WIDTH_DP = 600
 
 	fun expandRail(widthDp: Int, labelsVisible: Boolean): Boolean = labelsVisible && widthDp >= DESKTOP_WIDTH_DP
 
