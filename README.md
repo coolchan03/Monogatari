@@ -6,13 +6,13 @@
 
 Monogatari is an Android reader built on Kotatsu-Redo with Mangayomi-style JavaScript extensions.
 
-## Latest test APK
+## Latest signed beta APK
 
-**[Download Monogatari v0.13.1 crash-repair test APK](https://github.com/coolchan03/Monogatari/releases/download/v0.13.1-launch-fix-debug/Monogatari-v0.13.1-launch-fix-debug.apk)**
+**[Download Monogatari v0.13.10 signed beta APK](https://github.com/coolchan03/Monogatari/releases/download/v0.13.10-signed-20261015/Monogatari-release.apk)**
 
-[Release details and installation notes](https://github.com/coolchan03/Monogatari/releases/tag/v0.13.1-launch-fix-debug) | [Latest development source (devel)](https://github.com/coolchan03/Monogatari/tree/devel) | [APK build and cold-start test](https://github.com/coolchan03/Monogatari/actions/runs/38469889807)
+[Release notes](https://github.com/coolchan03/Monogatari/releases/tag/v0.13.10-signed-20261015) | [Latest development source (devel)](https://github.com/coolchan03/Monogatari/tree/devel) | [83-feature completion tracker](docs/ROADMAP_83_TRACKER.md) | **[New-chat handoff and next steps](docs/MONOGATARI_NEXT_CHAT_HANDOFF.md)**
 
-This is a **debug testing prerelease**, not a device-validated production release. It installs under the separate Android debug app ID; back up existing test-app data before attempting to replace any incompatible debug installation.
+This is a **signed beta prerelease**, not the first official v1.0.0. The development branch is newer; the first official release will follow completion of the remaining Android features and CI. Test data should be backed up before switching between APK signing certificates or package variants.
 
 ## Features
 
