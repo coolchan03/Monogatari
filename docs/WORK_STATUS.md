@@ -60,3 +60,9 @@
 - Scope: true search-and-details dual-pane at >=840dp; improve tablet library, book catalog, portrait/landscape details, keyboard usability and large-screen insets.
 - Start head: 1cc79aad8 on ccr-94e2bfd8-3w4etd. Preserve data, apps and source IDs. Do not install SDK locally.
 - Next: inspect layouts, add tested width policy, implement and push via Tunnel to Surface; confirm CI.
+
+## 2026-10-15 - Remaining 14 Android items, isolated finishing worktree
+- Source: published devel `eaae55c1fcfe9972809e95974396759fd8968f0f`, 69 DONE, 14 PARTIAL. PR list empty at initial check; latest build-check still running.
+- Working branch: `finish-83-20261015`; new isolated worktree `C:/Users/coolc/Monogatari-Finish83-20261015` clean at creation. Original dirty P: worktree and older audit worktrees untouched.
+- Active operation: implement and test outstanding OCR bubble geometry and translated text fitting (#21/#23), then additional feasible roadmap gaps; verify GitHub-hosted CI before any completion claims.
+- No SDK/JDK/emulator installation on owner devices. All pushes, PRs, merges, dispatches and release changes through Tunnel to Surface. Do not release v1.0.0 until all items validated.

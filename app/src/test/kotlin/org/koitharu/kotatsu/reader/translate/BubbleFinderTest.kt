@@ -43,6 +43,21 @@ class BubbleFinderTest {
 	}
 
 	@Test
+	fun irregularBubbleMaskLeavesCornersAndArtworkOutside() {
+		val pixels = IntArray(40 * 40) { ink }
+		// Diamond-shaped paper area. Its bounding box includes plenty of ink outside the bubble.
+		for (y in 8..32) for (x in 8..32) {
+			if (kotlin.math.abs(x - 20) + kotlin.math.abs(y - 20) <= 12) pixels[y * 40 + x] = white
+		}
+		val region = BubbleFinder.interior(pixels, 40, 40, listOf(20 to 20), white)
+		assertNotNull(region)
+		assertEquals(Box(8, 8, 33, 33), region!!.bounds)
+		assertEquals(true, region.contains(20, 20))
+		assertEquals(false, region.contains(8, 8))
+		assertEquals(false, region.contains(30, 30))
+	}
+
+	@Test
 	fun tinyColourDriftIsStillPaper() {
 		val p = bubbleWindow()
 		for (i in p.indices) if (p[i] == white && i % 7 == 0) p[i] = 0xFFF4F4F0.toInt()

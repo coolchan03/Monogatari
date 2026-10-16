@@ -9,6 +9,12 @@ internal object BubbleFinder {
 	/** Sum of per-channel differences below which two colours count as the same paper. */
 	const val DEFAULT_TOLERANCE = 72
 
+	/** The actual connected bubble interior: unlike its bounds, this mask excludes panel art and bubble corners. */
+	data class Region(val bounds: TranslationLayout.Box, val width: Int, val height: Int, val mask: BooleanArray) {
+		fun contains(x: Int, y: Int): Boolean =
+			x in 0 until width && y in 0 until height && mask[y * width + x]
+	}
+
 	private fun close(a: Int, b: Int, tolerance: Int): Boolean {
 		val dr = ((a shr 16) and 0xFF) - ((b shr 16) and 0xFF)
 		val dg = ((a shr 8) and 0xFF) - ((b shr 8) and 0xFF)
@@ -25,7 +31,13 @@ internal object BubbleFinder {
 	fun interiorBounds(
 		pixels: IntArray, width: Int, height: Int, seeds: List<Pair<Int, Int>>, paper: Int,
 		tolerance: Int = DEFAULT_TOLERANCE,
-	): TranslationLayout.Box? {
+	): TranslationLayout.Box? = interior(pixels, width, height, seeds, paper, tolerance)?.bounds
+
+	/** Preserve a pixel-accurate interior so filling never paints over the outline or artwork in a corner. */
+	fun interior(
+		pixels: IntArray, width: Int, height: Int, seeds: List<Pair<Int, Int>>, paper: Int,
+		tolerance: Int = DEFAULT_TOLERANCE,
+	): Region? {
 		if (width <= 0 || height <= 0 || pixels.size < width * height) return null
 		val visited = BooleanArray(width * height)
 		val queue = IntArray(width * height)
@@ -59,7 +71,7 @@ internal object BubbleFinder {
 		}
 		val touching = listOf(minX == 0, maxX == width - 1, minY == 0, maxY == height - 1).count { it }
 		if (touching >= 2) return null
-		return TranslationLayout.Box(minX, minY, maxX + 1, maxY + 1)
+		return Region(TranslationLayout.Box(minX, minY, maxX + 1, maxY + 1), width, height, visited)
 	}
 
 	/** Seeds around [box] (window coordinates): the middle and corners of each side, just outside its edge. */
