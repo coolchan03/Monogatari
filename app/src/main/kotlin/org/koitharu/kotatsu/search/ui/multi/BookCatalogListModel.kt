@@ -8,6 +8,8 @@ data class BookCatalogListModel(
     val author: String,
     val catalog: String,
     val url: String,
+    /** Structured publication year supplied by a catalog, never inferred from its title. */
+    val publicationYear: Int? = null,
 ) : ListModel {
     override fun areItemsTheSame(other: ListModel): Boolean =
         other is BookCatalogListModel && other.url == url

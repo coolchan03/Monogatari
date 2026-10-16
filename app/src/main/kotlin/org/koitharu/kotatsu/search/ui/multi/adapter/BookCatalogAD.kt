@@ -15,6 +15,7 @@ fun bookCatalogAD(onOpen: (BookCatalogListModel) -> Unit) =
             binding.monogatariCatalogItemSummary.text = listOf(
                 item.author.takeIf { it.isNotBlank() },
                 item.catalog,
+                item.publicationYear?.let { "Published $it" },
             ).filterNotNull().joinToString(" · ")
             binding.root.setOnClickListener { onOpen(item) }
             binding.root.contentDescription = "${item.title}, ${binding.monogatariCatalogItemSummary.text}"

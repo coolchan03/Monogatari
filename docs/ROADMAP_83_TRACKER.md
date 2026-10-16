@@ -4,7 +4,7 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
-**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 68 DONE, 15 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
+**Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 69 DONE, 14 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
 
@@ -40,7 +40,7 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 26 | DONE | Show OCR confidence and allow tap-to-correct wrongly recognized text. **Done:** recognition confidence is stored per bubble; doubtful lines are counted and tapping any bubble shows the recognised text with its confidence and lets you type a correction that is saved and redrawn. |
 | 27 | DONE | Cache translations per page and target language; offer offline model download management and cache limits. *(Settings > Data cleanup: "Clear translated pages" and "Translation languages"; 200-page cap.)* **Done:** the downloaded packs can be listed and deleted from reader options (new shortcut) and Settings > storage; translated pages are cached (600-page limit). |
 | 28 | DONE | Never send private pages to a server unless a separately enabled cloud provider is explicitly authorized. |
-| 29 | PARTIAL | Improve reliable publication metadata: year from source APIs/structured fields, then mark estimated years distinctly. |
+| 29 | DONE | Global book search now carries structured publication years from public APIs; Books year filters and oldest/newest ordering work without hiding all catalogs. Unknown dates remain explicit and optional, and book summaries label published years. Plex movies/shows preserve structured release years in descriptions, not authors. Manga title-derived guesses remain marked ~ in year badges. Physical-provider metadata accuracy is a separate release QA check. |
 | 30 | DONE | Offer oldest/newest globally in addition to within-source sorting once normalized metadata can be stored. **Done:** "all sources together" oldest/newest choices in Publication years merge every source into one list. |
 | 31 | DONE | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. **Done:** year range (existing), plus "include titles with no known year"; years are estimates. Per-title date confidence not shown. |
 | 32 | PARTIAL | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |

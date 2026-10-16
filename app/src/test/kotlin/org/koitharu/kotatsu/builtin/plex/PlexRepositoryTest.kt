@@ -33,6 +33,16 @@ class PlexRepositoryTest {
 	}
 
 	@Test
+	fun structuredPlexReleaseYearIsNotMisfiledAsAnAuthor() {
+		assertEquals("Release year: 1995 - Crime drama",
+			PlexRepository.descriptionWithYear(1995, "Crime drama"))
+		assertEquals("Release year: 2001",
+			PlexRepository.descriptionWithYear(2001, null))
+		assertEquals("A film", PlexRepository.descriptionWithYear(null, "A film"))
+		assertNull(PlexRepository.descriptionWithYear(0, null))
+	}
+
+	@Test
 	fun movieFilePartAndUrlHelpers() {
 		val movie = JSONObject("""{"MediaContainer":{"Metadata":[{"Media":[{"Part":[{"key":"/library/parts/9/9/m.mp4"}]}]}]}}""")
 		assertEquals("/library/parts/9/9/m.mp4", PlexRepository.partKey(movie))
