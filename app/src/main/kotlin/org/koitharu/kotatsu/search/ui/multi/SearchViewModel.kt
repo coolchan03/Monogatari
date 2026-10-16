@@ -117,6 +117,18 @@ class SearchViewModel @Inject constructor(
 	private var yearTo = MutableStateFlow<Int?>(savedStateHandle.get<Int>("year_to"))
 	/** When off, titles whose year can't be estimated are hidden while a year filter or order is in use. */
 	private val languageFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("language_filter"))
+	private val genreFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("genre_filter"))
+	private val bookFormatFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("book_format_filter"))
+	private val progressFilter = MutableStateFlow(
+		savedStateHandle.get<String>("history_filter")
+			?.let { SearchMetadataFilters.History.entries.firstOrNull { mode -> mode.name == it } }
+			?: SearchMetadataFilters.History.ANY,
+	)
+	private val viewedIds = MutableStateFlow<Set<Long>?>(null)
+	private var viewedJob: Job? = null
+	private val metadataSelection = combine(genreFilter, progressFilter, viewedIds) { genre, progress, ids ->
+		Triple(genre, progress, ids)
+	}
 	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
     val isVideoModeSearch: Boolean
         get() = effectiveMediaType == MediaType.VIDEO
@@ -144,8 +156,15 @@ class SearchViewModel @Inject constructor(
 			?: PublicationYearOrder.RELEVANCE,
 	)
 	private val displayResults = combine(
-		combine(results, languageFilter, preferredSourceVersion) { all, language, _ ->
-			if (language == null) all else all.filter { LanguageFilter.matches(it.source.getLocale()?.language, language) }
+		combine(results, languageFilter, preferredSourceVersion, metadataSelection) { all, language, _, selection ->
+			all.map { section ->
+				val eligible = language == null ||
+					LanguageFilter.matches(section.source.getLocale()?.language, language)
+				section.copy(list = if (!eligible) emptyList() else section.list.filter { row ->
+					SearchMetadataFilters.tagMatches(row.manga.tags.map { it.title }, selection.first) &&
+						SearchMetadataFilters.historyMatches(row.manga.id, selection.second, selection.third)
+				})
+			}
 		},
 		publicationSort, yearFrom, yearTo, includeUnknownYears,
 	) { raw, order, from, to, unknown ->
@@ -208,6 +227,46 @@ class SearchViewModel @Inject constructor(
 		savedStateHandle["language_filter"] = language
 	}
 
+	val selectedGenre: String? get() = genreFilter.value
+	val selectedBookFormat: String? get() = bookFormatFilter.value
+	val selectedHistoryFilter: SearchMetadataFilters.History get() = progressFilter.value
+
+	fun availableGenres(): List<String> =
+		SearchMetadataFilters.availableTags(results.value.flatMap { section ->
+			section.list.flatMap { row -> row.manga.tags.map { it.title } }
+		})
+
+	fun availableBookFormats(): List<String> =
+		SearchMetadataFilters.availableFormats(catalogState.value.items.map { it.format })
+
+	fun hasHistoryCapableResults(): Boolean = results.value.any { it.list.isNotEmpty() }
+
+	fun setGenreFilter(value: String?) {
+		genreFilter.value = value?.trim()?.take(50)?.takeIf(String::isNotBlank)
+		savedStateHandle["genre_filter"] = genreFilter.value
+	}
+
+	fun setBookFormatFilter(value: String?) {
+		bookFormatFilter.value = value
+		savedStateHandle["book_format_filter"] = value
+	}
+
+	fun setHistoryFilter(value: SearchMetadataFilters.History) {
+		progressFilter.value = value
+		savedStateHandle["history_filter"] = value.name
+		if (value != SearchMetadataFilters.History.ANY) loadViewedIds()
+	}
+
+	/** Uses the existing local history database; unknown history does NOT mean unread. */
+	private fun loadViewedIds() {
+		if (viewedIds.value != null || viewedJob?.isActive == true) return
+		viewedJob = viewModelScope.launch(Dispatchers.IO) {
+			viewedIds.value = runCatchingCancellable {
+				historyRepository.search(query, kind, Int.MAX_VALUE).map { it.id }.toSet()
+			}.getOrNull()
+		}
+	}
+
 	/** One combined, globally ordered section replaces the per-source ones (sections with errors stay visible). */
 	private fun mergeGlobally(
 		sections: List<SearchResultsListModel>,
@@ -239,8 +298,14 @@ class SearchViewModel @Inject constructor(
 		val loading: Boolean = false,
 	)
 	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == MediaType.BOOK))
+	private val filteredCatalog = combine(catalogState, bookFormatFilter, progressFilter, genreFilter, languageFilter) {
+		catalog, format, progress, genre, language ->
+		catalog.copy(items = if (progress != SearchMetadataFilters.History.ANY || !genre.isNullOrBlank()) emptyList()
+			else catalog.items.filter { SearchMetadataFilters.formatMatches(it.format, format) &&
+				SearchMetadataFilters.languageMatches(it.language, language) })
+	}
 	private val displayCatalog = combine(
-		catalogState, publicationSort, yearFrom, yearTo, includeUnknownYears,
+		filteredCatalog, publicationSort, yearFrom, yearTo, includeUnknownYears,
 	) { catalog, sort, from, to, unknown ->
 		catalog.copy(items = PublicBookYearSorter.display(catalog.items, sort, from, to, unknown))
 	}
@@ -288,6 +353,7 @@ class SearchViewModel @Inject constructor(
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, listOf(LoadingState()))
 
 	init {
+		if (progressFilter.value != SearchMetadataFilters.History.ANY) loadViewedIds()
 		doSearch()
 	}
 

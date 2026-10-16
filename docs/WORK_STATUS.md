@@ -72,3 +72,8 @@
 - CI `38841599631` on `6370587` failed compiling the new `MangaDuplicatePolicyTest.kt` because its final class brace was omitted. Fixed in working tree. This is not a production regression in application code; fresh CI still required.
 - Verified StoryWeaver public `https://storyweaver.org.in/api/v1/books-search?query=cat&per_page=2&page=1` returns HTTP 200 with 1931 real matching public story records (title/author/illustrator/cover/publisher). Implemented parser, official-source reader WebView and official-site fallback, and tests. No invented PDF/EPUB link, site scraping or anti-bot bypass.
 - Still open: cross-media filters (#32), global chrome/dark/accessibility (#11/#18/#69), foldable/window/device acceptance (#66), provider restrictions (#48), private Plex credentials/device codec (#58). Await hosted unit/R8/cold-start and real owner-device QA; not cleared for 1.0.0.
+
+## 2026-10-15 - Metadata-aware filters finishing work (#32)
+- Implemented explicit Search > filter menu for available result tags/demographics, normalized source language, public catalog formats, and actual local history (opened/not opened), preserving choices via SavedStateHandle.
+- Unsupported reading-direction metadata is deliberately not fabricated; controls appear only when at least one result exposes relevant metadata. Public external catalogs are excluded from local-history selection and genre selection when no genre metadata is supplied.
+- Added `SearchMetadataFiltersTest`; still awaiting exact-commit GitHub-hosted unit tests, R8 APK and cold start. Do not count #32 fully DONE until those checks and unsupported direction behavior are reviewed.

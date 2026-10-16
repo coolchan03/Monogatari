@@ -80,6 +80,11 @@ class SearchMenuProvider(
 				showPublicationYearsDialog()
 				return true
 			}
+
+			R.id.action_filter_metadata -> {
+				SearchMetadataFilterDialog.show(activity, viewModel)
+				return true
+			}
             R.id.action_filter_media -> {
                 showMediaScopeDialog()
                 return true

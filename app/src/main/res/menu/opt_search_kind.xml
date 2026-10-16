@@ -62,6 +62,10 @@
 					android:id="@+id/action_filter_years"
 					android:title="@string/publication_years" />
 
+				<item
+					android:id="@+id/action_filter_metadata"
+					android:title="@string/search_metadata_filters" />
+
 			</group>
 		</menu>
 

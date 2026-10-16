@@ -1429,4 +1429,14 @@ Optional — skip it and you appear as anon.</string>
     <string name="storyweaver_open_browser">Open in browser</string>
     <string name="storyweaver_read_story">Read illustrated story</string>
     <string name="storyweaver_invalid_link">This StoryWeaver story address is not recognized.</string>
+    <string name="search_metadata_filters">Genre, language, format and history</string>
+    <string name="search_genre_tag_label">Genre or demographic tag</string>
+    <string name="search_genre_tag_hint">e.g. Romance, Boys’ Love, Mystery</string>
+    <string name="search_format_label">Listed book format</string>
+    <string name="search_local_progress_label">Local reading/watch history</string>
+    <string name="search_history_all">All titles</string>
+    <string name="search_history_viewed">Already opened on this device</string>
+    <string name="search_history_unviewed">Not in this device’s history</string>
+    <string name="search_metadata_unavailable">No compatible metadata yet. Search a source first; controls appear only when available.</string>
+    <string name="search_clear_metadata_filters">Clear filters</string>
 </resources>
