@@ -357,8 +357,7 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
-                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks",
-                    "Faded Page", "Gutenberg Australia", "Global Grey", "Baen Free Library", "StoryWeaver")
+                PublicCatalogProvider.entries.map { it.label }
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -408,6 +407,7 @@ class BookLibraryActivity : AppCompatActivity() {
                 group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
                 book.language?.takeIf { it.isNotBlank() },
                 book.format?.takeIf { it.isNotBlank() },
+                book.genres.firstOrNull()?.takeIf { it.isNotBlank() },
                 book.series?.let { getString(R.string.monogatari_catalog_series, it) },
                 book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
                 book.availability,
@@ -571,20 +571,7 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private suspend fun searchProvider(source: String, term: String): List<PublicBookCatalog.Book> =
-        when (source) {
-            "Gutenberg" -> catalog.searchGutenberg(term)
-            "Open Library" -> catalog.searchOpenLibrary(term)
-            "Archive" -> catalog.searchInternetArchive(term)
-            "Wikisource" -> catalog.searchWikisource(term)
-            "Google Books" -> catalog.searchGoogleBooks(term)
-            "Standard Ebooks" -> catalog.searchStandardEbooks(term)
-            "Faded Page" -> catalog.searchFadedPage(term)
-            "Gutenberg Australia" -> catalog.searchGutenbergAustralia(term)
-            "Global Grey" -> catalog.searchGlobalGrey(term)
-            "Baen Free Library" -> catalog.searchBaenFreeLibrary(term)
-            "StoryWeaver" -> catalog.searchStoryWeaver(term)
-            else -> emptyList()
-        }
+        PublicCatalogProvider.fromLabel(source)?.search(catalog, term).orEmpty()
 
     private fun showSortOptions() {
         val options = BookCatalogSorter.Order.entries

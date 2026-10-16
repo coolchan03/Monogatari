@@ -16,7 +16,7 @@ internal class SearchTabletPreview private constructor(
     root: View,
     private val onDetails: (Manga) -> Unit,
     private val onRead: (Manga) -> Unit,
-    private val onUrl: (String) -> Unit,
+    private val onBookOpen: (BookCatalogListModel) -> Unit,
 ) {
     private val hint = root.findViewById<TextView>(R.id.search_preview_hint)
     private val cover = root.findViewById<CoilImageView>(R.id.search_preview_cover)
@@ -26,15 +26,15 @@ internal class SearchTabletPreview private constructor(
     private val open = root.findViewById<MaterialButton>(R.id.search_preview_open)
     private val read = root.findViewById<MaterialButton>(R.id.search_preview_read)
     private var selectedManga: Manga? = null
-    private var selectedUrl: String? = null
+    private var selectedBook: BookCatalogListModel? = null
     val selectedId: Long? get() = selectedManga?.id
     /** Stable identity for restoring a public-book preview after window resizing or rotation. */
-    val selectedBookUrl: String? get() = selectedUrl
+    val selectedBookUrl: String? get() = selectedBook?.url
 
     init {
         open.setOnClickListener {
             val manga = selectedManga
-            if (manga != null) onDetails(manga) else selectedUrl?.let(onUrl)
+            if (manga != null) onDetails(manga) else selectedBook?.let(onBookOpen)
         }
         read.setOnClickListener { selectedManga?.let(onRead) }
     }
@@ -42,7 +42,7 @@ internal class SearchTabletPreview private constructor(
     fun show(item: MangaListModel) {
         val manga = item.toMangaWithOverride()
         selectedManga = manga
-        selectedUrl = null
+        selectedBook = null
         val content = manga.description?.takeIf { it.isNotBlank() }
         showCommon(item.title, item.source.getTitle(title.context).toString(),
             content?.let { HtmlCompat.fromHtml(it, HtmlCompat.FROM_HTML_MODE_COMPACT) }
@@ -55,15 +55,15 @@ internal class SearchTabletPreview private constructor(
 
     fun show(item: BookCatalogListModel) {
         selectedManga = null
-        selectedUrl = item.url
+        selectedBook = item
         cover.isVisible = !item.coverUrl.isNullOrBlank()
         cover.setImageAsync(item.coverUrl)
         showCommon(item.title, item.catalog,
             listOfNotNull(item.author.takeIf { it.isNotBlank() },
                 if (item.isOfficialSiteSearch) title.context.getString(R.string.search_official_site_only) else null,
-                item.format, item.language, item.attribution)
+                item.format, item.language, item.genres.take(3).joinToString(" · ").takeIf(String::isNotBlank), item.attribution)
                 .joinToString(" · ").ifBlank { title.context.getString(R.string.tablet_search_no_description) })
-        open.setText(R.string.tablet_search_website)
+        open.setText(R.string.search_book_options)
         read.isVisible = false
     }
 
@@ -84,10 +84,10 @@ internal class SearchTabletPreview private constructor(
             root: View,
             onDetails: (Manga) -> Unit,
             onRead: (Manga) -> Unit,
-            onUrl: (String) -> Unit,
+            onBookOpen: (BookCatalogListModel) -> Unit,
         ): SearchTabletPreview? {
             if (root.findViewById<View>(R.id.search_preview_pane) == null) return null
-            return SearchTabletPreview(root, onDetails, onRead, onUrl)
+            return SearchTabletPreview(root, onDetails, onRead, onBookOpen)
         }
     }
 }

@@ -8,6 +8,7 @@ import okhttp3.FormBody
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.qa.NewsFeedParser
 import org.json.JSONObject
+import org.json.JSONArray
 import java.net.URLEncoder
 import javax.inject.Inject
 import java.util.concurrent.ConcurrentHashMap
@@ -35,6 +36,8 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
         /** Metadata describes access conditions, not a guarantee that lending is available now. */
         val availability: String? = null,
         val attribution: String? = null,
+        /** Actual provider-supplied subjects/categories, never inferred from a title. */
+        val genres: List<String> = emptyList(),
     )
 
     suspend fun searchGutenberg(query: String, page: Int = 1): List<Book> = withContext(Dispatchers.IO) {
@@ -49,7 +52,8 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             Book(obj.optString("title"), obj.optJSONArray("authors")?.optJSONObject(0)?.optString("name").orEmpty(),
                 "Project Gutenberg", "https://www.gutenberg.org/ebooks/$id", epub,
                 coverUrl = image, language = obj.optJSONArray("languages")?.optString(0),
-                format = if (epub != null) "EPUB" else "Online book")
+                format = if (epub != null) "EPUB" else "Online book",
+                genres = readProviderTopics(obj.optJSONArray("subjects")))
         }
     }
 
@@ -71,7 +75,8 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 language = obj.optJSONArray("language")?.optString(0), format = "Online catalog",
                 series = obj.optJSONArray("series")?.optString(0)?.takeIf { it.isNotBlank() },
                 editionCount = obj.optInt("edition_count").takeIf { it > 0 },
-                availability = BookAccessMetadata.openLibraryAccess(obj.optString("ebook_access")))
+                availability = BookAccessMetadata.openLibraryAccess(obj.optString("ebook_access")),
+                genres = readProviderTopics(obj.optJSONArray("subject")))
         }
     }
 
@@ -143,7 +148,8 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
                 downloadUrl = access.epubUrl,
                 coverUrl = cover,
                 publicationYear = year, language = info.optString("language"),
-                format = access.label) to access.freeToRead
+                format = access.label,
+                genres = readProviderTopics(info.optJSONArray("categories"))) to access.freeToRead
         }.sortedByDescending { it.second }.map { it.first }
     }
 
@@ -259,6 +265,11 @@ class PublicBookCatalog @Inject constructor(@BaseHttpClient private val client: 
             JSONObject(response.body?.string() ?: error("Empty catalog response"))
         }
     }
+
+    /** Long, untrusted provider subject lists are bounded for the filter picker. */
+    private fun readProviderTopics(values: JSONArray?): List<String> = (0 until minOf(20, values?.length() ?: 0))
+        .mapNotNull { i -> values?.optString(i)?.trim()?.take(90)?.takeIf(String::isNotBlank) }
+        .distinctBy { it.lowercase() }
 
     private fun encode(value: String) = URLEncoder.encode(value, "UTF-8")
 }

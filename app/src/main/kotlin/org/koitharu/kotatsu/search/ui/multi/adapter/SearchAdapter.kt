@@ -39,6 +39,7 @@ class SearchAdapter(
 			),
 		)
 		addDelegate(ListItemType.BOOK_CATALOG, bookCatalogAD(onBookOpen))
+		addDelegate(ListItemType.BOOK_CATALOG_NOTICE, catalogNoticeAD())
 		addDelegate(ListItemType.STATE_LOADING, loadingStateAD())
 		addDelegate(ListItemType.FOOTER_LOADING, loadingFooterAD())
 		addDelegate(ListItemType.STATE_EMPTY, emptyStateListAD(listener))

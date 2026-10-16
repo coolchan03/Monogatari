@@ -22,6 +22,7 @@ fun bookCatalogAD(onOpen: (BookCatalogListModel) -> Unit) =
                 item.publicationYear?.let { "Published $it" },
                 item.format,
                 item.language,
+                item.genres.firstOrNull(),
             ).filterNotNull().joinToString(" · ")
             binding.root.setOnClickListener { onOpen(item) }
             binding.root.contentDescription = "${item.title}, ${binding.monogatariCatalogItemSummary.text}"

@@ -3,6 +3,14 @@ package org.koitharu.kotatsu.search.ui.multi
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import java.io.File
+import okhttp3.OkHttpClient
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.snackbar.Snackbar
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -16,6 +24,11 @@ import androidx.core.view.updatePadding
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.core.media.PublicBookCatalog
+import org.koitharu.kotatsu.core.media.OfficialEpubDownloader
+import org.koitharu.kotatsu.core.media.BookShelf
+import org.koitharu.kotatsu.core.media.StandardEbooksCatalog
+import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.media.StoryWeaverCatalog
 import org.koitharu.kotatsu.core.media.StoryWeaverReaderActivity
 import org.koitharu.kotatsu.core.media.OfficialMediaSites
@@ -62,6 +75,10 @@ class SearchActivity :
 
 	@Inject
 	lateinit var settings: AppSettings
+	@Inject
+	lateinit var publicBookCatalog: PublicBookCatalog
+	@Inject @BaseHttpClient
+	lateinit var epubClient: OkHttpClient
 
 	private val viewModel by viewModels<SearchViewModel>()
 	private lateinit var selectionController: ListSelectionController
@@ -79,7 +96,7 @@ class SearchActivity :
 			root = viewBinding.root,
 			onDetails = { openMangaWithSourceChoice(it, false) },
 			onRead = { openMangaWithSourceChoice(it, true) },
-			onUrl = { openCatalogWebsite(it) },
+			onBookOpen = { openCatalogResult(it) },
 		)
 		title = when (viewModel.kind) {
 			SearchKind.SIMPLE,
@@ -120,7 +137,7 @@ class SearchActivity :
 			selectionDecoration = selectionDecoration,
 			onBookOpen = { book ->
 				if (tabletPreview != null) tabletPreview?.show(book)
-				else openCatalogWebsite(book.url, book.attribution)
+				else openCatalogResult(book)
 			},
 		)
 		viewBinding.recyclerView.adapter = adapter
@@ -210,6 +227,64 @@ class SearchActivity :
 		if (!selectionController.onItemClick(manga.id)) {
 			router.openList(tag)
 		}
+	}
+
+	/** A global book result has the same offline actions as Books, on phones and tablet panes. */
+	private fun openCatalogResult(book: BookCatalogListModel) {
+		if (book.isOfficialSiteSearch || book.catalog == "StoryWeaver") {
+			openCatalogWebsite(book.url, book.attribution)
+			return
+		}
+		val direct = book.downloadUrl?.takeIf { OfficialEpubDownloader.approved(book.catalog, it) }
+		val canResolve = book.catalog == "Standard Ebooks" && StandardEbooksCatalog.officialPage(book.url)
+		if (direct == null && !canResolve) {
+			openCatalogWebsite(book.url, book.attribution)
+			return
+		}
+		val labels = listOf(
+			getString(R.string.search_book_save_offline),
+			getString(R.string.search_book_official_listing),
+		) + if (direct != null) listOf(getString(R.string.search_book_open_in_browser)) else emptyList()
+		MaterialAlertDialogBuilder(this).setTitle(book.title)
+			.setItems(labels.toTypedArray()) { _, index ->
+				when (index) {
+					0 -> saveCatalogBook(book)
+					1 -> openCatalogWebsite(book.url, book.attribution)
+					2 -> direct?.let { openCatalogWebsite(it) }
+				}
+			}
+			.setNegativeButton(android.R.string.cancel, null).show()
+	}
+
+	private fun saveCatalogBook(book: BookCatalogListModel) {
+		val progress = Snackbar.make(viewBinding.root,
+			getString(R.string.monogatari_epub_downloading, book.title), Snackbar.LENGTH_INDEFINITE)
+		val download = lifecycleScope.launch {
+			try {
+				val url = if (book.catalog == "Standard Ebooks") withContext(Dispatchers.IO) {
+					publicBookCatalog.resolveStandardEbooksEpub(book.url)
+				} else book.downloadUrl
+				if (url == null || !OfficialEpubDownloader.approved(book.catalog, url)) {
+					Snackbar.make(viewBinding.root, R.string.monogatari_epub_unapproved, Snackbar.LENGTH_LONG).show()
+					return@launch
+				}
+				val stored = OfficialEpubDownloader.save(epubClient, File(filesDir, "imported-books"),
+					book.title, book.catalog, url)
+				Snackbar.make(viewBinding.root, getString(R.string.monogatari_epub_saved, book.title),
+					Snackbar.LENGTH_SHORT).show()
+				startActivity(BookShelf.readerIntent(this@SearchActivity, stored))
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				Snackbar.make(viewBinding.root,
+					getString(R.string.monogatari_epub_download_error, error.message.orEmpty().take(130)),
+					Snackbar.LENGTH_LONG).show()
+			} finally {
+				progress.dismiss()
+			}
+		}
+		progress.setAction(android.R.string.cancel) { download.cancel() }
+		progress.show()
 	}
 
 	/** StoryWeaver opens its authorized illustrated reader in-app, rather than an unrelated browser tab. */

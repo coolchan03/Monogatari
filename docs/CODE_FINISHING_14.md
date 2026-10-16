@@ -34,3 +34,12 @@ Important constraints:
 - #63/#66: Tablet search preview restores the selected manga/official catalog item across rotation after results load. Unified Library RecyclerView now has a persistent Android resource ID for scroll-state restoration, with a recoverable library I/O error state.
 - #48: Fiction browsing remains restricted to the provider originally opened and offers explicit feedback for site HTTP 403/429/503, without pretending anti-bot access is a native parser.
 - GitHub development workflow: `.github/workflows/code-compile.yml` compiles app and unit-test **source code only**, with no emulator, signing, runtime feature tests, or APK publishing. Full verification deliberately remains the last phase.
+
+## Follow-up implementation batch: unified public catalogs and offline actions (October 16)
+
+- A **single registry** in `PublicCatalogProvider.kt` now drives all 11 existing public Books providers and the global "All"/Books search. The global search no longer quietly excludes Gutenberg, Open Library, Wikisource, Google Books, Faded Page, Gutenberg Australia, Global Grey and Baen Free Library.
+- Public catalog results are appended **progressively** with bounded parallelism and 15-second source timeouts. They retain stable provider order, preserve results from successful sources and show a separate, **non-clickable** notice naming providers that did not respond. Official FictionPress/FanFiction.net website search links stay explicitly marked as such, not indexed native results.
+- Genre and demographic filters can now use **actual provider-reported book subjects**, where available, from Gutenberg, Open Library and Google Books. The catalog never guesses subjects based on an unrelated title.
+- Global-search results now carry publisher-reported free EPUB links. Eligible Standard Ebooks and Project Gutenberg results offer the same "Save EPUB and read offline" flow as Books, including from the tablet preview pane; protected and unapproved sources still open official listings.
+- `PublicCatalogProviderTest.kt` adds source-coverage regression cases. New adapter state distinguishes source failures from empty titles; no feature/device acceptance has been performed.
+- **Do not mark any of the 14 PARTIAL items DONE yet.** GitHub Actions should run only the compile-only workflow during this code-development phase. Provider access, live downloads, device layout and user acceptance remain final-stage work.

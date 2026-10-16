@@ -34,3 +34,7 @@ The Android finishing work is in [draft PR #13](https://github.com/coolchan03/Mo
 ## Credits
 
 Based on [Kotatsu-Redo](https://github.com/Kotatsu-Redo/Kotatsu-Redo) and inspired by [Mangayomi](https://github.com/kodjodevf/mangayomi). Original contributors retain their credits.
+
+### Unified Books search development
+
+Draft [PR #13](https://github.com/coolchan03/Monogatari/pull/13) now shares the full eleven-provider public Books registry with the global search, displays partial results as providers answer, and provides explicit source-availability notices. Where a publisher supplies a compatible free EPUB, global search can save it into the local reader library. Features remain **in development, not device-verified**.

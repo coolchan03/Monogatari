@@ -80,3 +80,6 @@ User specifically instructed: **feature verification must be the very last stage
 
 ### October 16 follow-up development batch
 Draft [PR #13](https://github.com/coolchan03/Monogatari/pull/13) is the exclusive integration route. Next code work: authorized offline EPUB import with format validation, accurate global metadata filtering, tablet preview and library state restoration, official-fiction HTTP error handling, and new GitHub-hosted **compile-only** workflow (`.github/workflows/code-compile.yml`). Preserve the distinction between compilation and full feature verification. Keep tracker statuses PARTIAL until the actual last-stage acceptance.
+
+### October 16 next code batch: global Books completeness
+Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` registry covers all eleven Books providers in global search; concurrent results stream progressively while failed providers get an informational row. Gutenberg/Open Library/Google Books subjects power book genre filtering; global results retain official free EPUB URLs and provide in-app offline save/read choices (including tablet preview). This code is **not final-feature-tested**. The compile-only GitHub workflow is allowed; defer provider/device verification, merge, signing and release until the final stage. Details: `docs/CODE_FINISHING_14.md`.

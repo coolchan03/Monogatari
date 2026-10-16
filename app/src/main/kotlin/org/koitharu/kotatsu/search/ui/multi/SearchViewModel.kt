@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -30,6 +31,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
+import org.koitharu.kotatsu.core.media.PublicCatalogProvider
 import org.koitharu.kotatsu.core.media.OfficialMediaSites
 import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.media.MediaType
@@ -256,9 +258,10 @@ class SearchViewModel @Inject constructor(
 	}
 
 	fun availableGenres(): List<String> =
-		SearchMetadataFilters.availableTags(results.value.flatMap { section ->
-			section.list.flatMap { row -> row.manga.tags.map { it.title } }
-		})
+		SearchMetadataFilters.availableTags(
+			results.value.flatMap { section -> section.list.flatMap { row -> row.manga.tags.map { it.title } } } +
+			catalogState.value.items.flatMap { it.genres },
+		)
 
 	fun availableBookFormats(): List<String> =
 		SearchMetadataFilters.availableFormats(catalogState.value.items.map { it.format })
@@ -328,13 +331,19 @@ class SearchViewModel @Inject constructor(
 	private data class CatalogState(
 		val items: List<BookCatalogListModel> = emptyList(),
 		val loading: Boolean = false,
+		val byProvider: Map<String, List<BookCatalogListModel>> = emptyMap(),
+		val officialLinks: List<BookCatalogListModel> = emptyList(),
+		val failures: List<String> = emptyList(),
+		val completed: Int = 0,
+		val expected: Int = 0,
 	)
 	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == null || effectiveMediaType == MediaType.BOOK))
 	private val filteredCatalog = combine(catalogState, bookFormatFilter, progressFilter, genreFilter, languageFilter) {
 		catalog, format, progress, genre, language ->
-		catalog.copy(items = if (progress != SearchMetadataFilters.History.ANY || !genre.isNullOrBlank()) emptyList()
+		catalog.copy(items = if (progress != SearchMetadataFilters.History.ANY) emptyList()
 			else catalog.items.filter { SearchMetadataFilters.formatMatches(it.format, format) &&
-				SearchMetadataFilters.languageMatches(it.language, language) })
+				SearchMetadataFilters.languageMatches(it.language, language) &&
+				SearchMetadataFilters.tagMatches(it.genres, genre) })
 	}
 	private val directionFilteredCatalog = combine(filteredCatalog, readingModeFilter) { catalog, direction ->
 		if (direction == null) catalog else catalog.copy(items = emptyList())
@@ -345,6 +354,7 @@ class SearchViewModel @Inject constructor(
 		catalog.copy(items = PublicBookYearSorter.display(catalog.items, sort, from, to, unknown))
 	}
 	private var catalogJob: Job? = null
+	@Volatile private var catalogRunId = 0L
 
 	/**
 	 * Where each source's results belong on screen, keyed by source name. Sources answer in whatever
@@ -367,7 +377,13 @@ class SearchViewModel @Inject constructor(
 		} else {
 			list
 		}.sortedForDisplay()
-		val combined: List<ListModel> = filteredList + catalog.items
+		val problems = if (catalog.loading || catalog.failures.isEmpty()) emptyList() else
+			listOf(CatalogNoticeListModel(
+				applicationContext.getString(R.string.search_catalog_unavailable_title),
+				applicationContext.getString(R.string.search_catalog_unavailable_detail,
+					catalog.failures.distinct().joinToString(", ")),
+			))
+		val combined: List<ListModel> = filteredList + catalog.items + problems
 		when {
 			combined.isEmpty() -> listOf(
 				when {
@@ -500,30 +516,42 @@ class SearchViewModel @Inject constructor(
 	}
 
 	private fun doSearch() {
-		// Unified ALL search must really include books, not just parser-backed manga/video.
-		if (effectiveMediaType == null || effectiveMediaType == MediaType.BOOK) {
+		// Search every catalog that is available from Books; stream each provider as it answers.
+		val runId = ++catalogRunId
+		if ((effectiveMediaType == null || effectiveMediaType == MediaType.BOOK) && query.isNotBlank()) {
+			val officialFictionLinks = listOf(
+				OfficialMediaSites.Site.FICTIONPRESS to "FictionPress",
+				OfficialMediaSites.Site.FANFICTION to "FanFiction.net",
+			).map { (site, provider) ->
+				BookCatalogListModel(
+					title = "Search $provider for: $query", author = "",
+					catalog = provider, url = OfficialMediaSites.searchUrl(site, query),
+					format = "Official-site search (results not indexed)",
+					attribution = "Browser verification or sign-in may be required",
+					isOfficialSiteSearch = true,
+				)
+			}
+			catalogState.value = CatalogState(
+				items = officialFictionLinks, officialLinks = officialFictionLinks,
+				loading = true, expected = PublicCatalogProvider.entries.size + 1,
+			)
 			catalogJob = viewModelScope.launch(Dispatchers.IO) {
-				val publicResults = supervisorScope {
-					listOf(
-						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
-						async { safeCatalogSearch { publicBookCatalog.searchStandardEbooks(query) } },
-						async { safeCatalogSearch { publicBookCatalog.searchStoryWeaver(query) } },
-						async { searchSavedOpds(query) },
-					).awaitAll().flatten()
+				supervisorScope {
+					val gate = Semaphore(5)
+					val publicJobs = PublicCatalogProvider.entries.map { provider ->
+						launch {
+							val fetched = gate.withPermit {
+								safeCatalogSearch { provider.search(publicBookCatalog, query) }
+							}
+							appendCatalog(runId, provider.label, fetched)
+						}
+					}
+					val savedCatalogs = launch {
+						val saved = runCatchingCancellable { searchSavedOpds(query) }
+						appendCatalog(runId, "Saved OPDS", CatalogFetch(saved.getOrDefault(emptyList()), unavailable = saved.isFailure))
+					}
+					(publicJobs + savedCatalogs).joinAll()
 				}
-				val officialFictionLinks = if (query.isBlank()) emptyList() else listOf(
-					OfficialMediaSites.Site.FICTIONPRESS to "FictionPress",
-					OfficialMediaSites.Site.FANFICTION to "FanFiction.net",
-				).map { (site, provider) ->
-					BookCatalogListModel(
-						title = "Search $provider for: $query", author = "",
-						catalog = provider, url = OfficialMediaSites.searchUrl(site, query),
-						format = "Official-site search (results not indexed)",
-						attribution = "Browser verification or sign-in may be required",
-						isOfficialSiteSearch = true,
-					)
-				}
-				catalogState.value = CatalogState(publicResults.distinctBy { it.url } + officialFictionLinks)
 			}
 		} else {
 			catalogState.value = CatalogState()
@@ -570,22 +598,48 @@ class SearchViewModel @Inject constructor(
         return lastError
     }
 
-	/** Public catalogs share the Books search list without masquerading as manga parsers. */
-	private suspend fun safeCatalogSearch(
-		block: suspend () -> List<PublicBookCatalog.Book>,
-	): List<BookCatalogListModel> = try {
-		withTimeout(15_000) {
-			block().map {
-				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear,
-					coverUrl = it.coverUrl, format = it.format, language = it.language, attribution = it.attribution)
+	private data class CatalogFetch(
+		val items: List<BookCatalogListModel>,
+		val unavailable: Boolean,
+	)
+
+	/** Keep results stable in Books-provider order, even when network responses complete out of order. */
+	private fun appendCatalog(runId: Long, provider: String, fetched: CatalogFetch) {
+		catalogState.update { current ->
+			if (runId != catalogRunId) current else {
+				val byProvider = current.byProvider + (provider to fetched.items)
+				val providerOrder = PublicCatalogProvider.entries.map { it.label } + "Saved OPDS"
+				val entries = providerOrder.flatMap { byProvider[it].orEmpty() }
+					.distinctBy { it.url }.take(350) + current.officialLinks
+				val done = current.completed + 1
+				current.copy(
+					items = entries, byProvider = byProvider, completed = done,
+					loading = done < current.expected,
+					failures = if (fetched.unavailable) current.failures + provider else current.failures,
+				)
 			}
 		}
+	}
+
+	/** Timeouts/errors are disclosed without leaking provider URLs or user account details. */
+	private suspend fun safeCatalogSearch(
+		block: suspend () -> List<PublicBookCatalog.Book>,
+	): CatalogFetch = try {
+		val books = withTimeout(15_000) {
+			block().take(25).map {
+				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear,
+					coverUrl = it.coverUrl, format = it.format, language = it.language,
+					attribution = it.attribution, downloadUrl = it.downloadUrl,
+					genres = it.genres)
+			}
+		}
+		CatalogFetch(books, unavailable = false)
 	} catch (_: TimeoutCancellationException) {
-		emptyList()
+		CatalogFetch(emptyList(), unavailable = true)
 	} catch (cancel: CancellationException) {
 		throw cancel
 	} catch (_: Exception) {
-		emptyList()
+		CatalogFetch(emptyList(), unavailable = true)
 	}
 
 	/** Saved OPDS feeds can be searched within their first page; full remote OPDS search is not assumed. */

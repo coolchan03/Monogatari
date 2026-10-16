@@ -1470,4 +1470,10 @@ Optional — skip it and you appear as anon.</string>
     <string name="monogatari_epub_downloading">Saving %1$s for offline reading…</string>
     <string name="monogatari_epub_saved">Saved %1$s to your library.</string>
     <string name="monogatari_epub_download_error">Could not save the EPUB: %1$s</string>
+    <string name="search_catalog_unavailable_title">Some public book catalogs are unavailable</string>
+    <string name="search_catalog_unavailable_detail">Could not retrieve results from: %1$s. Results from other sources are still displayed.</string>
+    <string name="search_book_save_offline">Save EPUB and read offline</string>
+    <string name="search_book_official_listing">Open official listing</string>
+    <string name="search_book_open_in_browser">Open EPUB in browser</string>
+    <string name="search_book_options">Open or save</string>
 </resources>
