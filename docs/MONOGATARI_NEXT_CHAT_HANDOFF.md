@@ -1,0 +1,73 @@
+# Monogatari — new-chat handoff (updated October 15, 2026)
+
+This is the canonical handoff for the **Android entertainment application**. Read this and `docs/ROADMAP_83_TRACKER.md` before editing. Update the handoff after each verified finishing batch.
+
+## Owner's definition of “finished”
+
+Finish all Android in-scope features in the 83-item roadmap **in code**, publish the first official production-signed 1.0.0 APK, and then let the owner test on **two real Android devices** and send a consolidated fix report. Do not mark incomplete work DONE merely because a screen or official-site link exists. Separate **implemented**, **CI-validated**, **live-provider-validated**, and **device-validated**. Existing beta builds are not the first official release.
+
+The Windows desktop/PWA project was abandoned deliberately. Do not restore its five roadmap items, recommend or install Windows emulators, or install Android SDK/JDK/emulator software on the owner's devices. GitHub-hosted Android emulator smoke tests are permitted.
+
+## Repository, environment and publishing rules
+
+- GitHub repository: https://github.com/coolchan03/Monogatari
+- Canonical published branch: `devel`. Android-only tracker: `docs/ROADMAP_83_TRACKER.md`; full roadmap: `docs/FINISHING_ROADMAP_20261013.md`.
+- Tunnel to Surface connector is used for laptop/GitHub access. **Ask for tunnel access at the beginning of every new chat. All GitHub writes (push, merge, releases, CI dispatches) MUST go through the tunnel.** The GitHub connector may be used for reading only.
+- Verified active Windows checkout used in this chat: `%USERPROFILE%\Monogatari-Audit-Final`. It is a Git *worktree*, with the underlying Git directory on `P:\AI Projects\Monogatari`. There are other worktrees and possibly other open chats: **inspect branch, tracked/untracked modifications and remote state before making any change; never reset, discard or overwrite somebody else's work.**
+- Git may report “dubious ownership” for the exFAT P: drive. Use per-command `git -c safe.directory="%USERPROFILE%/Monogatari-Audit-Final" -C "%USERPROFILE%\Monogatari-Audit-Final" ...` instead of modifying global security settings.
+- Build/test workflows: `.github/workflows/build-check.yml` and `.github/workflows/publish-release.yml`. Run GitHub-hosted unit tests, APK/R8 build, signed-release dry run, Android cold-start test; keep signing keys only in GitHub Actions secrets. Do not mistake an emulator system-image download error for an app crash.
+- CI maintenance backlog: GitHub Actions warns about the forced Node.js 24 transition, deprecated `actions/setup-java@v4` (migrate to v5 when testing), and `ubuntu-latest` moving to Ubuntu 26 starting October 19, 2026. Audit workflows during release hardening; do not treat these warnings as current Kotlin test failures.
+- Stage work in coherent, roughly 20–30 minute batches, give real progress checkpoints, push tested commits, and update this file. Never promise unseen background work.
+
+## Latest verified release and changes
+
+- Latest published signed beta at start of this finishing run: **v0.13.10**, release https://github.com/coolchan03/Monogatari/releases/tag/v0.13.10-signed-20261015. It has the in-app podcast/video RSS player, caption sidecars, chapter seeking, and a simple Kitsune icon from earlier versions. It is not official v1.0.0.
+- PR #8: Standard Ebooks full public search and publisher-listed compatible EPUBs; Twitch public clip discovery. **MERGED** https://github.com/coolchan03/Monogatari/pull/8
+- PR #9: Public-provider/URL validation and QA reliability. **MERGED** https://github.com/coolchan03/Monogatari/pull/9
+- PR #10: JavaScript extension permissions and health disclosure. **MERGED**, full CI succeeded on head `d083f0e`, merge `35270b9`: https://github.com/coolchan03/Monogatari/pull/10
+- PR #11: Global public-book publication-year/unknown-date filtering and Plex structured year fix. **MERGED** on October 15 (local time): tested head `1caf84f`, merge `fa5271e`. https://github.com/coolchan03/Monogatari/pull/11 . Exact-commit GitHub Actions **SUCCESS** (unit tests, debug APK, unsigned R8 and Android 15 cold start): https://github.com/coolchan03/Monogatari/actions/runs/38833241221 . Version in code: `0.13.12`; a signed 0.13.12 APK has **not** been released.
+- Publication-year batch details and regression tests: `docs/BATCH_PUBLICATION_YEARS_20261015.md`, `PublicBookYearSorterTest.kt`, `PlexRepositoryTest.kt`. Structured years are distinct from manga title-derived estimates.
+
+## Implementation counts (do not conflate with real-device acceptance)
+
+After PR #11 merged, published `devel` has **69 DONE, 14 PARTIAL, 0 PENDING** out of 83 Android items. These are code implementation statuses, **not** proof of two-device functionality. The original five Windows milestones are removed, not “partial.”
+
+## The 14 still-partial items — finish in the following order
+
+| # | Gap and concrete next step |
+|---|---|
+| 11 | Unify the toolbar/navigation/card system across Settings, More, Books, Media, news and specialized destinations; test Back/rotation. |
+| 14 | Books catalog: add reliable series/edition metadata, format availability, borrowing notices and consistent direct open/download actions; retain valid covers. |
+| 17 | Extend loading skeletons, empty states, error explanations and query/state restoration to every global search and specialized screen, not only Books. |
+| 18 | Global typography, true dark mode, edge-to-edge navigation and screen-reader descriptions; avoid tiny/clipped elements. |
+| 21 | Actual speech-bubble-shape segmentation instead of merging only rectangular OCR regions; test CJK and RTL boundaries. |
+| 23 | Bubble-constrained translated text layout including vertical Japanese, font choice and safe text fitting without cutting art. |
+| 32 | Complete interoperable genre/demographic, language, direction, format and progress filters for all media types; hide unsupported filter widgets. |
+| 37 | Cross-source duplicate-title grouping and **per-title preferred manga source**, while keeping failed or mismatched copies distinct. |
+| 45 | StoryWeaver: currently official-site search; native metadata + illustrated-reader integration requires compatible authorized endpoints. Never bypass access limits. |
+| 48 | FictionPress and FanFiction.net: official-site discovery only; CAPTCHA/bot barriers block reliable native metadata parsing. Respect provider rules; if impossible, obtain explicit scope decision instead of claiming native integration. |
+| 58 | Plex server account/token, recent/search, episodes and direct playback exist. Verify the private-server/codec/stream path via authorized credentials and physical devices, and handle failure states gracefully. |
+| 63 | Complete true two-pane library/search/detail workflows at tablet widths and practical three-column layout, including pane selection. |
+| 66 | Full foldable/rotation/freeform multiwindow state restoration and window insets checks on the phone/tablet; test posture changes. |
+| 69 | Accessibility audit: system 200% font scale, TalkBack labels and focus order, contrast, keyboard handling and >=48dp targets throughout. |
+
+## Next batch instructions
+
+1. PR #11 is already merged and green. Verify the latest live `devel` and outstanding PRs before choosing a new task; do not reimplement publication-year sorting. The next work should address the 14 PARTIAL items below.
+2. Keep this handoff and the repository README updated after each completed batch so a new chat never resumes outdated code or redoes already merged work.
+3. Work on #11, #14, #17, #18 together as a design/error-state batch; then #32 and #37 filters/duplicate-source semantics; then #21/#23 OCR; finally media-provider work (#45/#48/#58) and adaptive/accessibility (#63/#66/#69).
+4. After the last item truly meets its code specification, run a full code audit, unit/instrumented tests, signing dry run, security/source/privacy review, all media entrypoints, APK cold start and a signed **v1.0.0** release. Verify exact-commit/tree and SHA-256 on published artifact. Do not require owner to do routine developer QA; physical test occurs **after** that release.
+5. The owner will test v1.0.0 on a **Moto Razr Ultra 2025** and **onn Pro 13.2-inch tablet**. Provide the user with a first-run guided survey using app-area highlighting and copy-to-clipboard diagnostic report. Test both manual Nearby peer sync of library/settings and file transfers with matching pairing code, unified and per-media searches, favorites/history/book/video/audio, source scanning, CAPTCHAs, offline books, and large-screen UI.
+
+## Important product requirements to preserve
+
+- Monogatari is **entertainment only**: manga/manhwa/yaoi/webtoons, novels, anime/video, audio/podcasts and related news. No education-focused features.
+- Combine the Kotatsu-Redo **one global search, built-in parsers, hide broken/empty results, CAPTCHA solving, search year/date** with Mangayomi's **extensible first-class JavaScript/custom sources and broader media**. Preserve working Kotatsu built-ins.
+- Offer theme presets reminiscent of Kotatsu and Mangayomi, but keep Monogatari's own cleaner identity and simple Kitsune fox/book icon. Avoid reused, pixelated or generic file-type thumbnails—especially Internet Archive audio.
+- More and Books should be visually consistent with Settings; Source Test Center should keep the screen awake during active scan, handle several sources concurrently, and return a clear, copyable diagnostic report. Don't spam unsuccessful scans as “updates.”
+- Nearby peer sync should require confirmation on both devices, work offline without silently overwriting data, transfer library/settings and separately chosen files, use integrity checks, and stop background discovery.
+- Downloaded manga chapter caches are not assumed to synchronize automatically; don't claim otherwise. Treat protected and geo-blocked provider content respectfully.
+
+## How to start the next chat
+
+“Please read `docs/MONOGATARI_NEXT_CHAT_HANDOFF.md` and `docs/ROADMAP_83_TRACKER.md` from `coolchan03/Monogatari`. Begin by requesting Tunnel to Surface permission. Verify live `devel`, open PRs, checkout status and latest CI. Continue completing the remaining PARTIAL Android roadmap items in 20–30 minute tested batches; push all GitHub writes via the tunnel. No Android SDK or emulator installation on my devices. Publish the first official signed v1.0.0 only when all in-scope functionality is implemented in code, then I will test it on two devices.”
