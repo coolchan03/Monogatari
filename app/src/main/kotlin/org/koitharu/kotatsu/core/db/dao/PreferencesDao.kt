@@ -15,6 +15,10 @@ abstract class PreferencesDao {
 	@Query("SELECT * FROM preferences WHERE manga_id = :mangaId")
 	abstract fun observe(mangaId: Long): Flow<MangaPrefsEntity?>
 
+	/** Reader direction is known only for titles where the user saved an explicit reading mode. */
+	@Query("SELECT * FROM preferences WHERE mode IN (1, 2, 3, 4)")
+	abstract suspend fun getExplicitReaderModes(): List<MangaPrefsEntity>
+
 	@Query("SELECT * FROM preferences WHERE title_override IS NOT NULL OR cover_override IS NOT NULL OR content_rating_override IS NOT NULL")
 	abstract suspend fun getOverrides(): List<MangaPrefsEntity>
 

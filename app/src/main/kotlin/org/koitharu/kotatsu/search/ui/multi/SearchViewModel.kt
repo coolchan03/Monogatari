@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -30,10 +31,13 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
+import org.koitharu.kotatsu.core.media.PublicCatalogProvider
+import org.koitharu.kotatsu.core.media.OfficialMediaSites
 import org.koitharu.kotatsu.core.media.OpdsCatalog
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.media.filterByMediaType
+import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
 import org.koitharu.kotatsu.core.model.getLocale
@@ -43,6 +47,8 @@ import org.koitharu.kotatsu.list.ui.model.MangaDetailedListModel
 import org.koitharu.kotatsu.list.ui.model.MangaGridModel
 import org.koitharu.kotatsu.list.ui.model.MangaListModel
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.parser.MangaDataRepository
+import org.koitharu.kotatsu.core.prefs.ReaderMode
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.parser.ParserMangaRepository
 import org.koitharu.kotatsu.core.prefs.ListMode
@@ -80,6 +86,7 @@ private const val MAX_LOCALE_PRIORITY = 2.0
 @HiltViewModel
 class SearchViewModel @Inject constructor(
 	private val savedStateHandle: SavedStateHandle,
+	private val mangaDataRepository: MangaDataRepository,
 	@ApplicationContext private val applicationContext: Context,
 	private val publicBookCatalog: PublicBookCatalog,
 	private val opdsCatalog: OpdsCatalog,
@@ -107,15 +114,33 @@ class SearchViewModel @Inject constructor(
 	private val effectiveMediaType: MediaType?
 		get() = if (searchMediaScope == "ALL") null else mediaTypeOverride ?: settings.mediaTypeFilter
 
-	private var includeDisabledSources = MutableStateFlow(false)
-	private var pinnedOnly = MutableStateFlow(false)
+	private var includeDisabledSources = MutableStateFlow(savedStateHandle.get<Boolean>("include_disabled_sources") ?: false)
+	private var pinnedOnly = MutableStateFlow(savedStateHandle.get<Boolean>("pinned_only") ?: false)
 	// The combined search is most useful as a single clean answer, so dead/empty sources stay hidden
 	// unless the user explicitly asks to see them.
-	private var hideEmpty = MutableStateFlow(true)
-	private var yearFrom = MutableStateFlow<Int?>(null)
-	private var yearTo = MutableStateFlow<Int?>(null)
+	private var hideEmpty = MutableStateFlow(savedStateHandle.get<Boolean>("hide_empty") ?: true)
+	private var yearFrom = MutableStateFlow<Int?>(savedStateHandle.get<Int>("year_from"))
+	private var yearTo = MutableStateFlow<Int?>(savedStateHandle.get<Int>("year_to"))
 	/** When off, titles whose year can't be estimated are hidden while a year filter or order is in use. */
 	private val languageFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("language_filter"))
+	private val genreFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("genre_filter"))
+	private val bookFormatFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("book_format_filter"))
+	private val progressFilter = MutableStateFlow(
+		savedStateHandle.get<String>("history_filter")
+			?.let { SearchMetadataFilters.History.entries.firstOrNull { mode -> mode.name == it } }
+			?: SearchMetadataFilters.History.ANY,
+	)
+	private val viewedIds = MutableStateFlow<Set<Long>?>(null)
+	private var viewedJob: Job? = null
+	private val readingModeFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("reading_mode_filter"))
+	private val savedReadingModes = MutableStateFlow<Map<Long, ReaderMode>>(emptyMap())
+	private var directionJob: Job? = null
+	private data class MetadataSelection(val genre: String?, val progress: SearchMetadataFilters.History,
+		val viewed: Set<Long>?, val readingMode: String?, val knownModes: Map<Long, ReaderMode>)
+	private val metadataSelection = combine(
+		combine(genreFilter, progressFilter, viewedIds) { genre, progress, ids -> Triple(genre, progress, ids) },
+		readingModeFilter, savedReadingModes,
+	) { simple, direction, modes -> MetadataSelection(simple.first, simple.second, simple.third, direction, modes) }
 	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
     val isVideoModeSearch: Boolean
         get() = effectiveMediaType == MediaType.VIDEO
@@ -133,14 +158,26 @@ class SearchViewModel @Inject constructor(
     }
 
 	private val results = MutableStateFlow<List<SearchResultsListModel>>(emptyList())
+	private val preferredMangaSources by lazy {
+		applicationContext.getSharedPreferences("preferred_manga_source", Context.MODE_PRIVATE)
+	}
+	private val preferredSourceVersion = MutableStateFlow(0)
 	private val publicationSort = MutableStateFlow(
 		savedStateHandle.get<String>("publication_sort")
 			?.let { code -> PublicationYearOrder.entries.firstOrNull { it.name == code } }
 			?: PublicationYearOrder.RELEVANCE,
 	)
 	private val displayResults = combine(
-		combine(results, languageFilter) { all, language ->
-			if (language == null) all else all.filter { LanguageFilter.matches(it.source.getLocale()?.language, language) }
+		combine(results, languageFilter, bookFormatFilter, preferredSourceVersion, metadataSelection) { all, language, format, _, selection ->
+			all.map { section ->
+				val eligible = format == null && (language == null ||
+					SearchMetadataFilters.languageMatches(section.source.getLocale()?.language, language))
+				section.copy(list = if (!eligible) emptyList() else section.list.filter { row ->
+					SearchMetadataFilters.tagMatches(row.manga.tags.map { it.title }, selection.genre) &&
+						SearchMetadataFilters.historyMatches(row.manga.id, selection.progress, selection.viewed) &&
+						SearchMetadataFilters.directionMatches(selection.knownModes[row.manga.id], selection.readingMode)
+				})
+			}
 		},
 		publicationSort, yearFrom, yearTo, includeUnknownYears,
 	) { raw, order, from, to, unknown ->
@@ -160,8 +197,9 @@ class SearchViewModel @Inject constructor(
 			section.copy(list = PublicationYearSorter.sorted(section.list, order))
 		}
 		// While years matter (an order or a range is chosen) show each year in the title, "~" when it is only a guess.
-		if (order == PublicationYearOrder.RELEVANCE && from == null && to == null) ordered
-		else ordered.map { section -> section.copy(list = section.list.map { it.withYearBadge() }) }
+		val grouped = groupConfidentDuplicates(ordered)
+		if (order == PublicationYearOrder.RELEVANCE && from == null && to == null) grouped
+		else grouped.map { section -> section.copy(list = section.list.map { it.withYearBadge() }) }
 	}
 	private fun MangaListModel.withYearBadge(): MangaListModel {
 		val estimate = PublicationYearSorter.estimateDetailed(manga.title, manga.altTitle, manga.description) ?: return this
@@ -173,9 +211,28 @@ class SearchViewModel @Inject constructor(
 		}
 	}
 
+	private val crossSourceGrouper = MangaCrossSourceGrouper(applicationContext)
+
+	/** Title/creator evidence is mandatory; similarly named but unrelated works remain separate. */
+	private fun groupConfidentDuplicates(sections: List<SearchResultsListModel>) =
+		crossSourceGrouper.group(sections)
+
+	fun alternativeSources(manga: Manga): List<Manga> =
+		crossSourceGrouper.alternatives(results.value, manga)
+
+	fun preferredSourceName(manga: Manga): String? =
+		crossSourceGrouper.preferredName(results.value, manga)
+
+	fun rememberPreferredSource(manga: Manga) {
+		crossSourceGrouper.choose(results.value, manga)
+		preferredSourceVersion.value++
+	}
+
 	/** Languages of the sources that answered so far, for the language filter. */
 	fun languagesInResults(): List<String> =
 		LanguageFilter.available(results.value.map { it.source.getLocale()?.language })
+			.plus(catalogState.value.items.mapNotNull { it.language?.takeIf(String::isNotBlank) })
+			.distinct().sorted()
 
 	val selectedLanguage: String?
 		get() = languageFilter.value
@@ -183,6 +240,66 @@ class SearchViewModel @Inject constructor(
 	fun setLanguageFilter(language: String?) {
 		languageFilter.value = language
 		savedStateHandle["language_filter"] = language
+	}
+
+	val selectedGenre: String? get() = genreFilter.value
+	val selectedBookFormat: String? get() = bookFormatFilter.value
+	val selectedHistoryFilter: SearchMetadataFilters.History get() = progressFilter.value
+	val selectedReadingMode: String? get() = readingModeFilter.value
+
+	fun availableReaderModes(): List<ReaderMode> {
+		val visibleIds = results.value.flatMap { it.list }.mapTo(HashSet()) { it.manga.id }
+		return savedReadingModes.value.filterKeys { it in visibleIds }.values.distinct().sortedBy { it.id }
+	}
+
+	fun setReadingModeFilter(mode: String?) {
+		readingModeFilter.value = mode?.takeIf { code -> ReaderMode.entries.any { it.name == code } }
+		savedStateHandle["reading_mode_filter"] = readingModeFilter.value
+	}
+
+	fun availableGenres(): List<String> =
+		SearchMetadataFilters.availableTags(
+			results.value.flatMap { section -> section.list.flatMap { row -> row.manga.tags.map { it.title } } } +
+			catalogState.value.items.flatMap { it.genres },
+		)
+
+	fun availableBookFormats(): List<String> =
+		SearchMetadataFilters.availableFormats(catalogState.value.items.map { it.format })
+
+	fun hasHistoryCapableResults(): Boolean = results.value.any { it.list.isNotEmpty() }
+
+	fun setGenreFilter(value: String?) {
+		genreFilter.value = value?.trim()?.take(50)?.takeIf(String::isNotBlank)
+		savedStateHandle["genre_filter"] = genreFilter.value
+	}
+
+	fun setBookFormatFilter(value: String?) {
+		bookFormatFilter.value = value
+		savedStateHandle["book_format_filter"] = value
+	}
+
+	fun setHistoryFilter(value: SearchMetadataFilters.History) {
+		progressFilter.value = value
+		savedStateHandle["history_filter"] = value.name
+		if (value != SearchMetadataFilters.History.ANY) loadViewedIds()
+	}
+
+	/** Uses the existing local history database; unknown history does NOT mean unread. */
+	private fun loadViewedIds() {
+		if (viewedIds.value != null || viewedJob?.isActive == true) return
+		viewedJob = viewModelScope.launch(Dispatchers.IO) {
+			viewedIds.value = runCatchingCancellable {
+				historyRepository.search(query, kind, Int.MAX_VALUE).map { it.id }.toSet()
+			}.getOrNull()
+		}
+	}
+
+	private fun loadSavedReadingModes() {
+		if (directionJob?.isActive == true) return
+		directionJob = viewModelScope.launch(Dispatchers.IO) {
+			savedReadingModes.value = runCatchingCancellable { mangaDataRepository.getExplicitReaderModes() }
+				.getOrDefault(emptyMap())
+		}
 	}
 
 	/** One combined, globally ordered section replaces the per-source ones (sections with errors stay visible). */
@@ -197,6 +314,7 @@ class SearchViewModel @Inject constructor(
 			order = order,
 			titleOf = { it.manga.title },
 			yearOf = { PublicationYearSorter.estimateYear(it.manga.title, it.manga.altTitle, it.manga.description) },
+			deduplicate = false,
 		)
 		val combined = SearchResultsListModel(
 			titleResId = R.string.search_all_sources_by_year,
@@ -213,14 +331,30 @@ class SearchViewModel @Inject constructor(
 	private data class CatalogState(
 		val items: List<BookCatalogListModel> = emptyList(),
 		val loading: Boolean = false,
+		val byProvider: Map<String, List<BookCatalogListModel>> = emptyMap(),
+		val officialLinks: List<BookCatalogListModel> = emptyList(),
+		val failures: List<String> = emptyList(),
+		val completed: Int = 0,
+		val expected: Int = 0,
 	)
-	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == MediaType.BOOK))
+	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == null || effectiveMediaType == MediaType.BOOK))
+	private val filteredCatalog = combine(catalogState, bookFormatFilter, progressFilter, genreFilter, languageFilter) {
+		catalog, format, progress, genre, language ->
+		catalog.copy(items = if (progress != SearchMetadataFilters.History.ANY) emptyList()
+			else catalog.items.filter { SearchMetadataFilters.formatMatches(it.format, format) &&
+				SearchMetadataFilters.languageMatches(it.language, language) &&
+				SearchMetadataFilters.tagMatches(it.genres, genre) })
+	}
+	private val directionFilteredCatalog = combine(filteredCatalog, readingModeFilter) { catalog, direction ->
+		if (direction == null) catalog else catalog.copy(items = emptyList())
+	}
 	private val displayCatalog = combine(
-		catalogState, publicationSort, yearFrom, yearTo, includeUnknownYears,
+		directionFilteredCatalog, publicationSort, yearFrom, yearTo, includeUnknownYears,
 	) { catalog, sort, from, to, unknown ->
 		catalog.copy(items = PublicBookYearSorter.display(catalog.items, sort, from, to, unknown))
 	}
 	private var catalogJob: Job? = null
+	@Volatile private var catalogRunId = 0L
 
 	/**
 	 * Where each source's results belong on screen, keyed by source name. Sources answer in whatever
@@ -243,7 +377,13 @@ class SearchViewModel @Inject constructor(
 		} else {
 			list
 		}.sortedForDisplay()
-		val combined: List<ListModel> = filteredList + catalog.items
+		val problems = if (catalog.loading || catalog.failures.isEmpty()) emptyList() else
+			listOf(CatalogNoticeListModel(
+				applicationContext.getString(R.string.search_catalog_unavailable_title),
+				applicationContext.getString(R.string.search_catalog_unavailable_detail,
+					catalog.failures.distinct().joinToString(", ")),
+			))
+		val combined: List<ListModel> = filteredList + catalog.items + problems
 		when {
 			combined.isEmpty() -> listOf(
 				when {
@@ -264,6 +404,8 @@ class SearchViewModel @Inject constructor(
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, listOf(LoadingState()))
 
 	init {
+		if (progressFilter.value != SearchMetadataFilters.History.ANY) loadViewedIds()
+		loadSavedReadingModes()
 		doSearch()
 	}
 
@@ -283,21 +425,24 @@ class SearchViewModel @Inject constructor(
 	fun retry() {
 		searchJob?.cancel()
 		catalogJob?.cancel()
-		catalogState.value = CatalogState(loading = effectiveMediaType == MediaType.BOOK)
+		catalogState.value = CatalogState(loading = effectiveMediaType == null || effectiveMediaType == MediaType.BOOK)
 
 		includeDisabledSources.value = false
+		savedStateHandle["include_disabled_sources"] = false
 		doSearch()
 	}
 
 	fun setPinnedOnly(value: Boolean) {
 		if (pinnedOnly.value != value) {
 			pinnedOnly.value = value
+			savedStateHandle["pinned_only"] = value
 			retry()
 		}
 	}
 
 	fun setHideEmpty(value: Boolean) {
 		hideEmpty.value = value
+		savedStateHandle["hide_empty"] = value
 	}
 
 	val isHideEmptyEnabled: Boolean
@@ -337,6 +482,8 @@ class SearchViewModel @Inject constructor(
 		if (yearFrom.value == normalizedFrom && yearTo.value == normalizedTo) return
 		yearFrom.value = normalizedFrom
 		yearTo.value = normalizedTo
+		savedStateHandle["year_from"] = normalizedFrom
+		savedStateHandle["year_to"] = normalizedTo
 		retry()
 	}
 
@@ -347,6 +494,7 @@ class SearchViewModel @Inject constructor(
 		val prevJob = searchJob
 		searchJob = launchLoadingJob(Dispatchers.Default) {
 			includeDisabledSources.value = true
+			savedStateHandle["include_disabled_sources"] = true
 			prevJob?.join()
 			val sources = if (pinnedOnly.value) {
 				emptyList()
@@ -368,16 +516,42 @@ class SearchViewModel @Inject constructor(
 	}
 
 	private fun doSearch() {
-		if (effectiveMediaType == MediaType.BOOK) {
+		// Search every catalog that is available from Books; stream each provider as it answers.
+		val runId = ++catalogRunId
+		if ((effectiveMediaType == null || effectiveMediaType == MediaType.BOOK) && query.isNotBlank()) {
+			val officialFictionLinks = listOf(
+				OfficialMediaSites.Site.FICTIONPRESS to "FictionPress",
+				OfficialMediaSites.Site.FANFICTION to "FanFiction.net",
+			).map { (site, provider) ->
+				BookCatalogListModel(
+					title = "Search $provider for: $query", author = "",
+					catalog = provider, url = OfficialMediaSites.searchUrl(site, query),
+					format = "Official-site search (results not indexed)",
+					attribution = "Browser verification or sign-in may be required",
+					isOfficialSiteSearch = true,
+				)
+			}
+			catalogState.value = CatalogState(
+				items = officialFictionLinks, officialLinks = officialFictionLinks,
+				loading = true, expected = PublicCatalogProvider.entries.size + 1,
+			)
 			catalogJob = viewModelScope.launch(Dispatchers.IO) {
-				val publicResults = supervisorScope {
-					listOf(
-						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
-						async { safeCatalogSearch { publicBookCatalog.searchStandardEbooks(query) } },
-						async { searchSavedOpds(query) },
-					).awaitAll().flatten()
+				supervisorScope {
+					val gate = Semaphore(5)
+					val publicJobs = PublicCatalogProvider.entries.map { provider ->
+						launch {
+							val fetched = gate.withPermit {
+								safeCatalogSearch { provider.search(publicBookCatalog, query) }
+							}
+							appendCatalog(runId, provider.label, fetched)
+						}
+					}
+					val savedCatalogs = launch {
+						val saved = runCatchingCancellable { searchSavedOpds(query) }
+						appendCatalog(runId, "Saved OPDS", CatalogFetch(saved.getOrDefault(emptyList()), unavailable = saved.isFailure))
+					}
+					(publicJobs + savedCatalogs).joinAll()
 				}
-				catalogState.value = CatalogState(publicResults.distinctBy { it.url })
 			}
 		} else {
 			catalogState.value = CatalogState()
@@ -424,21 +598,48 @@ class SearchViewModel @Inject constructor(
         return lastError
     }
 
-	/** Public catalogs share the Books search list without masquerading as manga parsers. */
-	private suspend fun safeCatalogSearch(
-		block: suspend () -> List<PublicBookCatalog.Book>,
-	): List<BookCatalogListModel> = try {
-		withTimeout(15_000) {
-			block().map {
-				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear)
+	private data class CatalogFetch(
+		val items: List<BookCatalogListModel>,
+		val unavailable: Boolean,
+	)
+
+	/** Keep results stable in Books-provider order, even when network responses complete out of order. */
+	private fun appendCatalog(runId: Long, provider: String, fetched: CatalogFetch) {
+		catalogState.update { current ->
+			if (runId != catalogRunId) current else {
+				val byProvider = current.byProvider + (provider to fetched.items)
+				val providerOrder = PublicCatalogProvider.entries.map { it.label } + "Saved OPDS"
+				val entries = providerOrder.flatMap { byProvider[it].orEmpty() }
+					.distinctBy { it.url }.take(350) + current.officialLinks
+				val done = current.completed + 1
+				current.copy(
+					items = entries, byProvider = byProvider, completed = done,
+					loading = done < current.expected,
+					failures = if (fetched.unavailable) current.failures + provider else current.failures,
+				)
 			}
 		}
+	}
+
+	/** Timeouts/errors are disclosed without leaking provider URLs or user account details. */
+	private suspend fun safeCatalogSearch(
+		block: suspend () -> List<PublicBookCatalog.Book>,
+	): CatalogFetch = try {
+		val books = withTimeout(15_000) {
+			block().take(25).map {
+				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear,
+					coverUrl = it.coverUrl, format = it.format, language = it.language,
+					attribution = it.attribution, downloadUrl = it.downloadUrl,
+					genres = it.genres)
+			}
+		}
+		CatalogFetch(books, unavailable = false)
 	} catch (_: TimeoutCancellationException) {
-		emptyList()
+		CatalogFetch(emptyList(), unavailable = true)
 	} catch (cancel: CancellationException) {
 		throw cancel
 	} catch (_: Exception) {
-		emptyList()
+		CatalogFetch(emptyList(), unavailable = true)
 	}
 
 	/** Saved OPDS feeds can be searched within their first page; full remote OPDS search is not assumed. */

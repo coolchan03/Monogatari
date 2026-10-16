@@ -1,10 +1,22 @@
 package org.koitharu.kotatsu.core.media
 
 import java.net.URLEncoder
+import java.net.URI
 
 /** Visible official-site discovery for providers without a stable, permitted content API. */
 internal object OfficialMediaSites {
     enum class Site { STORYWEAVER, FICTIONPRESS, FANFICTION, BILIBILI }
+
+    /** Only provider-owned hosts may be shown in our in-app fiction browser. Never follow host lookalikes. */
+    fun fictionSite(url: String): Site? = runCatching {
+        val address = URI(url)
+        if (address.scheme != "https" || address.port != -1 || address.userInfo != null) return@runCatching null
+        when (address.host?.lowercase()) {
+            "www.fictionpress.com", "fictionpress.com", "m.fictionpress.com" -> Site.FICTIONPRESS
+            "www.fanfiction.net", "fanfiction.net", "m.fanfiction.net" -> Site.FANFICTION
+            else -> null
+        }
+    }.getOrNull()
 
     fun searchUrl(site: Site, query: String): String {
         val term = query.trim().take(120)

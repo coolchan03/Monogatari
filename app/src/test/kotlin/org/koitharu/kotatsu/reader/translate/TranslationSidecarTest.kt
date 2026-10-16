@@ -24,6 +24,14 @@ class TranslationSidecarTest {
 	}
 
 	@Test
+	fun olderCachedPagesLoadWithDefaultFontAndChoiceSurvivesRewrite() {
+		val older = """{"sourceLanguage":"ja","targetLanguage":"en","blocks":[]}"""
+		assertEquals("sans", TranslationSidecar.decode(older)?.fontStyle)
+		val styled = meta.copy(fontStyle = "serif")
+		assertEquals("serif", TranslationSidecar.decode(TranslationSidecar.encode(styled))?.fontStyle)
+	}
+
+	@Test
 	fun garbageDecodesToNull() {
 		assertNull(TranslationSidecar.decode("not json"))
 	}

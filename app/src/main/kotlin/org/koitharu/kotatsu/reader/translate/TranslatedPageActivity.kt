@@ -55,6 +55,7 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 		meta = translator.readMeta(result)
 		viewBinding.buttonBack.setOnClickListener(this)
 		viewBinding.buttonToggle.setOnClickListener(this)
+		viewBinding.buttonFont.setOnClickListener { chooseFont() }
 		val detector = GestureDetector(
 			this,
 			object : GestureDetector.SimpleOnGestureListener() {
@@ -96,6 +97,9 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 		}
 		viewBinding.buttonToggle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
 			bottomMargin = barsInsets.bottom
+			marginEnd = barsInsets.end(v)
+		}
+		viewBinding.buttonFont.updateLayoutParams<ViewGroup.MarginLayoutParams> {
 			marginEnd = barsInsets.end(v)
 		}
 		return insets.consumeAll(typeMask)
@@ -152,14 +156,31 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 			.show()
 	}
 
+	private fun chooseFont() {
+		val current = meta ?: return
+		val styles = arrayOf("sans", "serif", "comic")
+		val labels = arrayOf(
+			getString(R.string.translated_page_font_sans),
+			getString(R.string.translated_page_font_serif),
+			getString(R.string.translated_page_font_comic),
+		)
+		MaterialAlertDialogBuilder(this)
+			.setTitle(R.string.translated_page_font_title)
+			.setSingleChoiceItems(labels, styles.indexOf(current.fontStyle).coerceAtLeast(0)) { dialog, selected ->
+				dialog.dismiss()
+				if (styles[selected] != current.fontStyle) applyCorrection(current.copy(fontStyle = styles[selected]))
+			}
+			.setNegativeButton(android.R.string.cancel, null).show()
+	}
+
 	private fun applyCorrection(updated: TranslationMeta) {
 		lifecycleScope.launch {
 			try {
 				translator.rewrite(result, updated)
 				meta = updated
 				showImage()
-			} catch (e: PageTranslator.TranslationException) {
-				Toast.makeText(this@TranslatedPageActivity, e.message, Toast.LENGTH_LONG).show()
+			} catch (e: Exception) {
+				Toast.makeText(this@TranslatedPageActivity, getString(R.string.translated_page_font_failed), Toast.LENGTH_LONG).show()
 			}
 		}
 	}

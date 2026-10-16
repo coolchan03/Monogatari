@@ -25,6 +25,8 @@ This is a **signed beta prerelease**, not the first official v1.0.0. The develop
 
 Active development; some third-party sources and video extractors are unsupported.
 
+The Android finishing work is in [draft PR #13](https://github.com/coolchan03/Monogatari/pull/13) (branch `finish-83-20261015`). The [14-item code ledger](docs/CODE_FINISHING_14.md) distinguishes implemented code from final provider and device verification. A dedicated **code-compilation-only** GitHub Action checks draft PRs without running feature tests or publishing APKs. Official v1.0.0 remains unreleased.
+
 ## Source repositories
 
 [Curated extensions](https://github.com/coolchan03/Best-BL-Mangayomi-Extensions)
@@ -32,3 +34,7 @@ Active development; some third-party sources and video extractors are unsupporte
 ## Credits
 
 Based on [Kotatsu-Redo](https://github.com/Kotatsu-Redo/Kotatsu-Redo) and inspired by [Mangayomi](https://github.com/kodjodevf/mangayomi). Original contributors retain their credits.
+
+### Unified Books search development
+
+Draft [PR #13](https://github.com/coolchan03/Monogatari/pull/13) now shares the full eleven-provider public Books registry with the global search, displays partial results as providers answer, and provides explicit source-availability notices. Where a publisher supplies a compatible free EPUB, global search can save it into the local reader library. Features remain **in development, not device-verified**.

@@ -95,3 +95,10 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 81 | DONE | Tablet emulation screenshots and layout checks; manual device QA only after CI. *(CI cold-starts on phone, portrait-tablet and landscape-tablet windows and keeps screenshots.)* |
 | 82 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
 | 83 | DONE | Preserve user data, backups, settings and reading progress across updates. *(Automatic pre-update copy of database + settings, last two kept; Settings > Backup > Undo an app update.)* |
+
+## Finishing-branch code updates (2026-10-16)
+
+**The original 69 DONE / 14 PARTIAL counts are preserved until final feature verification.**
+The finishing branch `finish-83-20261015` contains source-code changes across **all fourteen** partial item areas; see [CODE_FINISHING_14.md](CODE_FINISHING_14.md) for each specific implementation and its remaining acceptance criterion.
+
+Development policy: first implement and push the Android code; GitHub Actions may flag compilation problems without being treated as user-facing feature verification; after the code is assembled, conduct automated checks, two-device acceptance, then publish v1.0.0. The rows above describe the pre-finishing baseline and should not be interpreted as the current code delta.

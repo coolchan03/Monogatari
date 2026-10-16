@@ -137,6 +137,21 @@ internal object TranslationLayout {
 		return lo
 	}
 
+	/** Use traditional right-to-left vertical columns only for CJK-target text in a tall bubble. */
+	fun prefersVerticalText(language: String?, text: String, box: Box): Boolean {
+		val tag = language?.substringBefore('-')?.lowercase()
+		if (tag != "ja" && tag != "zh") return false
+		if (box.width <= 0 || box.height < box.width * 1.3f) return false
+		val visible = text.count { !it.isWhitespace() }
+		if (visible == 0) return false
+		val cjk = text.count { it in '\u3000'..'\u9fff' || it in '\uf900'..'\ufaff' }
+		return cjk * 2 >= visible
+	}
+
+	/** Unicode RTL-script handling without forcing Latin/numeric titles into RTL. */
+	fun isRtlLanguage(language: String?): Boolean =
+		language?.substringBefore('-')?.lowercase() in setOf("ar", "he", "fa", "ur", "ps", "sd")
+
 	/** An OCR region with its text, used for bubble grouping. */
 	data class Piece(val box: Box, val text: String, val confidence: Float = -1f)
 

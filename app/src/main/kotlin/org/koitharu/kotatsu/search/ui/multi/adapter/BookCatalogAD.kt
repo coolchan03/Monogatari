@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.search.ui.multi.adapter
 
+import androidx.core.view.isVisible
 import com.hannesdorfmann.adapterdelegates4.dsl.adapterDelegateViewBinding
 import org.koitharu.kotatsu.databinding.ItemMonogatariCatalogBinding
 import org.koitharu.kotatsu.list.ui.model.ListModel
@@ -12,10 +13,16 @@ fun bookCatalogAD(onOpen: (BookCatalogListModel) -> Unit) =
     ) {
         bind {
             binding.monogatariCatalogItemTitle.text = item.title
+            binding.monogatariCatalogItemCover.isVisible = !item.coverUrl.isNullOrBlank()
+            binding.monogatariCatalogItemCover.setImageAsync(item.coverUrl)
             binding.monogatariCatalogItemSummary.text = listOf(
                 item.author.takeIf { it.isNotBlank() },
                 item.catalog,
+                if (item.isOfficialSiteSearch) "Opens provider website" else null,
                 item.publicationYear?.let { "Published $it" },
+                item.format,
+                item.language,
+                item.genres.firstOrNull(),
             ).filterNotNull().joinToString(" · ")
             binding.root.setOnClickListener { onOpen(item) }
             binding.root.contentDescription = "${item.title}, ${binding.monogatariCatalogItemSummary.text}"

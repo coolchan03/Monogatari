@@ -72,6 +72,12 @@ class MangaDataRepository @Inject constructor(
 		return db.getPreferencesDao().find(mangaId)?.let { ReaderMode.valueOf(it.mode) }
 	}
 
+	/** Single indexed query; never perform a DB query for each global-search result. */
+	suspend fun getExplicitReaderModes(): Map<Long, ReaderMode> =
+		db.getPreferencesDao().getExplicitReaderModes().mapNotNull { pref ->
+			ReaderMode.valueOf(pref.mode)?.let { pref.mangaId to it }
+		}.toMap()
+
 	suspend fun getColorFilter(mangaId: Long): ReaderColorFilter? {
 		return db.getPreferencesDao().find(mangaId)?.getColorFilterOrNull()
 	}

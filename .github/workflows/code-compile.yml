@@ -1,0 +1,35 @@
+# Development-only feedback while features are still being implemented.
+# This workflow never runs tests, emulators, release signing or APK publishing.
+name: Android code compilation
+
+on:
+  pull_request:
+    branches:
+      - devel
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compile-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Configure extension repositories
+        env:
+          MONOGATARI_REPOS: ${{ secrets.MONOGATARI_REPOS }}
+        shell: bash
+        run: printf 'monogatari.repos=%s\n' "$MONOGATARI_REPOS" >> local.properties
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile app, resources, and JVM test sources (do not execute tests)
+        run: ./gradlew :app:compileDebugKotlin :app:compileDebugUnitTestKotlin --stacktrace --no-daemon

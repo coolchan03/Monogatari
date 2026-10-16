@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
@@ -134,9 +135,10 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             addView(collectionRow)
         }, LinearLayout.LayoutParams(-1, -2))
         collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
+        selectedCollection = savedInstanceState?.getString("selected_collection")?.takeIf { it in collections }
         search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
         search.doAfterTextChanged { render() }
-        search.setText(intent.getStringExtra(EXTRA_FILTER).orEmpty())
+        search.setText(savedInstanceState?.getString("library_query") ?: intent.getStringExtra(EXTRA_FILTER).orEmpty())
         root.addView(search, LinearLayout.LayoutParams(-1, -2))
         count = TextView(this)
         root.addView(count, LinearLayout.LayoutParams(-1, -2))
@@ -155,8 +157,11 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_HORIZONTAL
         })
         val list = RecyclerView(this).apply {
+            // Stable resource ID lets RecyclerView defer state restoration until async rows load.
+            id = R.id.monogatari_library_results_list
             layoutManager = GridLayoutManager(this@UnifiedLibraryActivity,
-                if (twoPane) 1 else MonogatariChrome.columns(context))
+                if (twoPane) NavLayoutPolicy.libraryListColumns(resources.configuration.screenWidthDp)
+                else MonogatariChrome.columns(context))
             adapter = this@UnifiedLibraryActivity.adapter
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -168,7 +173,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         } else {
             setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
         }
-        refresh()
+        // onResume refreshes when the activity first opens and when a reader changes progress.
     }
 
     private fun buildPane(px: Int): View {
@@ -301,6 +306,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("selected_kind", selected?.name ?: "ALL")
+        outState.putString("selected_collection", selectedCollection)
+        if (::search.isInitialized) outState.putString("library_query", search.text?.toString().orEmpty())
         paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
         super.onSaveInstanceState(outState)
     }
@@ -313,6 +320,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         mascot.isVisible = false
         refreshJob?.cancel()
         refreshJob = lifecycleScope.launch {
+            try {
             all = withContext(Dispatchers.IO) {
                 val groups = MediaType.entries.associateWith { it.persistedSourceNames() }
                 val remote = favorites.getAllManga().distinctBy { it.id }.map { manga ->
@@ -341,8 +349,15 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                 }
                 (remote + local).sortedBy { it.title.lowercase() }
             }
-            loading.visibility = View.GONE
             render()
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                // Keep the previous library visible and explain an I/O or database problem.
+                count.text = getString(R.string.library_load_failed, error.message.orEmpty().take(160))
+            } finally {
+                loading.visibility = View.GONE
+            }
         }
     }
 
@@ -402,6 +417,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
 
     private inner class Rows : RecyclerView.Adapter<Rows.Holder>() {
         private var rows = emptyList<Row>()
+        init { stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY }
         fun setRows(value: List<Row>) {
             rows = value
             notifyDataSetChanged()

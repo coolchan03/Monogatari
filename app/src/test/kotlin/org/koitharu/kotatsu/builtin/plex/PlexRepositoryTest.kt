@@ -30,6 +30,7 @@ class PlexRepositoryTest {
 		val episodes = PlexRepository.parseEpisodes(body)
 		assertEquals(listOf("S1 E1 · One", "S1 E2 · Two"), episodes.map { it.title })
 		assertEquals("/library/parts/1/1/a.mkv", episodes[0].partKey)
+		assertNull(episodes[0].metadataId)
 	}
 
 	@Test
@@ -40,6 +41,16 @@ class PlexRepositoryTest {
 			PlexRepository.descriptionWithYear(2001, null))
 		assertEquals("A film", PlexRepository.descriptionWithYear(null, "A film"))
 		assertNull(PlexRepository.descriptionWithYear(0, null))
+	}
+
+	@Test
+	fun serverTranscodeRequiresValidMetadataAndKeepsTokensInHeaders() {
+		val url = PlexRepository.transcodeUrl("https://plex.example", "1234", "12345678-1234-4234-8234-123456789012")
+		assertTrue(url.startsWith("https://plex.example/video/:/transcode/universal/start.m3u8"))
+		assertTrue(url.contains("protocol=hls"))
+		assertTrue(url.contains("1280x720"))
+		assertTrue(url.contains("%2Flibrary%2Fmetadata%2F1234"))
+		assertTrue(!url.contains("X-Plex-Token"))
 	}
 
 	@Test

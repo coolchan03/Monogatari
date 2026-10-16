@@ -3,13 +3,17 @@ package org.koitharu.kotatsu.reader.translate
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.StaticLayout
+import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import kotlin.math.max
 import kotlin.math.roundToInt
+import java.text.BreakIterator
+import java.util.Locale
 
 /** Paints over the original text of each block and draws its translation in the freed space. */
 internal object TranslatedPageRenderer {
@@ -20,9 +24,11 @@ internal object TranslatedPageRenderer {
 	private const val SMOOTH_FILL_SPREAD = 28
 
 	fun render(source: Bitmap, meta: TranslationMeta): Bitmap =
-		render(source, meta.blocks.map { Block(it.box, it.translation) })
+		render(source, meta.blocks.map { Block(it.box, it.translation, meta.targetLanguage, meta.fontStyle) })
 
-	class Block(val box: TranslationLayout.Box, val translation: String)
+	class Block(val box: TranslationLayout.Box, val translation: String, val targetLanguage: String? = null, val fontStyle: String = "sans")
+
+	private data class BubbleArea(val content: TranslationLayout.Box, val outline: Path)
 
 	fun render(source: Bitmap, blocks: List<Block>): Bitmap {
 		val out = source.copy(Bitmap.Config.ARGB_8888, true)
@@ -36,6 +42,11 @@ internal object TranslatedPageRenderer {
 		}
 		for (block in blocks) {
 			if (block.translation.isBlank()) continue
+			textPaint.typeface = when (block.fontStyle) {
+				"serif" -> Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+				"comic" -> Typeface.create("casual", Typeface.BOLD)
+				else -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+			}
 			val covered = TranslationLayout.inflate(block.box, pad, width, height)
 			val edges = sampleEdges(source, covered)
 			val background = TranslationLayout.medianColor(edges)
@@ -46,17 +57,22 @@ internal object TranslatedPageRenderer {
 			fun paint(region: TranslationLayout.Box) {
 				if (smooth) fillSmooth(canvas, region, edges) else canvas.drawRoundRect(region.toRectF(), corner, corner, fill)
 			}
-			paint(covered)
-			// A closed speech bubble around the text lets the translation use the whole bubble, not just the old text's footprint.
+			// Detect the connected paper boundary before painting; do not erase artwork outside irregular bubbles.
 			val bubble = findBubble(source, covered, background, pad)
-			val area = if (bubble != null) TranslationLayout.union(covered, bubble) else covered
-			val widened = TranslationLayout.widenForHorizontalText(area, width, height)
-			val target = growIfNeeded(block.translation, widened, pad, height, textPaint)
-			if (target != covered) {
-				paint(target)
+			if (bubble != null) {
+				canvas.save()
+				canvas.clipPath(bubble.outline)
+				paint(covered)
+				canvas.restore()
+			} else paint(covered)
+			// Never erase the bounding rectangle of an irregular bubble: this covers its outline and panel art.
+			val target = if (bubble != null) bubble.content else {
+				val widened = TranslationLayout.widenForHorizontalText(covered, width, height)
+				growIfNeeded(block.translation, widened, pad, height, textPaint)
 			}
+			if (bubble == null && target != covered) paint(target)
 			textPaint.color = TranslationLayout.contrastingTextColor(background)
-			drawFittedText(canvas, block.translation, target, pad, textPaint)
+			drawFittedText(canvas, block.translation, target, pad, textPaint, bubble?.outline, block.targetLanguage)
 		}
 		return out
 	}
@@ -68,27 +84,80 @@ internal object TranslatedPageRenderer {
 		return TranslationLayout.growToFit(box, needed, imageHeight)
 	}
 
-	private fun drawFittedText(canvas: Canvas, text: String, box: TranslationLayout.Box, pad: Int, paint: TextPaint) {
+	private fun drawFittedText(canvas: Canvas, text: String, box: TranslationLayout.Box, pad: Int, paint: TextPaint, outline: Path? = null, language: String? = null) {
+		if (TranslationLayout.prefersVerticalText(language, text, box) && drawVerticalText(canvas, text, box, pad, paint, outline, language!!)) return
 		val innerWidth = (box.width - pad * 2).coerceAtLeast(1)
 		val innerHeight = (box.height - pad * 2).coerceAtLeast(1)
 		val maxSize = (innerHeight * 0.45f).coerceIn(10f, 64f)
 		val minSize = MIN_TEXT_SIZE.coerceAtMost(maxSize)
 		val size = TranslationLayout.fitTextSize(minSize, maxSize, innerHeight) { candidate ->
 			paint.textSize = candidate
-			layout(text, paint, innerWidth).height
+			layout(text, paint, innerWidth, language).height
 		}
 		paint.textSize = size
-		val layout = layout(text, paint, innerWidth)
+		val layout = layout(text, paint, innerWidth, language)
 		canvas.save()
 		canvas.clipRect(box.left, box.top, box.right, box.bottom)
+		if (outline != null) canvas.clipPath(outline)
 		val top = box.top + pad + ((innerHeight - layout.height) / 2f).coerceAtLeast(0f)
 		canvas.translate((box.left + pad).toFloat(), top)
 		layout.draw(canvas)
 		canvas.restore()
 	}
 
-	private fun layout(text: String, paint: TextPaint, width: Int): StaticLayout =
+	/** Vertical CJK columns, right-to-left; grapheme boundaries keep combining marks with their glyph. */
+	private fun drawVerticalText(
+		canvas: Canvas, text: String, box: TranslationLayout.Box, pad: Int,
+		paint: TextPaint, outline: Path?, language: String,
+	): Boolean {
+		val iterator = BreakIterator.getCharacterInstance(Locale.forLanguageTag(language))
+		iterator.setText(text)
+		val glyphs = ArrayList<String>()
+		var start = iterator.first()
+		var end = iterator.next()
+		while (end != BreakIterator.DONE) {
+			val glyph = text.substring(start, end)
+			if (glyph.isNotBlank()) glyphs += glyph
+			start = end
+			end = iterator.next()
+		}
+		if (glyphs.isEmpty()) return false
+		val innerWidth = box.width - pad * 2
+		val innerHeight = box.height - pad * 2
+		if (innerWidth <= 0 || innerHeight <= 0) return false
+		val selected = (48 downTo MIN_TEXT_SIZE.toInt()).firstNotNullOfOrNull { candidate ->
+			val step = candidate * 1.2f
+			val rows = (innerHeight / step).toInt()
+			if (rows < 1) return@firstNotNullOfOrNull null
+			val columns = (glyphs.size + rows - 1) / rows
+			if (columns * step <= innerWidth) Triple(candidate.toFloat(), rows, columns) else null
+		} ?: return false
+		val (size, rows, columns) = selected
+		val step = size * 1.2f
+		val oldTypeface = paint.typeface
+		val oldAlign = paint.textAlign
+		// Preserve the user's font choice; Android falls back to an installed CJK glyph face where needed.
+		paint.textAlign = Paint.Align.CENTER
+		paint.textSize = size
+		val xRight = box.left + pad + (innerWidth + columns * step) / 2f - step / 2f
+		val yTop = box.top + pad + (innerHeight - minOf(rows, glyphs.size) * step) / 2f
+		canvas.save()
+		canvas.clipRect(box.left, box.top, box.right, box.bottom)
+		if (outline != null) canvas.clipPath(outline)
+		glyphs.forEachIndexed { i, glyph ->
+			val column = i / rows
+			val row = i % rows
+			canvas.drawText(glyph, xRight - column * step, yTop + (row + 0.82f) * step, paint)
+		}
+		canvas.restore()
+		paint.typeface = oldTypeface
+		paint.textAlign = oldAlign
+		return true
+	}
+
+	private fun layout(text: String, paint: TextPaint, width: Int, language: String? = null): StaticLayout =
 		StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
+			.setTextDirection(if (TranslationLayout.isRtlLanguage(language)) TextDirectionHeuristics.FIRSTSTRONG_RTL else TextDirectionHeuristics.FIRSTSTRONG_LTR)
 			.setAlignment(Layout.Alignment.ALIGN_CENTER)
 			.setLineSpacing(0f, 1.0f)
 			.setIncludePad(false)
@@ -97,7 +166,7 @@ internal object TranslatedPageRenderer {
 			.build()
 
 	/** The bubble interior around [covered], shrunk a little off its outline, or null when none can be told apart. */
-	private fun findBubble(source: Bitmap, covered: TranslationLayout.Box, paper: Int, pad: Int): TranslationLayout.Box? {
+	private fun findBubble(source: Bitmap, covered: TranslationLayout.Box, paper: Int, pad: Int): BubbleArea? {
 		val reach = (max(covered.width, covered.height) / 2).coerceAtLeast(pad * 4)
 		val window = TranslationLayout.inflate(covered, reach, source.width, source.height)
 		val w = window.width
@@ -106,12 +175,26 @@ internal object TranslatedPageRenderer {
 		val pixels = IntArray(w * h)
 		source.getPixels(pixels, 0, w, window.left, window.top, w, h)
 		val local = TranslationLayout.Box(covered.left - window.left, covered.top - window.top, covered.right - window.left, covered.bottom - window.top)
-		val found = BubbleFinder.interiorBounds(pixels, w, h, BubbleFinder.seedsAround(local, 2), paper) ?: return null
+		val found = BubbleFinder.interior(pixels, w, h, BubbleFinder.seedsAround(local, 2), paper) ?: return null
 		val inner = TranslationLayout.shrink(
-			TranslationLayout.Box(found.left + window.left, found.top + window.top, found.right + window.left, found.bottom + window.top),
-			pad * 2,
-		)
-		return inner.takeIf { it.width > covered.width && it.height > 0 }
+			TranslationLayout.Box(found.bounds.left + window.left, found.bounds.top + window.top,
+				found.bounds.right + window.left, found.bounds.bottom + window.top), pad * 2)
+		if (inner.width <= covered.width || inner.height <= 0) return null
+		// A flood region can occasionally be a large panel. Reject an implausible near-full-window region.
+		if (found.bounds.width.toLong() * found.bounds.height > w.toLong() * h * 85L / 100L) return null
+		// Every scanline traces the connected paper region, not the enclosing rectangular OCR region.
+		val outline = Path()
+		for (y in found.bounds.top until found.bounds.bottom) {
+			var first = w
+			var last = -1
+			for (x in found.bounds.left until found.bounds.right) {
+				if (found.contains(x, y)) { first = minOf(first, x); last = x }
+			}
+			if (last >= first) outline.addRect(
+				(window.left + first + 1).toFloat(), (window.top + y).toFloat(),
+				(window.left + last).toFloat(), (window.top + y + 1).toFloat(), Path.Direction.CW)
+		}
+		return BubbleArea(inner, outline)
 	}
 
 	/** Smooth fill from the edge colours [left, right, top, bottom] (see [sampleEdges]). */

@@ -9,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import com.google.android.material.progressindicator.LinearProgressIndicator
+import androidx.core.view.isVisible
 import android.widget.HorizontalScrollView
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.card.MaterialCardView
@@ -36,6 +38,9 @@ class NewsFeedActivity : AppCompatActivity() {
     private lateinit var searchInput: EditText
     private lateinit var message: TextView
     private lateinit var entries: LinearLayout
+    private lateinit var loading: LinearProgressIndicator
+    private lateinit var listScroll: ScrollView
+    private var restoredScrollY = 0
     private var items = emptyList<NewsFeedParser.Entry>()
     private var onlyFollowing = false
     private var savedOnly = false
@@ -52,6 +57,12 @@ class NewsFeedActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = "News & followed tags"
+        onlyFollowing = savedInstanceState?.getBoolean("news_following") ?: false
+        savedOnly = savedInstanceState?.getBoolean("news_saved") ?: false
+        activeTag = savedInstanceState?.getString("news_tag")
+        sourceFilter = savedInstanceState?.getString("news_source")
+        oldestFirst = savedInstanceState?.getBoolean("news_oldest") ?: false
+        restoredScrollY = savedInstanceState?.getInt("news_scroll") ?: 0
         val density = resources.displayMetrics.density
         val padding = (16 * density).toInt()
         val outer = (((resources.configuration.screenWidthDp - 920).coerceAtLeast(0) / 2) * density).toInt()
@@ -76,7 +87,8 @@ class NewsFeedActivity : AppCompatActivity() {
         feedInput = EditText(this).apply {
             hint = "HTTPS RSS/Atom feed URL"
             setSingleLine(true)
-            setText(prefs.getString("selected", "https://www.animenewsnetwork.com/news/rss.xml"))
+            setText(savedInstanceState?.getString("news_feed_url")
+                ?: prefs.getString("selected", "https://www.animenewsnetwork.com/news/rss.xml"))
         }
         root.addView(feedInput, LinearLayout.LayoutParams(-1, -2))
         action("Save feed and refresh") { saveAndLoad() }
@@ -86,7 +98,8 @@ class NewsFeedActivity : AppCompatActivity() {
             id = R.id.monogatari_news_filter
             hint = "Tags to follow, separated by commas"
             setSingleLine(true)
-            setText(followedTags().sorted().joinToString(", "))
+            setText(savedInstanceState?.getString("news_tags_input")
+                ?: followedTags().sorted().joinToString(", "))
         }
         root.addView(tagInput, LinearLayout.LayoutParams(-1, -2))
         action("Save followed tags") {
@@ -115,6 +128,7 @@ class NewsFeedActivity : AppCompatActivity() {
         searchInput = EditText(this).apply {
             hint = "Filter articles by title or topic"
             setSingleLine(true)
+            setText(savedInstanceState?.getString("news_search").orEmpty())
             doAfterTextChanged { if (::entries.isInitialized) render() }
         }
         root.addView(searchInput, LinearLayout.LayoutParams(-1, -2))
@@ -125,11 +139,31 @@ class NewsFeedActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(-1, -2))
         message = TextView(this).apply { text = "Choose a feed and refresh · long-press a story to save it" }
         root.addView(message, LinearLayout.LayoutParams(-1, -2))
-        val listScroll = ScrollView(this)
+        loading = LinearProgressIndicator(this).apply {
+            isIndeterminate = true
+            isVisible = false
+            contentDescription = getString(R.string.news_feed_loading)
+        }
+        root.addView(loading, LinearLayout.LayoutParams(-1, -2))
+        listScroll = ScrollView(this)
         entries = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         listScroll.addView(entries)
         root.addView(listScroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setMonogatariContent(root)
+        if (savedInstanceState != null) load(feedInput.text.toString().trim())
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("news_following", onlyFollowing)
+        outState.putBoolean("news_saved", savedOnly)
+        outState.putString("news_tag", activeTag)
+        outState.putString("news_source", sourceFilter)
+        outState.putBoolean("news_oldest", oldestFirst)
+        outState.putString("news_feed_url", feedInput.text?.toString().orEmpty())
+        outState.putString("news_tags_input", tagInput.text?.toString().orEmpty())
+        outState.putString("news_search", searchInput.text?.toString().orEmpty())
+        outState.putInt("news_scroll", listScroll.scrollY)
+        super.onSaveInstanceState(outState)
     }
 
     private fun followedTags(): Set<String> = prefs.getStringSet("tags", emptySet()).orEmpty().toSet()
@@ -197,15 +231,24 @@ class NewsFeedActivity : AppCompatActivity() {
         items = emptyList()
         entries.removeAllViews()
         message.text = "Loading feed…"
+        loading.isVisible = true
         feedJob = lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { fetchEntries(url) } }
-            if (url != feedInput.text.toString().trim()) return@launch
-            result.onSuccess { loaded ->
-                items = loaded
-                message.text = "Loaded ${loaded.size} entries — nothing is fetched in the background"
-                render()
-            }.onFailure { error ->
-                message.text = "Feed unavailable: ${error.message}"
+            try {
+                val result = withContext(Dispatchers.IO) { runCatching { fetchEntries(url) } }
+                if (url != feedInput.text.toString().trim()) return@launch
+                result.onSuccess { loaded ->
+                    items = loaded
+                    render()
+                    if (restoredScrollY > 0) {
+                        val position = restoredScrollY
+                        restoredScrollY = 0
+                        listScroll.post { listScroll.scrollTo(0, position) }
+                    }
+                }.onFailure { error ->
+                    message.text = "Feed unavailable: ${error.message.orEmpty().take(140)}"
+                }
+            } finally {
+                loading.isVisible = false
             }
         }
     }
@@ -286,7 +329,7 @@ class NewsFeedActivity : AppCompatActivity() {
                 text = (if (savedNow) "★  " else "") + entry.title +
                     (if (entry.date.isNotBlank()) "\n${entry.date}" else "") +
                     (if (entry.tags.isEmpty()) "" else "\n${entry.tags.joinToString(" · ")}")
-                textSize = 16f
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 setOnClickListener {
                     if (entry.link.startsWith("https://") || entry.link.startsWith("http://")) {
                         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.link))) }

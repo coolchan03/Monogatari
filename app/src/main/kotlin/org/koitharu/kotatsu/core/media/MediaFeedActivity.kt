@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
@@ -9,6 +10,8 @@ import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isVisible
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -30,6 +33,8 @@ class MediaFeedActivity : AppCompatActivity() {
     private val results = CatalogResultsAdapter()
     private val saved by lazy { getSharedPreferences("monogatari_entertainment_feeds", MODE_PRIVATE) }
     private lateinit var status: TextView
+    private lateinit var loading: LinearProgressIndicator
+    private lateinit var retryButton: MaterialButton
     private lateinit var kindButton: MaterialButton
     private var currentUrl: String? = null
     private var entries = emptyList<MediaFeedParser.Episode>()
@@ -54,7 +59,7 @@ class MediaFeedActivity : AppCompatActivity() {
         }
         root.addView(TextView(this).apply {
             text = "Video & podcast feeds"
-            textSize = 24f
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
         })
         root.addView(TextView(this).apply {
             text = "Subscribe to RSS/Atom feeds for shows, films, fiction podcasts and audio drama."
@@ -100,6 +105,18 @@ class MediaFeedActivity : AppCompatActivity() {
             setPadding(0, pad / 2, 0, pad / 2)
         }
         root.addView(status)
+        loading = LinearProgressIndicator(this).apply {
+            isIndeterminate = true
+            isVisible = false
+            contentDescription = getString(R.string.media_feed_loading)
+        }
+        root.addView(loading, LinearLayout.LayoutParams(-1, -2))
+        retryButton = MaterialButton(this).apply {
+            setText(R.string.media_feed_retry)
+            isVisible = false
+            setOnClickListener { currentUrl?.let(::load) ?: chooseFeed() }
+        }
+        root.addView(retryButton)
         root.addView(RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@MediaFeedActivity,
                 MonogatariChrome.columns(context))
@@ -185,6 +202,8 @@ class MediaFeedActivity : AppCompatActivity() {
     private fun load(url: String, subscribe: Boolean = false) {
         playlistOnly = false
         loadJob?.cancel()
+        retryButton.isVisible = false
+        loading.isVisible = true
         status.text = "Loading feed..."
         loadJob = lifecycleScope.launch {
             try {
@@ -196,7 +215,11 @@ class MediaFeedActivity : AppCompatActivity() {
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
+                currentUrl = url
+                retryButton.isVisible = true
                 status.text = "Feed unavailable: ${error.message.orEmpty().take(140)}"
+            } finally {
+                loading.isVisible = false
             }
         }
     }

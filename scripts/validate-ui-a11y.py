@@ -45,4 +45,29 @@ assert "holder.action.isVisible" in adapter
 
 for relative in ("values/strings.xml", "layout/activity_monogatari_book_catalog.xml"):
     ET.parse(res / relative)
-print("UI static checks passed: More layout, dynamic text, 48dp actions, skeletons, state restoration")
+for item_id in ("monogatari_catalog_item_title", "monogatari_catalog_item_summary"):
+    text = element_by_id(catalog, item_id)
+    assert text.get(android + "maxLines") is None, f"{item_id}: truncated at 200% font size"
+    assert text.get(android + "ellipsize") is None, f"{item_id}: ellipsized at 200% font size"
+    assert text.get(android + "textAppearance"), f"{item_id}: missing scalable typography"
+for name in ("layout-w600dp", "layout-w840dp"):
+    preview = res / name / "activity_search.xml"
+    element_by_id(preview, "search_preview_scroll")
+    element_by_id(preview, "search_preview_pane")
+    for action_id in ("search_preview_open", "search_preview_read"):
+        button = element_by_id(preview, action_id)
+        assert button.get(android + "layout_height") in ("wrap_content", "48dp"), "fixed-size preview action"
+assert "SearchMetadataFilterDialog" in (src / "search" / "ui" / "multi" / "SearchMenuProvider.kt").read_text(encoding="utf-8")
+assert "contentDescription" in (src / "search" / "ui" / "multi" / "SearchMetadataFilterDialog.kt").read_text(encoding="utf-8")
+qa = res / "layout" / "activity_monogatari_test_center.xml"
+qa_toolbar = element_by_id(qa, "qa_toolbar")
+assert qa_toolbar.get(android + "layout_height") == "wrap_content", "QA toolbar clips text on large font settings"
+assert qa_toolbar.get(android + "minHeight") == "?attr/actionBarSize"
+for action_id in ("qa_pass", "qa_fail", "qa_untested"):
+    button = element_by_id(qa, action_id)
+    assert button.get(android + "minHeight") == "48dp", f"{action_id}: insufficient touch target"
+    assert button.get(android + "maxLines") == "2", f"{action_id}: cannot wrap with larger font"
+qa_activity = (src / "core" / "qa" / "MonogatariTestCenterActivity.kt").read_text(encoding="utf-8")
+assert "setSupportActionBar(ui.qaToolbar)" in qa_activity
+assert "setNavigationContentDescription(R.string.monogatari_navigation_back)" in qa_activity
+print("UI static checks passed: scalable text, accessible 48dp actions, adaptive search panes and consistent QA chrome")
