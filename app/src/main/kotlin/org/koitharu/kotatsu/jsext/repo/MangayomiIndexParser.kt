@@ -70,6 +70,13 @@ object MangayomiIndexParser {
 			notes = o.string("notes").orEmpty(),
 			repoUrl = repoUrl,
 			sha256 = o.string("sha256"),
+			indexStatus = o.string("status")?.take(32),
+			indexCheckedAt = o.string("checkedAt")?.take(40),
+			author = (o.string("author") ?: o.string("developer"))?.take(150),
+			license = o.string("license")?.take(100),
+			declaredPermissions = (o["permissions"] as? JsonArray)
+				?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty)?.take(120) }
+				?.take(12) ?: emptyList(),
 		)
 	}
 

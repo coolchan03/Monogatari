@@ -31,6 +31,13 @@ data class JsSourceEntry(
 	val repoUrl: String,
 	/** Optional SHA-256 supplied by the source repository index. */
 	val sha256: String? = null,
+	/** Publisher-provided index health metadata; never equate it with live verification. */
+	val indexStatus: String? = null,
+	val indexCheckedAt: String? = null,
+	val author: String? = null,
+	val license: String? = null,
+	/** Declared by a third-party repository, not an Android platform permission grant. */
+	val declaredPermissions: List<String> = emptyList(),
 ) {
 
 	val isRunnable: Boolean
