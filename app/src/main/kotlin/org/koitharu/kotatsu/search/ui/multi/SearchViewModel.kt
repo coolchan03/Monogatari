@@ -404,6 +404,7 @@ class SearchViewModel @Inject constructor(
 					listOf(
 						async { safeCatalogSearch { publicBookCatalog.searchInternetArchive(query) } },
 						async { safeCatalogSearch { publicBookCatalog.searchStandardEbooks(query) } },
+						async { safeCatalogSearch { publicBookCatalog.searchStoryWeaver(query) } },
 						async { searchSavedOpds(query) },
 					).awaitAll().flatten()
 				}
@@ -460,7 +461,8 @@ class SearchViewModel @Inject constructor(
 	): List<BookCatalogListModel> = try {
 		withTimeout(15_000) {
 			block().map {
-				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear)
+				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear,
+					coverUrl = it.coverUrl, format = it.format, language = it.language, attribution = it.attribution)
 			}
 		}
 	} catch (_: TimeoutCancellationException) {

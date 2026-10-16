@@ -66,3 +66,9 @@
 - Working branch: `finish-83-20261015`; new isolated worktree `C:/Users/coolc/Monogatari-Finish83-20261015` clean at creation. Original dirty P: worktree and older audit worktrees untouched.
 - Active operation: implement and test outstanding OCR bubble geometry and translated text fitting (#21/#23), then additional feasible roadmap gaps; verify GitHub-hosted CI before any completion claims.
 - No SDK/JDK/emulator installation on owner devices. All pushes, PRs, merges, dispatches and release changes through Tunnel to Surface. Do not release v1.0.0 until all items validated.
+
+## 2026-10-15 - OCR, catalog, responsive and cross-source finishing branch
+- Pushed `a4605f1` (#21/#23), `612f4f3` (#14/#17/#63/#66) and `6370587` (#37) to `finish-83-20261015` through Tunnel. None has yet been merged into `devel`.
+- CI `38841599631` on `6370587` failed compiling the new `MangaDuplicatePolicyTest.kt` because its final class brace was omitted. Fixed in working tree. This is not a production regression in application code; fresh CI still required.
+- Verified StoryWeaver public `https://storyweaver.org.in/api/v1/books-search?query=cat&per_page=2&page=1` returns HTTP 200 with 1931 real matching public story records (title/author/illustrator/cover/publisher). Implemented parser, official-source reader WebView and official-site fallback, and tests. No invented PDF/EPUB link, site scraping or anti-bot bypass.
+- Still open: cross-media filters (#32), global chrome/dark/accessibility (#11/#18/#69), foldable/window/device acceptance (#66), provider restrictions (#48), private Plex credentials/device codec (#58). Await hosted unit/R8/cold-start and real owner-device QA; not cleared for 1.0.0.

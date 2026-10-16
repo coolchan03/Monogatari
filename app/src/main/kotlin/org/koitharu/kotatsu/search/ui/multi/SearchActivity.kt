@@ -16,6 +16,8 @@ import androidx.core.view.updatePadding
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.core.media.StoryWeaverCatalog
+import org.koitharu.kotatsu.core.media.StoryWeaverReaderActivity
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -68,7 +70,7 @@ class SearchActivity :
 			root = viewBinding.root,
 			onDetails = { openMangaWithSourceChoice(it, false) },
 			onRead = { openMangaWithSourceChoice(it, true) },
-			onUrl = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) },
+			onUrl = { openCatalogWebsite(it) },
 		)
 		title = when (viewModel.kind) {
 			SearchKind.SIMPLE,
@@ -109,7 +111,7 @@ class SearchActivity :
 			selectionDecoration = selectionDecoration,
 			onBookOpen = { book ->
 				if (tabletPreview != null) tabletPreview?.show(book)
-				else startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(book.url)))
+				else openCatalogWebsite(book.url, book.attribution)
 			},
 		)
 		viewBinding.recyclerView.adapter = adapter
@@ -166,6 +168,17 @@ class SearchActivity :
 	override fun onTagClick(manga: Manga, tag: MangaTag, view: View) {
 		if (!selectionController.onItemClick(manga.id)) {
 			router.openList(tag)
+		}
+	}
+
+	/** StoryWeaver opens its authorized illustrated reader in-app, rather than an unrelated browser tab. */
+	private fun openCatalogWebsite(url: String, attribution: String? = null) {
+		if (StoryWeaverCatalog.officialStoryUrl(url)) {
+			startActivity(Intent(this, StoryWeaverReaderActivity::class.java)
+				.putExtra(StoryWeaverReaderActivity.EXTRA_URL, url)
+				.putExtra(StoryWeaverReaderActivity.EXTRA_CREDIT, attribution))
+		} else {
+			startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 		}
 	}
 

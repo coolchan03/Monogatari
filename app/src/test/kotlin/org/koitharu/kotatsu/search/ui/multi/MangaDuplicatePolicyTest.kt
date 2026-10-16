@@ -31,3 +31,5 @@ class MangaDuplicatePolicyTest {
         assertTrue(MangaDuplicatePolicy.groups(listOf(a, b)).isEmpty())
         assertTrue(MangaDuplicatePolicy.groups(listOf(copy(1, "A"), copy(2, "A"))).isEmpty())
     }
+
+}

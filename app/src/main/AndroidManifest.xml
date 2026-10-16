@@ -114,6 +114,7 @@
 		<activity android:name="org.koitharu.kotatsu.core.media.LocalPdfReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.LocalTextReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.BookLibraryActivity" android:exported="false" />
+		<activity android:name="org.koitharu.kotatsu.core.media.StoryWeaverReaderActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.MediaFeedActivity" android:exported="false" />
         <activity android:name="org.koitharu.kotatsu.core.media.MediaFeedPlayerActivity" android:exported="false" />
 		<activity android:name="org.koitharu.kotatsu.core.media.UnifiedLibraryActivity" android:exported="false" />

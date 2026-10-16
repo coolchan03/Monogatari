@@ -54,11 +54,11 @@ internal class SearchTabletPreview private constructor(
     fun show(item: BookCatalogListModel) {
         selectedManga = null
         selectedUrl = item.url
-        cover.setImageDrawable(null)
-        cover.isVisible = false
+        cover.isVisible = !item.coverUrl.isNullOrBlank()
+        cover.setImageAsync(item.coverUrl)
         showCommon(item.title, item.catalog,
-            item.author.takeIf { it.isNotBlank() }
-                ?: title.context.getString(R.string.tablet_search_no_description))
+            listOfNotNull(item.author.takeIf { it.isNotBlank() }, item.format, item.language, item.attribution)
+                .joinToString(" · ").ifBlank { title.context.getString(R.string.tablet_search_no_description) })
         open.setText(R.string.tablet_search_website)
         read.isVisible = false
     }

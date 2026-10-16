@@ -1424,4 +1424,9 @@ Optional — skip it and you appear as anon.</string>
     <string name="monogatari_catalog_editions">%1$d catalog editions</string>
     <string name="search_cross_source_matches">Same titles from multiple sources</string>
     <string name="search_choose_source">Choose a source for %1$s</string>
+    <string name="storyweaver_reader_title">StoryWeaver illustrated reader</string>
+    <string name="storyweaver_online_notice">StoryWeaver stories open securely on the official website. Internet access is required.</string>
+    <string name="storyweaver_open_browser">Open in browser</string>
+    <string name="storyweaver_read_story">Read illustrated story</string>
+    <string name="storyweaver_invalid_link">This StoryWeaver story address is not recognized.</string>
 </resources>

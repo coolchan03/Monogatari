@@ -238,7 +238,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Gutenberg Australia · regional classics",
             "Global Grey · classics and historical books",
             "Baen Free Library · science fiction and fantasy",
-            "StoryWeaver · illustrated stories (official website)",
+            "StoryWeaver · illustrated CC BY stories (live catalog)",
             "FictionPress · original fiction (official website)",
             "FanFiction.net · fanfiction (official website)",
             "Bilibili · public videos (official website)",
@@ -252,7 +252,7 @@ class BookLibraryActivity : AppCompatActivity() {
                     1 -> search("Gutenberg Australia")
                     2 -> search("Global Grey")
                     3 -> search("Baen Free Library")
-                    4 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.STORYWEAVER, term))
+                    4 -> search("StoryWeaver")
                     5 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FICTIONPRESS, term))
                     6 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FANFICTION, term))
                     7 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.BILIBILI, term))
@@ -355,7 +355,7 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
                 listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks",
-                    "Faded Page", "Gutenberg Australia", "Global Grey", "Baen Free Library")
+                    "Faded Page", "Gutenberg Australia", "Global Grey", "Baen Free Library", "StoryWeaver")
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -417,11 +417,13 @@ class BookLibraryActivity : AppCompatActivity() {
                 onLongPress = { openCatalogGroup(group) },
                 actionLabel = when {
                     book.catalog == "Standard Ebooks" -> "Get EPUB"
+                    book.catalog == "StoryWeaver" -> "Read story"
                     book.downloadUrl?.startsWith("https://") == true -> "Open EPUB"
                     else -> "View listing"
                 },
                 onAction = {
                     if (book.catalog == "Standard Ebooks") openStandardEpub(book)
+                    else if (book.catalog == "StoryWeaver") openStoryWeaverReader(book)
                     else {
                         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
                         openOfficialLink(epub ?: book.url)
@@ -468,6 +470,14 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private fun openBookListing(book: PublicBookCatalog.Book) {
+        if (book.catalog == "StoryWeaver") {
+            MaterialAlertDialogBuilder(this).setTitle(book.title)
+                .setMessage(bookMetadataSummary(book))
+                .setPositiveButton(R.string.storyweaver_read_story) { _, _ -> openStoryWeaverReader(book) }
+                .setNeutralButton(R.string.storyweaver_open_browser) { _, _ -> openOfficialLink(book.url) }
+                .setNegativeButton(android.R.string.cancel, null).show()
+            return
+        }
         if (book.catalog == "Standard Ebooks") {
             MaterialAlertDialogBuilder(this).setTitle(book.title)
                 .setMessage(bookMetadataSummary(book))
@@ -492,8 +502,18 @@ class BookLibraryActivity : AppCompatActivity() {
         book.publicationYear?.toString(), book.language,
         book.series?.let { getString(R.string.monogatari_catalog_series, it) },
         book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
-        book.format, book.availability,
+        book.format, book.availability, book.attribution,
     ).joinToString("\n")
+
+    private fun openStoryWeaverReader(book: PublicBookCatalog.Book) {
+        if (!StoryWeaverCatalog.officialStoryUrl(book.url)) {
+            catalogStatus.text = getString(R.string.storyweaver_invalid_link)
+            return
+        }
+        startActivity(Intent(this, StoryWeaverReaderActivity::class.java)
+            .putExtra(StoryWeaverReaderActivity.EXTRA_URL, book.url)
+            .putExtra(StoryWeaverReaderActivity.EXTRA_CREDIT, book.attribution))
+    }
 
     private fun openOfficialLink(url: String) {
         if (!url.startsWith("https://")) {
@@ -516,6 +536,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Gutenberg Australia" -> catalog.searchGutenbergAustralia(term)
             "Global Grey" -> catalog.searchGlobalGrey(term)
             "Baen Free Library" -> catalog.searchBaenFreeLibrary(term)
+            "StoryWeaver" -> catalog.searchStoryWeaver(term)
             else -> emptyList()
         }
 
