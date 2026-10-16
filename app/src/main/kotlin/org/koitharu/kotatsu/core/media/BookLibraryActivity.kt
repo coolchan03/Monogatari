@@ -253,8 +253,8 @@ class BookLibraryActivity : AppCompatActivity() {
                     2 -> search("Global Grey")
                     3 -> search("Baen Free Library")
                     4 -> search("StoryWeaver")
-                    5 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FICTIONPRESS, term))
-                    6 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FANFICTION, term))
+                    5 -> openFictionBrowser(OfficialMediaSites.Site.FICTIONPRESS, term)
+                    6 -> openFictionBrowser(OfficialMediaSites.Site.FANFICTION, term)
                     7 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.BILIBILI, term))
                 }
             }
@@ -513,6 +513,14 @@ class BookLibraryActivity : AppCompatActivity() {
         startActivity(Intent(this, StoryWeaverReaderActivity::class.java)
             .putExtra(StoryWeaverReaderActivity.EXTRA_URL, book.url)
             .putExtra(StoryWeaverReaderActivity.EXTRA_CREDIT, book.attribution))
+    }
+
+    /** These sites do not expose a permitted public chapter API: always use their own search website. */
+    private fun openFictionBrowser(site: OfficialMediaSites.Site, term: String) {
+        val url = OfficialMediaSites.searchUrl(site, term)
+        if (OfficialMediaSites.fictionSite(url) != site) return
+        startActivity(Intent(this, OfficialFictionBrowserActivity::class.java)
+            .putExtra(OfficialFictionBrowserActivity.EXTRA_URL, url))
     }
 
     private fun openOfficialLink(url: String) {

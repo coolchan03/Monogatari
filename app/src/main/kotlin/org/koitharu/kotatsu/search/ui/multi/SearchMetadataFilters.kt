@@ -1,8 +1,12 @@
 package org.koitharu.kotatsu.search.ui.multi
 
 /** Only real provider tags, catalog formats, and local reading history are filterable. */
-internal object SearchMetadataFilters {
+object SearchMetadataFilters {
     enum class History { ANY, VIEWED, UNVIEWED }
+
+    /** Unrecorded reader direction is unknown, never guessed from language or provider. */
+    fun directionMatches(savedMode: org.koitharu.kotatsu.core.prefs.ReaderMode?, chosenMode: String?): Boolean =
+        chosenMode.isNullOrBlank() || savedMode?.name == chosenMode
 
     fun tagMatches(tags: Collection<String>, selected: String?): Boolean =
         selected.isNullOrBlank() || tags.any { it.contains(selected.trim(), ignoreCase = true) }

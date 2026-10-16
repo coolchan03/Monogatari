@@ -24,9 +24,9 @@ internal object TranslatedPageRenderer {
 	private const val SMOOTH_FILL_SPREAD = 28
 
 	fun render(source: Bitmap, meta: TranslationMeta): Bitmap =
-		render(source, meta.blocks.map { Block(it.box, it.translation, meta.targetLanguage) })
+		render(source, meta.blocks.map { Block(it.box, it.translation, meta.targetLanguage, meta.fontStyle) })
 
-	class Block(val box: TranslationLayout.Box, val translation: String, val targetLanguage: String? = null)
+	class Block(val box: TranslationLayout.Box, val translation: String, val targetLanguage: String? = null, val fontStyle: String = "sans")
 
 	private data class BubbleArea(val content: TranslationLayout.Box, val outline: Path)
 
@@ -42,6 +42,11 @@ internal object TranslatedPageRenderer {
 		}
 		for (block in blocks) {
 			if (block.translation.isBlank()) continue
+			textPaint.typeface = when (block.fontStyle) {
+				"serif" -> Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+				"comic" -> Typeface.create("casual", Typeface.BOLD)
+				else -> Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+			}
 			val covered = TranslationLayout.inflate(block.box, pad, width, height)
 			val edges = sampleEdges(source, covered)
 			val background = TranslationLayout.medianColor(edges)
@@ -52,9 +57,14 @@ internal object TranslatedPageRenderer {
 			fun paint(region: TranslationLayout.Box) {
 				if (smooth) fillSmooth(canvas, region, edges) else canvas.drawRoundRect(region.toRectF(), corner, corner, fill)
 			}
-			paint(covered)
-			// A closed speech bubble around the text lets the translation use the whole bubble, not just the old text's footprint.
+			// Detect the connected paper boundary before painting; do not erase artwork outside irregular bubbles.
 			val bubble = findBubble(source, covered, background, pad)
+			if (bubble != null) {
+				canvas.save()
+				canvas.clipPath(bubble.outline)
+				paint(covered)
+				canvas.restore()
+			} else paint(covered)
 			// Never erase the bounding rectangle of an irregular bubble: this covers its outline and panel art.
 			val target = if (bubble != null) bubble.content else {
 				val widened = TranslationLayout.widenForHorizontalText(covered, width, height)
@@ -126,7 +136,7 @@ internal object TranslatedPageRenderer {
 		val step = size * 1.2f
 		val oldTypeface = paint.typeface
 		val oldAlign = paint.textAlign
-		paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+		// Preserve the user's font choice; Android falls back to an installed CJK glyph face where needed.
 		paint.textAlign = Paint.Align.CENTER
 		paint.textSize = size
 		val xRight = box.left + pad + (innerWidth + columns * step) / 2f - step / 2f
@@ -170,6 +180,8 @@ internal object TranslatedPageRenderer {
 			TranslationLayout.Box(found.bounds.left + window.left, found.bounds.top + window.top,
 				found.bounds.right + window.left, found.bounds.bottom + window.top), pad * 2)
 		if (inner.width <= covered.width || inner.height <= 0) return null
+		// A flood region can occasionally be a large panel. Reject an implausible near-full-window region.
+		if (found.bounds.width.toLong() * found.bounds.height > w.toLong() * h * 85L / 100L) return null
 		// Every scanline traces the connected paper region, not the enclosing rectangular OCR region.
 		val outline = Path()
 		for (y in found.bounds.top until found.bounds.bottom) {

@@ -30,6 +30,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.core.content.ContextCompat
@@ -62,6 +63,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.ByteArrayOutputStream
 import org.koitharu.kotatsu.core.media.MediaType
+import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.media.asJsSource
 import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.core.nav.AppRouter
@@ -398,7 +400,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 				) { provider.getStreams(state.chapter) }
 				val selected = chooseVideo(videos)
 					?: throw IllegalStateException(getString(R.string.media_reader_no_streams))
-				startPlayer(selected)
+				val fallback = if (manga.source.name == BuiltinSource.PLEX.name) {
+					videos.firstOrNull { it.quality.startsWith("Server transcode") }
+				} else null
+				startPlayer(selected, fallback)
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
@@ -410,12 +415,14 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	private fun chooseVideo(videos: List<MediaStream>): MediaStream? =
-		videos.maxByOrNull { video ->
+		// Prefer the owner's original Plex file; use transcoding only when direct playback fails.
+		videos.firstOrNull { it.quality.startsWith("Direct play") && "X-Plex-Token" in it.headers }
+			?: videos.maxByOrNull { video ->
 			QUALITY_NUMBER.find(video.quality)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 		} ?: videos.firstOrNull()
 
 	@OptIn(UnstableApi::class)
-	private fun startPlayer(video: MediaStream) {
+	private fun startPlayer(video: MediaStream, fallback: MediaStream? = null) {
 		if (currentMediaType == MediaType.AUDIO && video.headers.isEmpty()) {
 			startBackgroundAudio(video)
 			return
@@ -437,6 +444,29 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			.build()
 		player = exoPlayer
 		viewBinding.playerView.player = exoPlayer
+		var fallbackScheduled = false
+		exoPlayer.addListener(object : Player.Listener {
+			override fun onPlayerError(error: PlaybackException) {
+				if (player !== exoPlayer || fallbackScheduled) return
+				if (fallback != null && fallback.url != video.url) {
+					fallbackScheduled = true
+					val chapterAtFailure = currentChapterId
+					restorePosition = exoPlayer.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+					Snackbar.make(viewBinding.root, R.string.plex_direct_play_fallback, Snackbar.LENGTH_LONG).show()
+					viewBinding.playerView.post {
+						if (!isDestroyed && currentChapterId == chapterAtFailure) startPlayer(fallback)
+					}
+				} else {
+					val explain = when (error.errorCode) {
+						PlaybackException.ERROR_CODE_DECODING_FAILED,
+						PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> getString(R.string.plex_codec_unavailable)
+						PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> getString(R.string.plex_media_denied)
+						else -> error.message.orEmpty().take(160).ifBlank { getString(R.string.media_reader_content_error) }
+					}
+					showError(explain, reload = false)
+				}
+			}
+		})
 		val position = restorePosition.toLong().coerceAtLeast(0L)
 		if (video.audioUrl != null) {
 			val videoSource = mediaSourceFactory.createMediaSource(item)

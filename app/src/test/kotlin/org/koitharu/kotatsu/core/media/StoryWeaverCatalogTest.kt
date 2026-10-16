@@ -28,7 +28,7 @@ class StoryWeaverCatalogTest {
         assertEquals("English", book.language)
         assertTrue(book.url.endsWith("/21618-wild-cat-wild-cat"))
         assertTrue(book.attribution!!.contains("Rohan Chakravarty"))
-        assertTrue(book.attribution!!.contains("CC BY 4.0"))
+        assertTrue(book.attribution!!.contains("license and attribution"))
         assertEquals(null, book.downloadUrl)
     }
 

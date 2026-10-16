@@ -18,6 +18,8 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.media.StoryWeaverCatalog
 import org.koitharu.kotatsu.core.media.StoryWeaverReaderActivity
+import org.koitharu.kotatsu.core.media.OfficialMediaSites
+import org.koitharu.kotatsu.core.media.OfficialFictionBrowserActivity
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -177,6 +179,9 @@ class SearchActivity :
 			startActivity(Intent(this, StoryWeaverReaderActivity::class.java)
 				.putExtra(StoryWeaverReaderActivity.EXTRA_URL, url)
 				.putExtra(StoryWeaverReaderActivity.EXTRA_CREDIT, attribution))
+		} else if (OfficialMediaSites.fictionSite(url) != null) {
+			startActivity(Intent(this, OfficialFictionBrowserActivity::class.java)
+				.putExtra(OfficialFictionBrowserActivity.EXTRA_URL, url))
 		} else {
 			startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 		}

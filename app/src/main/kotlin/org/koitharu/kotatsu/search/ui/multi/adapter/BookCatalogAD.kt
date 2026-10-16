@@ -18,6 +18,7 @@ fun bookCatalogAD(onOpen: (BookCatalogListModel) -> Unit) =
             binding.monogatariCatalogItemSummary.text = listOf(
                 item.author.takeIf { it.isNotBlank() },
                 item.catalog,
+                if (item.isOfficialSiteSearch) "Opens provider website" else null,
                 item.publicationYear?.let { "Published $it" },
                 item.format,
                 item.language,

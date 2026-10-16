@@ -71,3 +71,9 @@ After PR #11 merged, published `devel` has **69 DONE, 14 PARTIAL, 0 PENDING** ou
 ## How to start the next chat
 
 “Please read `docs/MONOGATARI_NEXT_CHAT_HANDOFF.md` and `docs/ROADMAP_83_TRACKER.md` from `coolchan03/Monogatari`. Begin by requesting Tunnel to Surface permission. Verify live `devel`, open PRs, checkout status and latest CI. Continue completing the remaining PARTIAL Android roadmap items in 20–30 minute tested batches; push all GitHub writes via the tunnel. No Android SDK or emulator installation on my devices. Publish the first official signed v1.0.0 only when all in-scope functionality is implemented in code, then I will test it on two devices.”
+
+## 2026-10-16 supplemental code handoff
+
+Latest finishing branch: `finish-83-20261015` in `coolchan03/Monogatari`, isolated worktree `C:/Users/coolc/Monogatari-Finish83-20261015`. Do not reset the original dirty P: checkout. See `docs/CODE_FINISHING_14.md` for the fourteen target item implementations. Early pushed commits: `a4605f1`, `612f4f3`, `6370587`, `d58e2e5`, `a3081b8`.
+
+User specifically instructed: **feature verification must be the very last stage**. Write Android code and push via Tunnel to Surface first; treat GitHub compilation checks as programming feedback only and do not claim feature validation from them. Do not merge into `devel`, publish a signed version, or mark all 14 DONE before final full test/owner acceptance. There is no Windows project.

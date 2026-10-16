@@ -14,6 +14,8 @@ data class BookCatalogListModel(
     val format: String? = null,
     val language: String? = null,
     val attribution: String? = null,
+    /** This row opens provider search; it is not a claim that a matching title was found. */
+    val isOfficialSiteSearch: Boolean = false,
 ) : ListModel {
     override fun areItemsTheSame(other: ListModel): Boolean =
         other is BookCatalogListModel && other.url == url

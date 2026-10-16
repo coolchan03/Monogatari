@@ -157,7 +157,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         })
         val list = RecyclerView(this).apply {
             layoutManager = GridLayoutManager(this@UnifiedLibraryActivity,
-                if (twoPane) 1 else MonogatariChrome.columns(context))
+                if (twoPane) NavLayoutPolicy.libraryListColumns(resources.configuration.screenWidthDp)
+                else MonogatariChrome.columns(context))
             adapter = this@UnifiedLibraryActivity.adapter
         }
         root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))

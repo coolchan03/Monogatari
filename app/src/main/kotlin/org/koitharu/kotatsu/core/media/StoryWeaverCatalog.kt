@@ -49,7 +49,8 @@ internal object StoryWeaverCatalog {
                 if (writers.isNotEmpty()) add("Written by " + writers.joinToString(", "))
                 if (artists.isNotEmpty()) add("Illustrated by " + artists.joinToString(", "))
                 if (publisher.isNotBlank()) add("Published by $publisher")
-                add("StoryWeaver · CC BY 4.0")
+                // License may differ per translated edition; never invent blanket rights for a catalog entry.
+                add("Check the story’s license and attribution on StoryWeaver")
             }.joinToString(" · ")
             PublicBookCatalog.Book(
                 title = title,

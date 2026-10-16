@@ -1439,4 +1439,27 @@ Optional — skip it and you appear as anon.</string>
     <string name="search_history_unviewed">Not in this device’s history</string>
     <string name="search_metadata_unavailable">No compatible metadata yet. Search a source first; controls appear only when available.</string>
     <string name="search_clear_metadata_filters">Clear filters</string>
+    <string name="monogatari_navigation_back">Navigate back</string>
+    <string name="translated_page_font_button">Font</string>
+    <string name="translated_page_font_title">Translation font</string>
+    <string name="translated_page_font_sans">Clear sans-serif</string>
+    <string name="translated_page_font_serif">Book serif</string>
+    <string name="translated_page_font_comic">Handwritten</string>
+    <string name="translated_page_font_failed">Could not redraw this page; the previous font was kept.</string>
+    <string name="search_reading_direction">Reading direction (saved titles)</string>
+    <string name="search_reading_ltr">Left to right</string>
+    <string name="search_reading_rtl">Right to left</string>
+    <string name="search_reading_vertical">Vertical pages</string>
+    <string name="search_reading_webtoon">Continuous webtoon</string>
+    <string name="plex_direct_play_fallback">Direct playback failed; trying a compatible Plex server stream.</string>
+    <string name="plex_codec_unavailable">The video or audio codec is not supported by this device. In Plex, optimize this title or choose a different file.</string>
+    <string name="plex_media_denied">Plex denied this media request. Check your server connection, permissions and Plex token.</string>
+    <string name="official_fiction_disclosure">This is the provider’s own website. Search results, sign-in and browser verification are controlled by the provider. Monogatari does not download restricted chapters.</string>
+    <string name="official_fiction_reload">Reload page</string>
+    <string name="official_fiction_external">Open in browser</string>
+    <string name="official_fiction_no_browser">No external browser is available on this device.</string>
+    <string name="official_fiction_connection_failed">Could not load the official website. Check your connection or open it in a browser.</string>
+    <string name="news_feed_loading">Loading entertainment news</string>
+    <string name="media_feed_loading">Loading podcast and video episodes</string>
+    <string name="media_feed_retry">Retry feed</string>
 </resources>

@@ -60,9 +60,11 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         ui = ActivityMonogatariTestCenterBinding.inflate(layoutInflater)
         setContentView(ui.root)
         MonogatariChrome.applyInsets(ui.root)
-        ui.qaToolbar.setNavigationIcon(android.R.drawable.ic_media_previous)
-        ui.qaToolbar.setNavigationContentDescription(android.R.string.cancel)
-        ui.qaToolbar.setNavigationOnClickListener { finish() }
+        title = getString(R.string.monogatari_qa_title)
+        setSupportActionBar(ui.qaToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        ui.qaToolbar.setNavigationContentDescription(R.string.monogatari_navigation_back)
+        ui.qaToolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
         index = (savedInstanceState?.getInt("step")
             ?: prefs.getInt("step", 0)).coerceIn(MonogatariTestPlan.cases.indices)

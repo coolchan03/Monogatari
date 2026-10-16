@@ -20,4 +20,12 @@ class NavLayoutPolicyTest {
 		assertTrue(NavLayoutPolicy.useTwoPane(600))
 		assertTrue(NavLayoutPolicy.useTwoPane(840))
 	}
+
+	@Test
+	fun threeColumnLibraryOnlyAtDesktopWidth() {
+		assertTrue(NavLayoutPolicy.libraryListColumns(840) == 1)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1199) == 1)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1200) == 2)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1440) == 2)
+	}
 }

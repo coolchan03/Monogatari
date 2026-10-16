@@ -12,4 +12,7 @@ internal object NavLayoutPolicy {
 	fun expandRail(widthDp: Int, labelsVisible: Boolean): Boolean = labelsVisible && widthDp >= DESKTOP_WIDTH_DP
 
 	fun useTwoPane(widthDp: Int): Boolean = widthDp >= TWO_PANE_WIDTH_DP
+
+	/** Two library card columns plus the detail preview only when every column remains comfortably wide. */
+	fun libraryListColumns(widthDp: Int): Int = if (widthDp >= 1200) 2 else 1
 }
