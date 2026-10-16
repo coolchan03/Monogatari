@@ -104,9 +104,9 @@ class PlexRepository(
 		coverUrl = null,
 		tags = emptySet(),
 		state = null,
-		authors = setOfNotNull(year?.toString()),
+		authors = emptySet(),
 		largeCoverUrl = null,
-		description = summary,
+		description = descriptionWithYear(year, summary),
 		chapters = null,
 		source = source,
 	)
@@ -129,6 +129,13 @@ class PlexRepository(
 	companion object {
 
 		private val ID = Regex("\\d{1,12}")
+
+		/** Structured Plex year, not an inferred title year or a fake author. */
+		fun descriptionWithYear(year: Int?, summary: String?): String? =
+			listOfNotNull(
+				year?.takeIf { it in 1000..2100 }?.let { "Release year: $it" },
+				summary?.trim()?.takeIf(String::isNotBlank),
+			).joinToString(" - ").ifBlank { null }
 		private val TYPES = setOf("movie", "show")
 
 		fun recentUrl(server: String) = "$server/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size=40"
@@ -158,7 +165,7 @@ class PlexRepository(
 				Item(
 					id, type,
 					item.optString("title").takeIf { it.isNotBlank() } ?: return@mapNotNull null,
-					item.optInt("year", 0).takeIf { it > 0 },
+					item.optInt("year", 0).takeIf { it in 1000..2100 },
 					item.optString("summary").takeIf { it.isNotBlank() },
 				)
 			}.distinctBy { it.id }

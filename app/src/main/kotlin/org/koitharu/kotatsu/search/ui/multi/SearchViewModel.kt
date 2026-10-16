@@ -214,7 +214,12 @@ class SearchViewModel @Inject constructor(
 		val items: List<BookCatalogListModel> = emptyList(),
 		val loading: Boolean = false,
 	)
-	private val catalogState = MutableStateFlow(CatalogState(loading = mediaTypeOverride == MediaType.BOOK))
+	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == MediaType.BOOK))
+	private val displayCatalog = combine(
+		catalogState, publicationSort, yearFrom, yearTo, includeUnknownYears,
+	) { catalog, sort, from, to, unknown ->
+		catalog.copy(items = PublicBookYearSorter.display(catalog.items, sort, from, to, unknown))
+	}
 	private var catalogJob: Job? = null
 
 	/**
@@ -231,7 +236,7 @@ class SearchViewModel @Inject constructor(
 		isLoading.dropWhile { !it },
 		includeDisabledSources,
 		hideEmpty,
-		catalogState,
+		displayCatalog,
 	) { list, loading, includeDisabled, hideEmptyVal, catalog ->
 		val filteredList = if (hideEmptyVal) {
 			list.filter { it.list.isNotEmpty() }
@@ -278,7 +283,7 @@ class SearchViewModel @Inject constructor(
 	fun retry() {
 		searchJob?.cancel()
 		catalogJob?.cancel()
-		catalogState.value = CatalogState(loading = mediaTypeOverride == MediaType.BOOK && !hasPublicationYearFilter)
+		catalogState.value = CatalogState(loading = effectiveMediaType == MediaType.BOOK)
 
 		includeDisabledSources.value = false
 		doSearch()
@@ -363,7 +368,7 @@ class SearchViewModel @Inject constructor(
 	}
 
 	private fun doSearch() {
-		if (mediaTypeOverride == MediaType.BOOK && !hasPublicationYearFilter) {
+		if (effectiveMediaType == MediaType.BOOK) {
 			catalogJob = viewModelScope.launch(Dispatchers.IO) {
 				val publicResults = supervisorScope {
 					listOf(
@@ -424,7 +429,9 @@ class SearchViewModel @Inject constructor(
 		block: suspend () -> List<PublicBookCatalog.Book>,
 	): List<BookCatalogListModel> = try {
 		withTimeout(15_000) {
-			block().map { BookCatalogListModel(it.title, it.author, it.catalog, it.url) }
+			block().map {
+				BookCatalogListModel(it.title, it.author, it.catalog, it.url, it.publicationYear)
+			}
 		}
 	} catch (_: TimeoutCancellationException) {
 		emptyList()
