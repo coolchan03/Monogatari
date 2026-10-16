@@ -18,9 +18,10 @@ object SearchMetadataFilters {
     }
 
     fun languageMatches(language: String?, selected: String?): Boolean =
-        selected.isNullOrBlank() || language.isNullOrBlank() ||
+        selected.isNullOrBlank() || (!language.isNullOrBlank() && (
             language.equals(selected, ignoreCase = true) ||
-            language.equals(java.util.Locale.forLanguageTag(selected).getDisplayLanguage(java.util.Locale.ENGLISH), ignoreCase = true)
+            language.equals(java.util.Locale.forLanguageTag(selected).getDisplayLanguage(java.util.Locale.ENGLISH), ignoreCase = true) ||
+            selected.equals(java.util.Locale.forLanguageTag(language).getDisplayLanguage(java.util.Locale.ENGLISH), ignoreCase = true)))
 
     fun formatMatches(format: String?, selected: String?): Boolean =
         selected.isNullOrBlank() || (format?.contains(selected, ignoreCase = true) == true)

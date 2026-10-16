@@ -32,12 +32,14 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
         const val EXTRA_URL = "official_fiction_browser_url"
     }
     private lateinit var browser: WebView
+    private lateinit var allowedSite: OfficialMediaSites.Site
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val initial = intent.getStringExtra(EXTRA_URL).orEmpty()
         val provider = OfficialMediaSites.fictionSite(initial) ?: run { finish(); return }
+        allowedSite = provider
         title = when (provider) {
             OfficialMediaSites.Site.FICTIONPRESS -> "FictionPress"
             OfficialMediaSites.Site.FANFICTION -> "FanFiction.net"
@@ -62,7 +64,7 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
         buttons.addView(MaterialButton(this).apply {
             setText(R.string.official_fiction_external)
             setOnClickListener {
-                val current = browser.url?.takeIf { OfficialMediaSites.fictionSite(it) != null } ?: initial
+                val current = browser.url?.takeIf { OfficialMediaSites.fictionSite(it) == allowedSite } ?: initial
                 runCatching { startActivity(Intent(Intent.ACTION_VIEW, current.toUri())) }
                     .onFailure { notice.setText(R.string.official_fiction_no_browser) }
             }
@@ -94,6 +96,12 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
                         notice.setText(R.string.official_fiction_connection_failed)
                     }
                 }
+                override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, response: android.webkit.WebResourceResponse?) {
+                    if (request?.isForMainFrame == true && response != null &&
+                        (response.statusCode == 403 || response.statusCode == 429 || response.statusCode == 503)) {
+                        notice.setText(R.string.official_fiction_access_limited)
+                    }
+                }
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     notice.setText(R.string.official_fiction_disclosure)
                 }
@@ -111,7 +119,7 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
 
     private fun handleNavigation(url: Uri, mainFrame: Boolean): Boolean {
         val location = url.toString()
-        if (OfficialMediaSites.fictionSite(location) != null) return false
+        if (OfficialMediaSites.fictionSite(location) == allowedSite) return false
         if (mainFrame && url.scheme == "https") {
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, url)) }
         }

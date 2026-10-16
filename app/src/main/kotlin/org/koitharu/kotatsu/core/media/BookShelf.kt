@@ -8,7 +8,9 @@ import java.io.File
 internal object BookShelf {
     fun list(context: Context, filter: String = ""): List<File> =
         File(context.filesDir, "imported-books").listFiles().orEmpty()
-            .filter { it.isFile && it.name.contains(filter.trim(), ignoreCase = true) }
+            .filter { it.isFile && it.extension.lowercase() in
+                setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml") &&
+                it.name.contains(filter.trim(), ignoreCase = true) }
             .sortedBy { it.name.lowercase() }
 
     /** Display the original filename, not the temporary import prefix or file extension. */

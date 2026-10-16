@@ -166,10 +166,10 @@ class SearchViewModel @Inject constructor(
 			?: PublicationYearOrder.RELEVANCE,
 	)
 	private val displayResults = combine(
-		combine(results, languageFilter, preferredSourceVersion, metadataSelection) { all, language, _, selection ->
+		combine(results, languageFilter, bookFormatFilter, preferredSourceVersion, metadataSelection) { all, language, format, _, selection ->
 			all.map { section ->
-				val eligible = language == null ||
-					LanguageFilter.matches(section.source.getLocale()?.language, language)
+				val eligible = format == null && (language == null ||
+					SearchMetadataFilters.languageMatches(section.source.getLocale()?.language, language))
 				section.copy(list = if (!eligible) emptyList() else section.list.filter { row ->
 					SearchMetadataFilters.tagMatches(row.manga.tags.map { it.title }, selection.genre) &&
 						SearchMetadataFilters.historyMatches(row.manga.id, selection.progress, selection.viewed) &&
@@ -229,6 +229,8 @@ class SearchViewModel @Inject constructor(
 	/** Languages of the sources that answered so far, for the language filter. */
 	fun languagesInResults(): List<String> =
 		LanguageFilter.available(results.value.map { it.source.getLocale()?.language })
+			.plus(catalogState.value.items.mapNotNull { it.language?.takeIf(String::isNotBlank) })
+			.distinct().sorted()
 
 	val selectedLanguage: String?
 		get() = languageFilter.value
@@ -243,7 +245,10 @@ class SearchViewModel @Inject constructor(
 	val selectedHistoryFilter: SearchMetadataFilters.History get() = progressFilter.value
 	val selectedReadingMode: String? get() = readingModeFilter.value
 
-	fun availableReaderModes(): List<ReaderMode> = savedReadingModes.value.values.distinct().sortedBy { it.id }
+	fun availableReaderModes(): List<ReaderMode> {
+		val visibleIds = results.value.flatMap { it.list }.mapTo(HashSet()) { it.manga.id }
+		return savedReadingModes.value.filterKeys { it in visibleIds }.values.distinct().sortedBy { it.id }
+	}
 
 	fun setReadingModeFilter(mode: String?) {
 		readingModeFilter.value = mode?.takeIf { code -> ReaderMode.entries.any { it.name == code } }

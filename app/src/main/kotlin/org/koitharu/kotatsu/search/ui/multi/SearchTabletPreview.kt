@@ -28,6 +28,8 @@ internal class SearchTabletPreview private constructor(
     private var selectedManga: Manga? = null
     private var selectedUrl: String? = null
     val selectedId: Long? get() = selectedManga?.id
+    /** Stable identity for restoring a public-book preview after window resizing or rotation. */
+    val selectedBookUrl: String? get() = selectedUrl
 
     init {
         open.setOnClickListener {
@@ -57,7 +59,9 @@ internal class SearchTabletPreview private constructor(
         cover.isVisible = !item.coverUrl.isNullOrBlank()
         cover.setImageAsync(item.coverUrl)
         showCommon(item.title, item.catalog,
-            listOfNotNull(item.author.takeIf { it.isNotBlank() }, item.format, item.language, item.attribution)
+            listOfNotNull(item.author.takeIf { it.isNotBlank() },
+                if (item.isOfficialSiteSearch) title.context.getString(R.string.search_official_site_only) else null,
+                item.format, item.language, item.attribution)
                 .joinToString(" · ").ifBlank { title.context.getString(R.string.tablet_search_no_description) })
         open.setText(R.string.tablet_search_website)
         read.isVisible = false

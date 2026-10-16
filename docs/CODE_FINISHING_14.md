@@ -26,3 +26,11 @@ Important constraints:
 - Plex credentials must never appear in public URLs, logs, issue descriptions, or tests. Only use mocked IDs in source-controlled tests.
 - Do not merge or publish a signed v1.0.0 based solely on an unverified build. Build/test evidence and owner acceptance belong to the last stage.
 - Keep the original dirty P: checkout untouched; all development is in the dedicated clean-origin worktree.
+
+## Next implementation batch (October 16, 2026)
+
+- #14: Added a user-triggered offline EPUB import for compatible free Standard Ebooks and Project Gutenberg releases; publisher link and redirect host validation, 32 MiB transfer limit, ZIP/mimetype checks, 384 MiB expanded-size guard, temporary-file cleanup, stable local shelf identity, and direct launch into the in-app EPUB reader. Protected/borrowed items remain official-link-only.
+- #32: Format filters no longer leave unrelated parser-backed manga/video rows visible; selecting a language does not falsely include unknown-language books, and genre offers real provider-tag suggestions. Reading-direction choices are limited to titles in the visible search data.
+- #63/#66: Tablet search preview restores the selected manga/official catalog item across rotation after results load. Unified Library RecyclerView now has a persistent Android resource ID for scroll-state restoration, with a recoverable library I/O error state.
+- #48: Fiction browsing remains restricted to the provider originally opened and offers explicit feedback for site HTTP 403/429/503, without pretending anti-bot access is a native parser.
+- GitHub development workflow: `.github/workflows/code-compile.yml` compiles app and unit-test **source code only**, with no emulator, signing, runtime feature tests, or APK publishing. Full verification deliberately remains the last phase.

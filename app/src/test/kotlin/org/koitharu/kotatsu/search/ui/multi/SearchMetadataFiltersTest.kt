@@ -21,7 +21,11 @@ class SearchMetadataFiltersTest {
     @Test fun sourceLanguageCodesMatchProviderLanguageNames() {
         assertTrue(SearchMetadataFilters.languageMatches("English", "en"))
         assertTrue(SearchMetadataFilters.languageMatches("en", "en"))
+        assertTrue(SearchMetadataFilters.languageMatches("en", "English"))
         assertFalse(SearchMetadataFilters.languageMatches("Japanese", "en"))
+        assertFalse(SearchMetadataFilters.languageMatches(null, "en"))
+        assertFalse(SearchMetadataFilters.languageMatches("", "en"))
+        assertTrue(SearchMetadataFilters.languageMatches(null, null))
     }
     @Test fun filtersCatalogFormatsWithoutPretendingUnknownIsEpub() {
         assertTrue(SearchMetadataFilters.formatMatches("EPUB", "epub"))

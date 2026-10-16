@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import okhttp3.OkHttpClient
+import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import org.koitharu.kotatsu.core.ui.Mascot
@@ -50,6 +52,7 @@ class BookLibraryActivity : AppCompatActivity() {
     @Inject lateinit var catalog: PublicBookCatalog
     @Inject lateinit var imageLoader: ImageLoader
     @Inject lateinit var opds: OpdsCatalog
+    @Inject @BaseHttpClient lateinit var epubClient: OkHttpClient
     private val resultsAdapter = CatalogResultsAdapter()
     private lateinit var query: EditText
     private lateinit var catalogStatus: TextView
@@ -416,9 +419,10 @@ class BookLibraryActivity : AppCompatActivity() {
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
                 actionLabel = when {
-                    book.catalog == "Standard Ebooks" -> "Get EPUB"
+                    book.catalog == "Standard Ebooks" -> "Save & read EPUB"
                     book.catalog == "StoryWeaver" -> "Read story"
-                    book.downloadUrl?.startsWith("https://") == true -> "Open EPUB"
+                    book.downloadUrl?.let { OfficialEpubDownloader.approved(book.catalog, it) } == true -> "Save & read EPUB"
+                    book.downloadUrl?.startsWith("https://") == true -> "Open EPUB externally"
                     else -> "View listing"
                 },
                 onAction = {
@@ -426,7 +430,9 @@ class BookLibraryActivity : AppCompatActivity() {
                     else if (book.catalog == "StoryWeaver") openStoryWeaverReader(book)
                     else {
                         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
-                        openOfficialLink(epub ?: book.url)
+                        if (epub != null && OfficialEpubDownloader.approved(book.catalog, epub)) {
+                            downloadAndRead(book, epub)
+                        } else openOfficialLink(epub ?: book.url)
                     }
                 },
             )
@@ -463,9 +469,10 @@ class BookLibraryActivity : AppCompatActivity() {
             val link = withContext(Dispatchers.IO) {
                 runCatching { catalog.resolveStandardEbooksEpub(book.url) }.getOrNull()
             }
-            if (link == null) catalogStatus.text =
-                "Compatible EPUB unavailable. Opening the official listing instead."
-            openOfficialLink(link ?: book.url)
+            if (link == null) {
+                catalogStatus.text = getString(R.string.monogatari_epub_edition_missing)
+                openOfficialLink(book.url)
+            } else downloadAndRead(book, link)
         }
     }
 
@@ -481,18 +488,28 @@ class BookLibraryActivity : AppCompatActivity() {
         if (book.catalog == "Standard Ebooks") {
             MaterialAlertDialogBuilder(this).setTitle(book.title)
                 .setMessage(bookMetadataSummary(book))
-                .setItems(arrayOf("View official listing", "Open compatible EPUB")) { _, which ->
+                .setItems(arrayOf("View official listing", "Save EPUB and read offline")) { _, which ->
                     if (which == 1) openStandardEpub(book) else openOfficialLink(book.url)
                 }
                 .setNegativeButton(android.R.string.cancel, null).show()
             return
         }
         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
+        val approvedEpub = epub?.takeIf { OfficialEpubDownloader.approved(book.catalog, it) }
+        val actions = when {
+            approvedEpub != null -> arrayOf("View ${book.catalog} listing",
+                "Save EPUB and read offline", "Open EPUB in browser")
+            epub != null -> arrayOf("View ${book.catalog} listing", "Open EPUB in browser")
+            else -> arrayOf("View ${book.catalog} listing")
+        }
         MaterialAlertDialogBuilder(this).setTitle(book.title)
             .setMessage(bookMetadataSummary(book))
-            .setItems(if (epub == null) arrayOf("View ${book.catalog} listing")
-                else arrayOf("View ${book.catalog} listing", "Open available EPUB")) { _, which ->
-                openOfficialLink(if (which == 1 && epub != null) epub else book.url)
+            .setItems(actions) { _, which ->
+                when (actions[which]) {
+                    "Save EPUB and read offline" -> approvedEpub?.let { downloadAndRead(book, it) }
+                    "Open EPUB in browser" -> openOfficialLink(epub ?: book.url)
+                    else -> openOfficialLink(book.url)
+                }
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
@@ -504,6 +521,27 @@ class BookLibraryActivity : AppCompatActivity() {
         book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
         book.format, book.availability, book.attribution,
     ).joinToString("\n")
+
+    private fun downloadAndRead(book: PublicBookCatalog.Book, link: String) {
+        if (!OfficialEpubDownloader.approved(book.catalog, link)) {
+            catalogStatus.text = getString(R.string.monogatari_epub_unapproved)
+            return
+        }
+        catalogStatus.text = getString(R.string.monogatari_epub_downloading, book.title)
+        lifecycleScope.launch {
+            try {
+                val library = File(filesDir, "imported-books")
+                val file = OfficialEpubDownloader.save(epubClient, library, book.title, book.catalog, link)
+                catalogStatus.text = getString(R.string.monogatari_epub_saved, book.title)
+                startActivity(BookShelf.readerIntent(this@BookLibraryActivity, file))
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                catalogStatus.text = getString(R.string.monogatari_epub_download_error,
+                    error.message.orEmpty().take(130))
+            }
+        }
+    }
 
     private fun openStoryWeaverReader(book: PublicBookCatalog.Book) {
         if (!StoryWeaverCatalog.officialStoryUrl(book.url)) {

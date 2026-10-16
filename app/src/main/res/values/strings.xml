@@ -1462,4 +1462,12 @@ Optional — skip it and you appear as anon.</string>
     <string name="news_feed_loading">Loading entertainment news</string>
     <string name="media_feed_loading">Loading podcast and video episodes</string>
     <string name="media_feed_retry">Retry feed</string>
+    <string name="search_official_site_only">Official-site search, not an indexed result</string>
+    <string name="library_load_failed">Library could not be loaded: %1$s. Reopen the library to retry.</string>
+    <string name="official_fiction_access_limited">The provider requires browser verification or has limited automated access. Use Open in browser to continue on the official site.</string>
+    <string name="monogatari_epub_edition_missing">No compatible EPUB was listed. Opening the publisher’s website.</string>
+    <string name="monogatari_epub_unapproved">This publisher did not provide an approved free EPUB download.</string>
+    <string name="monogatari_epub_downloading">Saving %1$s for offline reading…</string>
+    <string name="monogatari_epub_saved">Saved %1$s to your library.</string>
+    <string name="monogatari_epub_download_error">Could not save the EPUB: %1$s</string>
 </resources>

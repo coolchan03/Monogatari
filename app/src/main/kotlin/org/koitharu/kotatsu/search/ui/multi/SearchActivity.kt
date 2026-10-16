@@ -56,6 +56,8 @@ class SearchActivity :
 	companion object {
 		/** Intent scope for a one-off book search; never mutates the global media filter. */
 		const val EXTRA_MEDIA_TYPE = "monogatari.search.media_type"
+		private const val STATE_PREVIEW_MANGA_ID = "search.preview.manga_id"
+		private const val STATE_PREVIEW_BOOK_URL = "search.preview.book_url"
 	}
 
 	@Inject
@@ -64,10 +66,15 @@ class SearchActivity :
 	private val viewModel by viewModels<SearchViewModel>()
 	private lateinit var selectionController: ListSelectionController
 	private var tabletPreview: SearchTabletPreview? = null
+	private var pendingPreviewMangaId: Long? = null
+	private var pendingPreviewBookUrl: String? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(ActivitySearchBinding.inflate(layoutInflater))
+		// View recreation builds a new pane, but its previously selected title should remain selected.
+		pendingPreviewMangaId = savedInstanceState?.getLong(STATE_PREVIEW_MANGA_ID)?.takeIf { it != 0L }
+		pendingPreviewBookUrl = savedInstanceState?.getString(STATE_PREVIEW_BOOK_URL)
 		tabletPreview = SearchTabletPreview.attach(
 			root = viewBinding.root,
 			onDetails = { openMangaWithSourceChoice(it, false) },
@@ -126,7 +133,39 @@ class SearchActivity :
 		addMenuProvider(SearchMenuProvider(this, viewModel))
 
 		viewModel.list.observe(this, adapter)
+		viewModel.list.observe(this) { items -> restoreTabletPreview(items) }
 		viewModel.onError.observeEvent(this, SnackbarErrorObserver(viewBinding.recyclerView, null))
+	}
+
+	private fun restoreTabletPreview(items: List<org.koitharu.kotatsu.list.ui.model.ListModel>) {
+		val pane = tabletPreview ?: return
+		val mangaId = pendingPreviewMangaId
+		if (mangaId != null) {
+			val row = items.filterIsInstance<SearchResultsListModel>()
+				.asSequence().flatMap { it.list.asSequence() }
+				.firstOrNull { it.manga.id == mangaId }
+			if (row != null) {
+				pane.show(row)
+				pendingPreviewMangaId = null
+				return
+			}
+		}
+		val bookUrl = pendingPreviewBookUrl
+		if (bookUrl != null) {
+			val row = items.filterIsInstance<BookCatalogListModel>().firstOrNull { it.url == bookUrl }
+			if (row != null) {
+				pane.show(row)
+				pendingPreviewBookUrl = null
+			}
+		}
+	}
+
+	override fun onSaveInstanceState(outState: Bundle) {
+		tabletPreview?.selectedId?.let { outState.putLong(STATE_PREVIEW_MANGA_ID, it) }
+		val mangaId = tabletPreview?.selectedId
+		if (mangaId == null) pendingPreviewMangaId?.let { outState.putLong(STATE_PREVIEW_MANGA_ID, it) }
+		outState.putString(STATE_PREVIEW_BOOK_URL, tabletPreview?.selectedBookUrl ?: pendingPreviewBookUrl)
+		super.onSaveInstanceState(outState)
 	}
 
 	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {

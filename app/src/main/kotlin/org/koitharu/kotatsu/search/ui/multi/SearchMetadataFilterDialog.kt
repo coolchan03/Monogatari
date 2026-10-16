@@ -2,7 +2,7 @@ package org.koitharu.kotatsu.search.ui.multi
 
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.EditText
+import android.widget.AutoCompleteTextView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -41,8 +41,10 @@ internal object SearchMetadataFilterDialog {
         val availableTags = viewModel.availableGenres()
         val genre = if (availableTags.isNotEmpty() || viewModel.selectedGenre != null) {
             label(R.string.search_genre_tag_label)
-            EditText(activity).apply {
+            AutoCompleteTextView(activity).apply {
                 setSingleLine(true)
+                setAdapter(ArrayAdapter(activity, android.R.layout.simple_dropdown_item_1line, availableTags))
+                threshold = 1
                 setText(viewModel.selectedGenre.orEmpty())
                 setHint(R.string.search_genre_tag_hint)
                 contentDescription = activity.getString(R.string.search_genre_tag_label)
@@ -53,7 +55,11 @@ internal object SearchMetadataFilterDialog {
         val languageOptions = listOf<String?>(null) + languages
         val languagePicker = if (languages.isNotEmpty()) spinner(
             R.string.search_language_label,
-            languageOptions.map { it?.let { code -> Locale.forLanguageTag(code).displayLanguage } ?: activity.getString(R.string.search_language_any) },
+            languageOptions.map { code -> when {
+                code == null -> activity.getString(R.string.search_language_any)
+                code.length in 2..3 -> Locale.forLanguageTag(code).displayLanguage
+                else -> code
+            } },
             languageOptions.indexOf(viewModel.selectedLanguage),
         ) else null
         val formats = (viewModel.availableBookFormats() + listOfNotNull(viewModel.selectedBookFormat)).distinct()
