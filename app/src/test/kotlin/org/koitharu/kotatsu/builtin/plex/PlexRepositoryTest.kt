@@ -62,4 +62,17 @@ class PlexRepositoryTest {
 		assertNull(PlexRepository.splitUrl("/track/40"))
 		assertTrue(PlexRepository.searchUrl("http://h:32400", "cowboy bebop").contains("query=cowboy%20bebop"))
 	}
+
+	@Test
+	fun explainsServerFailuresWithoutLeakingTheToken() {
+		assertNull(PlexRepository.httpErrorMessage(200))
+		assertTrue(PlexRepository.httpErrorMessage(401)!!.contains("token"))
+		assertTrue(PlexRepository.httpErrorMessage(403)!!.contains("403"))
+		assertTrue(PlexRepository.httpErrorMessage(404)!!.contains("404"))
+		assertTrue(PlexRepository.httpErrorMessage(503)!!.contains("503"))
+		assertTrue(PlexRepository.httpErrorMessage(418)!!.contains("418"))
+		val unreachable = PlexRepository.unreachableMessage("192.168.1.5")
+		assertTrue(unreachable.contains("192.168.1.5"))
+		assertTrue(!unreachable.contains("X-Plex-Token"))
+	}
 }

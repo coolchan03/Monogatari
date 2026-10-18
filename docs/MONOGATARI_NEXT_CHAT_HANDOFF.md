@@ -89,4 +89,6 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 - **Push route changed for this session:** no Tunnel to Surface tool exists in the Claude cloud container. With the owner's explicit approval, commits are pushed with this container's own git remote to `claude/monogatari-v1-release-sq1t2k`. The GitHub connector stays read-only. No merge, release or `devel`/`finish-83` write. The owner declined a local Android SDK in the container, so all compilation and tests run in GitHub Actions (`build-check.yml` runs on `claude/**` pushes).
 - The branch started at finish-83 head `a3837b2` (draft PR #13, no newer work found). Baseline `build-check` on `a3837b2`: unit tests and debug APK passed (run 39176557261).
 - Batch 1 code: source-failure triage (`docs/SOURCE_DIAGNOSTICS_20261018.md`), per-source Retry / Solve CAPTCHA in global search (#17 + CAPTCHA handling), TalkBack labels on icon-only buttons (#69), future roadmap `docs/FUTURE_VERSION_ROADMAP.md`.
+- Batch 1b: Plex error explanations (#58), source-neutral player error text, safe external links for untrusted URLs.
+- Baseline `build` job on `a3837b2` passed (unit tests, debug APK, R8 release).
 - The 14 PARTIAL rows remain PARTIAL. Code presence ≠ verification.

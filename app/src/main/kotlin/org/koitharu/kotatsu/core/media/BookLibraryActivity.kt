@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.util.ExternalLinks
 import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
@@ -326,7 +327,10 @@ class BookLibraryActivity : AppCompatActivity() {
                 if (entries.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_opds_empty)))
                 else resultsAdapter.show(entries.map { entry ->
                     CatalogRow(entry.title, entry.author, onOpen = {
-                        if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
+                        // OPDS feeds are user-supplied: acquisition links open only as http(s) in a browser.
+                        if (entry.acquisition) {
+                            if (!ExternalLinks.open(this@BookLibraryActivity, entry.href)) catalogStatus.text = getString(R.string.link_cannot_open)
+                        }
                         else openOpds(entry.href)
                     })
                 })

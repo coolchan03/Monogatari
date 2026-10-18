@@ -21,6 +21,7 @@ import org.koitharu.kotatsu.parsers.model.MangaListFilterOptions
 import org.koitharu.kotatsu.parsers.model.MangaPage
 import org.koitharu.kotatsu.parsers.model.RATING_UNKNOWN
 import org.koitharu.kotatsu.parsers.model.SortOrder
+import org.json.JSONException
 import java.io.IOException
 import java.util.UUID
 
@@ -124,12 +125,20 @@ class PlexRepository(
 
 	private suspend fun fetch(url: String, token: String): JSONObject = withContext(Dispatchers.IO) {
 		val request = Request.Builder().url(url).header("X-Plex-Token", token).header("Accept", "application/json").build()
-		client.newCall(request).execute().use { response ->
-			when {
-				response.code == 401 -> throw IOException("Plex rejected the token. Check it in More > API keys & accounts.")
-				!response.isSuccessful -> throw IOException("Plex HTTP ${response.code}")
+		val response = try {
+			client.newCall(request).execute()
+		} catch (e: IOException) {
+			// Keep the cause: source health uses it to tell an offline phone from a dead server.
+			throw IOException(unreachableMessage(request.url.host), e)
+		}
+		response.use {
+			httpErrorMessage(response.code)?.let { throw IOException(it) }
+			val body = response.body?.string().orEmpty().ifEmpty { "{}" }
+			try {
+				JSONObject(body)
+			} catch (e: JSONException) {
+				throw IOException(NOT_PLEX_MESSAGE, e)
 			}
-			JSONObject(response.body?.string().orEmpty().ifEmpty { "{}" })
 		}
 	}
 
@@ -140,6 +149,23 @@ class PlexRepository(
 	companion object {
 
 		private val ID = Regex("\\d{1,12}")
+
+		const val NOT_PLEX_MESSAGE = "The server address answered, but not like a Plex Media Server. " +
+			"Check the address and port (usually 32400) in More > API keys & accounts."
+
+		/** User-facing explanation for a failed Plex API response, or null when the request succeeded. */
+		fun httpErrorMessage(code: Int): String? = when {
+			code in 200..299 -> null
+			code == 401 -> "Plex rejected the token. Check it in More > API keys & accounts."
+			code == 403 -> "Plex refused access (HTTP 403). This account may not have access to that library."
+			code == 404 -> "That item is no longer on your Plex server, or the library was moved (HTTP 404)."
+			code >= 500 -> "Your Plex server reported an error (HTTP $code). Try again after it finishes starting or scanning."
+			else -> "Plex request failed (HTTP $code)."
+		}
+
+		fun unreachableMessage(host: String): String =
+			"Can't reach your Plex server at $host. Check that it is running; a local address (192.168.x.x) " +
+				"only works on the same Wi-Fi network."
 
 		/** Structured Plex year, not an inferred title year or a fake author. */
 		fun descriptionWithYear(year: Int?, summary: String?): String? =

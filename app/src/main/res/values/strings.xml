@@ -1476,6 +1476,11 @@ Optional — skip it and you appear as anon.</string>
     <string name="search_book_official_listing">Open official listing</string>
     <string name="search_book_open_in_browser">Open EPUB in browser</string>
     <string name="search_book_options">Open or save</string>
+    <string name="media_codec_unavailable">This device cannot decode the video or audio format of this stream. Try another quality or open it in the website or an external player.</string>
+    <string name="media_stream_denied">The website refused this stream. It may have expired, need sign-in or be unavailable in your region; reopen the episode or use the official site.</string>
+    <string name="media_stream_unreachable">Could not connect to the stream. Check your connection and try again.</string>
+    <string name="media_stream_protected">This stream is DRM-protected. Monogatari does not bypass DRM; watch it on the official service.</string>
+    <string name="link_cannot_open">This link cannot be opened. Only web (http/https) links open outside Monogatari, and a browser must be installed.</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
 </resources>

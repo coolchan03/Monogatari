@@ -1,7 +1,8 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import org.koitharu.kotatsu.core.util.ExternalLinks
+import android.widget.Toast
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import java.io.File
 import okhttp3.OkHttpClient
@@ -299,8 +300,8 @@ class SearchActivity :
 		} else if (OfficialMediaSites.fictionSite(url) != null) {
 			startActivity(Intent(this, OfficialFictionBrowserActivity::class.java)
 				.putExtra(OfficialFictionBrowserActivity.EXTRA_URL, url))
-		} else {
-			startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+		} else if (!ExternalLinks.open(this, url)) {
+			Toast.makeText(this, R.string.link_cannot_open, Toast.LENGTH_SHORT).show()
 		}
 	}
 

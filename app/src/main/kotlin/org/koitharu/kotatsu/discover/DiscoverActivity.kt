@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.discover
 
+import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.os.Bundle
 import android.content.Intent
 import android.widget.EditText
@@ -296,7 +297,9 @@ class DiscoverActivity : AppCompatActivity() {
 							MaterialAlertDialogBuilder(this@DiscoverActivity)
 								.setTitle("Internet Archive · ${results.size} results")
 								.setItems(results.map { it.title }.toTypedArray()) { _, position ->
-									startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(results[position].url)))
+									if (!ExternalLinks.open(this@DiscoverActivity, results[position].url)) {
+										showMessage(getString(R.string.link_cannot_open))
+									}
 								}
 								.setNegativeButton(android.R.string.cancel, null).show()
 						}

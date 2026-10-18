@@ -1,7 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebChromeClient
@@ -12,7 +12,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -50,7 +49,7 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
         content.addView(status, LinearLayout.LayoutParams(-1, -2))
         val fallback = MaterialButton(this).apply {
             setText(R.string.storyweaver_open_browser)
-            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+            setOnClickListener { if (!ExternalLinks.open(this@StoryWeaverReaderActivity, url)) status.setText(R.string.link_cannot_open) }
         }
         content.addView(fallback, LinearLayout.LayoutParams(-1, -2))
         browser = WebView(this).apply {
@@ -70,15 +69,14 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
                     if (StoryWeaverCatalog.officialHost(request.url.toString())) return false
-                    if (request.isForMainFrame) runCatching {
-                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
-                    }
+                    // Page script cannot launch intent:/custom-scheme links; only http(s) goes to a browser.
+                    if (request.isForMainFrame) ExternalLinks.open(this@StoryWeaverReaderActivity, request.url.toString())
                     return true
                 }
                 @Deprecated("Required on Android 6")
                 override fun shouldOverrideUrlLoading(view: WebView?, nextUrl: String): Boolean {
                     if (StoryWeaverCatalog.officialHost(nextUrl)) return false
-                    runCatching { startActivity(Intent(Intent.ACTION_VIEW, nextUrl.toUri())) }
+                    ExternalLinks.open(this@StoryWeaverReaderActivity, nextUrl)
                     return true
                 }
             }

@@ -457,10 +457,25 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 						if (!isDestroyed && currentChapterId == chapterAtFailure) startPlayer(fallback)
 					}
 				} else {
+					// Plex wording only for the user's Plex server; other sources get neutral explanations.
+					val isPlex = viewModel.getMangaOrNull()?.source?.name == BuiltinSource.PLEX.name
 					val explain = when (error.errorCode) {
 						PlaybackException.ERROR_CODE_DECODING_FAILED,
-						PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> getString(R.string.plex_codec_unavailable)
-						PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> getString(R.string.plex_media_denied)
+						PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+						PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+						PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+						PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> getString(
+							if (isPlex) R.string.plex_codec_unavailable else R.string.media_codec_unavailable,
+						)
+						PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> getString(
+							if (isPlex) R.string.plex_media_denied else R.string.media_stream_denied,
+						)
+						PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+						PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> getString(R.string.media_stream_unreachable)
+						PlaybackException.ERROR_CODE_DRM_UNSPECIFIED,
+						PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
+						PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
+						PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED -> getString(R.string.media_stream_protected)
 						else -> error.message.orEmpty().take(160).ifBlank { getString(R.string.media_reader_content_error) }
 					}
 					showError(explain, reload = false)
