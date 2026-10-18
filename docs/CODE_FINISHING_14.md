@@ -43,3 +43,12 @@ Important constraints:
 - Global-search results now carry publisher-reported free EPUB links. Eligible Standard Ebooks and Project Gutenberg results offer the same "Save EPUB and read offline" flow as Books, including from the tablet preview pane; protected and unapproved sources still open official listings.
 - `PublicCatalogProviderTest.kt` adds source-coverage regression cases. New adapter state distinguishes source failures from empty titles; no feature/device acceptance has been performed.
 - **Do not mark any of the 14 PARTIAL items DONE yet.** GitHub Actions should run only the compile-only workflow during this code-development phase. Provider access, live downloads, device layout and user acceptance remain final-stage work.
+
+## 2026-10-18 batch 1 (Claude cloud session, branch `claude/monogatari-v1-release-sq1t2k`)
+
+| ID | Change | Still needed for acceptance |
+| --- | --- | --- |
+| 11 | Audit: every Monogatari-specific Activity already uses `MonogatariChrome` (toolbar, Up, insets), or its own toolbar (Test Center, Discover). No code change needed | Device Back/Up walk-through |
+| 17 | Global search: each failed source section has Retry, or the matching resolver action (Solve CAPTCHA, Sign in, Fix TLS, Open in browser), re-querying only that source | Interrupt/retry on device with a real failing source |
+| 69 | Content descriptions for icon-only buttons: reader auto-scroll, scrobbling Done, autocomplete dropdowns, search-suggestion fill (now 48dp) | TalkBack pass |
+| Sources | Failure triage separates dead domains, access restrictions, moved pages and real parser/extension defects; see `SOURCE_DIAGNOSTICS_20261018.md` | Fresh sweep on device |

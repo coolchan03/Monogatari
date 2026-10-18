@@ -102,3 +102,5 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 The finishing branch `finish-83-20261015` contains source-code changes across **all fourteen** partial item areas; see [CODE_FINISHING_14.md](CODE_FINISHING_14.md) for each specific implementation and its remaining acceptance criterion.
 
 Development policy: first implement and push the Android code; GitHub Actions may flag compilation problems without being treated as user-facing feature verification; after the code is assembled, conduct automated checks, two-device acceptance, then publish v1.0.0. The rows above describe the pre-finishing baseline and should not be interpreted as the current code delta.
+
+Post-1.0 plans (v1.0.x maintenance through v2.0) are kept in [FUTURE_VERSION_ROADMAP.md](FUTURE_VERSION_ROADMAP.md); they are not v1.0 requirements.

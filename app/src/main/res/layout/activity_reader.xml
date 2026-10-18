@@ -20,6 +20,8 @@
 		android:layout_gravity="bottom|end"
 		android:layout_margin="16dp"
 		app:backgroundTint="@color/bg_floating_button"
+		android:contentDescription="@string/automatic_scroll"
+		android:tooltipText="@string/automatic_scroll"
 		app:icon="@drawable/ic_timelapse"
 		app:layout_insetEdge="bottom" />
 

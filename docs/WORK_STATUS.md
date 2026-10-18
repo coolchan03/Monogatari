@@ -1,5 +1,11 @@
 # Monogatari work checkpoint
 
+## 2026-10-18 — Claude cloud session, v1.0 finishing batch 1
+- Branch `claude/monogatari-v1-release-sq1t2k` from finish-83 head `a3837b2`. Push via this container's git remote (owner approved; no Tunnel to Surface tool here). GitHub connector is read-only. No local SDK (owner declined), so GitHub Actions does the compiling.
+- Baseline build-check run 39176557261 on `a3837b2`: unit tests PASS, debug APK PASS, R8 release was still running at the time of writing.
+- Operation: commit batch 1 (diagnostics triage, per-source search retry/CAPTCHA action, a11y labels, future roadmap), push, then read the build-check result for the new head.
+- Not verified: no device, provider or TalkBack test. The 14 PARTIAL items stay PARTIAL.
+
 ## 2026-10-15 — Release follow-through
 
 - GitHub Actions for `5b5b988` passed both full unit/build/R8 and cold-start emulator jobs (`38667817650`).

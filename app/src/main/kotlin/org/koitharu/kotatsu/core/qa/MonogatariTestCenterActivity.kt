@@ -308,7 +308,10 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         val answers = MonogatariTestPlan.cases.associate { it.id to finding(it) }
         val sourceSummary = if (sourceScan.hasSavedResults(true)) {
             val lines = sourceScan.report(true).lineSequence().toList()
-            val overview = lines.take(4)
+            // Summary, failure categories and the "Likely causes" explanations precede the per-source lines.
+            val overview = lines.takeWhile { line ->
+                !line.startsWith("PASS |") && !line.startsWith("PARTIAL |") && !line.startsWith("FAIL |")
+            }.filter { it.isNotBlank() }
             val failures = lines.asSequence().filter { it.startsWith("FAIL |") }.take(35).toList()
             val partial = lines.asSequence().filter { it.startsWith("PARTIAL |") }.take(10).toList()
             (overview + "Sample failures:" + failures + "Sample partial results:" + partial +

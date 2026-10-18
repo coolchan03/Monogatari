@@ -432,6 +432,24 @@ class SearchViewModel @Inject constructor(
 		doSearch()
 	}
 
+	/**
+	 * Re-queries one failed source section, after the user tapped Retry or completed the website's own
+	 * verification, without restarting the whole sweep or losing the other sections.
+	 */
+	fun retrySource(source: MangaSource) {
+		launchJob(Dispatchers.Default) {
+			val refreshed = searchSource(source)
+			results.update { current ->
+				val index = current.indexOfFirst { it.titleResId == 0 && it.source == source }
+				when {
+					index < 0 -> if (refreshed != null) current + refreshed else current
+					refreshed == null -> current.toMutableList().apply { removeAt(index) }
+					else -> current.toMutableList().apply { set(index, refreshed) }
+				}
+			}
+		}
+	}
+
 	fun setPinnedOnly(value: Boolean) {
 		if (pinnedOnly.value != value) {
 			pinnedOnly.value = value

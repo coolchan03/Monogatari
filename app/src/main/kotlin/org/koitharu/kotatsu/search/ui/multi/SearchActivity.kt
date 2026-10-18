@@ -33,6 +33,7 @@ import org.koitharu.kotatsu.core.media.StoryWeaverCatalog
 import org.koitharu.kotatsu.core.media.StoryWeaverReaderActivity
 import org.koitharu.kotatsu.core.media.OfficialMediaSites
 import org.koitharu.kotatsu.core.media.OfficialFictionBrowserActivity
+import org.koitharu.kotatsu.core.exceptions.resolve.ExceptionResolver
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -116,7 +117,9 @@ class SearchActivity :
 		}
 
 		val itemClickListener = OnListItemClickListener<SearchResultsListModel> { item, view ->
-			if (item.listFilter == null) {
+			if (view.id == R.id.button_retry) {
+				retrySection(item)
+			} else if (item.listFilter == null) {
 				router.openSearch(item.source, viewModel.query)
 			} else {
 				router.openList(item.source, item.listFilter, item.sortOrder)
@@ -323,6 +326,17 @@ class SearchActivity :
 			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.show()
+	}
+
+	private fun retrySection(item: SearchResultsListModel) {
+		val error = item.error
+		if (error != null && ExceptionResolver.canResolve(error)) {
+			lifecycleScope.launch {
+				if (exceptionResolver.resolve(error)) viewModel.retrySource(item.source)
+			}
+		} else {
+			viewModel.retrySource(item.source)
+		}
 	}
 
 	override fun onRetryClick(error: Throwable) {

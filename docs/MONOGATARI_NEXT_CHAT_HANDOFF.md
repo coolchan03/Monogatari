@@ -83,3 +83,10 @@ Draft [PR #13](https://github.com/coolchan03/Monogatari/pull/13) is the exclusiv
 
 ### October 16 next code batch: global Books completeness
 Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` registry covers all eleven Books providers in global search; concurrent results stream progressively while failed providers get an informational row. Gutenberg/Open Library/Google Books subjects power book genre filtering; global results retain official free EPUB URLs and provide in-app offline save/read choices (including tablet preview). This code is **not final-feature-tested**. The compile-only GitHub workflow is allowed; defer provider/device verification, merge, signing and release until the final stage. Details: `docs/CODE_FINISHING_14.md`.
+
+## 2026-10-18 Claude cloud session: v1.0 finishing batch 1
+
+- **Push route changed for this session:** no Tunnel to Surface tool exists in the Claude cloud container. With the owner's explicit approval, commits are pushed with this container's own git remote to `claude/monogatari-v1-release-sq1t2k`. The GitHub connector stays read-only. No merge, release or `devel`/`finish-83` write. The owner declined a local Android SDK in the container, so all compilation and tests run in GitHub Actions (`build-check.yml` runs on `claude/**` pushes).
+- The branch started at finish-83 head `a3837b2` (draft PR #13, no newer work found). Baseline `build-check` on `a3837b2`: unit tests and debug APK passed (run 39176557261).
+- Batch 1 code: source-failure triage (`docs/SOURCE_DIAGNOSTICS_20261018.md`), per-source Retry / Solve CAPTCHA in global search (#17 + CAPTCHA handling), TalkBack labels on icon-only buttons (#69), future roadmap `docs/FUTURE_VERSION_ROADMAP.md`.
+- The 14 PARTIAL rows remain PARTIAL. Code presence ≠ verification.

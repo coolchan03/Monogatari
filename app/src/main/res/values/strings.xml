@@ -1476,4 +1476,6 @@ Optional — skip it and you appear as anon.</string>
     <string name="search_book_official_listing">Open official listing</string>
     <string name="search_book_open_in_browser">Open EPUB in browser</string>
     <string name="search_book_options">Open or save</string>
+    <string name="a11y_show_options">Show options</string>
+    <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
 </resources>
