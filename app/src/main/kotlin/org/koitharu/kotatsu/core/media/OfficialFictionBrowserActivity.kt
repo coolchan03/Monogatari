@@ -1,7 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -14,13 +13,13 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.util.ExternalLinks
 
 /**
  * The provider's own website in an ordinary WebView.
@@ -33,6 +32,7 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
     }
     private lateinit var browser: WebView
     private lateinit var allowedSite: OfficialMediaSites.Site
+    private lateinit var notice: TextView
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +50,7 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val progress = LinearProgressIndicator(this).apply { max = 100; isIndeterminate = false }
         root.addView(progress, LinearLayout.LayoutParams(-1, -2))
-        val notice = TextView(this).apply {
+        notice = TextView(this).apply {
             setText(R.string.official_fiction_disclosure)
             setPadding(padding, padding / 2, padding, padding / 2)
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
@@ -65,8 +65,9 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
             setText(R.string.official_fiction_external)
             setOnClickListener {
                 val current = browser.url?.takeIf { OfficialMediaSites.fictionSite(it) == allowedSite } ?: initial
-                runCatching { startActivity(Intent(Intent.ACTION_VIEW, current.toUri())) }
-                    .onFailure { notice.setText(R.string.official_fiction_no_browser) }
+                if (!ExternalLinks.open(this@OfficialFictionBrowserActivity, current)) {
+                    notice.setText(R.string.official_fiction_no_browser)
+                }
             }
         }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(buttons)
@@ -120,10 +121,10 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
     private fun handleNavigation(url: Uri, mainFrame: Boolean): Boolean {
         val location = url.toString()
         if (OfficialMediaSites.fictionSite(location) == allowedSite) return false
-        if (mainFrame && url.scheme == "https") {
-            runCatching { startActivity(Intent(Intent.ACTION_VIEW, url)) }
-        }
-        // No deep-link or untrusted URL can be opened silently from provider-controlled page script.
+        // Embedded frames (the site's own CAPTCHA/verification widgets) stay inside the page; only web schemes.
+        if (!mainFrame) return !ExternalLinks.isAllowed(location)
+        // Leaving the provider opens a real browser; no deep-link or custom scheme is launched from page script.
+        if (!ExternalLinks.open(this, location)) notice.setText(R.string.link_cannot_open)
         return true
     }
 

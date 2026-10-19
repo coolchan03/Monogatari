@@ -1,5 +1,11 @@
 # Monogatari work checkpoint
 
+## 2026-10-19 — v1.0.0 release preparation (owner approved: "do everything")
+- Review pass over all unmerged finishing code: fixed WebView handling so provider CAPTCHA frames (e.g. challenges.cloudflare.com) can load inside FanFiction.net/FictionPress/StoryWeaver pages, and routed their outside links through the safe-link check.
+- Version 1.0.0 (versionCode 18). Tracker 83 DONE in code; device acceptance follows the release.
+- Release workflow also runs on a pushed `v*` tag (git route, no connector write). Notes from `docs/RELEASE_1_0_0_NOTES.md`.
+- Next operations: push branch, green build-check, merge into `devel` (merge commit, no history rewrite), green build-check on devel, push tag `v1.0.0`, verify the signed APK, release commit and SHA-256.
+
 ## 2026-10-19 — finishing batch 2
 - Operation: commit and push batch 2 (#21, #23, #32, #66, #14, #63/#69) to `claude/monogatari-v1-release-sq1t2k`, then read build-check for the new head.
 - Not verified on device.

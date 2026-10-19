@@ -1,5 +1,9 @@
 name: Publish signed Android release
 on:
+  # A pushed v* tag publishes that tag's commit; manual dispatch still works for dry runs.
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       source_ref:
@@ -25,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ github.event_name == 'push' && github.ref || inputs.source_ref }}
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -38,11 +42,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Validate release inputs and credentials
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -50,8 +55,12 @@ jobs:
           for key in RELEASE_KEYSTORE_BASE64 RELEASE_KEY_ALIAS RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_PASSWORD; do
             [[ -n "${!key}" ]] || { echo "Missing required secret: $key"; exit 1; }
           done
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+          # A dispatched release creates its tag; a pushed tag is the release itself.
+          if [[ "${{ github.event_name }}" != "push" ]] && git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             echo "Tag already exists: $TAG"; exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists: $TAG"; exit 1
           fi
       # Separating test and release builds prevents Kotlin's release compiler from
       # inheriting the memory-heavy debug test graph (OOM in run 38798747198).
@@ -92,13 +101,20 @@ jobs:
           name: signed-release
           path: dist/
       - name: Publish public GitHub release
-        if: ${{ !inputs.dry_run }}
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
+          # Release notes come from docs/RELEASE_<version>_NOTES.md when present (v1.0.0 -> RELEASE_1_0_0_NOTES.md).
+          NOTES="docs/RELEASE_$(echo "${TAG#v}" | tr '.' '_')_NOTES.md"
+          if [[ -f "$NOTES" ]]; then
+            cp "$NOTES" dist/release-notes.md
+          else
+            echo "Signed Android release." > dist/release-notes.md
+          fi
+          printf '\n\nCommit: %s\nSHA256SUMS.txt verifies the APK download.\n' "$GITHUB_SHA" >> dist/release-notes.md
           gh release create "$TAG" dist/Monogatari-release.apk dist/SHA256SUMS.txt \
-            --target "$GITHUB_SHA" --title "Monogatari $TAG" \
-            --notes "Signed Android release. SHA256SUMS.txt verifies the APK download."
+            --target "$GITHUB_SHA" --title "Monogatari $TAG" --notes-file dist/release-notes.md

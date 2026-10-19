@@ -69,6 +69,8 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
                     if (StoryWeaverCatalog.officialHost(request.url.toString())) return false
+                    // Embedded frames stay inside the page (web schemes only); they cannot leave the WebView.
+                    if (!request.isForMainFrame) return !ExternalLinks.isAllowed(request.url.toString())
                     // Page script cannot launch intent:/custom-scheme links; only http(s) goes to a browser.
                     if (request.isForMainFrame) ExternalLinks.open(this@StoryWeaverReaderActivity, request.url.toString())
                     return true
