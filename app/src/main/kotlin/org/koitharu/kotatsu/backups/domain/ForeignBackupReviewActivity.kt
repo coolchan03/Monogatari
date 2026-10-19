@@ -36,6 +36,9 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 	@Inject
 	lateinit var mangayomiImporter: MangayomiImporter
 
+	@Inject
+	lateinit var mihonImporter: MihonImporter
+
 	private lateinit var status: TextView
 	private lateinit var chooseFile: MaterialButton
 	private lateinit var action: MaterialButton
@@ -89,6 +92,7 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 		data object Kotatsu : Detected
 		class Mangayomi(val preview: MangayomiImporter.Preview) : Detected
 		data object Mihon : Detected
+		class MihonDecoded(val preview: MihonImporter.Preview) : Detected
 		data object Unknown : Detected
 	}
 
@@ -119,7 +123,12 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 			val n = staged.inputStream().use { it.read(head) }
 			val isZip = n >= 2 && head[0] == 'P'.code.toByte() && head[1] == 'K'.code.toByte()
 			val isGzip = n >= 2 && head[0] == 0x1f.toByte() && head[1] == 0x8b.toByte()
-			if (name.endsWith(".tachibk") || name.endsWith(".proto.gz") || isGzip) return Detected.Mihon
+			if (name.endsWith(".tachibk") || name.endsWith(".proto.gz") || isGzip) {
+				// Undecodable or empty backups fall back to the explanation instead of a partial import.
+				val backup = runCatching { staged.inputStream().use { MihonBackup.read(it) } }.getOrNull()
+					?.takeIf { it.manga.isNotEmpty() } ?: return Detected.Mihon
+				return Detected.MihonDecoded(mihonImporter.preview(backup))
+			}
 			if (isZip && !name.endsWith(".backup")) {
 				val isKotatsu = runCatching { BackupArchiveInspector.inspect(staged) }.isSuccess
 				if (isKotatsu) return Detected.Kotatsu
@@ -161,6 +170,22 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 			}
 
 			Detected.Mihon -> status.text = getString(R.string.foreign_backup_mihon)
+			is Detected.MihonDecoded -> {
+				val preview = detected.preview
+				status.text = buildString {
+					append(getString(R.string.foreign_backup_mihon_summary,
+						preview.titles, preview.favourites, preview.withProgress, preview.matchedTitles))
+					if (preview.unmatchedSources.isNotEmpty()) {
+						append("\n\n")
+						append(getString(R.string.foreign_backup_mangayomi_unmatched, preview.unmatchedSources.joinToString(", ")))
+					}
+					append("\n\n")
+					append(getString(R.string.foreign_backup_mihon_how))
+				}
+				if (preview.matchedTitles > 0) {
+					showAction(getString(R.string.foreign_backup_import)) { runMihonImport(preview) }
+				}
+			}
 			Detected.Unknown -> status.text = getString(R.string.foreign_backup_unknown)
 		}
 	}
@@ -185,6 +210,35 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 							append("\n\n")
 							append(getString(R.string.foreign_backup_done_install_failed, r.installFailures.joinToString(", ")))
 						}
+					}
+				},
+				onFailure = { getString(R.string.foreign_backup_failed, it.message.orEmpty()) },
+			)
+		}
+	}
+
+	private fun runMihonImport(preview: MihonImporter.Preview) {
+		showAction(null, null)
+		chooseFile.isEnabled = false
+		status.text = getString(R.string.foreign_backup_importing)
+		window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+		lifecycleScope.launch {
+			val result = runCatching {
+				mihonImporter.importFavourites(preview, getString(R.string.foreign_backup_default_category)) { done, total ->
+					runOnUiThread { status.text = getString(R.string.foreign_backup_mihon_progress, done, total) }
+				}
+			}.onFailure { if (it is CancellationException) throw it }
+			window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+			chooseFile.isEnabled = true
+			status.text = result.fold(
+				onSuccess = { r ->
+					buildString {
+						append(getString(R.string.foreign_backup_done, r.imported))
+						if (r.notFound.isNotEmpty()) {
+							append("\n\n")
+							append(getString(R.string.foreign_backup_mihon_not_found, r.notFound.take(40).joinToString(", ")))
+						}
+						if (r.unsupported > 0) append("\n").append(getString(R.string.foreign_backup_mihon_unsupported, r.unsupported))
 					}
 				},
 				onFailure = { getString(R.string.foreign_backup_failed, it.message.orEmpty()) },
