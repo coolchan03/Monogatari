@@ -5,11 +5,28 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
 
-	<com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-		android:id="@+id/ssiv"
+	<LinearLayout
+		android:id="@+id/pages"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
-		app:restoreStrategy="deferred" />
+		android:orientation="horizontal">
+
+		<com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+			android:id="@+id/ssiv"
+			android:layout_width="0dp"
+			android:layout_height="match_parent"
+			android:layout_weight="1"
+			app:restoreStrategy="deferred" />
+
+		<!-- Original page next to the translation in side-by-side mode. -->
+		<com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+			android:id="@+id/ssiv_original"
+			android:layout_width="0dp"
+			android:layout_height="match_parent"
+			android:layout_weight="1"
+			android:visibility="gone"
+			app:restoreStrategy="deferred" />
+	</LinearLayout>
 
 	<ImageButton
 		android:id="@+id/button_back"
@@ -41,6 +58,14 @@
 			android:textColor="#FFFFFFFF"
 			android:paddingVertical="6dp"
 			android:textAppearance="?attr/textAppearanceBodySmall" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/button_side_by_side"
+			style="@style/Widget.Material3.Button.OutlinedButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:minHeight="48dp"
+			android:text="@string/translated_page_side_by_side" />
 
 		<com.google.android.material.button.MaterialButton
 			android:id="@+id/button_font"
