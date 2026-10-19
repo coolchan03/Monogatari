@@ -111,6 +111,10 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		val isPlayable = currentMediaType == MediaType.VIDEO || currentMediaType == MediaType.AUDIO
 		menu.findItem(R.id.action_skip_intro)?.isVisible = isPlayable
 		menu.findItem(R.id.action_playback_speed)?.isVisible = isPlayable
+		menu.findItem(R.id.action_auto_next)?.apply {
+			isVisible = isPlayable
+			isChecked = isAutoNextEnabled()
+		}
 		menu.findItem(R.id.action_picture_in_picture)?.isVisible = currentMediaType == MediaType.VIDEO &&
 			Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
 			packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
@@ -126,11 +130,19 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			}
 
 			R.id.action_playback_speed -> showPlaybackSpeedDialog()
+			R.id.action_auto_next -> {
+				val enabled = !isAutoNextEnabled()
+				getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit { putBoolean(KEY_AUTO_NEXT, enabled) }
+				item.isChecked = enabled
+			}
 			R.id.action_picture_in_picture -> enterPictureInPicture()
 			else -> return super.onOptionsItemSelected(item)
 		}
 		return true
 	}
+
+	private fun isAutoNextEnabled(): Boolean =
+		getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_AUTO_NEXT, true)
 
 	override fun onUserLeaveHint() {
 		super.onUserLeaveHint()
@@ -446,6 +458,14 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		viewBinding.playerView.player = exoPlayer
 		var fallbackScheduled = false
 		exoPlayer.addListener(object : Player.Listener {
+			override fun onPlaybackStateChanged(playbackState: Int) {
+				// Continue with the next episode or audiobook chapter when this one finishes.
+				if (playbackState == Player.STATE_ENDED && player === exoPlayer && isAutoNextEnabled() && !isFinishing) {
+					saveProgress()
+					viewModel.switchChapterBy(1)
+				}
+			}
+
 			override fun onPlayerError(error: PlaybackException) {
 				if (player !== exoPlayer || fallbackScheduled) return
 				if (fallback != null && fallback.url != video.url) {
@@ -723,6 +743,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		const val MAX_TEXT_ZOOM = 200
 		const val TEXT_ZOOM_STEP = 10
 		const val KEY_SPEED_PREFIX = "speed_"
+		const val KEY_AUTO_NEXT = "auto_next"
 		const val SKIP_INTRO_MS = 85_000L
 		val PLAYBACK_SPEEDS = floatArrayOf(0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f).toList()
 		val QUALITY_NUMBER = Regex("(\\d{3,4})")

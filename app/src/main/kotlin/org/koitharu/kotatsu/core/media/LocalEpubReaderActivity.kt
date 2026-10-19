@@ -6,6 +6,8 @@ import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.text.Html
 import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -25,6 +27,9 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     private lateinit var body: TextView
     private lateinit var position: TextView
     private lateinit var scroll: ScrollView
+    private var narrator: ParagraphNarrator? = null
+    /** Keep reading into the next chapter when a chapter read aloud finishes. */
+    private var continuousNarration = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +91,50 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, MENU_READ_ALOUD, 0, R.string.epub_read_aloud)
+        menu.add(0, MENU_SLEEP, 1, R.string.epub_sleep_timer)
+        menu.add(0, MENU_SLEEP_CANCEL, 2, R.string.epub_sleep_timer_cancel)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            MENU_READ_ALOUD -> {
+                val engine = narrator ?: ParagraphNarrator(this) { readNextChapterAloud() }.also { narrator = it }
+                if (engine.isSpeaking || continuousNarration) {
+                    continuousNarration = false
+                    engine.stop()
+                } else {
+                    continuousNarration = true
+                    engine.speak(chapterParagraphs())
+                }
+            }
+            MENU_SLEEP -> narrator?.sleepAfterMinutes(15)
+            MENU_SLEEP_CANCEL -> narrator?.sleepAfterMinutes(0)
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    private fun chapterParagraphs(): List<String> = body.text.toString().split(Regex("\\n\\s*\\n|\\n"))
+
+    private fun readNextChapterAloud() {
+        val parsed = book ?: return
+        if (!continuousNarration || index + 1 !in parsed.chapters.indices) {
+            continuousNarration = false
+            return
+        }
+        showChapter(index + 1)
+        body.post { narrator?.speak(chapterParagraphs()) }
+    }
+
+    override fun onDestroy() {
+        narrator?.shutdown()
+        narrator = null
+        super.onDestroy()
+    }
+
     /** Keyboard: Page Up/Down and Space scroll, arrow keys or [ ] change chapter, Ctrl +/- change text size. */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val handled = when (keyCode) {
@@ -139,5 +188,11 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             .putInt(fileKey, index).putInt("$fileKey-scroll", scroll.scrollY)
             .putFloat("$fileKey-scroll-fraction", ReadingScrollPosition.fraction(scroll.scrollY, body.height, scroll.height))
             .apply()
+    }
+
+    private companion object {
+        const val MENU_READ_ALOUD = 7101
+        const val MENU_SLEEP = 7102
+        const val MENU_SLEEP_CANCEL = 7103
     }
 }
