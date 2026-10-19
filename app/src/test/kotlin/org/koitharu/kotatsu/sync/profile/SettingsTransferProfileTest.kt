@@ -25,6 +25,6 @@ class SettingsTransferProfileTest {
 			"discord_token" to 6, "local_manga_dirs" to 7,
 		)
 		assertEquals(mapOf("theme" to 1, "reader_mode" to 2), SettingsTransferProfile.filter(all, setOf(Group.APPEARANCE, Group.READER)))
-		assertEquals(mapOf("proxy_address" to 5), SettingsTransferProfile.filter(all, Group.entries.toSet()))
+		assertEquals(mapOf("theme" to 1, "reader_mode" to 2, "proxy_address" to 5), SettingsTransferProfile.filter(all, Group.entries.toSet()))
 	}
 }
