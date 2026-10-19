@@ -56,8 +56,13 @@ class LocalTextReaderActivity : AppCompatActivity() {
                 if (ttsReady) tts?.language = Locale.getDefault()
             }
             text.text = readable
-            val y = getSharedPreferences("book_scroll", MODE_PRIVATE).getInt(file.name, 0)
-            scroll.post { scroll.scrollTo(0, y) }
+            val prefs = getSharedPreferences("book_scroll", MODE_PRIVATE)
+            val y = prefs.getInt(file.name, 0)
+            val fraction = prefs.getFloat("${file.name}#fraction", -1f)
+            // The fraction survives rotation, folding and window resizing; the pixel offset is the legacy fallback.
+            scroll.post {
+                scroll.scrollTo(0, if (fraction >= 0f) ReadingScrollPosition.offset(fraction, text.height, scroll.height) else y)
+            }
         } catch (error: Exception) {
             text.text = "Unable to read book: ${error.message}"
         }
@@ -123,9 +128,13 @@ class LocalTextReaderActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        // Before the first layout there is no real position yet; keep the saved one.
+        if (::scroll.isInitialized && (scroll.getChildAt(0)?.height ?: 0) == 0) return
         book?.let { file ->
             getSharedPreferences("book_scroll", MODE_PRIVATE).edit()
-                .putInt(file.name, scroll.scrollY).apply()
+                .putInt(file.name, scroll.scrollY)
+                .putFloat("${file.name}#fraction", ReadingScrollPosition.fraction(scroll.scrollY, scroll.getChildAt(0)?.height ?: 0, scroll.height))
+                .apply()
         }
     }
 }

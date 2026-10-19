@@ -26,6 +26,8 @@ internal data class TranslationMeta(
 	val sourceLanguage: String,
 	val targetLanguage: String,
 	val blocks: List<TranslatedBlock>,
+	/** User-chosen rendering font; old cache sidecars default to the previous sans-serif style. */
+	val fontStyle: String = "sans",
 )
 
 /** Pure helpers for the per-page translation record (unit-tested). */

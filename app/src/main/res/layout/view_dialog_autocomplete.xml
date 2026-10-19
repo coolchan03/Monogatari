@@ -27,7 +27,7 @@
         android:background="?selectableItemBackgroundBorderless"
         android:paddingBottom="2dp"
         android:scaleType="center"
-        android:src="@drawable/ic_expand_more"
-        tools:ignore="ContentDescription" />
+        android:contentDescription="@string/a11y_show_options"
+        android:src="@drawable/ic_expand_more" />
 
 </RelativeLayout>

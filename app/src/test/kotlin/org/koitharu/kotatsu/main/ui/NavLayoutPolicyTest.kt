@@ -15,8 +15,17 @@ class NavLayoutPolicyTest {
 	}
 
 	@Test
-	fun twoPaneStartsAt840() {
-		assertFalse(NavLayoutPolicy.useTwoPane(839))
+	fun twoPaneStartsAt600() {
+		assertFalse(NavLayoutPolicy.useTwoPane(599))
+		assertTrue(NavLayoutPolicy.useTwoPane(600))
 		assertTrue(NavLayoutPolicy.useTwoPane(840))
+	}
+
+	@Test
+	fun threeColumnLibraryOnlyAtDesktopWidth() {
+		assertTrue(NavLayoutPolicy.libraryListColumns(840) == 1)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1199) == 1)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1200) == 2)
+		assertTrue(NavLayoutPolicy.libraryListColumns(1440) == 2)
 	}
 }

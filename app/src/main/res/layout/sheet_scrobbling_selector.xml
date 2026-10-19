@@ -47,6 +47,8 @@
 				android:layout_alignParentEnd="true"
 				android:layout_centerVertical="true"
 				android:layout_marginHorizontal="@dimen/toolbar_button_margin"
+				android:contentDescription="@string/done"
+				android:tooltipText="@string/done"
 				app:icon="@drawable/ic_check" />
 
 		</RelativeLayout>

@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.qa
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import java.io.StringReader
 import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
@@ -34,7 +35,9 @@ internal object NewsFeedParser {
         return (0 until minOf(items.length, 100)).mapNotNull { index ->
             val item = items.item(index) as? Element ?: return@mapNotNull null
             fun contents(name: String) = item.getElementsByTagName(name).item(0)?.textContent?.trim().orEmpty()
-            val title = contents("title").take(240)
+            // Feeds often double-escape entities or put them in CDATA (Don&#8217;t).
+            fun display(name: String) = DisplayText.clean(contents(name))
+            val title = display("title").take(240)
             val linkElement = item.getElementsByTagName("link").item(0) as? Element
             val rawLink = if (atom) linkElement?.getAttribute("href").orEmpty() else contents("link")
             val url = runCatching { URI(rawLink) }.getOrNull()
@@ -44,7 +47,7 @@ internal object NewsFeedParser {
             val tags = (0 until minOf(categories.length, 25)).mapNotNull { i ->
                 val element = categories.item(i) as? Element ?: return@mapNotNull null
                 (if (atom) element.getAttribute("term") else element.textContent)
-                    ?.trim()?.take(80)?.takeIf { it.isNotEmpty() }
+                    ?.let(DisplayText::clean)?.trim()?.take(80)?.takeIf { it.isNotEmpty() }
             }
             Entry(title, checkNotNull(url).toASCIIString(), (if (atom) contents("updated") else contents("pubDate")).take(90), tags)
         }

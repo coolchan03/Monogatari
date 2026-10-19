@@ -60,9 +60,11 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         ui = ActivityMonogatariTestCenterBinding.inflate(layoutInflater)
         setContentView(ui.root)
         MonogatariChrome.applyInsets(ui.root)
-        ui.qaToolbar.setNavigationIcon(android.R.drawable.ic_media_previous)
-        ui.qaToolbar.setNavigationContentDescription(android.R.string.cancel)
-        ui.qaToolbar.setNavigationOnClickListener { finish() }
+        title = getString(R.string.monogatari_qa_title)
+        setSupportActionBar(ui.qaToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        ui.qaToolbar.setNavigationContentDescription(R.string.monogatari_navigation_back)
+        ui.qaToolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
         index = (savedInstanceState?.getInt("step")
             ?: prefs.getInt("step", 0)).coerceIn(MonogatariTestPlan.cases.indices)
@@ -306,7 +308,10 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         val answers = MonogatariTestPlan.cases.associate { it.id to finding(it) }
         val sourceSummary = if (sourceScan.hasSavedResults(true)) {
             val lines = sourceScan.report(true).lineSequence().toList()
-            val overview = lines.take(4)
+            // Summary, failure categories and the "Likely causes" explanations precede the per-source lines.
+            val overview = lines.takeWhile { line ->
+                !line.startsWith("PASS |") && !line.startsWith("PARTIAL |") && !line.startsWith("FAIL |")
+            }.filter { it.isNotBlank() }
             val failures = lines.asSequence().filter { it.startsWith("FAIL |") }.take(35).toList()
             val partial = lines.asSequence().filter { it.startsWith("PARTIAL |") }.take(10).toList()
             (overview + "Sample failures:" + failures + "Sample partial results:" + partial +

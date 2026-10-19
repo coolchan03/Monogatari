@@ -64,4 +64,17 @@
 		tools:text="@tools:sample/lorem[6]"
 		tools:visibility="visible" />
 
+	<com.google.android.material.button.MaterialButton
+		android:id="@+id/button_retry"
+		style="@style/Widget.Material3.Button.TextButton"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/textView_error"
+		android:layout_alignParentEnd="true"
+		android:layout_marginEnd="@dimen/grid_spacing"
+		android:minHeight="48dp"
+		android:text="@string/retry"
+		android:visibility="gone"
+		tools:visibility="visible" />
+
 </RelativeLayout>

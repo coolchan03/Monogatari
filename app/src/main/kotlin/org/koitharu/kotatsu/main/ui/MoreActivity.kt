@@ -35,7 +35,7 @@ class MoreActivity : AppCompatActivity() {
         }
         val info = TextView(this).apply {
             text = "Library · Find something · Backup · App and tools"
-            textSize = 15f
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
             setPadding(0, 0, 0, margin)
         }
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }

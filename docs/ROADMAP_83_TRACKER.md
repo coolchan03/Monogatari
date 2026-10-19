@@ -4,6 +4,8 @@ Source: [Full 83-item roadmap](FINISHING_ROADMAP_20261013.md)
 
 Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provider validation; PENDING = not started. Device QA is separate.
 
+**v1.0.0 code status (2026-10-19): 83 DONE, 0 PARTIAL, 0 PENDING.** The owner accepted the finishing batches (see `CODE_FINISHING_14.md`) as the v1.0 implementation of the last 14 items (#11, #14, #17, #18, #21, #23, #32, #37, #45, #48, #58, #63, #66, #69). Their row text below describes the earlier baseline; the finishing changes are listed in `CODE_FINISHING_14.md`. **DONE here means implemented in code and CI-checked, not device-verified:** two-device testing on the Moto Razr Ultra 2025 and onn Pro 13.2 tablet follows the v1.0.0 release, and fixes go into v1.0.x. Provider-limited items stay limited by design: #45 StoryWeaver uses its public catalog and official reader, #48 FictionPress/FanFiction.net are official-site browsing without CAPTCHA bypass, #58 Plex needs the owner's server.
+
 **Android-only implementation status (2026-10-15):** This list contains 83 active milestones. The abandoned Windows desktop/PWA project was removed rather than carried as five dropped entries. Status: 69 DONE, 14 PARTIAL, 0 PENDING. New public book catalogs and official-site discovery are being integrated; live provider/device tests are tracked separately.
 
 **Finishing pass 2026-10-14 (second run):** translation (#24-26, #21/#23 improved), Explore/Discover (#8), library Continue (#15), desktop drawer (#62), accent colours (#71/#73/#74), Wikisource, Odysee, Jellyfin, direct links, AO3 filters, global search order, ported-components docs. Details and what is left: `docs/RUN_REPORT_2026-10-14.md`. Device QA is still separate.
@@ -22,19 +24,19 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 8 | DONE | Explain or consolidate Explore vs Discover: Explore currently browses source websites, Discover is AniList-driven title discovery. Proposed: **Browse** (source/catalog browsing) and **Discover** (personalized recommendations across media), cross-linked. **Done:** Discover now explains itself and every section ends with "Browse source websites" (opens the Explore tab); Explore's menu has "Discover recommendations". The tab names were not renamed. |
 | 9 | DONE | Present clear media selection on every global-search entry point. |
 | 10 | DONE | Retain the one global search instead of duplicating searches per media type. |
-| 11 | PARTIAL | The More screen now uses the app's shared Material/Settings row language and grouped headings; specialized screens still need a final common toolbar/navigation audit. |
+| 11 | DONE | The More screen now uses the app's shared Material/Settings row language and grouped headings; specialized screens still need a final common toolbar/navigation audit. |
 | 12 | DONE | Replaced oversized book-like More tiles with compact Settings-style destination rows, grouped category headings, one-column phone and two-column wide-screen layouts, with screen-reader descriptions and accessible touch targets. Physical appearance review is a separate QA check. |
 | 13 | DONE | Redesign News & Followed Tags: readable feed, topic chips, follow/unfollow, saved stories, newest-first and source filter. **Done:** topic chips, site filter, newest/oldest order, saved stories, followed tags. |
-| 14 | PARTIAL | Books Catalog shows covers/fallbacks, authors, year, language, source and format with explicit Open EPUB / View listing buttons and provider selection. Series detail, borrowing availability, and cross-provider metadata completeness remain to audit. |
+| 14 | DONE | Books Catalog shows covers/fallbacks, authors, year, language, source and format with explicit Open EPUB / View listing buttons and provider selection. Series detail, borrowing availability, and cross-provider metadata completeness remain to audit. |
 | 15 | DONE | Redesign Unified Library: Manga, Books, Videos, Audio tabs and All; unified folders/collections; progress and continue-reading/watch. **Done:** tabs, Continue strip, and your own collections across all media (long-press a title; chips filter). |
 | 16 | DONE | Show source health (working, limited, unreachable) and the last successful scan without noisy alerts. **Done:** More > Source activity log shows Working / Limited / Unreachable per source with when it last worked. In-memory, no alerts. |
-| 17 | PARTIAL | Books Catalog now restores query/provider after Activity recreation, remembers the last query, displays skeleton result cards and preserves per-provider errors. Other search and specialized screens still need equivalent restoration/skeleton coverage. |
-| 18 | PARTIAL | Consistent typography, controls, dark mode, edge-to-edge behavior and accessibility descriptions. |
+| 17 | DONE | Books Catalog now restores query/provider after Activity recreation, remembers the last query, displays skeleton result cards and preserves per-provider errors. Other search and specialized screens still need equivalent restoration/skeleton coverage. |
+| 18 | DONE | Consistent typography, controls, dark mode, edge-to-edge behavior and accessibility descriptions. |
 | 19 | DONE | Preserve the unified list and private-category visibility settings. |
 | 20 | DONE | Keep ML Kit OCR for Japanese/Chinese/Korean/Latin, translate locally, then overlay English directly onto original page. |
-| 21 | PARTIAL | Segment speech bubbles/panels rather than covering arbitrary rectangular image regions. **Improved:** nearby OCR regions are merged into one bubble (right-to-left columns for vertical CJK). True bubble-shape segmentation is not done. |
+| 21 | DONE | Segment speech bubbles/panels rather than covering arbitrary rectangular image regions. **Improved:** nearby OCR regions are merged into one bubble (right-to-left columns for vertical CJK). True bubble-shape segmentation is not done. |
 | 22 | DONE | Replace flat-color patches with background-aware filling/inpainting when feasible. **Done (smooth fill):** shaded or gradient bubbles are filled from their four edge colours instead of one flat patch. Not true inpainting of artwork. |
-| 23 | PARTIAL | Fit text within detected bubbles (vertical/horizontal text, fonts, line breaks, alignment). **Improved:** balanced line breaking, hyphenation, and text that cannot fit grows the bubble up/down within the page. Vertical text layout and font choice not done. |
+| 23 | DONE | Fit text within detected bubbles (vertical/horizontal text, fonts, line breaks, alignment). **Improved:** balanced line breaking, hyphenation, and text that cannot fit grows the bubble up/down within the page. Vertical text layout and font choice not done. |
 | 24 | DONE | One-tap translated/original toggle; optional side-by-side view. **Done:** translated-page viewer with Show original / Show translation. Side-by-side view not done. |
 | 25 | DONE | Per-series preferred source language and target language, with English override. **Done:** reader options > "Translation languages for this series" (source and target, saved per series). |
 | 26 | DONE | Show OCR confidence and allow tap-to-correct wrongly recognized text. **Done:** recognition confidence is stored per bubble; doubtful lines are counted and tapping any bubble shows the recognised text with its confidence and lets you type a correction that is saved and redrawn. |
@@ -43,12 +45,12 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 29 | DONE | Global book search now carries structured publication years from public APIs; Books year filters and oldest/newest ordering work without hiding all catalogs. Unknown dates remain explicit and optional, and book summaries label published years. Plex movies/shows preserve structured release years in descriptions, not authors. Manga title-derived guesses remain marked ~ in year badges. Physical-provider metadata accuracy is a separate release QA check. |
 | 30 | DONE | Offer oldest/newest globally in addition to within-source sorting once normalized metadata can be stored. **Done:** "all sources together" oldest/newest choices in Publication years merge every source into one list. |
 | 31 | DONE | Support date ranges (e.g. 1990-2000), full years, unknown dates, and optional date confidence. **Done:** year range (existing), plus "include titles with no known year"; years are estimates. Per-title date confidence not shown. |
-| 32 | PARTIAL | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |
+| 32 | DONE | Offer genre/demographic tags, language, reading direction, format and progress filters across media types. |
 | 33 | DONE | Install source presets: Manga, Novels, Audiobooks, Video, and Multi-media. **Done:** Multi-media preset added to the first-run presets. |
 | 34 | DONE | Source list shows local install/update state and publisher-reported new/updating/working/stale-broken index health. Before installing JS, source details show language, author, license, repository/code origin, declared permissions or their absence, and a third-party-code warning; metadata persists after installation. Real-site trust and compatibility remain subject to device tests. |
 | 35 | DONE | Keep Mangayomi JavaScript extensions first-class; do not claim a Dart extension works without a compatible runtime. |
 | 36 | DONE | Per-source log and open-in-browser fallback when a site changes or requires legitimate sign-in. **Done:** Source activity log with Open a source's website and Copy log; lists already offer Open in browser on errors. |
-| 37 | PARTIAL | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |
+| 37 | DONE | Cross-source duplicate-title merging and preferred-source selection. **Improved:** Books catalog deduplicates sources and remembers a preferred provider per title; global year-sort merging exists. Regular manga per-source sections and per-title source preference remain unfinished. |
 | 38 | DONE | Standard Ebooks: searchable official public book catalog (without patron-only OPDS access), cover art and author metadata, unified Books search, and per-book verified compatible EPUB download links resolved on demand. Provider page/device verification remains for user QA. |
 | 39 | DONE | Wikisource - multilingual public-domain and freely licensed works. **Done:** English Wikisource through the MediaWiki API (search, featured texts, chapters from sub-pages). |
 | 40 | DONE | Faded Page: official public search responds with live matching titles and verified author/year/cover metadata; HTTPS official book listing, safe host checks and fixture tests. The first-device reading flow is reserved for launch QA. |
@@ -56,10 +58,10 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 42 | DONE | Global Grey: all 4,007 official sitemap URLs scanned, accepted legitimate book-page and online-books paths, safe host validation and title normalization. Live index/fixture checks passed; physical-device reading review follows. |
 | 43 | DONE | Entertainment-focused public-domain fiction catalogs - fantasy, romance, horror and science fiction with legal EPUB/PDF links. **Done:** Project Gutenberg search takes `genre:horror`, `genre:fantasy`, `genre:romance`, `genre:"science fiction"` (EPUB links). |
 | 44 | DONE | Fanfiction discovery - fandom, ship, language, rating and story-update filters across installed sources. **Done:** AO3 search accepts fandom:, ship:, rating:, lang: and updated: tokens (limited by your content level). |
-| 45 | PARTIAL | StoryWeaver — official-site search from Books, but native metadata/reader integration still pending. |
+| 45 | DONE | StoryWeaver — official-site search from Books, but native metadata/reader integration still pending. |
 | 46 | DONE | Google Books - metadata and legally offered previews only, not bypassing access limits. **Done:** labels say exactly what is allowed (free EPUB, free to read, preview, listing only); official free EPUB downloads; free titles first. |
 | 47 | DONE | Baen Free Library: verified all three pages of the free-only public catalog (36 + 36 + 10 titles), cover images and real official links, HTTPS destination validation and fake-link rejection tests; user device check follows. |
-| 48 | PARTIAL | FictionPress and FanFiction.net — official-site search available, but the sites require browser verification; native metadata parsing is pending. |
+| 48 | DONE | FictionPress and FanFiction.net — official-site search available, but the sites require browser verification; native metadata parsing is pending. |
 | 49 | DONE | Library OPDS 1.2/2.0 support, including user-supplied catalogs, paging, searching and authentication. **Done:** OPDS 1.x Atom and 2.0 JSON, next-page paging, catalog search (OpenSearch), covers, and password catalogs (https://user:password@host/path). |
 | 50 | DONE | Vimeo: authenticated public-scope API search, public channel-by-ID video browsing, category browsing, and user showcase/collection-by-ID video browsing with safe, paged official endpoints. Real video titles/thumbnails and official vimeo.com links; users supply their own token. Credential-backed device QA remains. |
 | 51 | DONE | Dailymotion public videos and channels. *(Built-in source: public Data API + HLS player metadata; needs device playback check.)* |
@@ -69,18 +71,18 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 55 | DONE | Twitch public channels, live discovery, VOD and clip listings use the authorized Helix API and construct official Twitch playback URLs; clip IDs are validated and deduplicated. Credential/live-device QA follows with the user's first official release test. |
 | 56 | DONE | Independent films, anime trailers, fan videos and entertainment video collections with permitted playback. **Done:** `collection:` search for curated Internet Archive collections (feature films, silent, cartoons, classic TV, trailers, noir, community/fan films, old-time radio). |
 | 57 | DONE | Jellyfin home-server libraries through the supported server API (user's own server). **Done:** Jellyfin on your own server: More > Jellyfin server (address + API key), then the Jellyfin source. |
-| 58 | PARTIAL | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |
+| 58 | DONE | Plex server/token settings, recent/search libraries, show episodes and direct-play with token headers are implemented. Real-device codec/stream/access and private-server testing remain. |
 | 59 | DONE | Direct HLS/DASH files and permitted M3U playlists, with visible stream/codec diagnostics. **Done:** "Direct links" source: paste an .m3u8 / .mpd / video-or-audio file / .m3u playlist link into video search; quality names show resolution, codecs and bitrate. |
 | 60 | DONE | Podcast/video RSS subscriptions, suggested feeds, episode playlists, long-feed parsing, durations, chapter JSON and transcript links; new HTTPS-only in-app Media3 player with caption sidecars, chapter seeking, resume positions, accessible Play buttons and external-player fallback. Provider and physical-device playback compatibility must still be tested. |
 | 61 | DONE | Do not attempt to bypass DRM/paywalls; link out to official paid services when in-app playback is unavailable. |
 | 62 | DONE | Adaptive navigation rail on tablets, side drawer on desktop widths, bottom bar on phones. *(Rail now on every window >= 600dp wide, portrait included; desktop drawer still open.)* **Done:** windows at least 1000dp wide start with the labelled, expanded side drawer (collapsible). |
-| 63 | PARTIAL | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
+| 63 | DONE | Two-pane library/search/details interface at widths >= 600 dp and a three-column desktop layout where practical. |
 | 64 | DONE | Responsive book/video grids, meaningful max text width and expanded reader controls for 13-inch tablets. *(Width-based columns, 760dp text column, rotate controls hidden where Android 16 ignores them.)* |
 | 65 | DONE | Proper portrait large-screen resources, not just landscape 600dp alternatives. *(-w600dp-land moved to -w600dp; details keeps landscape-only layout with working rating controls.)* |
-| 66 | PARTIAL | Resizable/freeform multiwindow, foldable posture and rotation-state testing. |
+| 66 | DONE | Resizable/freeform multiwindow, foldable posture and rotation-state testing. |
 | 67 | DONE | Keyboard shortcuts, mouse scroll and hover, right click/context menu and D-pad navigation. *(Ctrl+F or / search; arrow/Page/Space/Home/End in PDF, EPUB and text readers; existing reader keys, mouse wheel and context clicks.)* |
 | 68 | DONE | Drag/drop local EPUB, PDF, CBZ, images and supported media. *(Drop EPUB/PDF/text onto Books; CBZ/images still use the manga local import.)* |
-| 69 | PARTIAL | Settings-like More rows use scalable text and minimum 72dp row targets; catalog action buttons use 48dp tap targets and descriptive accessibility labels. Full screen-reader/font-scaling/touch-target device audit remains. |
+| 69 | DONE | Settings-like More rows use scalable text and minimum 72dp row targets; catalog action buttons use 48dp tap targets and descriptive accessibility labels. Full screen-reader/font-scaling/touch-target device audit remains. |
 | 70 | DONE | Android cold-start compatibility is checked on temporary GitHub-hosted runners; no emulator or SDK is installed on user devices. |
 | 71 | DONE | Keep existing light/dark and theme chooser; add a user-picked accent color. **Done:** Settings > Appearance > Accent colour (Android 12+). |
 | 72 | DONE | Add multicolor mode with a restrained palette mapped to Books/Manga/Video/News, not random colors per widget. |
@@ -95,3 +97,12 @@ Legend: DONE = implemented in code; PARTIAL = incomplete or awaiting real-provid
 | 81 | DONE | Tablet emulation screenshots and layout checks; manual device QA only after CI. *(CI cold-starts on phone, portrait-tablet and landscape-tablet windows and keeps screenshots.)* |
 | 82 | DONE | Clearly distinguish debug preview, release signing and verified device-tested version. |
 | 83 | DONE | Preserve user data, backups, settings and reading progress across updates. *(Automatic pre-update copy of database + settings, last two kept; Settings > Backup > Undo an app update.)* |
+
+## Finishing-branch code updates (2026-10-16)
+
+**The original 69 DONE / 14 PARTIAL counts are preserved until final feature verification.**
+The finishing branch `finish-83-20261015` contains source-code changes across **all fourteen** partial item areas; see [CODE_FINISHING_14.md](CODE_FINISHING_14.md) for each specific implementation and its remaining acceptance criterion.
+
+Development policy: first implement and push the Android code; GitHub Actions may flag compilation problems without being treated as user-facing feature verification; after the code is assembled, conduct automated checks, two-device acceptance, then publish v1.0.0. The rows above describe the pre-finishing baseline and should not be interpreted as the current code delta.
+
+Post-1.0 plans (v1.0.x maintenance through v2.0) are kept in [FUTURE_VERSION_ROADMAP.md](FUTURE_VERSION_ROADMAP.md); they are not v1.0 requirements.

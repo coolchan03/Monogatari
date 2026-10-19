@@ -48,6 +48,20 @@ class TranslationLayoutTest {
 	}
 
 	@Test
+	fun cjkVerticalLayoutAndRtlAreScriptAware() {
+		val tall = Box(0, 0, 50, 200)
+		val wide = Box(0, 0, 200, 50)
+		assertTrue(TranslationLayout.prefersVerticalText("ja", "こんにちは世界", tall))
+		assertTrue(TranslationLayout.prefersVerticalText("zh-CN", "你好世界", tall))
+		assertFalse(TranslationLayout.prefersVerticalText("ja", "Hello there", tall))
+		assertFalse(TranslationLayout.prefersVerticalText("ja", "こんにちは", wide))
+		assertFalse(TranslationLayout.prefersVerticalText("en", "Hello", tall))
+		assertTrue(TranslationLayout.isRtlLanguage("ar-SA"))
+		assertTrue(TranslationLayout.isRtlLanguage("he"))
+		assertFalse(TranslationLayout.isRtlLanguage("ja"))
+	}
+
+	@Test
 	fun colours() {
 		assertEquals(0xFF111111.toInt(), TranslationLayout.contrastingTextColor(0xFFFFFFFF.toInt()))
 		assertEquals(0xFFF5F5F5.toInt(), TranslationLayout.contrastingTextColor(0xFF101010.toInt()))
@@ -86,5 +100,16 @@ class TranslationLayoutTest {
 	fun colorSpreadMeasuresLargestChannelDifference() {
 		assertEquals(0, TranslationLayout.colorSpread(intArrayOf(0xFF102030.toInt(), 0xFF102030.toInt())))
 		assertEquals(100, TranslationLayout.colorSpread(intArrayOf(0xFF000000.toInt(), 0xFF640000.toInt())))
+	}
+
+	@Test
+	fun verticalColumnsUseVerticalPunctuationForms() {
+		assertEquals("﹁", TranslationLayout.verticalForm("「"))
+		assertEquals("﹂", TranslationLayout.verticalForm("」"))
+		assertEquals("︒", TranslationLayout.verticalForm("。"))
+		assertEquals("︙", TranslationLayout.verticalForm("…"))
+		assertEquals("猫", TranslationLayout.verticalForm("猫"))
+		org.junit.Assert.assertTrue(TranslationLayout.rotatesInVerticalText("ー"))
+		org.junit.Assert.assertFalse(TranslationLayout.rotatesInVerticalText("あ"))
 	}
 }

@@ -30,6 +30,7 @@ class PlexRepositoryTest {
 		val episodes = PlexRepository.parseEpisodes(body)
 		assertEquals(listOf("S1 E1 · One", "S1 E2 · Two"), episodes.map { it.title })
 		assertEquals("/library/parts/1/1/a.mkv", episodes[0].partKey)
+		assertNull(episodes[0].metadataId)
 	}
 
 	@Test
@@ -43,6 +44,16 @@ class PlexRepositoryTest {
 	}
 
 	@Test
+	fun serverTranscodeRequiresValidMetadataAndKeepsTokensInHeaders() {
+		val url = PlexRepository.transcodeUrl("https://plex.example", "1234", "12345678-1234-4234-8234-123456789012")
+		assertTrue(url.startsWith("https://plex.example/video/:/transcode/universal/start.m3u8"))
+		assertTrue(url.contains("protocol=hls"))
+		assertTrue(url.contains("1280x720"))
+		assertTrue(url.contains("%2Flibrary%2Fmetadata%2F1234"))
+		assertTrue(!url.contains("X-Plex-Token"))
+	}
+
+	@Test
 	fun movieFilePartAndUrlHelpers() {
 		val movie = JSONObject("""{"MediaContainer":{"Metadata":[{"Media":[{"Part":[{"key":"/library/parts/9/9/m.mp4"}]}]}]}}""")
 		assertEquals("/library/parts/9/9/m.mp4", PlexRepository.partKey(movie))
@@ -50,5 +61,18 @@ class PlexRepositoryTest {
 		assertEquals("show" to "40", PlexRepository.splitUrl("/show/40"))
 		assertNull(PlexRepository.splitUrl("/track/40"))
 		assertTrue(PlexRepository.searchUrl("http://h:32400", "cowboy bebop").contains("query=cowboy%20bebop"))
+	}
+
+	@Test
+	fun explainsServerFailuresWithoutLeakingTheToken() {
+		assertNull(PlexRepository.httpErrorMessage(200))
+		assertTrue(PlexRepository.httpErrorMessage(401)!!.contains("token"))
+		assertTrue(PlexRepository.httpErrorMessage(403)!!.contains("403"))
+		assertTrue(PlexRepository.httpErrorMessage(404)!!.contains("404"))
+		assertTrue(PlexRepository.httpErrorMessage(503)!!.contains("503"))
+		assertTrue(PlexRepository.httpErrorMessage(418)!!.contains("418"))
+		val unreachable = PlexRepository.unreachableMessage("192.168.1.5")
+		assertTrue(unreachable.contains("192.168.1.5"))
+		assertTrue(!unreachable.contains("X-Plex-Token"))
 	}
 }

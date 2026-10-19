@@ -9,7 +9,8 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/qa_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
         android:title="@string/monogatari_qa_title"
         app:titleTextAppearance="?attr/textAppearanceTitleLarge" />
 
@@ -110,6 +111,8 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/qa_pass"
                             style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:maxLines="2"
+                            android:minHeight="48dp"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -118,6 +121,8 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/qa_fail"
                             style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:maxLines="2"
+                            android:minHeight="48dp"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -126,6 +131,8 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/qa_untested"
                             style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:maxLines="2"
+                            android:minHeight="48dp"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"

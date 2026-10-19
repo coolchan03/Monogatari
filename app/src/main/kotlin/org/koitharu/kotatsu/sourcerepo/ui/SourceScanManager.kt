@@ -111,22 +111,11 @@ class SourceScanManager @Inject constructor(
 
     fun report(allSources: Boolean): String {
         val mode = if (allSources) "all" else "js"
-        val entries = checkpoint(mode).read().mapValues { (_, record) -> record.detail }
-        val counts = entries.values.groupingBy { line ->
-            line.substringBefore(" |").takeIf { it in setOf("PASS", "PARTIAL", "FAIL") } ?: "OTHER"
-        }.eachCount()
-        return buildString {
-            appendLine(if (allSources) "Monogatari full source diagnostics — saved results" else "Monogatari JS diagnostics — saved results")
-            appendLine("Saved checks=${entries.size} PASS=${counts["PASS"] ?: 0} PARTIAL=${counts["PARTIAL"] ?: 0} FAIL=${counts["FAIL"] ?: 0}")
-            appendLine("Incomplete checks are not marked failed. Partial scans can be resumed.")
-            val categories = entries.values.filter { it.startsWith("FAIL |") }
-                .groupingBy { line ->
-                    Regex("""category=([A-Z0-9_]+)""").find(line)?.groupValues?.get(1) ?: "OTHER"
-                }.eachCount().entries.sortedByDescending { it.value }
-            if (categories.isNotEmpty()) appendLine("Failure categories: " + categories.joinToString { "${it.key}=${it.value}" })
-            entries.values.forEach { appendLine(it) }
-            appendLine("Website listing tests do not prove reading or video playback.")
-        }
+        val entries = checkpoint(mode).read().mapValues { (_, record) -> recategorizeSavedLine(record.detail) }
+        return formatSourceReport(
+            title = if (allSources) "Monogatari full source diagnostics — saved results" else "Monogatari JS diagnostics — saved results",
+            lines = entries.values,
+        )
     }
     private fun checkpoint(mode: String): SourceSweepCheckpoint =
         SourceSweepCheckpoint(File(context.filesDir, "monogatari-source-sweep-$mode-v1.jsonl"))

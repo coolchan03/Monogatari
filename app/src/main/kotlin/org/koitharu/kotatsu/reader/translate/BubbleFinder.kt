@@ -9,6 +9,12 @@ internal object BubbleFinder {
 	/** Sum of per-channel differences below which two colours count as the same paper. */
 	const val DEFAULT_TOLERANCE = 72
 
+	/** The actual connected bubble interior: unlike its bounds, this mask excludes panel art and bubble corners. */
+	data class Region(val bounds: TranslationLayout.Box, val width: Int, val height: Int, val mask: BooleanArray) {
+		fun contains(x: Int, y: Int): Boolean =
+			x in 0 until width && y in 0 until height && mask[y * width + x]
+	}
+
 	private fun close(a: Int, b: Int, tolerance: Int): Boolean {
 		val dr = ((a shr 16) and 0xFF) - ((b shr 16) and 0xFF)
 		val dg = ((a shr 8) and 0xFF) - ((b shr 8) and 0xFF)
@@ -25,7 +31,13 @@ internal object BubbleFinder {
 	fun interiorBounds(
 		pixels: IntArray, width: Int, height: Int, seeds: List<Pair<Int, Int>>, paper: Int,
 		tolerance: Int = DEFAULT_TOLERANCE,
-	): TranslationLayout.Box? {
+	): TranslationLayout.Box? = interior(pixels, width, height, seeds, paper, tolerance)?.bounds
+
+	/** Preserve a pixel-accurate interior so filling never paints over the outline or artwork in a corner. */
+	fun interior(
+		pixels: IntArray, width: Int, height: Int, seeds: List<Pair<Int, Int>>, paper: Int,
+		tolerance: Int = DEFAULT_TOLERANCE,
+	): Region? {
 		if (width <= 0 || height <= 0 || pixels.size < width * height) return null
 		val visited = BooleanArray(width * height)
 		val queue = IntArray(width * height)
@@ -59,7 +71,56 @@ internal object BubbleFinder {
 		}
 		val touching = listOf(minX == 0, maxX == width - 1, minY == 0, maxY == height - 1).count { it }
 		if (touching >= 2) return null
-		return TranslationLayout.Box(minX, minY, maxX + 1, maxY + 1)
+		return Region(TranslationLayout.Box(minX, minY, maxX + 1, maxY + 1), width, height, visited)
+	}
+
+	/**
+	 * Largest axis-aligned rectangle inside a bubble whose rows span `firsts[y]..lasts[y]` (inclusive, -1 = empty row).
+	 * Round and oval bubbles are much narrower near the top and bottom than their bounding box, so text laid out in
+	 * the bounds would be cut by the outline; this is the area text can actually use. Rows are relative to the region.
+	 */
+	fun largestInscribed(firsts: IntArray, lasts: IntArray): TranslationLayout.Box? {
+		val rows = minOf(firsts.size, lasts.size)
+		if (rows == 0) return null
+		// Big bubbles: try every few start rows; each scan is still exact for the rows it covers.
+		val stride = (rows / 160).coerceAtLeast(1)
+		var best: TranslationLayout.Box? = null
+		var bestArea = 0L
+		var top = 0
+		while (top < rows) {
+			var lo = Int.MIN_VALUE
+			var hi = Int.MAX_VALUE
+			for (bottom in top until rows) {
+				if (firsts[bottom] < 0 || lasts[bottom] < firsts[bottom]) break
+				lo = maxOf(lo, firsts[bottom])
+				hi = minOf(hi, lasts[bottom])
+				val width = hi - lo + 1
+				if (width <= 0) break
+				val area = width.toLong() * (bottom - top + 1)
+				if (area > bestArea) {
+					bestArea = area
+					best = TranslationLayout.Box(lo, top, hi + 1, bottom + 1)
+				}
+			}
+			top += stride
+		}
+		return best
+	}
+
+	/** Row spans of [region]'s mask inside its bounds, for [largestInscribed]; holes left by glyphs are ignored. */
+	fun rowSpans(region: Region): Pair<IntArray, IntArray> {
+		val b = region.bounds
+		val firsts = IntArray(b.height) { -1 }
+		val lasts = IntArray(b.height) { -1 }
+		for (y in b.top until b.bottom) {
+			for (x in b.left until b.right) {
+				if (region.contains(x, y)) {
+					if (firsts[y - b.top] < 0) firsts[y - b.top] = x - b.left
+					lasts[y - b.top] = x - b.left
+				}
+			}
+		}
+		return firsts to lasts
 	}
 
 	/** Seeds around [box] (window coordinates): the middle and corners of each side, just outside its edge. */

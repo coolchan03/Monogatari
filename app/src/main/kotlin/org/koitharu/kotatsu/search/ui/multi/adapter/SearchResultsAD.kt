@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView.RecycledViewPool
 import com.hannesdorfmann.adapterdelegates4.ListDelegationAdapter
 import com.hannesdorfmann.adapterdelegates4.dsl.adapterDelegateViewBinding
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.exceptions.resolve.ExceptionResolver
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
 import org.koitharu.kotatsu.core.ui.list.AdapterDelegateClickListenerAdapter
 import org.koitharu.kotatsu.core.ui.list.OnListItemClickListener
@@ -41,6 +42,7 @@ fun searchResultsAD(
 	binding.recyclerView.addItemDecoration(SpacingItemDecoration(spacing, withBottomPadding = true))
 	val eventListener = AdapterDelegateClickListenerAdapter(this, itemClickListener)
 	binding.buttonMore.setOnClickListener(eventListener)
+	binding.buttonRetry.setOnClickListener(eventListener)
 	val hotMarker = HotSourceMarker(context)
 
 	bind {
@@ -50,5 +52,13 @@ fun searchResultsAD(
 		adapter.notifyDataSetChanged()
 		binding.recyclerView.isGone = item.list.isEmpty()
 		binding.textViewError.textAndVisible = item.error?.getDisplayMessage(context.resources)
+		// Website checks (CAPTCHA, sign-in) are completed by the user in the browser; never bypassed.
+		val error = item.error
+		binding.buttonRetry.isVisible = error != null && item.source !== UnknownMangaSource
+		if (error != null) {
+			binding.buttonRetry.setText(
+				ExceptionResolver.getResolveStringId(error).takeIf { it != 0 } ?: R.string.retry,
+			)
+		}
 	}
 }

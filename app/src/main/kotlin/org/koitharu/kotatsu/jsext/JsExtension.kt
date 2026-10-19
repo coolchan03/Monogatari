@@ -81,6 +81,10 @@ class JsExtension(
 
 	suspend fun getSourcePreferences(): JsonElement = call("getSourcePreferences()")
 
+	/** See [JsHttpBridge.lastProblem]; reset at the start of every extension call. */
+	val lastNetworkProblem: String?
+		get() = httpBridge.lastProblem
+
 	override fun close() {
 		runtime?.close()
 		runtime = null
@@ -94,6 +98,7 @@ class JsExtension(
 	private suspend fun call(member: String): JsonElement = mutex.withLock {
 		val qjs = ensureInitialized()
 		dom.reset()
+		httpBridge.resetProblem()
 		val text = try {
 			withTimeout(CALL_TIMEOUT_MS) {
 				qjs.evaluate<String?>("await jsonStringify(() => extention.$member)")

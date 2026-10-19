@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.reader.translate
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -211,7 +212,8 @@ class PageTranslator @Inject constructor(
 			translator.downloadModelIfNeeded(DownloadConditions.Builder().build()).await()
 			onStatus(R.string.page_translation_translating)
 			val cache = HashMap<String, String>()
-			return texts.map { text -> cache.getOrPut(text) { translator.translate(text).await() } }
+			// ML Kit can return HTML-escaped quotes and apostrophes (&#39;, &quot;); they would be drawn literally.
+			return texts.map { text -> cache.getOrPut(text) { DisplayText.clean(translator.translate(text).await()) } }
 		} catch (e: com.google.mlkit.common.MlKitException) {
 			throw TranslationException(context.getString(R.string.page_translation_model_unavailable))
 		} finally {

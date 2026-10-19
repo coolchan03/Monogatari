@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.atomic.AtomicInteger
+import org.koitharu.kotatsu.jsext.JsExtension
 import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.MissingJsHostDiagnostics
 import org.koitharu.kotatsu.core.parser.MangaRepository
@@ -89,7 +90,7 @@ class JsSourceDiagnostics @Inject constructor(
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
-                val description = "${error.javaClass.simpleName}: ${error.message.orEmpty().replace('\n', ' ').take(160)}"
+                val description = describeSourceFailure(error)
                 "FAIL | KOTATSU | ${source.name} | category=${sourceFailureCategory(description)} | $description"
             }
             synchronized(lines) {
@@ -157,27 +158,32 @@ class JsSourceDiagnostics @Inject constructor(
                 return@withPermit
             }
             val result = mutableListOf<String>()
+            var extension: JsExtension? = null
             try {
-                val extension = withTimeout(20_000) { provider.get(source.id) }
-                val popular = withTimeout(20_000) { extension.getPopular(1) }
+                val loaded = withTimeout(20_000) { provider.get(source.id) }
+                extension = loaded
+                val popular = withTimeout(20_000) { loaded.getPopular(1) }
                 result += "popular=${popular.list.size}"
                 try {
-                    val search = withTimeout(20_000) { extension.search("love", 1) }
+                    val search = withTimeout(20_000) { loaded.search("love", 1) }
                     result += "search=${search.list.size}"
                 } catch (timeout: TimeoutCancellationException) { result += "search_error=Timeout" }
                 catch (cancel: CancellationException) { throw cancel }
-                catch (error: Exception) { result += "search_error=${error.javaClass.simpleName}" }
+                catch (error: Exception) {
+                    result += "search_error=${error.javaClass.simpleName}" +
+                        loaded.lastNetworkProblem?.let { " cause=${it.replace(' ', '_')}" }.orEmpty()
+                }
                 val first = popular.list.firstOrNull()
                 if (first?.link != null) {
-                    val detail = withTimeout(20_000) { extension.getDetail(first.link) }
+                    val detail = withTimeout(20_000) { loaded.getDetail(first.link) }
                     result += "detail=ok chapters=${detail.chapters.size}"
                     val chapter = detail.chapters.firstOrNull()
                     if (chapter != null) {
                         val count = withTimeout(20_000) {
                             when (source.itemType) {
-                                JsItemType.MANGA -> extension.getPageList(chapter.url).size
-                                JsItemType.ANIME -> extension.getVideoList(chapter.url).size
-                                JsItemType.NOVEL -> { extension.getHtmlContent(chapter.name, chapter.url); 1 }
+                                JsItemType.MANGA -> loaded.getPageList(chapter.url).size
+                                JsItemType.ANIME -> loaded.getVideoList(chapter.url).size
+                                JsItemType.NOVEL -> { loaded.getHtmlContent(chapter.name, chapter.url); 1 }
                             }
                         }
                         result += "content=$count"
@@ -186,7 +192,8 @@ class JsSourceDiagnostics @Inject constructor(
             } catch (timeout: TimeoutCancellationException) { result += "error=Timeout" }
             catch (cancel: CancellationException) { throw cancel }
             catch (error: Exception) {
-                result += "error=${error.javaClass.simpleName}:${error.message.orEmpty().replace('\n', ' ').take(160)}"
+                result += "error=${describeSourceFailure(error).take(200)}"
+                extension?.lastNetworkProblem?.let { result += "cause=$it" }
             }
             val status = when {
                 result.any { it.startsWith("error=") } -> "FAIL"
@@ -207,7 +214,10 @@ class JsSourceDiagnostics @Inject constructor(
                 problem == null && result.any { it == "popular=0" || it == "search=0" } -> "EMPTY_RESULTS"
                 problem == null && result.any { it == "content=0" } -> "EMPTY_CONTENT"
                 problem == null -> "NONE"
-                else -> sourceFailureCategory(problem)
+                else -> sourceFailureCategory(
+                    // Network evidence first: a script that fails after a 404/DNS error is not the script's defect.
+                    result.filter { it.startsWith("cause=") || it.contains(" cause=") }.joinToString(" ") + " " + problem,
+                )
             }
             val line = "$status | ${source.id} | ${source.name.replace('|', '/')} | ${source.itemType} | category=$category | ${result.joinToString(" ")}"
             synchronized(lines) { lines += line }

@@ -1,5 +1,22 @@
 # Monogatari work checkpoint
 
+## 2026-10-19 — v1.0.0 release preparation (owner approved: "do everything")
+- Review pass over all unmerged finishing code: fixed WebView handling so provider CAPTCHA frames (e.g. challenges.cloudflare.com) can load inside FanFiction.net/FictionPress/StoryWeaver pages, and routed their outside links through the safe-link check.
+- Version 1.0.0 (versionCode 18). Tracker 83 DONE in code; device acceptance follows the release.
+- Release workflow also runs on a pushed `v*` tag (git route, no connector write). Notes from `docs/RELEASE_1_0_0_NOTES.md`.
+- Next operations: push branch, green build-check, merge into `devel` (merge commit, no history rewrite), green build-check on devel, push tag `v1.0.0`, verify the signed APK, release commit and SHA-256.
+
+## 2026-10-19 — finishing batch 2
+- Operation: commit and push batch 2 (#21, #23, #32, #66, #14, #63/#69) to `claude/monogatari-v1-release-sq1t2k`, then read build-check for the new head.
+- Not verified on device.
+
+## 2026-10-18 — Claude cloud session, v1.0 finishing batch 1
+- Branch `claude/monogatari-v1-release-sq1t2k` from finish-83 head `a3837b2`. Push via this container's git remote (owner approved; no Tunnel to Surface tool here). GitHub connector is read-only. No local SDK (owner declined), so GitHub Actions does the compiling.
+- Baseline build-check run 39176557261 on `a3837b2`: unit tests PASS, debug APK PASS, R8 release was still running at the time of writing.
+- Operation: commit batch 1 (diagnostics triage, per-source search retry/CAPTCHA action, a11y labels, future roadmap), push, then read the build-check result for the new head.
+- Pushed `b303510` (4 commits on top of `a3837b2`). Build check run 39177526228: unit tests, debug APK, unsigned R8 release and Android 15 cold-start emulator smoke test all SUCCESS. Baseline run 39176557261 on `a3837b2`: build job SUCCESS, cold-start cancelled by the push.
+- Not verified: no device, provider or TalkBack test. The 14 PARTIAL items stay PARTIAL.
+
 ## 2026-10-15 — Release follow-through
 
 - GitHub Actions for `5b5b988` passed both full unit/build/R8 and cold-start emulator jobs (`38667817650`).
@@ -60,3 +77,20 @@
 - Scope: true search-and-details dual-pane at >=840dp; improve tablet library, book catalog, portrait/landscape details, keyboard usability and large-screen insets.
 - Start head: 1cc79aad8 on ccr-94e2bfd8-3w4etd. Preserve data, apps and source IDs. Do not install SDK locally.
 - Next: inspect layouts, add tested width policy, implement and push via Tunnel to Surface; confirm CI.
+
+## 2026-10-15 - Remaining 14 Android items, isolated finishing worktree
+- Source: published devel `eaae55c1fcfe9972809e95974396759fd8968f0f`, 69 DONE, 14 PARTIAL. PR list empty at initial check; latest build-check still running.
+- Working branch: `finish-83-20261015`; new isolated worktree `C:/Users/coolc/Monogatari-Finish83-20261015` clean at creation. Original dirty P: worktree and older audit worktrees untouched.
+- Active operation: implement and test outstanding OCR bubble geometry and translated text fitting (#21/#23), then additional feasible roadmap gaps; verify GitHub-hosted CI before any completion claims.
+- No SDK/JDK/emulator installation on owner devices. All pushes, PRs, merges, dispatches and release changes through Tunnel to Surface. Do not release v1.0.0 until all items validated.
+
+## 2026-10-15 - OCR, catalog, responsive and cross-source finishing branch
+- Pushed `a4605f1` (#21/#23), `612f4f3` (#14/#17/#63/#66) and `6370587` (#37) to `finish-83-20261015` through Tunnel. None has yet been merged into `devel`.
+- CI `38841599631` on `6370587` failed compiling the new `MangaDuplicatePolicyTest.kt` because its final class brace was omitted. Fixed in working tree. This is not a production regression in application code; fresh CI still required.
+- Verified StoryWeaver public `https://storyweaver.org.in/api/v1/books-search?query=cat&per_page=2&page=1` returns HTTP 200 with 1931 real matching public story records (title/author/illustrator/cover/publisher). Implemented parser, official-source reader WebView and official-site fallback, and tests. No invented PDF/EPUB link, site scraping or anti-bot bypass.
+- Still open: cross-media filters (#32), global chrome/dark/accessibility (#11/#18/#69), foldable/window/device acceptance (#66), provider restrictions (#48), private Plex credentials/device codec (#58). Await hosted unit/R8/cold-start and real owner-device QA; not cleared for 1.0.0.
+
+## 2026-10-15 - Metadata-aware filters finishing work (#32)
+- Implemented explicit Search > filter menu for available result tags/demographics, normalized source language, public catalog formats, and actual local history (opened/not opened), preserving choices via SavedStateHandle.
+- Unsupported reading-direction metadata is deliberately not fabricated; controls appear only when at least one result exposes relevant metadata. Public external catalogs are excluded from local-history selection and genre selection when no genre metadata is supplied.
+- Added `SearchMetadataFiltersTest`; still awaiting exact-commit GitHub-hosted unit tests, R8 APK and cold start. Do not count #32 fully DONE until those checks and unsupported direction behavior are reviewed.

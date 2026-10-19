@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.util.ExternalLinks
+import okhttp3.OkHttpClient
+import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import org.koitharu.kotatsu.core.ui.Mascot
@@ -50,6 +53,7 @@ class BookLibraryActivity : AppCompatActivity() {
     @Inject lateinit var catalog: PublicBookCatalog
     @Inject lateinit var imageLoader: ImageLoader
     @Inject lateinit var opds: OpdsCatalog
+    @Inject @BaseHttpClient lateinit var epubClient: OkHttpClient
     private val resultsAdapter = CatalogResultsAdapter()
     private lateinit var query: EditText
     private lateinit var catalogStatus: TextView
@@ -238,7 +242,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Gutenberg Australia · regional classics",
             "Global Grey · classics and historical books",
             "Baen Free Library · science fiction and fantasy",
-            "StoryWeaver · illustrated stories (official website)",
+            "StoryWeaver · illustrated CC BY stories (live catalog)",
             "FictionPress · original fiction (official website)",
             "FanFiction.net · fanfiction (official website)",
             "Bilibili · public videos (official website)",
@@ -252,9 +256,9 @@ class BookLibraryActivity : AppCompatActivity() {
                     1 -> search("Gutenberg Australia")
                     2 -> search("Global Grey")
                     3 -> search("Baen Free Library")
-                    4 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.STORYWEAVER, term))
-                    5 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FICTIONPRESS, term))
-                    6 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.FANFICTION, term))
+                    4 -> search("StoryWeaver")
+                    5 -> openFictionBrowser(OfficialMediaSites.Site.FICTIONPRESS, term)
+                    6 -> openFictionBrowser(OfficialMediaSites.Site.FANFICTION, term)
                     7 -> openOfficialLink(OfficialMediaSites.searchUrl(OfficialMediaSites.Site.BILIBILI, term))
                 }
             }
@@ -323,7 +327,10 @@ class BookLibraryActivity : AppCompatActivity() {
                 if (entries.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_opds_empty)))
                 else resultsAdapter.show(entries.map { entry ->
                     CatalogRow(entry.title, entry.author, onOpen = {
-                        if (entry.acquisition) startActivity(Intent(Intent.ACTION_VIEW, entry.href.toUri()))
+                        // OPDS feeds are user-supplied: acquisition links open only as http(s) in a browser.
+                        if (entry.acquisition) {
+                            if (!ExternalLinks.open(this@BookLibraryActivity, entry.href)) catalogStatus.text = getString(R.string.link_cannot_open)
+                        }
                         else openOpds(entry.href)
                     })
                 })
@@ -354,8 +361,7 @@ class BookLibraryActivity : AppCompatActivity() {
         catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
         catalogJob = lifecycleScope.launch {
             val providers = if (source == "All")
-                listOf("Gutenberg", "Open Library", "Archive", "Wikisource", "Google Books", "Standard Ebooks",
-                    "Faded Page", "Gutenberg Australia", "Global Grey", "Baen Free Library")
+                PublicCatalogProvider.entries.map { it.label }
             else listOf(source)
             try {
                 // A slow, restricted or unreachable catalog cannot hide other providers' results.
@@ -405,6 +411,10 @@ class BookLibraryActivity : AppCompatActivity() {
                 group.entries.mapNotNull { it.publicationYear }.minOrNull()?.toString(),
                 book.language?.takeIf { it.isNotBlank() },
                 book.format?.takeIf { it.isNotBlank() },
+                book.genres.firstOrNull()?.takeIf { it.isNotBlank() },
+                book.series?.let { getString(R.string.monogatari_catalog_series, it) },
+                book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
+                book.availability,
                 book.downloadUrl?.let { "EPUB available" },
             ).joinToString(" · ")
             CatalogRow(
@@ -413,15 +423,20 @@ class BookLibraryActivity : AppCompatActivity() {
                 onOpen = { openCatalogGroup(group) },
                 onLongPress = { openCatalogGroup(group) },
                 actionLabel = when {
-                    book.catalog == "Standard Ebooks" -> "Get EPUB"
-                    book.downloadUrl?.startsWith("https://") == true -> "Open EPUB"
+                    book.catalog == "Standard Ebooks" -> "Save & read EPUB"
+                    book.catalog == "StoryWeaver" -> "Read story"
+                    book.downloadUrl?.let { OfficialEpubDownloader.approved(book.catalog, it) } == true -> "Save & read EPUB"
+                    book.downloadUrl?.startsWith("https://") == true -> "Open EPUB externally"
                     else -> "View listing"
                 },
                 onAction = {
                     if (book.catalog == "Standard Ebooks") openStandardEpub(book)
+                    else if (book.catalog == "StoryWeaver") openStoryWeaverReader(book)
                     else {
                         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
-                        openOfficialLink(epub ?: book.url)
+                        if (epub != null && OfficialEpubDownloader.approved(book.catalog, epub)) {
+                            downloadAndRead(book, epub)
+                        } else openOfficialLink(epub ?: book.url)
                     }
                 },
             )
@@ -458,30 +473,96 @@ class BookLibraryActivity : AppCompatActivity() {
             val link = withContext(Dispatchers.IO) {
                 runCatching { catalog.resolveStandardEbooksEpub(book.url) }.getOrNull()
             }
-            if (link == null) catalogStatus.text =
-                "Compatible EPUB unavailable. Opening the official listing instead."
-            openOfficialLink(link ?: book.url)
+            if (link == null) {
+                catalogStatus.text = getString(R.string.monogatari_epub_edition_missing)
+                openOfficialLink(book.url)
+            } else downloadAndRead(book, link)
         }
     }
 
     private fun openBookListing(book: PublicBookCatalog.Book) {
+        if (book.catalog == "StoryWeaver") {
+            MaterialAlertDialogBuilder(this).setTitle(book.title)
+                .setMessage(bookMetadataSummary(book))
+                .setPositiveButton(R.string.storyweaver_read_story) { _, _ -> openStoryWeaverReader(book) }
+                .setNeutralButton(R.string.storyweaver_open_browser) { _, _ -> openOfficialLink(book.url) }
+                .setNegativeButton(android.R.string.cancel, null).show()
+            return
+        }
         if (book.catalog == "Standard Ebooks") {
             MaterialAlertDialogBuilder(this).setTitle(book.title)
-                .setItems(arrayOf("View official listing", "Open compatible EPUB")) { _, which ->
+                .setMessage(bookMetadataSummary(book))
+                .setItems(arrayOf("View official listing", "Save EPUB and read offline")) { _, which ->
                     if (which == 1) openStandardEpub(book) else openOfficialLink(book.url)
                 }
                 .setNegativeButton(android.R.string.cancel, null).show()
             return
         }
         val epub = book.downloadUrl?.takeIf { it.startsWith("https://") }
-        if (epub == null) {
-            openOfficialLink(book.url)
-            return
+        val approvedEpub = epub?.takeIf { OfficialEpubDownloader.approved(book.catalog, it) }
+        val actions = when {
+            approvedEpub != null -> arrayOf("View ${book.catalog} listing",
+                "Save EPUB and read offline", "Open EPUB in browser")
+            epub != null -> arrayOf("View ${book.catalog} listing", "Open EPUB in browser")
+            else -> arrayOf("View ${book.catalog} listing")
         }
         MaterialAlertDialogBuilder(this).setTitle(book.title)
-            .setItems(arrayOf("View ${book.catalog} listing", "Open available EPUB")) { _, which ->
-                openOfficialLink(if (which == 1) epub else book.url)
+            .setMessage(bookMetadataSummary(book))
+            .setItems(actions) { _, which ->
+                when (actions[which]) {
+                    "Save EPUB and read offline" -> approvedEpub?.let { downloadAndRead(book, it) }
+                    "Open EPUB in browser" -> openOfficialLink(epub ?: book.url)
+                    else -> openOfficialLink(book.url)
+                }
             }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    /** A clear series/edition/access summary without implying unrestricted access or a guaranteed loan. */
+    private fun bookMetadataSummary(book: PublicBookCatalog.Book): String = listOfNotNull(
+        book.author.takeIf { it.isNotBlank() }, book.catalog,
+        book.publicationYear?.toString(), book.language,
+        book.series?.let { getString(R.string.monogatari_catalog_series, it) },
+        book.editionCount?.let { getString(R.string.monogatari_catalog_editions, it) },
+        book.format, book.availability, book.attribution,
+    ).joinToString("\n")
+
+    private fun downloadAndRead(book: PublicBookCatalog.Book, link: String) {
+        if (!OfficialEpubDownloader.approved(book.catalog, link)) {
+            catalogStatus.text = getString(R.string.monogatari_epub_unapproved)
+            return
+        }
+        catalogStatus.text = getString(R.string.monogatari_epub_downloading, book.title)
+        lifecycleScope.launch {
+            try {
+                val library = File(filesDir, "imported-books")
+                val file = OfficialEpubDownloader.save(epubClient, library, book.title, book.catalog, link)
+                catalogStatus.text = getString(R.string.monogatari_epub_saved, book.title)
+                startActivity(BookShelf.readerIntent(this@BookLibraryActivity, file))
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                catalogStatus.text = getString(R.string.monogatari_epub_download_error,
+                    error.message.orEmpty().take(130))
+            }
+        }
+    }
+
+    private fun openStoryWeaverReader(book: PublicBookCatalog.Book) {
+        if (!StoryWeaverCatalog.officialStoryUrl(book.url)) {
+            catalogStatus.text = getString(R.string.storyweaver_invalid_link)
+            return
+        }
+        startActivity(Intent(this, StoryWeaverReaderActivity::class.java)
+            .putExtra(StoryWeaverReaderActivity.EXTRA_URL, book.url)
+            .putExtra(StoryWeaverReaderActivity.EXTRA_CREDIT, book.attribution))
+    }
+
+    /** These sites do not expose a permitted public chapter API: always use their own search website. */
+    private fun openFictionBrowser(site: OfficialMediaSites.Site, term: String) {
+        val url = OfficialMediaSites.searchUrl(site, term)
+        if (OfficialMediaSites.fictionSite(url) != site) return
+        startActivity(Intent(this, OfficialFictionBrowserActivity::class.java)
+            .putExtra(OfficialFictionBrowserActivity.EXTRA_URL, url))
     }
 
     private fun openOfficialLink(url: String) {
@@ -494,19 +575,7 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     private suspend fun searchProvider(source: String, term: String): List<PublicBookCatalog.Book> =
-        when (source) {
-            "Gutenberg" -> catalog.searchGutenberg(term)
-            "Open Library" -> catalog.searchOpenLibrary(term)
-            "Archive" -> catalog.searchInternetArchive(term)
-            "Wikisource" -> catalog.searchWikisource(term)
-            "Google Books" -> catalog.searchGoogleBooks(term)
-            "Standard Ebooks" -> catalog.searchStandardEbooks(term)
-            "Faded Page" -> catalog.searchFadedPage(term)
-            "Gutenberg Australia" -> catalog.searchGutenbergAustralia(term)
-            "Global Grey" -> catalog.searchGlobalGrey(term)
-            "Baen Free Library" -> catalog.searchBaenFreeLibrary(term)
-            else -> emptyList()
-        }
+        PublicCatalogProvider.fromLabel(source)?.search(catalog, term).orEmpty()
 
     private fun showSortOptions() {
         val options = BookCatalogSorter.Order.entries

@@ -137,6 +137,41 @@ internal object TranslationLayout {
 		return lo
 	}
 
+	/** Use traditional right-to-left vertical columns only for CJK-target text in a tall bubble. */
+	fun prefersVerticalText(language: String?, text: String, box: Box): Boolean {
+		val tag = language?.substringBefore('-')?.lowercase()
+		if (tag != "ja" && tag != "zh") return false
+		if (box.width <= 0 || box.height < box.width * 1.3f) return false
+		val visible = text.count { !it.isWhitespace() }
+		if (visible == 0) return false
+		val cjk = text.count { it in '\u3000'..'\u9fff' || it in '\uf900'..'\ufaff' }
+		return cjk * 2 >= visible
+	}
+
+	/**
+	 * Vertical presentation form of a glyph in a vertical CJK column (brackets, comma, full stop...), or the glyph
+	 * itself. Canvas text drawing does not apply the font's `vert` feature, so these must be substituted by hand.
+	 */
+	fun verticalForm(glyph: String): String = VERTICAL_FORMS[glyph] ?: glyph
+
+	/** Glyphs with no vertical form that are drawn turned 90° clockwise in a column (long vowel mark, dashes, tilde). */
+	fun rotatesInVerticalText(glyph: String): Boolean = glyph in ROTATED_IN_VERTICAL
+
+	private val VERTICAL_FORMS = mapOf(
+		"「" to "﹁", "」" to "﹂", "『" to "﹃", "』" to "﹄",
+		"（" to "︵", "）" to "︶", "(" to "︵", ")" to "︶",
+		"【" to "︻", "】" to "︼", "〔" to "︹", "〕" to "︺", "《" to "︽", "》" to "︾", "〈" to "︿", "〉" to "﹀",
+		"｛" to "︷", "｝" to "︸", "［" to "﹇", "］" to "﹈",
+		"、" to "︑", "。" to "︒", "，" to "︐", "：" to "︓", "；" to "︔", "！" to "︕", "？" to "︖",
+		"…" to "︙", "‥" to "︰",
+	)
+
+	private val ROTATED_IN_VERTICAL = setOf("ー", "—", "―", "–", "-", "～", "~", "〜", "＝", "=")
+
+	/** Unicode RTL-script handling without forcing Latin/numeric titles into RTL. */
+	fun isRtlLanguage(language: String?): Boolean =
+		language?.substringBefore('-')?.lowercase() in setOf("ar", "he", "fa", "ur", "ps", "sd")
+
 	/** An OCR region with its text, used for bubble grouping. */
 	data class Piece(val box: Box, val text: String, val confidence: Float = -1f)
 

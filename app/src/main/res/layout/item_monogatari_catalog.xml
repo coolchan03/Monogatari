@@ -17,7 +17,7 @@
         android:minHeight="70dp"
         android:orientation="horizontal"
         android:padding="14dp">
-        <ImageView android:id="@+id/monogatari_catalog_item_cover"
+        <org.koitharu.kotatsu.core.image.CoilImageView android:id="@+id/monogatari_catalog_item_cover"
             android:layout_width="64dp"
             android:layout_height="90dp"
             android:background="@drawable/bg_onboarding_hero"
@@ -33,15 +33,11 @@
             <TextView android:id="@+id/monogatari_catalog_item_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="2"
                 android:textAppearance="?attr/textAppearanceTitleMedium" />
             <TextView android:id="@+id/monogatari_catalog_item_summary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:ellipsize="end"
-                android:maxLines="2"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
             <com.google.android.material.button.MaterialButton
