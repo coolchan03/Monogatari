@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
@@ -34,6 +33,24 @@ class SourceLogActivity : AppCompatActivity() {
 	private lateinit var summary: TextView
 	private lateinit var list: LinearLayout
 
+	// Open site, Copy log and Clear are toolbar menu actions, like the other Monogatari tool screens.
+	override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+		menu.add(0, MENU_OPEN_SITE, 0, R.string.source_log_open_site)
+		menu.add(0, MENU_COPY, 1, R.string.source_log_copy)
+		menu.add(0, MENU_CLEAR, 2, R.string.source_log_clear)
+		return true
+	}
+
+	override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+		when (item.itemId) {
+			MENU_OPEN_SITE -> chooseSite()
+			MENU_COPY -> copyLog()
+			MENU_CLEAR -> { log.clear(); render() }
+			else -> return super.onOptionsItemSelected(item)
+		}
+		return true
+	}
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setTitle(R.string.source_log_title)
@@ -42,20 +59,6 @@ class SourceLogActivity : AppCompatActivity() {
 			orientation = LinearLayout.VERTICAL
 			setPadding(pad, pad, pad, pad)
 		}
-		val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-		buttons.addView(MaterialButton(this).apply {
-			setText(R.string.source_log_open_site)
-			setOnClickListener { chooseSite() }
-		})
-		buttons.addView(MaterialButton(this).apply {
-			setText(R.string.source_log_copy)
-			setOnClickListener { copyLog() }
-		})
-		buttons.addView(MaterialButton(this).apply {
-			setText(R.string.source_log_clear)
-			setOnClickListener { log.clear(); render() }
-		})
-		root.addView(android.widget.HorizontalScrollView(this).apply { addView(buttons) })
 		filter = EditText(this).apply {
 			setHint(R.string.source_log_filter)
 			setSingleLine(true)
@@ -127,5 +130,11 @@ class SourceLogActivity : AppCompatActivity() {
 			}
 			.setNegativeButton(android.R.string.cancel, null)
 			.show()
+	}
+
+	private companion object {
+		const val MENU_OPEN_SITE = 7301
+		const val MENU_COPY = 7302
+		const val MENU_CLEAR = 7303
 	}
 }

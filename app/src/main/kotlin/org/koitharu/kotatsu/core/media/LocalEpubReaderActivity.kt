@@ -6,10 +6,10 @@ import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.text.Html
 import android.view.KeyEvent
-import android.view.Menu
+import com.google.android.material.button.MaterialButton
 import android.view.MenuItem
+import android.view.Menu
 import android.view.View
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -42,41 +42,35 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         fileKey = file.name
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val d = resources.displayMetrics.density
-        position = TextView(this).apply { setPadding((16 * d).toInt(), (8 * d).toInt(), (16 * d).toInt(), (8 * d).toInt()) }
+        position = TextView(this).apply {
+            gravity = android.view.Gravity.CENTER
+            maxLines = 2
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelMedium)
+        }
         body = TextView(this).apply {
             textSize = 18f
             setPadding((20 * d).toInt(), (12 * d).toInt(), (20 * d).toInt(), (24 * d).toInt())
             setTextIsSelectable(true)
         }
         scroll = ScrollView(this).apply { addView(body) }
-        val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        nav.addView(Button(this).apply {
-            text = "Previous chapter"
-            setOnClickListener { showChapter(index - 1) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        nav.addView(Button(this).apply {
-            text = "Next chapter"
-            setOnClickListener { showChapter(index + 1) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        val appearance = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        appearance.addView(Button(this).apply {
-            text = "A-"
-            contentDescription = getString(R.string.a11y_text_smaller)
-            setOnClickListener { changeTextSize(-2f) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        appearance.addView(Button(this).apply {
-            text = "A+"
-            contentDescription = getString(R.string.a11y_text_larger)
-            setOnClickListener { changeTextSize(2f) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        appearance.addView(Button(this).apply {
-            text = "Chapters"
-            setOnClickListener { showChapterPicker() }
-        }, LinearLayout.LayoutParams(0, -2, 2f))
-        layout.addView(appearance)
-        layout.addView(position)
+        // Bottom bar like the other readers: previous / chapter position / next. Text size and the chapter
+        // list are in the toolbar menu.
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding((8 * d).toInt(), 0, (8 * d).toInt(), 0)
+        }
+        fun navButton(label: Int, onClick: () -> Unit) = MaterialButton(this, null,
+            androidx.appcompat.R.attr.borderlessButtonStyle).apply {
+            setText(label)
+            minHeight = (48 * d).toInt()
+            setOnClickListener { onClick() }
+        }
+        nav.addView(navButton(R.string.epub_previous_chapter) { showChapter(index - 1) }, LinearLayout.LayoutParams(-2, -2))
+        nav.addView(position, LinearLayout.LayoutParams(0, -2, 1f))
+        nav.addView(navButton(R.string.epub_next_chapter) { showChapter(index + 1) }, LinearLayout.LayoutParams(-2, -2))
         layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        layout.addView(nav)
+        layout.addView(nav, LinearLayout.LayoutParams(-1, -2))
         setMonogatariContent(layout, MonogatariChrome.TEXT_MAX_WIDTH_DP)
         try {
             if (file.length() > 128L * 1024 * 1024) error("EPUB exceeds 128 MB limit")
@@ -92,14 +86,21 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, MENU_READ_ALOUD, 0, R.string.epub_read_aloud)
-        menu.add(0, MENU_SLEEP, 1, R.string.epub_sleep_timer)
-        menu.add(0, MENU_SLEEP_CANCEL, 2, R.string.epub_sleep_timer_cancel)
+        menu.add(0, MENU_CHAPTERS, 0, R.string.epub_chapters)
+            .setIcon(R.drawable.ic_list).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        menu.add(0, MENU_SMALLER, 1, R.string.a11y_text_smaller)
+        menu.add(0, MENU_LARGER, 2, R.string.a11y_text_larger)
+        menu.add(0, MENU_READ_ALOUD, 3, R.string.epub_read_aloud)
+        menu.add(0, MENU_SLEEP, 4, R.string.epub_sleep_timer)
+        menu.add(0, MENU_SLEEP_CANCEL, 5, R.string.epub_sleep_timer_cancel)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            MENU_CHAPTERS -> showChapterPicker()
+            MENU_SMALLER -> changeTextSize(-2f)
+            MENU_LARGER -> changeTextSize(2f)
             MENU_READ_ALOUD -> {
                 val engine = narrator ?: ParagraphNarrator(this) { readNextChapterAloud() }.also { narrator = it }
                 if (engine.isSpeaking || continuousNarration) {
@@ -157,7 +158,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     private fun showChapterPicker() {
         val chapters = book?.chapters ?: return
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Chapters")
+            .setTitle(R.string.epub_chapters)
             .setItems(chapters.map { it.title }.toTypedArray()) { _, selected -> showChapter(selected) }
             .show()
     }
@@ -191,6 +192,9 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     }
 
     private companion object {
+        const val MENU_CHAPTERS = 7111
+        const val MENU_SMALLER = 7112
+        const val MENU_LARGER = 7113
         const val MENU_READ_ALOUD = 7101
         const val MENU_SLEEP = 7102
         const val MENU_SLEEP_CANCEL = 7103

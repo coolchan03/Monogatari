@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.net.Uri
@@ -53,7 +54,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         downloadId = savedInstanceState?.getString("pendingDownloadId")
             ?.takeIf(WebDavEndpoint::validDeviceId)
-        title = "Manual WebDAV backup transfer"
+        title = getString(R.string.screen_title_webdav)
         val pad = (16 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -63,11 +64,17 @@ class WebDavManualSyncActivity : AppCompatActivity() {
             text = "Only manually selected ZIP archives are transferred. No automatic merge or restore."
         }
         root.addView(status)
+        // First action (account setup) filled, the rest outlined, full width like the Nearby screen.
+        var buttonCount = 0
         fun button(label: String, action: () -> Unit) {
-            root.addView(MaterialButton(this).apply {
+            val primary = buttonCount++ == 0
+            root.addView(MaterialButton(this, null,
+                if (primary) com.google.android.material.R.attr.materialButtonStyle
+                else com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = label
+                minHeight = (48 * resources.displayMetrics.density).toInt()
                 setOnClickListener { action() }
-            })
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = (pad / 3) })
         }
         button("Configure secure WebDAV account") { configure() }
         button("Upload selected backup ZIP") {

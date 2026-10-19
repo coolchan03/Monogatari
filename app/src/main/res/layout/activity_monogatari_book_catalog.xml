@@ -41,27 +41,15 @@
             android:inputType="text"
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
+    <!-- One primary action, then providers as chips (same pattern as search and Discover).
+         Import, My books and OPDS live in the toolbar menu. -->
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/monogatari_catalog_search_sources"
+        android:id="@+id/monogatari_catalog_all"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="6dp"
         android:minHeight="48dp"
-        android:text="@string/monogatari_catalog_search_sources" />
-    <LinearLayout android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/monogatari_catalog_all"
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:text="Search all catalogs" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/monogatari_catalog_sort"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginStart="8dp" android:text="Best match" />
-    </LinearLayout>
+        android:text="@string/monogatari_catalog_search_all" />
     <TextView android:id="@+id/monogatari_catalog_status"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:accessibilityLiveRegion="polite"
@@ -71,107 +59,57 @@
     <HorizontalScrollView android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none">
-        <LinearLayout android:layout_width="wrap_content"
+        <com.google.android.material.chip.ChipGroup
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
+            app:singleLine="true">
+            <com.google.android.material.chip.Chip
+                android:id="@+id/monogatari_catalog_search_sources"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/monogatari_catalog_sources_chip" />
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_gutenberg"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/monogatari_catalog_gutenberg" />
-            <com.google.android.material.button.MaterialButton
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_openlibrary"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:text="@string/monogatari_catalog_open_library" />
-            <com.google.android.material.button.MaterialButton
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_archive"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:text="@string/monogatari_catalog_archive" />
-            <com.google.android.material.button.MaterialButton
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_wikisource"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Wikisource" />
-            <com.google.android.material.button.MaterialButton
+                android:text="@string/monogatari_catalog_wikisource" />
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_google"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="8dp" android:text="Google Books previews" />
-            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/monogatari_catalog_google_books" />
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_standard_ebooks"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="8dp" android:text="@string/monogatari_catalog_standard_ebooks" />
-            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/monogatari_catalog_standard_ebooks" />
+            <com.google.android.material.chip.Chip
                 android:id="@+id/monogatari_catalog_more_public"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="@string/monogatari_catalog_more_public" />
-        </LinearLayout>
-    </HorizontalScrollView>
-    <HorizontalScrollView android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none">
-        <LinearLayout android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_import"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/monogatari_catalog_sort"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/monogatari_catalog_import" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_mybooks"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="@string/monogatari_catalog_local" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_filter"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="@string/monogatari_catalog_filter" />
-        </LinearLayout>
-    </HorizontalScrollView>
-    <HorizontalScrollView android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none">
-        <LinearLayout android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_opds_open"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/monogatari_catalog_opds_open" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_opds_save"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="@string/monogatari_catalog_opds_save" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/monogatari_catalog_opds_saved"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="@string/monogatari_catalog_opds_saved" />
-        </LinearLayout>
+                app:chipIcon="@drawable/ic_sort_desc"
+                android:text="@string/monogatari_catalog_sort_best" />
+        </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
     <TextView android:layout_width="match_parent"
         android:layout_height="wrap_content"

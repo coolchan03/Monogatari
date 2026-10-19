@@ -27,7 +27,7 @@ import org.koitharu.kotatsu.core.ui.TapCounter
 class MoreActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "More"
+        title = getString(R.string.screen_title_more)
         val margin = (16 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

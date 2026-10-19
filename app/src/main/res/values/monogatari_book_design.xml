@@ -23,4 +23,10 @@
     <string name="monogatari_catalog_local">My books</string>
     <string name="monogatari_catalog_filter">Find imported</string>
     <string name="monogatari_catalog_results">Books and catalogs</string>
+    <string name="monogatari_catalog_search_all">Search all catalogs</string>
+    <string name="monogatari_catalog_sources_chip">Book sources</string>
+    <string name="monogatari_catalog_wikisource">Wikisource</string>
+    <string name="monogatari_catalog_google_books">Google Books previews</string>
+    <string name="monogatari_catalog_sort_best">Best match</string>
+    <string name="monogatari_catalog_sort_label">Sort: %1$s</string>
 </resources>

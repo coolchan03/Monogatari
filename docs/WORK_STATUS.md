@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-19 — v1.0.1 release line
+- Built on `devel` (v1.0.0) as local `release-1.0.1`: owner-feedback fixes (cherry-picked `d20cb3b`), new Kitsune art (`182b9b5`), and a screen-consistency pass (Books, Library, feeds, News, Discover, EPUB/PDF readers, player, Nearby, WebDAV, backup import, Source log, StoryWeaver, fiction browser). v1.1+ drafts excluded.
+- Operation: push to `devel`, wait for build check, start the release workflow for `v1.0.1`, verify APK and SHA-256, then merge `devel` back into `claude/monogatari-v1-release-sq1t2k`.
+
 ## 2026-10-19 — v1.0.0 released; owner feedback batch (v1.0.1 candidate) and post-1.0 drafts
 - **Released:** https://github.com/coolchan03/Monogatari/releases/tag/v1.0.0 built from `85343a2` (run 39272192778). APK SHA-256 `809bafa5a812fb02693adb6b14f6dd67c917afcbd332855c35a71c8e14355fcb`. The release was started with one owner-approved GitHub connector workflow dispatch (this session cannot push tags).
 - Owner feedback fixed in code: theme now follows the phone until chosen (was forced dark); Settings gear always on the main toolbar; podcast/RSS and News screens rebuilt with chips + menu like the rest of the app, with included feeds pre-installed and News loading immediately; Discover actions are chips; larger YouTube/Dailymotion/Twitch thumbnails.

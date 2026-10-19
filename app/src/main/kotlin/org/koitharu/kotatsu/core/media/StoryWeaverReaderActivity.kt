@@ -13,7 +13,8 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import com.google.android.material.button.MaterialButton
+import android.view.Menu
+import android.view.MenuItem
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
@@ -22,15 +23,19 @@ import org.koitharu.kotatsu.core.ui.setMonogatariContent
 /** In-app view of the provider's own illustrated reader. No page scraping, paywall bypass or ad injection. */
 class StoryWeaverReaderActivity : AppCompatActivity() {
     companion object {
+        private const val MENU_BROWSER = 7401
         const val EXTRA_URL = "storyweaver_story_url"
         const val EXTRA_CREDIT = "storyweaver_story_attribution"
     }
     private lateinit var browser: WebView
+    private lateinit var status: TextView
+    private var storyUrl = ""
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val url = intent.getStringExtra(EXTRA_URL).orEmpty()
         if (!StoryWeaverCatalog.officialStoryUrl(url)) { finish(); return }
+        storyUrl = url
         title = getString(R.string.storyweaver_reader_title)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val attribution = intent.getStringExtra(EXTRA_CREDIT).orEmpty()
@@ -42,16 +47,11 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
         })
         val loading = LinearProgressIndicator(this).apply { isIndeterminate = false; max = 100 }
         content.addView(loading, LinearLayout.LayoutParams(-1, -2))
-        val status = TextView(this).apply {
+        status = TextView(this).apply {
             setText(R.string.storyweaver_online_notice)
             setPadding(16, 8, 16, 8)
         }
         content.addView(status, LinearLayout.LayoutParams(-1, -2))
-        val fallback = MaterialButton(this).apply {
-            setText(R.string.storyweaver_open_browser)
-            setOnClickListener { if (!ExternalLinks.open(this@StoryWeaverReaderActivity, url)) status.setText(R.string.link_cannot_open) }
-        }
-        content.addView(fallback, LinearLayout.LayoutParams(-1, -2))
         browser = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -90,6 +90,18 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
         })
         if (savedInstanceState == null || browser.restoreState(savedInstanceState) == null) browser.loadUrl(url)
     }
+    // "Open in browser" lives in the toolbar menu so the story gets the whole screen.
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, MENU_BROWSER, 0, R.string.storyweaver_open_browser)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId != MENU_BROWSER) return super.onOptionsItemSelected(item)
+        if (!ExternalLinks.open(this, storyUrl)) status.setText(R.string.link_cannot_open)
+        return true
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         if (::browser.isInitialized) browser.saveState(outState)
         super.onSaveInstanceState(outState)
@@ -103,4 +115,5 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
         }
         super.onDestroy()
     }
+
 }

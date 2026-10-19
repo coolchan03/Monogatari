@@ -18,7 +18,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -85,10 +84,9 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
         }
         fun addAction(label: String, handler: () -> Unit) {
-            buttons.addView(MaterialButton(this).apply {
+            // Assist chips, as on the feed and Discover screens.
+            buttons.addView(com.google.android.material.chip.Chip(this).apply {
                 text = label
-                isAllCaps = false
-                minHeight = (48 * dp).toInt()
                 setOnClickListener { handler() }
             }, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT

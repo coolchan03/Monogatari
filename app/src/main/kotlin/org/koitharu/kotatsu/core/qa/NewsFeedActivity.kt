@@ -57,7 +57,7 @@ class NewsFeedActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "News & followed tags"
+        title = getString(R.string.screen_title_news)
         onlyFollowing = savedInstanceState?.getBoolean("news_following") ?: false
         savedOnly = savedInstanceState?.getBoolean("news_saved") ?: false
         activeTag = savedInstanceState?.getString("news_tag")
