@@ -94,3 +94,6 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 - Head `b303510` CI green (run 39177526228: unit tests, debug APK, R8, cold start). Compilation and smoke tests only, not feature verification.
 - Next batch: #21/#23 OCR refinement review, #32/#37 filter and duplicate semantics, #63/#66 adaptive state, then the full audit.
 - The 14 PARTIAL rows remain PARTIAL. Code presence ≠ verification.
+
+### 2026-10-19 batch 2
+Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.

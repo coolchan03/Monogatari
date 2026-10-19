@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-19 — finishing batch 2
+- Operation: commit and push batch 2 (#21, #23, #32, #66, #14, #63/#69) to `claude/monogatari-v1-release-sq1t2k`, then read build-check for the new head.
+- Not verified on device.
+
 ## 2026-10-18 — Claude cloud session, v1.0 finishing batch 1
 - Branch `claude/monogatari-v1-release-sq1t2k` from finish-83 head `a3837b2`. Push via this container's git remote (owner approved; no Tunnel to Surface tool here). GitHub connector is read-only. No local SDK (owner declined), so GitHub Actions does the compiling.
 - Baseline build-check run 39176557261 on `a3837b2`: unit tests PASS, debug APK PASS, R8 release was still running at the time of writing.

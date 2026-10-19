@@ -187,6 +187,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }
         paneTitle = TextView(this).apply {
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
+            // TalkBack announces the newly selected title when the details pane changes.
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
         paneMeta = TextView(this)
         paneDescription = TextView(this)

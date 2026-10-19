@@ -1481,6 +1481,8 @@ Optional — skip it and you appear as anon.</string>
     <string name="media_stream_unreachable">Could not connect to the stream. Check your connection and try again.</string>
     <string name="media_stream_protected">This stream is DRM-protected. Monogatari does not bypass DRM; watch it on the official service.</string>
     <string name="link_cannot_open">This link cannot be opened. Only web (http/https) links open outside Monogatari, and a browser must be installed.</string>
+    <string name="a11y_text_smaller">Smaller text</string>
+    <string name="a11y_text_larger">Larger text</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
 </resources>

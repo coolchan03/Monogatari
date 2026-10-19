@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
@@ -55,10 +56,12 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         val appearance = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         appearance.addView(Button(this).apply {
             text = "A-"
+            contentDescription = getString(R.string.a11y_text_smaller)
             setOnClickListener { changeTextSize(-2f) }
         }, LinearLayout.LayoutParams(0, -2, 1f))
         appearance.addView(Button(this).apply {
             text = "A+"
+            contentDescription = getString(R.string.a11y_text_larger)
             setOnClickListener { changeTextSize(2f) }
         }, LinearLayout.LayoutParams(0, -2, 1f))
         appearance.addView(Button(this).apply {
@@ -117,14 +120,24 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         val item = parsed.chapters[chapter]
         position.text = "${item.title} (${chapter + 1}/${parsed.chapters.size})"
         body.text = Html.fromHtml(item.content, Html.FROM_HTML_MODE_COMPACT)
+        val savedFraction = if (restorePosition) preferences.getFloat("$fileKey-scroll-fraction", -1f) else 0f
         val savedY = if (restorePosition) preferences.getInt("$fileKey-scroll", 0) else 0
-        scroll.post { scroll.scrollTo(0, savedY) }
-        preferences.edit().putInt(fileKey, index).putInt("$fileKey-scroll", 0).apply()
+        scroll.post {
+            // Prefer the width-independent fraction; older saves only have a pixel offset.
+            val y = if (savedFraction >= 0f) {
+                ReadingScrollPosition.offset(savedFraction, body.height, scroll.height)
+            } else savedY
+            scroll.scrollTo(0, y)
+        }
+        preferences.edit().putInt(fileKey, index).putInt("$fileKey-scroll", 0)
+            .putFloat("$fileKey-scroll-fraction", 0f).apply()
     }
 
     override fun onPause() {
         super.onPause()
-        if (fileKey.isNotEmpty() && ::scroll.isInitialized) preferences.edit()
-            .putInt(fileKey, index).putInt("$fileKey-scroll", scroll.scrollY).apply()
+        if (fileKey.isNotEmpty() && ::scroll.isInitialized && body.height > 0) preferences.edit()
+            .putInt(fileKey, index).putInt("$fileKey-scroll", scroll.scrollY)
+            .putFloat("$fileKey-scroll-fraction", ReadingScrollPosition.fraction(scroll.scrollY, body.height, scroll.height))
+            .apply()
     }
 }

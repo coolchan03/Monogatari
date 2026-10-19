@@ -25,4 +25,14 @@ class OfficialEpubDownloaderTest {
         assertFalse(OfficialEpubDownloader.approved("Project Gutenberg",
             "https://user@www.gutenberg.org/ebooks/74.epub"))
     }
+
+    @Test
+    fun retriesOnlyTemporaryPublisherFailures() {
+        org.junit.Assert.assertTrue(OfficialEpubDownloader.isTransientStatus(503))
+        org.junit.Assert.assertTrue(OfficialEpubDownloader.isTransientStatus(429))
+        org.junit.Assert.assertTrue(OfficialEpubDownloader.isTransientStatus(408))
+        org.junit.Assert.assertFalse(OfficialEpubDownloader.isTransientStatus(404))
+        org.junit.Assert.assertFalse(OfficialEpubDownloader.isTransientStatus(403))
+        org.junit.Assert.assertFalse(OfficialEpubDownloader.isTransientStatus(200))
+    }
 }

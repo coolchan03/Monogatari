@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.core.media
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -50,29 +51,17 @@ internal object OfficialEpubDownloader {
             if (destination.isFile && destination.length() > 0) return@withContext destination
             val temporary = File.createTempFile("book-$digest-", ".partial", libraryDir)
             try {
-                val request = Request.Builder().url(url).get().build()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) throw IOException("The publisher returned HTTP ${response.code}")
-                    if (!approved(catalog, response.request.url.toString())) {
-                        throw IOException("The publisher redirected to an unapproved download location")
+                var attempt = 1
+                while (true) {
+                    try {
+                        download(client, catalog, url, temporary)
+                        break
+                    } catch (e: TransientDownloadException) {
+                        // Brief network drops and publisher overloads are retried; safety refusals never are.
+                        if (attempt >= MAX_ATTEMPTS) throw IOException(e.message, e.cause)
+                        delay(RETRY_DELAYS_MS[attempt - 1])
+                        attempt++
                     }
-                    val body = response.body ?: throw IOException("The publisher returned an empty download")
-                    if (body.contentLength() > MAX_DOWNLOAD) throw IOException("The EPUB exceeds the size limit")
-                    var total = 0L
-                    body.byteStream().use { input ->
-                        temporary.outputStream().use { output ->
-                            val buffer = ByteArray(16_384)
-                            while (true) {
-                                currentCoroutineContext().ensureActive()
-                                val count = input.read(buffer)
-                                if (count < 0) break
-                                total += count
-                                if (total > MAX_DOWNLOAD) throw IOException("The EPUB exceeds the size limit")
-                                output.write(buffer, 0, count)
-                            }
-                        }
-                    }
-                    if (total == 0L) throw IOException("The publisher returned an empty download")
                 }
                 validateEpub(temporary)
                 if (!temporary.renameTo(destination)) {
@@ -83,6 +72,56 @@ internal object OfficialEpubDownloader {
                 temporary.delete()
             }
         }
+
+    /** Failures worth another attempt: connection problems, truncated bodies, HTTP 408/429/5xx. */
+    private class TransientDownloadException(message: String, cause: Throwable? = null) : IOException(message, cause)
+
+    private const val MAX_ATTEMPTS = 3
+    private val RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
+
+    internal fun isTransientStatus(code: Int): Boolean = code == 408 || code == 429 || code in 500..599
+
+    private suspend fun download(client: OkHttpClient, catalog: String, url: String, temporary: File) {
+        val request = Request.Builder().url(url).get().build()
+        val call = try {
+            client.newCall(request).execute()
+        } catch (e: IOException) {
+            throw TransientDownloadException("Could not reach the publisher: ${e.message.orEmpty()}".trim(), e)
+        }
+        call.use { response ->
+            if (isTransientStatus(response.code)) {
+                throw TransientDownloadException("The publisher is busy (HTTP ${response.code}); try again later")
+            }
+            if (!response.isSuccessful) throw IOException("The publisher returned HTTP ${response.code}")
+            if (!approved(catalog, response.request.url.toString())) {
+                throw IOException("The publisher redirected to an unapproved download location")
+            }
+            val body = response.body ?: throw IOException("The publisher returned an empty download")
+            if (body.contentLength() > MAX_DOWNLOAD) throw IOException("The EPUB exceeds the size limit")
+            val expected = body.contentLength()
+            var total = 0L
+            body.byteStream().use { input ->
+                // Overwrite any partial bytes from a previous attempt.
+                temporary.outputStream().use { output ->
+                    val buffer = ByteArray(16_384)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val count = try {
+                            input.read(buffer)
+                        } catch (e: IOException) {
+                            throw TransientDownloadException("The download was interrupted", e)
+                        }
+                        if (count < 0) break
+                        total += count
+                        if (total > MAX_DOWNLOAD) throw IOException("The EPUB exceeds the size limit")
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+            if (total == 0L) throw IOException("The publisher returned an empty download")
+            if (expected > 0 && total < expected) throw TransientDownloadException("The download was cut off")
+        }
+    }
 
     private fun validateEpub(file: File) {
         ZipFile(file).use { zip ->

@@ -148,6 +148,26 @@ internal object TranslationLayout {
 		return cjk * 2 >= visible
 	}
 
+	/**
+	 * Vertical presentation form of a glyph in a vertical CJK column (brackets, comma, full stop...), or the glyph
+	 * itself. Canvas text drawing does not apply the font's `vert` feature, so these must be substituted by hand.
+	 */
+	fun verticalForm(glyph: String): String = VERTICAL_FORMS[glyph] ?: glyph
+
+	/** Glyphs with no vertical form that are drawn turned 90° clockwise in a column (long vowel mark, dashes, tilde). */
+	fun rotatesInVerticalText(glyph: String): Boolean = glyph in ROTATED_IN_VERTICAL
+
+	private val VERTICAL_FORMS = mapOf(
+		"「" to "﹁", "」" to "﹂", "『" to "﹃", "』" to "﹄",
+		"（" to "︵", "）" to "︶", "(" to "︵", ")" to "︶",
+		"【" to "︻", "】" to "︼", "〔" to "︹", "〕" to "︺", "《" to "︽", "》" to "︾", "〈" to "︿", "〉" to "﹀",
+		"｛" to "︷", "｝" to "︸", "［" to "﹇", "］" to "﹈",
+		"、" to "︑", "。" to "︒", "，" to "︐", "：" to "︓", "；" to "︔", "！" to "︕", "？" to "︖",
+		"…" to "︙", "‥" to "︰",
+	)
+
+	private val ROTATED_IN_VERTICAL = setOf("ー", "—", "―", "–", "-", "～", "~", "〜", "＝", "=")
+
 	/** Unicode RTL-script handling without forcing Latin/numeric titles into RTL. */
 	fun isRtlLanguage(language: String?): Boolean =
 		language?.substringBefore('-')?.lowercase() in setOf("ar", "he", "fa", "ur", "ps", "sd")

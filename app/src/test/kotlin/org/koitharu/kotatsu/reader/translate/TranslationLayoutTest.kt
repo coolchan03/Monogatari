@@ -101,4 +101,15 @@ class TranslationLayoutTest {
 		assertEquals(0, TranslationLayout.colorSpread(intArrayOf(0xFF102030.toInt(), 0xFF102030.toInt())))
 		assertEquals(100, TranslationLayout.colorSpread(intArrayOf(0xFF000000.toInt(), 0xFF640000.toInt())))
 	}
+
+	@Test
+	fun verticalColumnsUseVerticalPunctuationForms() {
+		assertEquals("﹁", TranslationLayout.verticalForm("「"))
+		assertEquals("﹂", TranslationLayout.verticalForm("」"))
+		assertEquals("︒", TranslationLayout.verticalForm("。"))
+		assertEquals("︙", TranslationLayout.verticalForm("…"))
+		assertEquals("猫", TranslationLayout.verticalForm("猫"))
+		org.junit.Assert.assertTrue(TranslationLayout.rotatesInVerticalText("ー"))
+		org.junit.Assert.assertFalse(TranslationLayout.rotatesInVerticalText("あ"))
+	}
 }

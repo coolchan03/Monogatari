@@ -147,7 +147,17 @@ internal object TranslatedPageRenderer {
 		glyphs.forEachIndexed { i, glyph ->
 			val column = i / rows
 			val row = i % rows
-			canvas.drawText(glyph, xRight - column * step, yTop + (row + 0.82f) * step, paint)
+			val x = xRight - column * step
+			if (TranslationLayout.rotatesInVerticalText(glyph)) {
+				// Turn the long vowel mark, dashes and tildes to run along the column.
+				val centerY = yTop + (row + 0.5f) * step
+				canvas.save()
+				canvas.rotate(90f, x, centerY)
+				canvas.drawText(glyph, x, centerY - (paint.descent() + paint.ascent()) / 2f, paint)
+				canvas.restore()
+			} else {
+				canvas.drawText(TranslationLayout.verticalForm(glyph), x, yTop + (row + 0.82f) * step, paint)
+			}
 		}
 		canvas.restore()
 		paint.typeface = oldTypeface
@@ -176,10 +186,21 @@ internal object TranslatedPageRenderer {
 		source.getPixels(pixels, 0, w, window.left, window.top, w, h)
 		val local = TranslationLayout.Box(covered.left - window.left, covered.top - window.top, covered.right - window.left, covered.bottom - window.top)
 		val found = BubbleFinder.interior(pixels, w, h, BubbleFinder.seedsAround(local, 2), paper) ?: return null
-		val inner = TranslationLayout.shrink(
+		val bounds = TranslationLayout.shrink(
 			TranslationLayout.Box(found.bounds.left + window.left, found.bounds.top + window.top,
 				found.bounds.right + window.left, found.bounds.bottom + window.top), pad * 2)
-		if (inner.width <= covered.width || inner.height <= 0) return null
+		if (bounds.width <= covered.width || bounds.height <= 0) return null
+		// Lay text out in the largest rectangle that really fits inside the bubble shape, not its bounding box,
+		// so an oval bubble's outline does not clip the first and last lines. Never smaller than the original text area.
+		val (firsts, lasts) = BubbleFinder.rowSpans(found)
+		val inscribed = BubbleFinder.largestInscribed(firsts, lasts)?.let { r ->
+			TranslationLayout.shrink(TranslationLayout.Box(
+				window.left + found.bounds.left + r.left, window.top + found.bounds.top + r.top,
+				window.left + found.bounds.left + r.right, window.top + found.bounds.top + r.bottom), pad)
+		}
+		val inner = inscribed?.takeIf {
+			it.width > 0 && it.height > 0 && it.width.toLong() * it.height >= covered.width.toLong() * covered.height
+		} ?: bounds
 		// A flood region can occasionally be a large panel. Reject an implausible near-full-window region.
 		if (found.bounds.width.toLong() * found.bounds.height > w.toLong() * h * 85L / 100L) return null
 		// Every scanline traces the connected paper region, not the enclosing rectangular OCR region.

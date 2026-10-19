@@ -54,3 +54,15 @@ Important constraints:
 | 58 | Plex API errors explain unreachable server (keeps network cause), 401/403/404/5xx and non-Plex responses; player messages are Plex-specific only for Plex, with new neutral codec/denied/unreachable/DRM messages for other video sources (previously every source showed "Plex denied…") | Owner Plex server + codec test |
 | Security | `ExternalLinks` opens untrusted feed/catalog/search/StoryWeaver-page links only as http(s) BROWSABLE intents; `intent:`/`file:`/`content:`/custom schemes and userinfo URLs are refused (StoryWeaver page script could previously launch any scheme) | Device check of each link button |
 | Sources | Failure triage separates dead domains, access restrictions, moved pages and real parser/extension defects; see `SOURCE_DIAGNOSTICS_20261018.md` | Fresh sweep on device |
+
+## 2026-10-19 batch 2 (Claude cloud session)
+
+| ID | Change | Still needed for acceptance |
+| --- | --- | --- |
+| 21 | Translated text is laid out in the largest rectangle that really fits inside the detected bubble shape (`BubbleFinder.largestInscribed`), so oval bubbles no longer clip the first/last lines | Real round/irregular bubbles on device |
+| 23 | Vertical Japanese/Chinese columns use vertical presentation forms for brackets and punctuation (「」『』（）、。…) and turn ー, dashes and tildes along the column | Real vertical pages |
+| 32 | The Format filter also offers the content type each Kotatsu source declares (Manga, Manhwa, Manhua, Comics, One-shot…); previously any format choice emptied every manga section | Mixed search on device |
+| 63/69 | Tablet library details pane announces the selected title to TalkBack | TalkBack on tablet |
+| 66 | EPUB and text readers save the reading position as a fraction of the chapter, so rotation, fold/unfold, split-screen and freeform resizing return to the same place (old pixel offsets still read as a fallback; no save before first layout) | Rotate/fold Razr, resize on tablet |
+| 69 | EPUB reader A-/A+ buttons have spoken labels | TalkBack |
+| 14 | Offline EPUB download retries up to 3 times on connection drops, truncated bodies and HTTP 408/429/5xx; safety refusals (unapproved host/redirect, size, invalid EPUB) never retry | Live Standard Ebooks / Gutenberg downloads |

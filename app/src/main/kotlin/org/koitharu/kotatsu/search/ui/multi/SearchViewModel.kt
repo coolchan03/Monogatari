@@ -68,6 +68,9 @@ import org.koitharu.kotatsu.list.ui.model.LoadingFooter
 import org.koitharu.kotatsu.list.ui.model.LoadingState
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
+import org.koitharu.kotatsu.parsers.model.ContentType
+import org.koitharu.kotatsu.core.model.titleResId
+import org.koitharu.kotatsu.core.model.unwrap
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.search.domain.SearchKind
@@ -170,7 +173,8 @@ class SearchViewModel @Inject constructor(
 	private val displayResults = combine(
 		combine(results, languageFilter, bookFormatFilter, preferredSourceVersion, metadataSelection) { all, language, format, _, selection ->
 			all.map { section ->
-				val eligible = format == null && (language == null ||
+				// Parser sections match a format only through their source's declared content type.
+				val eligible = (format == null || SearchMetadataFilters.formatMatches(sectionFormat(section), format)) && (language == null ||
 					SearchMetadataFilters.languageMatches(section.source.getLocale()?.language, language))
 				section.copy(list = if (!eligible) emptyList() else section.list.filter { row ->
 					SearchMetadataFilters.tagMatches(row.manga.tags.map { it.title }, selection.genre) &&
@@ -264,7 +268,15 @@ class SearchViewModel @Inject constructor(
 		)
 
 	fun availableBookFormats(): List<String> =
-		SearchMetadataFilters.availableFormats(catalogState.value.items.map { it.format })
+		SearchMetadataFilters.availableFormats(
+			catalogState.value.items.map { it.format } + results.value.filter { it.list.isNotEmpty() }.map { sectionFormat(it) },
+		)
+
+	/** Content type a source declares for all its titles (Manga, Manhwa, Comics...); never guessed per title. */
+	private fun sectionFormat(section: SearchResultsListModel): String? =
+		(section.source.unwrap() as? MangaParserSource)?.contentType
+			?.takeUnless { it == ContentType.OTHER }
+			?.let { applicationContext.getString(it.titleResId) }
 
 	fun hasHistoryCapableResults(): Boolean = results.value.any { it.list.isNotEmpty() }
 
