@@ -1,9 +1,11 @@
-# Approved Kitsune sticker artwork
+# Kitsune mascot artwork
 
-The old programmatic vector art generator has been retired. The 8 approved compact mascot images are committed as PNG drawables in app/src/main/res/drawable-nodpi. The hidden human form is the eighth image; it is not a normal navigation item.
+The owner-supplied full-resolution originals (1254x1254 PNG) live in `art/kitsune/originals/`; see
+`art/kitsune/README.md` for which picture plays which role. The app ships 512px WebP exports in
+`app/src/main/res/drawable-nodpi/kitsune_sticker_*.webp`, made with:
 
-The compact transparent 4x2 sprite source is in sticker_atlas.b64. To regenerate the individual 256px PNGs using Pillow:
+    python3 scripts/kitsune/export_stickers.py
 
-    python scripts/kitsune/export_stickers.py
-
-MascotArtwork.kt remaps teal accents to the current Material primary colour while leaving white, skin and gold intact. See docs/MASCOT_INTEGRATION.md for screen placement and testing. Do not regenerate the deleted old vectors or launcher artwork.
+To change a role, edit `ROLES` in the script and re-run it. `MascotArtwork.kt` still tints the teal accents to the
+current theme colour at runtime. The earlier 64px sticker atlas was retired on 2026-10-19 (it was the cause of the
+blurry mascot); it remains in git history.
