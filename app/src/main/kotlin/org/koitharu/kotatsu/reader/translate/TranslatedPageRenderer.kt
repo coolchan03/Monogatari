@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.reader.translate
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -24,7 +25,8 @@ internal object TranslatedPageRenderer {
 	private const val SMOOTH_FILL_SPREAD = 28
 
 	fun render(source: Bitmap, meta: TranslationMeta): Bitmap =
-		render(source, meta.blocks.map { Block(it.box, it.translation, meta.targetLanguage, meta.fontStyle) })
+		// Cleaning here also repairs translations saved before entities were decoded.
+		render(source, meta.blocks.map { Block(it.box, DisplayText.clean(it.translation), meta.targetLanguage, meta.fontStyle) })
 
 	class Block(val box: TranslationLayout.Box, val translation: String, val targetLanguage: String? = null, val fontStyle: String = "sans")
 

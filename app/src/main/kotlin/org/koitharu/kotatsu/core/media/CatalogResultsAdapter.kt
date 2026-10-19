@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import android.view.LayoutInflater
 import android.view.View
 import android.graphics.drawable.GradientDrawable
@@ -91,8 +92,8 @@ internal class CatalogResultsAdapter : RecyclerView.Adapter<CatalogResultsAdapte
         holder.subtitle.minHeight = 0
         holder.card.isClickable = true
         val row = rows[position]
-        holder.title.text = row.title
-        holder.subtitle.text = row.subtitle
+        holder.title.text = DisplayText.clean(row.title)
+        holder.subtitle.text = DisplayText.clean(row.subtitle)
         holder.subtitle.isVisible = row.subtitle.isNotBlank()
         holder.action.isVisible = !row.actionLabel.isNullOrBlank() && row.onAction != null
         holder.action.text = row.actionLabel.orEmpty()

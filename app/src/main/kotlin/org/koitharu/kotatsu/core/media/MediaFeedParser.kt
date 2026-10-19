@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import org.w3c.dom.Element
 import org.xml.sax.InputSource
 import java.io.StringReader
@@ -45,7 +46,7 @@ object MediaFeedParser {
         return (0 until minOf(array.length(), 200)).mapNotNull { i ->
             val item = array.optJSONObject(i) ?: return@mapNotNull null
             val start = item.optDouble("startTime", -1.0)
-            val title = item.optString("title").trim().take(160)
+            val title = DisplayText.clean(item.optString("title")).trim().take(160)
             if (start < 0 || title.isEmpty() || item.optBoolean("toc", true).not()) null else Chapter(start.toInt(), title)
         }.sortedBy { it.startSeconds }
     }
@@ -77,7 +78,7 @@ object MediaFeedParser {
             val el = nodes.item(index) as? Element ?: return@mapNotNull null
             fun first(name: String) = el.getElementsByTagName(name).item(0) as? Element
             fun text(name: String) = first(name)?.textContent?.trim().orEmpty()
-            val title = text("title").take(220).takeIf { it.isNotBlank() }
+            val title = DisplayText.clean(text("title")).take(220).takeIf { it.isNotBlank() }
                 ?: return@mapNotNull null
             val atomLinks = el.getElementsByTagName("link")
             val enclosure = first("enclosure")

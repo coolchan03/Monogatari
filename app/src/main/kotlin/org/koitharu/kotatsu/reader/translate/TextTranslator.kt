@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.reader.translate
 
+import org.koitharu.kotatsu.core.util.DisplayText
 import android.content.Context
 import android.util.LruCache
 import com.google.mlkit.common.MlKitException
@@ -51,7 +52,8 @@ class TextTranslator @Inject constructor(
 			try {
 				translator.downloadModelIfNeeded(DownloadConditions.Builder().build()).await()
 				for (i in indices) {
-					result[i] = translateParagraphs(texts[i], source, target) { translator.translate(it).await() }
+					// ML Kit can return HTML-escaped quotes and apostrophes (&#39;, &quot;).
+					result[i] = translateParagraphs(texts[i], source, target) { DisplayText.clean(translator.translate(it).await()) }
 				}
 			} catch (e: MlKitException) {
 				throw PageTranslator.TranslationException(context.getString(R.string.page_translation_model_unavailable))
