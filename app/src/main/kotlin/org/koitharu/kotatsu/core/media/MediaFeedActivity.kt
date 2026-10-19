@@ -6,6 +6,8 @@ import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -18,6 +20,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil3.ImageLoader
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -35,7 +39,8 @@ class MediaFeedActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var loading: LinearProgressIndicator
     private lateinit var retryButton: MaterialButton
-    private lateinit var kindButton: MaterialButton
+    private lateinit var feedChips: ChipGroup
+    private lateinit var kindChips: ChipGroup
     private var currentUrl: String? = null
     private var entries = emptyList<MediaFeedParser.Episode>()
     private var filter: MediaFeedParser.Kind? = null
@@ -55,51 +60,31 @@ class MediaFeedActivity : AppCompatActivity() {
         val pad = (16 * dp).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
+            setPadding(pad, pad / 2, pad, pad)
         }
         root.addView(TextView(this).apply {
-            text = "Video & podcast feeds"
-            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
+            text = "Podcasts, audio drama and video shows from RSS. Add your own feeds from the menu."
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+            setPadding(0, 0, 0, pad / 2)
         })
-        root.addView(TextView(this).apply {
-            text = "Subscribe to RSS/Atom feeds for shows, films, fiction podcasts and audio drama."
-        })
-        val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        installIncludedFeedsOnce()
+        // Same chip language as search filters: one chip per feed, then the playlist.
+        feedChips = ChipGroup(this).apply { isSingleSelection = true; isSingleLine = true }
         root.addView(HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
-            addView(controls)
+            addView(feedChips)
         })
-        fun addButton(label: String, action: () -> Unit): MaterialButton =
-            MaterialButton(this).apply {
+        kindChips = ChipGroup(this).apply { isSingleSelection = true; isSelectionRequired = true }
+        listOf<Pair<String, MediaFeedParser.Kind?>>("All media" to null, "Video" to MediaFeedParser.Kind.VIDEO,
+            "Audio" to MediaFeedParser.Kind.AUDIO).forEach { (label, kind) ->
+            kindChips.addView(Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
                 text = label
-                isAllCaps = false
-                setOnClickListener { action() }
-                controls.addView(this, LinearLayout.LayoutParams(-2, -2).apply {
-                    marginEnd = (8 * dp).toInt()
-                })
-            }
-        addButton("Add feed") { addFeed() }
-        addButton("My feeds") { chooseFeed() }
-        addButton("Suggested feeds") { chooseSuggestedFeed() }
-        addButton("Refresh") { currentUrl?.let(::load) ?: chooseFeed() }
-        addButton("My playlist") {
-            playlistOnly = !playlistOnly
-            if (playlistOnly) {
-                loadJob?.cancel()
-                entries = playlist()
-                render()
-            } else {
-                currentUrl?.let(::load) ?: run { entries = emptyList(); render() }
-            }
+                isCheckable = true
+                isChecked = filter == kind
+                setOnClickListener { filter = kind; render() }
+            })
         }
-        kindButton = addButton("All") {
-            filter = when (filter) {
-                null -> MediaFeedParser.Kind.VIDEO
-                MediaFeedParser.Kind.VIDEO -> MediaFeedParser.Kind.AUDIO
-                MediaFeedParser.Kind.AUDIO -> null
-            }
-            render()
-        }
+        root.addView(kindChips)
         status = TextView(this).apply {
             text = "Add a feed URL to discover podcast or video episodes."
             setPadding(0, pad / 2, 0, pad / 2)
@@ -125,9 +110,68 @@ class MediaFeedActivity : AppCompatActivity() {
         results.imageLoader = imageLoader
         setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
         val choices = subscribed()
-        if (currentUrl == null && choices.size == 1) currentUrl = choices.first()
+        if (currentUrl == null) currentUrl = INCLUDED_FEEDS.map { it.second }.firstOrNull { it in choices } ?: choices.minOrNull()
         if (playlistOnly) { entries = playlist(); render() }
         else currentUrl?.let(::load) ?: render()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, MENU_ADD, 0, "Add feed")
+        menu.add(0, MENU_INCLUDED, 1, "Included feeds")
+        menu.add(0, MENU_REFRESH, 2, "Refresh")
+        menu.add(0, MENU_REMOVE, 3, "Remove a feed")
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            MENU_ADD -> addFeed()
+            MENU_INCLUDED -> chooseSuggestedFeed()
+            MENU_REFRESH -> currentUrl?.let(::load) ?: chooseFeed()
+            MENU_REMOVE -> chooseFeed()
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    /** First open: subscribe to the included feeds so the screen is never empty. Removed feeds stay removed. */
+    private fun installIncludedFeedsOnce() {
+        if (saved.getBoolean(KEY_DEFAULTS_INSTALLED, false)) return
+        saved.edit()
+            .putStringSet("urls", subscribed() + INCLUDED_FEEDS.map { it.second })
+            .putBoolean(KEY_DEFAULTS_INSTALLED, true)
+            .apply()
+    }
+
+    private fun feedLabel(url: String): String = INCLUDED_FEEDS.firstOrNull { it.second == url }?.first?.substringBefore(" ·")
+        ?: runCatching { Uri.parse(url).host?.removePrefix("www.") }.getOrNull() ?: url
+
+    private fun renderFeedChips() {
+        feedChips.removeAllViews()
+        val feeds = subscribed().sortedBy { feedLabel(it).lowercase() }
+        for (url in feeds) {
+            feedChips.addView(Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
+                text = feedLabel(url)
+                isCheckable = true
+                isChecked = !playlistOnly && url == currentUrl
+                setOnClickListener { load(url) }
+            })
+        }
+        feedChips.addView(Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
+            text = "My playlist"
+            isCheckable = true
+            isChecked = playlistOnly
+            setOnClickListener {
+                playlistOnly = !playlistOnly
+                if (playlistOnly) {
+                    loadJob?.cancel()
+                    entries = playlist()
+                    render()
+                } else {
+                    currentUrl?.let(::load) ?: run { entries = emptyList(); render() }
+                }
+            }
+        })
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -169,11 +213,7 @@ class MediaFeedActivity : AppCompatActivity() {
             }.show()
     }
     private fun chooseSuggestedFeed() {
-        val presets = listOf(
-            "Escape Pod · science fiction stories" to "https://escapepod.org/feed/podcast/",
-            "Welcome to Night Vale · fiction podcast" to "https://feeds.megaphone.fm/SBP4591212513",
-            "Pop Culture Happy Hour · films and entertainment" to "https://feeds.npr.org/510282/podcast.xml",
-        )
+        val presets = INCLUDED_FEEDS
         MaterialAlertDialogBuilder(this).setTitle("Included entertainment feeds")
             .setItems(presets.map { it.first }.toTypedArray()) { _, index ->
                 load(presets[index].second, subscribe = true)
@@ -183,13 +223,14 @@ class MediaFeedActivity : AppCompatActivity() {
 
     private fun chooseFeed() {
         val options = subscribed().sorted()
-        if (options.isEmpty()) { status.text = "No feeds saved yet. Choose Add feed."; return }
+        if (options.isEmpty()) { status.text = "No feeds saved yet. Use Add feed or Included feeds in the menu."; return }
         MaterialAlertDialogBuilder(this).setTitle("Subscribed feeds")
             .setItems(options.toTypedArray()) { _, i -> load(options[i]) }
             .setNeutralButton("Remove feed") { _, _ ->
                 MaterialAlertDialogBuilder(this).setTitle("Unsubscribe")
                     .setItems(options.toTypedArray()) { _, i ->
                         saved.edit().putStringSet("urls", subscribed() - options[i]).apply()
+                        renderFeedChips()
                         if (currentUrl == options[i]) {
                             loadJob?.cancel()
                             currentUrl = null
@@ -224,14 +265,10 @@ class MediaFeedActivity : AppCompatActivity() {
         }
     }
     private fun render() {
-        kindButton.text = when (filter) {
-            null -> "All media"
-            MediaFeedParser.Kind.VIDEO -> "Video"
-            MediaFeedParser.Kind.AUDIO -> "Audio"
-        }
+        renderFeedChips()
         val visible = entries.filter { filter == null || it.kind == filter }
         status.text = if (playlistOnly) "${visible.size} saved episodes · select an episode to manage it"
-            else if (currentUrl == null) "Add an entertainment podcast or video RSS feed."
+            else if (currentUrl == null) "Pick a feed above, or add your own from the menu."
             else "${visible.size} episodes · ${subscribed().size} subscriptions"
         results.show(visible.map { episode ->
             CatalogRow(
@@ -326,5 +363,21 @@ class MediaFeedActivity : AppCompatActivity() {
                 .onFailure { status.text = "No browser available." }
         } else status.text = "This episode has no public HTTPS page."
     }
-    companion object { const val EXTRA_MEDIA_TYPE = "media_feed_type" }
+    companion object {
+        const val EXTRA_MEDIA_TYPE = "media_feed_type"
+        private const val KEY_DEFAULTS_INSTALLED = "included_feeds_v1"
+        private const val MENU_ADD = 8101
+        private const val MENU_INCLUDED = 8102
+        private const val MENU_REFRESH = 8103
+        private const val MENU_REMOVE = 8104
+
+        /** Pre-installed on first open. The first three returned HTTP 200 in the 2026-10-15 provider check. */
+        internal val INCLUDED_FEEDS = listOf(
+            "Escape Pod · science fiction stories" to "https://escapepod.org/feed/podcast/",
+            "Welcome to Night Vale · fiction podcast" to "https://feeds.megaphone.fm/SBP4591212513",
+            "Pop Culture Happy Hour · films and entertainment" to "https://feeds.npr.org/510282/podcast.xml",
+            "PodCastle · fantasy stories" to "https://podcastle.org/feed/podcast/",
+            "Pseudopod · horror stories" to "https://pseudopod.org/feed/podcast/",
+        )
+    }
 }

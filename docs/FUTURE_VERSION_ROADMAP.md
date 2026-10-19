@@ -115,3 +115,19 @@ These are known non-feature items that should ship in maintenance releases rathe
 - Source repairs found by the Test Center sweep (code defects only; dead domains are documented, not "fixed").
 - GitHub Actions: Node.js 24 transition, `actions/setup-java@v5` everywhere, the `ubuntu-latest` move to Ubuntu 26.
 - Any Android/OEM compatibility issue reported from the Moto Razr Ultra 2025 and onn Pro 13.2 tablet tests.
+
+## Draft progress (2026-10-19, branch `claude/monogatari-v1-release-sq1t2k`)
+
+Rough drafts started after v1.0.0 at the owner's request. "Draft" = code exists and has unit tests; not device-tested.
+
+| Feature | Version | Draft status |
+|---|---|---|
+| Mihon/Tachiyomi `.tachibk` decode + preview + favourites import by exact title | v1.1 | Draft wired into More > Import (backup review). Progress transfer not yet. |
+| Settings transfer groups (`SettingsTransferProfile`) | v1.1 | Pure core + tests; not yet wired into Nearby/restore UI. |
+| Sync conflict planning (`SyncConflictPlanner`) | v1.2 | Pure core + tests; needs a per-device "last sync" record and UI. |
+| Taste profile for personalized Discover (`TasteProfile`) | v1.3 | Pure core + tests; Discover does not use it yet. |
+| Side-by-side original/translation | v1.4 | Wired into the translated page viewer. |
+| Auto-next episode / chapter | v1.4 | Wired into the media player menu (on by default). |
+| EPUB read-aloud with sleep timer, continues into next chapter | v1.4 | Wired into the EPUB reader menu. |
+| Smart collections (`SmartCollectionRule`) | v1.5 | Pure core + tests; no UI yet. |
+| Komga client (`KomgaApi`) | v2.0 | Request/parse core + tests; not registered as a source. |

@@ -16,7 +16,7 @@ class TwitchRepositoryTest {
 		assertEquals(1, channels.size)
 		assertEquals("AnimeFan", channels[0].name)
 		assertEquals("123", channels[0].id)
-		assertEquals("https://static-cdn.jtvnw.net/x-320x180.png", channels[0].thumbnail)
+		assertEquals("https://static-cdn.jtvnw.net/x-640x360.png", channels[0].thumbnail)
 	}
 
 	@Test

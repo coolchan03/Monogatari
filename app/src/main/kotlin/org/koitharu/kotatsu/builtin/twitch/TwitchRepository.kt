@@ -151,7 +151,7 @@ class TwitchRepository(
 		private val ID = Regex("\\d{1,15}")
 
 		private fun https(url: String?): String? = url?.takeIf { it.startsWith("https://") }
-			?.replace("{width}", "320")?.replace("{height}", "180")?.replace("%{width}", "320")?.replace("%{height}", "180")
+			?.replace("{width}", "640")?.replace("{height}", "360")?.replace("%{width}", "640")?.replace("%{height}", "360")
 
 		fun splitUrl(url: String): Pair<String, String?>? {
 			val parts = url.trim('/').split('/')

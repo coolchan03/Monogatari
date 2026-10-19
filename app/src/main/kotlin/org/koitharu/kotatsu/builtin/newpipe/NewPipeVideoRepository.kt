@@ -72,7 +72,7 @@ class NewPipeVideoRepository(
                     publicUrl = item.url,
                     rating = RATING_UNKNOWN,
                     contentRating = ContentRating.SUGGESTIVE,
-                    coverUrl = item.thumbnails.firstOrNull()?.url,
+                    coverUrl = (item.thumbnails.maxByOrNull { it.height } ?: item.thumbnails.lastOrNull())?.url, // largest, not the first (smallest) one
                     tags = setOf(MangaTag(entryKind, entryKind, source)),
                     state = null,
                     authors = (item as? StreamInfoItem)?.uploaderName
