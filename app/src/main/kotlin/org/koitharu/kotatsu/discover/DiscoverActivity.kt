@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.content.Intent
 import android.widget.EditText
 import android.widget.LinearLayout
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
@@ -208,10 +207,11 @@ class DiscoverActivity : AppCompatActivity() {
 		}
 		binding.discoverActions.removeAllViews()
 		fun action(title: String, run: () -> Unit) {
-			binding.discoverActions.addView(MaterialButton(this).apply {
+			// Assist chips, like the media and feed rows above, instead of a row of large filled buttons.
+			binding.discoverActions.addView(Chip(this).apply {
 				text = title
-				isAllCaps = false
-				MediaAccents.tintButton(this@DiscoverActivity, section.name, this)
+				isCheckable = false
+				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
 				setOnClickListener { run() }
 			}, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
 				marginEnd = (8 * resources.displayMetrics.density).toInt()

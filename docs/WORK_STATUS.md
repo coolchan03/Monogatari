@@ -1,5 +1,11 @@
 # Monogatari work checkpoint
 
+## 2026-10-19 — v1.0.0 released; owner feedback batch (v1.0.1 candidate) and post-1.0 drafts
+- **Released:** https://github.com/coolchan03/Monogatari/releases/tag/v1.0.0 built from `85343a2` (run 39272192778). APK SHA-256 `809bafa5a812fb02693adb6b14f6dd67c917afcbd332855c35a71c8e14355fcb`. The release was started with one owner-approved GitHub connector workflow dispatch (this session cannot push tags).
+- Owner feedback fixed in code: theme now follows the phone until chosen (was forced dark); Settings gear always on the main toolbar; podcast/RSS and News screens rebuilt with chips + menu like the rest of the app, with included feeds pre-installed and News loading immediately; Discover actions are chips; larger YouTube/Dailymotion/Twitch thumbnails.
+- Image audit: Kitsune stickers are 64x64 originals (scripts/kitsune/sticker_atlas.b64) enlarged 4x and reduced to 32 colours, which is why they look soft. No higher-resolution originals exist; the deleted vector Kitsune set is still in git history. New art or a decision is needed.
+- Post-1.0 drafts on this branch: Mihon import, sync conflict planner, settings transfer groups, taste profile, side-by-side translation, smart collections, Komga client, auto-next episode, EPUB read-aloud. See FUTURE_VERSION_ROADMAP.md.
+
 ## 2026-10-19 — v1.0.0 release preparation (owner approved: "do everything")
 - Review pass over all unmerged finishing code: fixed WebView handling so provider CAPTCHA frames (e.g. challenges.cloudflare.com) can load inside FanFiction.net/FictionPress/StoryWeaver pages, and routed their outside links through the safe-link check.
 - Version 1.0.0 (versionCode 18). Tracker 83 DONE in code; device acceptance follows the release.

@@ -81,7 +81,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 
 	val theme: Int
 		get() = prefs.getString(KEY_THEME, null)?.toIntOrNull()
-			?: AppCompatDelegate.MODE_NIGHT_YES
+			// Until the user picks a theme, follow the phone's light/dark setting (matches the settings screen default).
+			?: AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 
 	val colorScheme: ColorScheme
 		get() = prefs.getEnumValue(KEY_COLOR_THEME, ColorScheme.default)

@@ -114,7 +114,7 @@ class DailymotionRepository(cache: MemoryContentCache, private val client: OkHtt
 
 		const val PAGE_SIZE = 30
 		private val ID = Regex("[a-zA-Z0-9]{5,12}")
-		private const val FIELDS = "id,title,thumbnail_480_url,owner.screenname,channel.name,description,explicit,private"
+		private const val FIELDS = "id,title,thumbnail_720_url,thumbnail_480_url,owner.screenname,channel.name,description,explicit,private"
 
 		fun listUrl(term: String, order: SortOrder, page: Int): String {
 			val sort = when {
@@ -137,7 +137,8 @@ class DailymotionRepository(cache: MemoryContentCache, private val client: OkHtt
 				Video(
 					id = id,
 					title = item.optString("title").takeIf { it.isNotBlank() } ?: return@mapNotNull null,
-					thumbnail = item.optString("thumbnail_480_url").takeIf { it.startsWith("https://") },
+					thumbnail = item.optString("thumbnail_720_url").takeIf { it.startsWith("https://") }
+						?: item.optString("thumbnail_480_url").takeIf { it.startsWith("https://") },
 					owner = item.optString("owner.screenname").takeIf { it.isNotBlank() },
 					channel = item.optString("channel.name").takeIf { it.isNotBlank() },
 					description = item.optString("description").takeIf { it.isNotBlank() },
