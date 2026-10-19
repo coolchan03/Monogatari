@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
@@ -15,7 +16,7 @@ import com.google.android.material.button.MaterialButton
 class OpenSourceLicensesActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "Open-source licences"
+        title = getString(R.string.screen_title_licences)
         val padding = (18 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

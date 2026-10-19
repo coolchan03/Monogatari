@@ -53,7 +53,8 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 			orientation = LinearLayout.VERTICAL
 			setPadding(pad, pad, pad, pad)
 		}
-		chooseFile = MaterialButton(this).apply {
+		// Outlined, so the Import action that appears after review is the one filled button on the screen.
+		chooseFile = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
 			text = getString(R.string.foreign_backup_choose)
 			setOnClickListener { picker.launch(arrayOf("*/*")) }
 		}

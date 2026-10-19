@@ -25,6 +25,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +83,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private lateinit var search: EditText
     private lateinit var count: TextView
     private val adapter = Rows()
-    private val buttons = mutableListOf<Pair<MediaType?, MaterialButton>>()
+    private val buttons = mutableListOf<Pair<MediaType?, Chip>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,7 +93,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         selected = if (savedInstanceState?.containsKey("selected_kind") == true) {
             MediaType.entries.firstOrNull { it.name == savedInstanceState?.getString("selected_kind") }
         } else requestedKind
-        title = "Unified Library"
+        title = getString(R.string.screen_title_library)
         restoredPaneKey = savedInstanceState?.getString("pane_row_key")
         twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
         val px = (12 * resources.displayMetrics.density).toInt()
@@ -102,9 +103,9 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
         }
         for (type in listOf<MediaType?>(null) + MediaType.entries) {
-            val button = MaterialButton(this).apply {
+            // Filter chips, matching search and Discover, instead of filled toggle buttons.
+            val button = Chip(this).apply {
                 text = type?.name?.lowercase()?.replaceFirstChar { it.uppercaseChar() } ?: "All"
-                isAllCaps = false
                 isCheckable = true
                 setOnClickListener { selected = type; render() }
             }

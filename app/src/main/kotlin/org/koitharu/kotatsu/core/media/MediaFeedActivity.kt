@@ -55,7 +55,7 @@ class MediaFeedActivity : AppCompatActivity() {
         }
         currentUrl = savedInstanceState?.getString("feed")
         playlistOnly = savedInstanceState?.getBoolean("playlist_only") == true
-        title = "Entertainment feeds"
+        title = getString(R.string.screen_title_media_feeds)
         val dp = resources.displayMetrics.density
         val pad = (16 * dp).toInt()
         val root = LinearLayout(this).apply {

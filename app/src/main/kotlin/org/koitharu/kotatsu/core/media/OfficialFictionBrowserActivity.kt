@@ -14,7 +14,8 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import com.google.android.material.button.MaterialButton
+import android.view.Menu
+import android.view.MenuItem
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
@@ -28,17 +29,21 @@ import org.koitharu.kotatsu.core.util.ExternalLinks
  */
 class OfficialFictionBrowserActivity : AppCompatActivity() {
     companion object {
+        private const val MENU_RELOAD = 7402
+        private const val MENU_EXTERNAL = 7403
         const val EXTRA_URL = "official_fiction_browser_url"
     }
     private lateinit var browser: WebView
     private lateinit var allowedSite: OfficialMediaSites.Site
     private lateinit var notice: TextView
+    private var initialUrl = ""
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val initial = intent.getStringExtra(EXTRA_URL).orEmpty()
         val provider = OfficialMediaSites.fictionSite(initial) ?: run { finish(); return }
+        initialUrl = initial
         allowedSite = provider
         title = when (provider) {
             OfficialMediaSites.Site.FICTIONPRESS -> "FictionPress"
@@ -56,21 +61,6 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
         }
         root.addView(notice)
-        val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        buttons.addView(MaterialButton(this).apply {
-            setText(R.string.official_fiction_reload)
-            setOnClickListener { if (::browser.isInitialized) browser.reload() }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        buttons.addView(MaterialButton(this).apply {
-            setText(R.string.official_fiction_external)
-            setOnClickListener {
-                val current = browser.url?.takeIf { OfficialMediaSites.fictionSite(it) == allowedSite } ?: initial
-                if (!ExternalLinks.open(this@OfficialFictionBrowserActivity, current)) {
-                    notice.setText(R.string.official_fiction_no_browser)
-                }
-            }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(buttons)
         browser = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -128,6 +118,25 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
         return true
     }
 
+    // Reload and Open in browser live in the toolbar menu so the site gets the whole screen.
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, MENU_RELOAD, 0, R.string.official_fiction_reload)
+        menu.add(0, MENU_EXTERNAL, 1, R.string.official_fiction_external)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            MENU_RELOAD -> if (::browser.isInitialized) browser.reload()
+            MENU_EXTERNAL -> {
+                val current = browser.url?.takeIf { OfficialMediaSites.fictionSite(it) == allowedSite } ?: initialUrl
+                if (!ExternalLinks.open(this, current)) notice.setText(R.string.official_fiction_no_browser)
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         if (::browser.isInitialized) browser.saveState(outState)
         super.onSaveInstanceState(outState)
@@ -141,4 +150,5 @@ class OfficialFictionBrowserActivity : AppCompatActivity() {
         }
         super.onDestroy()
     }
+
 }

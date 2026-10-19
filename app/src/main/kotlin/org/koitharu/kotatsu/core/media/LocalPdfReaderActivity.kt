@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.graphics.Bitmap
@@ -7,7 +8,7 @@ import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.view.KeyEvent
-import android.widget.Button
+import com.google.android.material.button.MaterialButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -35,20 +36,28 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         fileKey = file.name
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val d = resources.displayMetrics.density
-        counter = TextView(this).apply { textSize = 16f; setPadding((16 * d).toInt(), (8 * d).toInt(), (16 * d).toInt(), (8 * d).toInt()) }
+        counter = TextView(this).apply {
+            gravity = android.view.Gravity.CENTER
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelMedium)
+        }
         image = ImageView(this).apply { adjustViewBounds = true }
-        val navigation = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        navigation.addView(Button(this).apply {
-            text = "Previous"
-            setOnClickListener { display(pageIndex - 1) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        navigation.addView(Button(this).apply {
-            text = "Next"
-            setOnClickListener { display(pageIndex + 1) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        layout.addView(counter)
+        // Same bottom bar as the EPUB reader: previous / page counter / next.
+        val navigation = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding((8 * d).toInt(), 0, (8 * d).toInt(), 0)
+        }
+        fun navButton(label: Int, onClick: () -> Unit) = MaterialButton(this, null,
+            androidx.appcompat.R.attr.borderlessButtonStyle).apply {
+            setText(label)
+            minHeight = (48 * d).toInt()
+            setOnClickListener { onClick() }
+        }
+        navigation.addView(navButton(R.string.pdf_previous_page) { display(pageIndex - 1) }, LinearLayout.LayoutParams(-2, -2))
+        navigation.addView(counter, LinearLayout.LayoutParams(0, -2, 1f))
+        navigation.addView(navButton(R.string.pdf_next_page) { display(pageIndex + 1) }, LinearLayout.LayoutParams(-2, -2))
         layout.addView(image, LinearLayout.LayoutParams(-1, 0, 1f))
-        layout.addView(navigation)
+        layout.addView(navigation, LinearLayout.LayoutParams(-1, -2))
         setMonogatariContent(layout)
         try {
             descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)

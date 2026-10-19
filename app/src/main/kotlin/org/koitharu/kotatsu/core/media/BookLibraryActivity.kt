@@ -32,6 +32,7 @@ import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
 import org.koitharu.kotatsu.R
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -147,16 +148,29 @@ class BookLibraryActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 7203, 0, R.string.monogatari_catalog_menu_export)
+        // Secondary actions live here so the screen itself shows only search and providers.
+        menu.add(0, MENU_IMPORT, 0, R.string.monogatari_catalog_import)
+        menu.add(0, MENU_MY_BOOKS, 1, R.string.monogatari_catalog_local)
+        menu.add(0, MENU_FIND_IMPORTED, 2, R.string.monogatari_catalog_filter)
+        menu.add(0, MENU_OPDS_OPEN, 3, R.string.monogatari_catalog_opds_open)
+        menu.add(0, MENU_OPDS_SAVE, 4, R.string.monogatari_catalog_opds_save)
+        menu.add(0, MENU_OPDS_SAVED, 5, R.string.monogatari_catalog_opds_saved)
+        menu.add(0, 7203, 6, R.string.monogatari_catalog_menu_export)
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == 7203) {
-            exportPicker.launch("monogatari-books.csv")
-            return true
+        when (item.itemId) {
+            7203 -> exportPicker.launch("monogatari-books.csv")
+            MENU_IMPORT -> picker.launch(arrayOf("*/*"))
+            MENU_MY_BOOKS -> showLocalBooks()
+            MENU_FIND_IMPORTED -> showLocalBooks(query.text.toString().trim())
+            MENU_OPDS_OPEN -> openOpds(query.text.toString().trim())
+            MENU_OPDS_SAVE -> saveOpds(query.text.toString().trim())
+            MENU_OPDS_SAVED -> showSavedOpds()
+            else -> return super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
+        return true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,53 +191,41 @@ class BookLibraryActivity : AppCompatActivity() {
                     .getString("sort", BookCatalogSorter.Order.RELEVANCE.name)!!
             )
         }.getOrDefault(BookCatalogSorter.Order.RELEVANCE)
-        findViewById<MaterialButton>(R.id.monogatari_catalog_sort).apply {
-            text = "Sort: ${catalogOrder.label}"
+        findViewById<Chip>(R.id.monogatari_catalog_sort).apply {
+            text = getString(R.string.monogatari_catalog_sort_label, catalogOrder.label)
             setOnClickListener { showSortOptions() }
         }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_all)
-            .setOnClickListener { search("All") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_google)
+        findViewById<MaterialButton>(R.id.monogatari_catalog_all).apply {
+            MediaAccents.tintButton(this@BookLibraryActivity, "BOOK", this)
+            setOnClickListener { search("All") }
+        }
+        findViewById<View>(R.id.monogatari_catalog_google)
             .setOnClickListener { search("Google Books") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_standard_ebooks)
+        findViewById<View>(R.id.monogatari_catalog_standard_ebooks)
             .setOnClickListener { search("Standard Ebooks") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_more_public)
+        findViewById<View>(R.id.monogatari_catalog_more_public)
             .setOnClickListener { showAdditionalCatalogs() }
         findViewById<RecyclerView>(R.id.monogatari_catalog_results).apply {
             layoutManager = GridLayoutManager(this@BookLibraryActivity,
                 MonogatariChrome.columns(context))
             adapter = resultsAdapter
         }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_search_sources).apply {
-            MediaAccents.tintButton(this@BookLibraryActivity, "BOOK", this)
-            setOnClickListener { searchInstalledBookSources() }
-        }
+        findViewById<View>(R.id.monogatari_catalog_search_sources)
+            .setOnClickListener { searchInstalledBookSources() }
         query.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 searchInstalledBookSources()
                 true
             } else false
         }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_gutenberg)
+        findViewById<View>(R.id.monogatari_catalog_gutenberg)
             .setOnClickListener { search("Gutenberg") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_openlibrary)
+        findViewById<View>(R.id.monogatari_catalog_openlibrary)
             .setOnClickListener { search("Open Library") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_archive)
+        findViewById<View>(R.id.monogatari_catalog_archive)
             .setOnClickListener { search("Archive") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_wikisource)
+        findViewById<View>(R.id.monogatari_catalog_wikisource)
             .setOnClickListener { search("Wikisource") }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_open)
-            .setOnClickListener { openOpds(query.text.toString().trim()) }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_save)
-            .setOnClickListener { saveOpds(query.text.toString().trim()) }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_opds_saved)
-            .setOnClickListener { showSavedOpds() }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_import)
-            .setOnClickListener { picker.launch(arrayOf("*/*")) }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_mybooks)
-            .setOnClickListener { showLocalBooks() }
-        findViewById<MaterialButton>(R.id.monogatari_catalog_filter)
-            .setOnClickListener { showLocalBooks(query.text.toString().trim()) }
         // Preserve query and provider when the phone rotates or Android recreates this Activity.
         savedInstanceState?.getString("catalog_provider")?.takeIf { it.isNotBlank() }
             ?.let(::search)
@@ -587,8 +589,8 @@ class BookLibraryActivity : AppCompatActivity() {
                 catalogOrder = options[selected]
                 getSharedPreferences("book_catalog_ui", MODE_PRIVATE)
                     .edit().putString("sort", catalogOrder.name).apply()
-                findViewById<MaterialButton>(R.id.monogatari_catalog_sort)
-                    .text = "Sort: ${catalogOrder.label}"
+                findViewById<Chip>(R.id.monogatari_catalog_sort)
+                    .text = getString(R.string.monogatari_catalog_sort_label, catalogOrder.label)
                 if (currentBooks.isNotEmpty()) renderCatalogBooks()
                 dialog.dismiss()
             }
@@ -611,5 +613,14 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun showLines(lines: List<String>) {
         resultsAdapter.show(lines.map { CatalogRow(it) })
+    }
+
+    private companion object {
+        const val MENU_IMPORT = 7204
+        const val MENU_MY_BOOKS = 7205
+        const val MENU_FIND_IMPORTED = 7206
+        const val MENU_OPDS_OPEN = 7207
+        const val MENU_OPDS_SAVE = 7208
+        const val MENU_OPDS_SAVED = 7209
     }
 }

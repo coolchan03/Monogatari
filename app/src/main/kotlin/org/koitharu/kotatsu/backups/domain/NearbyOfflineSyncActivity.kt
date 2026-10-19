@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -88,7 +89,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "Nearby offline transfer"
+        title = getString(R.string.screen_title_nearby)
         val padding = (16 * resources.displayMetrics.density).toInt()
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -101,11 +102,17 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             setPadding(0, 0, 0, padding)
         }
         body.addView(status)
+        // Receive / Send are the two main choices (filled); later steps are outlined, like Settings dialogs.
+        var buttonCount = 0
         fun addButton(label: String, action: () -> Unit) {
-            body.addView(MaterialButton(this).apply {
+            val primary = buttonCount++ < 2
+            body.addView(MaterialButton(this, null,
+                if (primary) com.google.android.material.R.attr.materialButtonStyle
+                else com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = label
+                minHeight = (48 * resources.displayMetrics.density).toInt()
                 setOnClickListener { action() }
-            })
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = padding / 3 })
         }
         addButton("Receive: make this device visible") { withPermissions(::advertise) }
         addButton("Send: find a nearby device") { withPermissions(::discover) }
