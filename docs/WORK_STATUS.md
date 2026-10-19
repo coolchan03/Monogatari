@@ -4,6 +4,7 @@
 - Branch `claude/monogatari-v1-release-sq1t2k` from finish-83 head `a3837b2`. Push via this container's git remote (owner approved; no Tunnel to Surface tool here). GitHub connector is read-only. No local SDK (owner declined), so GitHub Actions does the compiling.
 - Baseline build-check run 39176557261 on `a3837b2`: unit tests PASS, debug APK PASS, R8 release was still running at the time of writing.
 - Operation: commit batch 1 (diagnostics triage, per-source search retry/CAPTCHA action, a11y labels, future roadmap), push, then read the build-check result for the new head.
+- Pushed `b303510` (4 commits on top of `a3837b2`). Build check run 39177526228: unit tests, debug APK, unsigned R8 release and Android 15 cold-start emulator smoke test all SUCCESS. Baseline run 39176557261 on `a3837b2`: build job SUCCESS, cold-start cancelled by the push.
 - Not verified: no device, provider or TalkBack test. The 14 PARTIAL items stay PARTIAL.
 
 ## 2026-10-15 — Release follow-through

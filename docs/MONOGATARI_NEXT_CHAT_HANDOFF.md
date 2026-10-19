@@ -91,4 +91,6 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 - Batch 1 code: source-failure triage (`docs/SOURCE_DIAGNOSTICS_20261018.md`), per-source Retry / Solve CAPTCHA in global search (#17 + CAPTCHA handling), TalkBack labels on icon-only buttons (#69), future roadmap `docs/FUTURE_VERSION_ROADMAP.md`.
 - Batch 1b: Plex error explanations (#58), source-neutral player error text, safe external links for untrusted URLs.
 - Baseline `build` job on `a3837b2` passed (unit tests, debug APK, R8 release).
+- Head `b303510` CI green (run 39177526228: unit tests, debug APK, R8, cold start). Compilation and smoke tests only, not feature verification.
+- Next batch: #21/#23 OCR refinement review, #32/#37 filter and duplicate semantics, #63/#66 adaptive state, then the full audit.
 - The 14 PARTIAL rows remain PARTIAL. Code presence ≠ verification.
