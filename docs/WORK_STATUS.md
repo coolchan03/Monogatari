@@ -4,6 +4,11 @@
 - `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
 - Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
 
+## 2026-10-20 — Discover as a normal tab (after v1.1.0, unreleased)
+- Owner report: Discover opened as a separate page over the main screen (back arrow, navigation bar hidden).
+- New `discover/DiscoverFragment.kt` (logic moved from the activity) is the `nav_discover` tab in `MainNavigationDelegate`; Explore's "Discover" menu switches to that tab when it is on the bar. `DiscoverActivity` is now only a host for the fragment, used from More / Test Center or when Discover is not on the bar.
+- Status: implemented; CI pending; not device-verified.
+
 ## 2026-10-20 — v1.1.0 released
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.1.0 built from `devel` `3d3e25a` (drafts branch merged; build check run 39349438710 green; tag push blocked by proxy, release started by one owner-approved connector workflow dispatch). APK SHA-256 `f1b102fdefd3af9322ccd5febaedd7617a108264d7d1a82e20c92cc109308662`.
 - Implemented and CI/unit-tested, NOT device-verified: Mihon import, Nearby two-way sync with settings groups, Discover "For you", smart collections, side-by-side translation, player auto-next, EPUB read-aloud.

@@ -252,6 +252,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 	}
 
+	/** Shows Discover as a main tab when it is on the navigation bar; returns false when it is not. */
+	fun openDiscoverTab(): Boolean = navigationDelegate.openDiscover()
+
 	/** External repo links need explicit user consent; never silently trust install sources. */
 	private fun handleRepositorySetupLink(incoming: Intent?) {
 		if (incoming?.action != Intent.ACTION_VIEW) return

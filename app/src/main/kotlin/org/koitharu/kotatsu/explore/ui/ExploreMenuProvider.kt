@@ -41,7 +41,10 @@ class ExploreMenuProvider(
 			}
 
 			R.id.action_discover -> {
-				context.startActivity(android.content.Intent(context, org.koitharu.kotatsu.discover.DiscoverActivity::class.java))
+				// A normal tab when Discover is on the navigation bar; otherwise its own page.
+				if ((context as? org.koitharu.kotatsu.main.ui.MainActivity)?.openDiscoverTab() != true) {
+					context.startActivity(android.content.Intent(context, org.koitharu.kotatsu.discover.DiscoverActivity::class.java))
+				}
 				true
 			}
 
