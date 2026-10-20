@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.R
 import android.Manifest
 import android.content.pm.PackageManager
@@ -510,25 +511,57 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 if (sections.isEmpty()) {
                     file.delete()
                     say("Nothing selected for import.")
+                } else if (BackupSection.SETTINGS in sections) {
+                    chooseSettingsGroups { groups -> mergeReceived(file, sections, groups) }
                 } else {
-                    say("Merging selected backup sections...")
-                    lifecycleScope.launch {
-                        val result = withContext(Dispatchers.IO) {
-                            try {
-                                runCatching { ZipInputStream(file.inputStream()).use {
-                                    backups.restoreBackup(it, sections, null)
-                                } }
-                            } finally { file.delete() }
-                        }
-                        result.onSuccess { summary ->
-                            if (summary.isAllSuccess) say("Selected library sections merged. " +
-                                "Restart Monogatari to apply updated settings.")
-                            else say("${summary.failures.size} import operations failed. " +
-                                "Review your library and preserve your original backup.")
-                        }.onFailure { say("Import failed: " + it.message) }
-                    }
+                    mergeReceived(file, sections, null)
                 }
             }.show()
+    }
+
+    /** v1.1: pick which kinds of settings to take from the other device; secrets never travel. */
+    private fun chooseSettingsGroups(onChosen: (Set<SettingsTransferProfile.Group>) -> Unit) {
+        val groups = SettingsTransferProfile.Group.entries
+        val labels = groups.map { group ->
+            getString(when (group) {
+                SettingsTransferProfile.Group.APPEARANCE -> R.string.nearby_settings_appearance
+                SettingsTransferProfile.Group.READER -> R.string.nearby_settings_reader
+                SettingsTransferProfile.Group.LIBRARY -> R.string.nearby_settings_library
+                SettingsTransferProfile.Group.SOURCES -> R.string.nearby_settings_sources
+                SettingsTransferProfile.Group.NETWORK -> R.string.nearby_settings_network
+                SettingsTransferProfile.Group.TRACKING -> R.string.nearby_settings_tracking
+                SettingsTransferProfile.Group.OTHER -> R.string.nearby_settings_other
+            })
+        }
+        // Network settings are often specific to one device (DNS, proxy), so they start unticked.
+        val checked = BooleanArray(groups.size) { groups[it] != SettingsTransferProfile.Group.NETWORK }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.nearby_settings_groups_title)
+            .setMultiChoiceItems(labels.toTypedArray(), checked) { _, which, value -> checked[which] = value }
+            .setCancelable(false)
+            .setPositiveButton(R.string.nearby_settings_groups_apply) { _, _ ->
+                onChosen(groups.filterIndexed { index, _ -> checked[index] }.toSet())
+            }
+            .show()
+    }
+
+    private fun mergeReceived(file: File, sections: Set<BackupSection>, groups: Set<SettingsTransferProfile.Group>?) {
+        say("Merging selected backup sections...")
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    runCatching { ZipInputStream(file.inputStream()).use {
+                        backups.restoreBackup(it, sections, null, groups)
+                    } }
+                } finally { file.delete() }
+            }
+            result.onSuccess { summary ->
+                if (summary.isAllSuccess) say("Selected library sections merged. " +
+                    "Restart Monogatari to apply updated settings.")
+                else say("${summary.failures.size} import operations failed. " +
+                    "Review your library and preserve your original backup.")
+            }.onFailure { say("Import failed: " + it.message) }
+        }
     }
 
     private fun showFileReview(file: File, name: String) {

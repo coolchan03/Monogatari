@@ -1503,4 +1503,13 @@ Optional — skip it and you appear as anon.</string>
     <string name="a11y_text_larger">Larger text</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
+    <string name="nearby_settings_groups_title">Which settings should come over?</string>
+    <string name="nearby_settings_groups_apply">Merge</string>
+    <string name="nearby_settings_appearance">Appearance (theme, colours, layout)</string>
+    <string name="nearby_settings_reader">Reader</string>
+    <string name="nearby_settings_library">Library and lists</string>
+    <string name="nearby_settings_sources">Sources and content filters</string>
+    <string name="nearby_settings_network">Network (DNS, proxy, downloads)</string>
+    <string name="nearby_settings_tracking">Updates, tracking and notifications</string>
+    <string name="nearby_settings_other">Everything else</string>
 </resources>
