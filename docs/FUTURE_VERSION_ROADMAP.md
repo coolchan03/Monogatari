@@ -131,3 +131,10 @@ Rough drafts started after v1.0.0 at the owner's request. "Draft" = code exists 
 | EPUB read-aloud with sleep timer, continues into next chapter | v1.4 | Wired into the EPUB reader menu. |
 | Smart collections (`SmartCollectionRule`) | v1.5 | Pure core + tests; no UI yet. |
 | Komga client (`KomgaApi`) | v2.0 | Request/parse core + tests; not registered as a source. |
+
+## Released in v1.1.0 (2026-10-20)
+
+Mihon/Tachiyomi import with reading position, two-way Nearby sync, settings-group choice in Nearby, smart collections,
+Discover "For you", side-by-side translation, auto-next, EPUB read-aloud. Still open for later 1.x: settings-group choice
+in the normal restore screen, sync conflict review UI (`SyncConflictPlanner`), remembered pairing and multi-file
+transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
