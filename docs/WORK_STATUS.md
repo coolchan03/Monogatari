@@ -4,6 +4,11 @@
 - `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
 - Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
 
+## 2026-10-20 — v1.1.0 released
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.1.0 built from `devel` `3d3e25a` (drafts branch merged; build check run 39349438710 green; tag push blocked by proxy, release started by one owner-approved connector workflow dispatch). APK SHA-256 `f1b102fdefd3af9322ccd5febaedd7617a108264d7d1a82e20c92cc109308662`.
+- Implemented and CI/unit-tested, NOT device-verified: Mihon import, Nearby two-way sync with settings groups, Discover "For you", smart collections, side-by-side translation, player auto-next, EPUB read-aloud.
+- Audit note (2026-10-20): style grep found fixed 15sp text in OpenSourceLicensesActivity and ForeignBackupReviewActivity; no screen has been visually checked (no screenshots yet). Next proposed: CI screenshot pass (light/dark), tablet/Razr layout check, real .tachibk import test.
+
 ## 2026-10-19 — v1.0.1 released
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.0.1 built from `devel` `1d06598` (build check run 39330141224 green; release started by one owner-approved connector workflow dispatch). APK SHA-256 `831005d4ce7744689f8629011f6bb6c04019d9ef913d178d76e34f155b4714ca`.
 - Contents: owner feedback fixes, full-resolution Kitsune art, consistent screens (see `docs/RELEASE_1_0_1_NOTES.md`). v1.1+ drafts stay on `claude/monogatari-v1-release-sq1t2k`, which has `devel` merged back in.

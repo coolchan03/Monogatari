@@ -98,6 +98,11 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-20 — v1.1.0 released
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.1.0 built from `devel` `3d3e25a` (drafts branch merged; build check run 39349438710 green; tag push blocked by proxy, release started by one owner-approved connector workflow dispatch). APK SHA-256 `f1b102fdefd3af9322ccd5febaedd7617a108264d7d1a82e20c92cc109308662`.
+- Implemented and CI/unit-tested, NOT device-verified: Mihon import, Nearby two-way sync with settings groups, Discover "For you", smart collections, side-by-side translation, player auto-next, EPUB read-aloud.
+- Audit note (2026-10-20): style grep found fixed 15sp text in OpenSourceLicensesActivity and ForeignBackupReviewActivity; no screen has been visually checked (no screenshots yet). Next proposed: CI screenshot pass (light/dark), tablet/Razr layout check, real .tachibk import test.
+
 ## 2026-10-19 — v1.0.1 released
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.0.1 built from `devel` `1d06598` (build check run 39330141224 green; release started by one owner-approved connector workflow dispatch). APK SHA-256 `831005d4ce7744689f8629011f6bb6c04019d9ef913d178d76e34f155b4714ca`.
 - Contents: owner feedback fixes, full-resolution Kitsune art, consistent screens (see `docs/RELEASE_1_0_1_NOTES.md`). v1.1+ drafts stay on `claude/monogatari-v1-release-sq1t2k`, which has `devel` merged back in.
