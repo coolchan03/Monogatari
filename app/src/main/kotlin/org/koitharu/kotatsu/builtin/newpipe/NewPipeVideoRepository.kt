@@ -12,6 +12,7 @@ import org.koitharu.kotatsu.core.media.MediaStream
 import org.koitharu.kotatsu.core.media.MediaSubtitle
 import org.koitharu.kotatsu.core.parser.CachingMangaRepository
 import org.koitharu.kotatsu.parsers.model.*
+import org.schabi.newpipe.extractor.InfoItem
 import org.schabi.newpipe.extractor.Page
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
@@ -44,8 +45,28 @@ class NewPipeVideoRepository(
     private val nextPage = ConcurrentHashMap<String, Page>()
     private val rssFeed = YouTubeChannelFeed(client)
 
+    private val kioskNextPage = ConcurrentHashMap<String, Page>()
+
+    /** Kiosk backing the current no-query list, or null when that list fell back to search. */
+    @Volatile
+    private var activeKiosk: String? = null
+
+    /** Last kiosk that returned items, tried first next time. */
+    @Volatile
+    private var lastWorkingKiosk: String? = null
+
     override suspend fun getList(offset: Int, order: SortOrder?, filter: MangaListFilter?): List<Manga> =
         withContext(Dispatchers.IO) {
+            if (filter?.query.isNullOrBlank()) {
+                val kioskItems = if (offset <= 0) {
+                    loadKioskFirstPage()
+                } else {
+                    activeKiosk?.let(::loadKioskNextPage)
+                }
+                if (kioskItems != null) {
+                    return@withContext kioskItems.mapNotNull(::toManga)
+                }
+            }
             val plan = NewPipeSearchPlan.create(source, filter?.query)
             val handler = service.searchQHFactory.fromQuery(plan.query, plan.filter, "")
             val (items, next) = if (offset <= 0) {
@@ -57,33 +78,87 @@ class NewPipeVideoRepository(
                 response.items to response.nextPage
             }
             if (next == null) nextPage.remove(plan.cacheKey) else nextPage[plan.cacheKey] = next
-            items.mapNotNull { item ->
-                val entryKind = when (item) {
-                    is StreamInfoItem -> "video"
-                    is PlaylistInfoItem -> "playlist"
-                    is ChannelInfoItem -> "channel"
-                    else -> return@mapNotNull null
-                }
-                Manga(
-                    id = ArchiveMapping.uid(source, item.url),
-                    title = item.name,
-                    altTitles = emptySet(),
-                    url = item.url,
-                    publicUrl = item.url,
-                    rating = RATING_UNKNOWN,
-                    contentRating = ContentRating.SUGGESTIVE,
-                    coverUrl = (item.thumbnails.maxByOrNull { it.height } ?: item.thumbnails.lastOrNull())?.url, // largest, not the first (smallest) one
-                    tags = setOf(MangaTag(entryKind, entryKind, source)),
-                    state = null,
-                    authors = (item as? StreamInfoItem)?.uploaderName
-                        ?.takeIf(String::isNotBlank)?.let(::setOf) ?: emptySet(),
-                    largeCoverUrl = null,
-                    description = (item as? StreamInfoItem)?.shortDescription.orEmpty(),
-                    chapters = null,
-                    source = source,
-                )
-            }
+            items.mapNotNull(::toManga)
         }
+
+    /**
+     * First page of the popular list from the service kiosks. Returns null when no kiosk
+     * produced items, so the caller falls back to the default search and the list is never empty.
+     */
+    private fun loadKioskFirstPage(): List<StreamInfoItem>? {
+        activeKiosk = null
+        val kiosks = try {
+            service.kioskList
+        } catch (_: Exception) {
+            return null
+        }
+        val candidates = NewPipeKioskPlan.candidates(
+            source = source,
+            available = kiosks.availableKiosks,
+            defaultId = kiosks.defaultKioskId,
+            lastWorking = lastWorkingKiosk,
+        )
+        for (kioskId in candidates) {
+            val page = try {
+                val extractor = kiosks.getExtractorById(kioskId, null)
+                extractor.fetchPage()
+                extractor.initialPage
+            } catch (_: Exception) {
+                continue
+            }
+            val items = page.items.filterIsInstance<StreamInfoItem>()
+            if (items.isEmpty()) continue
+            val key = NewPipeKioskPlan.cacheKey(source, kioskId)
+            val next = page.nextPage
+            if (Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
+            activeKiosk = kioskId
+            lastWorkingKiosk = kioskId
+            return items
+        }
+        return null
+    }
+
+    /** Continuation of the active kiosk; an empty list ends paging (chart kiosks have one page). */
+    private fun loadKioskNextPage(kioskId: String): List<StreamInfoItem> {
+        val key = NewPipeKioskPlan.cacheKey(source, kioskId)
+        val page = kioskNextPage[key] ?: return emptyList()
+        val response = try {
+            service.kioskList.getExtractorById(kioskId, page).getPage(page)
+        } catch (_: Exception) {
+            kioskNextPage.remove(key)
+            return emptyList()
+        }
+        val next = response.nextPage
+        if (Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
+        return response.items.filterIsInstance<StreamInfoItem>()
+    }
+
+    private fun toManga(item: InfoItem): Manga? {
+        val entryKind = when (item) {
+            is StreamInfoItem -> "video"
+            is PlaylistInfoItem -> "playlist"
+            is ChannelInfoItem -> "channel"
+            else -> return null
+        }
+        return Manga(
+            id = ArchiveMapping.uid(source, item.url),
+            title = item.name,
+            altTitles = emptySet(),
+            url = item.url,
+            publicUrl = item.url,
+            rating = RATING_UNKNOWN,
+            contentRating = ContentRating.SUGGESTIVE,
+            coverUrl = (item.thumbnails.maxByOrNull { it.height } ?: item.thumbnails.lastOrNull())?.url, // largest, not the first (smallest) one
+            tags = setOf(MangaTag(entryKind, entryKind, source)),
+            state = null,
+            authors = (item as? StreamInfoItem)?.uploaderName
+                ?.takeIf(String::isNotBlank)?.let(::setOf) ?: emptySet(),
+            largeCoverUrl = null,
+            description = (item as? StreamInfoItem)?.shortDescription.orEmpty(),
+            chapters = null,
+            source = source,
+        )
+    }
 
     override suspend fun getDetailsImpl(manga: Manga): Manga = withContext(Dispatchers.IO) {
         if (manga.tags.any { it.title == "channel" }) {
