@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.data
 
+import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import androidx.collection.ArrayMap
 import androidx.room.withTransaction
 import android.content.Context
@@ -216,10 +217,15 @@ class BackupRepository @Inject constructor(
         progress?.emit(commonProgress)
     }
 
+    /**
+     * @param settingsGroups when not null, only these groups of app settings are applied from the SETTINGS section
+     * (device-only values such as the app lock or proxy password are never applied); null applies every safe key.
+     */
     suspend fun restoreBackup(
         input: ZipInputStream,
         sections: Set<BackupSection>,
         progress: FlowCollector<Progress>?,
+        settingsGroups: Set<SettingsTransferProfile.Group>? = null,
     ): CompositeResult {
         progress?.emit(Progress.INDETERMINATE)
         var commonProgress = Progress(0, sections.size)
@@ -263,7 +269,10 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.SETTINGS -> input.readMap().let {
-                        settings.mergeBackupValues(it.filterKeys(BackupCatalogPolicy::safePreferenceKey))
+                        val safe = it.filterKeys(BackupCatalogPolicy::safePreferenceKey)
+                        settings.mergeBackupValues(
+                            if (settingsGroups == null) safe else SettingsTransferProfile.filter(safe, settingsGroups),
+                        )
                         CompositeResult.success()
                     }
 

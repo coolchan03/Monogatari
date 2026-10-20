@@ -14,6 +14,7 @@ import kotlinx.coroutines.withTimeout
 import org.koitharu.kotatsu.core.model.MangaSource
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
+import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
 import org.koitharu.kotatsu.list.domain.ListSortOrder
@@ -30,13 +31,14 @@ import javax.inject.Inject
  * Tachiyomi extensions are Android apps and their stored links are extension-specific, so links are never copied.
  * Each favourite on a source that Monogatari also has (unique name match) is looked up on that source by its title,
  * and only an exact, unambiguous title match is added to the same-named category. Everything else is listed so the
- * user can migrate it by hand. Reading progress is not transferred in this draft (chapter ids differ per source).
+ * user can migrate it by hand. Reading progress moves by chapter number (see [MihonProgress]).
  */
 @Reusable
 class MihonImporter @Inject constructor(
 	private val repositories: MangaRepository.Factory,
 	private val favourites: FavouritesRepository,
 	private val jsStore: JsSourceStore,
+	private val history: HistoryRepository,
 ) {
 
 	class Preview internal constructor(
@@ -50,7 +52,7 @@ class MihonImporter @Inject constructor(
 		val unmatchedSources: List<String> get() = summary.unmatchedSources
 	}
 
-	class Result(val imported: Int, val notFound: List<String>, val unsupported: Int)
+	class Result(val imported: Int, val notFound: List<String>, val unsupported: Int, val withProgress: Int = 0)
 
 	/** Monogatari source display name -> source key, for built-in parsers and installed JS extensions. */
 	internal fun availableSources(): Map<String, String> {
@@ -94,6 +96,7 @@ class MihonImporter @Inject constructor(
 			}.awaitAll()
 		}
 		var imported = 0
+		var progressCount = 0
 		val notFound = ArrayList<String>()
 		for ((item, manga) in found) {
 			if (manga == null) {
@@ -105,8 +108,33 @@ class MihonImporter @Inject constructor(
 				favourites.addToCategory(categoryId(title), listOf(manga))
 			}
 			imported++
+			if (transferProgress(item, manga)) progressCount++
 		}
-		Result(imported, notFound.sorted(), candidates.size - supported.size)
+		Result(imported, notFound.sorted(), candidates.size - supported.size, progressCount)
+	}
+
+	/**
+	 * Marks the same-numbered chapter as the reading position when Mihon recorded chapters as read. Never overwrites
+	 * history Monogatari already has for the title. Chapter numbers are the only link: ids and links differ per source.
+	 */
+	private suspend fun transferProgress(item: MihonBackup.Manga, manga: Manga): Boolean = try {
+		val target = MihonProgress.lastReadNumber(item.chapters)
+		if (target == null || history.getOne(manga) != null) {
+			false
+		} else {
+			val details = withTimeout(20_000) { repositories.create(manga.source).getDetails(manga) }
+			val chapters = details.chapters.orEmpty()
+			val index = MihonProgress.indexOfNumber(chapters.map { it.number }, target)
+			if (index < 0) false else {
+				val percent = if (chapters.size > 1) index.toFloat() / (chapters.size - 1) else 1f
+				history.addOrUpdate(details, chapters[index].id, 0, 0, percent, force = true)
+				true
+			}
+		}
+	} catch (e: CancellationException) {
+		throw e
+	} catch (_: Exception) {
+		false
 	}
 
 	private suspend fun findOnSource(sourceKey: String, item: MihonBackup.Manga): Manga? = try {
@@ -118,6 +146,19 @@ class MihonImporter @Inject constructor(
 	} catch (_: Exception) {
 		null
 	}
+}
+
+/** Reading-progress mapping between a Mihon backup and a Monogatari source (pure, unit-tested). */
+internal object MihonProgress {
+
+	/** Highest chapter number marked read (or partly read) in Mihon, or null when nothing was read. */
+	fun lastReadNumber(chapters: List<MihonBackup.Chapter>): Float? = chapters
+		.filter { (it.read || it.lastPageRead > 0) && it.number >= 0f }
+		.maxOfOrNull { it.number }
+
+	/** Index of the chapter whose number equals [target]; the first match wins when branches repeat numbers. */
+	fun indexOfNumber(numbers: List<Float>, target: Float): Int =
+		numbers.indexOfFirst { kotlin.math.abs(it - target) < 0.001f }
 }
 
 /** Exact-title choice for migrated favourites: a unique normalised match, or nothing. */

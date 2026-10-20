@@ -93,4 +93,18 @@ class MihonBackupTest {
 		assertEquals(listOf("Source 77"), summary.unmatchedSources)
 		assertEquals(1, summary.matchedTitles)
 	}
+
+	@Test
+	fun progressFollowsTheHighestReadChapterNumber() {
+		val chapters = listOf(
+			MihonBackup.Chapter("/1", "One", 1f, read = true, bookmark = false, lastPageRead = 0),
+			MihonBackup.Chapter("/2", "Two", 2f, read = false, bookmark = false, lastPageRead = 7),
+			MihonBackup.Chapter("/3", "Three", 3f, read = false, bookmark = false, lastPageRead = 0),
+			MihonBackup.Chapter("/x", "Extra", -1f, read = true, bookmark = false, lastPageRead = 0),
+		)
+		assertEquals(2f, MihonProgress.lastReadNumber(chapters))
+		assertEquals(null, MihonProgress.lastReadNumber(chapters.map { it.copy(read = false, lastPageRead = 0) }))
+		assertEquals(2, MihonProgress.indexOfNumber(listOf(0.5f, 1f, 2f, 2f, 3f), 2f))
+		assertEquals(-1, MihonProgress.indexOfNumber(listOf(1f, 3f), 2f))
+	}
 }

@@ -240,6 +240,7 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 							append(getString(R.string.foreign_backup_mihon_not_found, r.notFound.take(40).joinToString(", ")))
 						}
 						if (r.unsupported > 0) append("\n").append(getString(R.string.foreign_backup_mihon_unsupported, r.unsupported))
+						if (r.withProgress > 0) append("\n").append(getString(R.string.foreign_backup_mihon_progress_done, r.withProgress))
 					}
 				},
 				onFailure = { getString(R.string.foreign_backup_failed, it.message.orEmpty()) },
