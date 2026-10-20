@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sync_conflict_title">Reading progress differs</string>
+	<plurals name="sync_conflict_summary">
+		<item quantity="one">%d title was read on both devices since they last synced. Choose which progress to keep; the newest is selected.</item>
+		<item quantity="other">%d titles were read on both devices since they last synced. Choose which progress to keep; the newest is selected.</item>
+	</plurals>
+	<string name="sync_conflict_for_all">Choose for all</string>
+	<string name="sync_conflict_newest_for_all">Keep newest for all</string>
+	<string name="sync_conflict_local_for_all">Keep this device for all</string>
+	<string name="sync_conflict_this_device">This device: %1$s</string>
+	<string name="sync_conflict_other_device">Other device: %1$s</string>
+	<string name="sync_conflict_keep_this">Keep this</string>
+	<string name="sync_conflict_take_other">Take other</string>
+	<string name="sync_conflict_chapter">Ch %1$s</string>
+	<string name="sync_conflict_percent">%1$d%%</string>
+	<string name="sync_conflict_page">Page %1$d</string>
+	<string name="sync_conflict_removed">Removed from history</string>
+	<string name="sync_conflict_detail">%1$s · %2$s</string>
+	<plurals name="sync_conflict_more">
+		<item quantity="one">%d more title follows the choice for all.</item>
+		<item quantity="other">%d more titles follow the choice for all.</item>
+	</plurals>
+	<string name="sync_conflict_apply">Merge with these choices</string>
+	<string name="sync_conflict_cancel">Cancel import</string>
+	<string name="sync_conflict_checking">Checking for reading progress conflicts…</string>
+	<string name="sync_conflict_check_failed">Could not compare reading progress; merging newest-first as usual.</string>
+</resources>

@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.sync.conflict.HistoryConflictRepository
+import org.koitharu.kotatsu.sync.conflict.HistoryConflictSheet
+import org.koitharu.kotatsu.sync.conflict.HistoryConflicts
 import org.koitharu.kotatsu.sync.profile.SettingsGroupsDialog
 import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.R
@@ -50,6 +53,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class NearbyOfflineSyncActivity : AppCompatActivity() {
     @Inject lateinit var backups: BackupRepository
+    @Inject lateinit var historyConflicts: HistoryConflictRepository
     private val client by lazy { Nearby.getConnectionsClient(this) }
     private val serviceId by lazy { packageName + ".nearby.backups.v1" }
     private val deviceLabel by lazy { "Monogatari - " + Build.MODEL.take(35) }
@@ -504,12 +508,47 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 if (sections.isEmpty()) {
                     file.delete()
                     say("Nothing selected for import.")
-                } else if (BackupSection.SETTINGS in sections) {
-                    chooseSettingsGroups { groups -> mergeReceived(file, sections, groups) }
-                } else {
-                    mergeReceived(file, sections, null)
+                } else reviewConflicts(file, sections) { peerId, resolution ->
+                    if (BackupSection.SETTINGS in sections) {
+                        chooseSettingsGroups { groups -> mergeReceived(file, sections, groups, peerId, resolution) }
+                    } else {
+                        mergeReceived(file, sections, null, peerId, resolution)
+                    }
                 }
             }.show()
+    }
+
+    /**
+     * v1.2: when history is merged, titles read on both devices since their last sync are listed so the user picks
+     * whose progress wins (newest by default). [onResolved] gets the other device's id for the last-sync record.
+     */
+    private fun reviewConflicts(
+        file: File,
+        sections: Set<BackupSection>,
+        onResolved: (String?, HistoryConflicts.Resolution) -> Unit,
+    ) {
+        if (BackupSection.HISTORY !in sections) {
+            onResolved(null, HistoryConflicts.Resolution.NONE)
+            return
+        }
+        say(getString(R.string.sync_conflict_checking))
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { historyConflicts.review(file) } }
+            result.onSuccess { review ->
+                if (review.conflicts.isEmpty()) onResolved(review.deviceId, HistoryConflicts.Resolution.NONE)
+                else HistoryConflictSheet.show(
+                    this@NearbyOfflineSyncActivity, review,
+                    onApply = { resolution -> onResolved(review.deviceId, resolution) },
+                    onCancel = {
+                        file.delete()
+                        say("Received archive discarded. No changes were made.")
+                    },
+                )
+            }.onFailure {
+                say(getString(R.string.sync_conflict_check_failed))
+                onResolved(null, HistoryConflicts.Resolution.NONE)
+            }
+        }
     }
 
     /** v1.1: pick which kinds of settings to take from the other device; secrets never travel. */
@@ -517,17 +556,27 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         SettingsGroupsDialog.show(this, onChosen = onChosen)
     }
 
-    private fun mergeReceived(file: File, sections: Set<BackupSection>, groups: Set<SettingsTransferProfile.Group>?) {
+    private fun mergeReceived(
+        file: File,
+        sections: Set<BackupSection>,
+        groups: Set<SettingsTransferProfile.Group>?,
+        peerId: String? = null,
+        resolution: HistoryConflicts.Resolution = HistoryConflicts.Resolution.NONE,
+    ) {
         say("Merging selected backup sections...")
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 try {
                     runCatching { ZipInputStream(file.inputStream()).use {
-                        backups.restoreBackup(it, sections, null, groups)
+                        backups.restoreBackup(it, sections, null, groups,
+                            keepLocalHistoryIds = resolution.keepLocal,
+                            takeIncomingHistoryIds = resolution.takeIncoming)
                     } }
                 } finally { file.delete() }
             }
             result.onSuccess { summary ->
+                // Later syncs with this device only ask about titles changed on both sides after this point.
+                if (summary.isAllSuccess && peerId != null) historyConflicts.markSynced(peerId)
                 if (summary.isAllSuccess) say("Selected library sections merged. " +
                     "Restart Monogatari to apply updated settings.")
                 else say("${summary.failures.size} import operations failed. " +
