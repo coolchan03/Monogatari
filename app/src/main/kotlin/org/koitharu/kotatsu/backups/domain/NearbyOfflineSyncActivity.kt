@@ -560,8 +560,19 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                     "Restart Monogatari to apply updated settings.")
                 else say("${summary.failures.size} import operations failed. " +
                     "Review your library and preserve your original backup.")
+                // Two-way sync: this device now holds both libraries, so sending it back makes them match.
+                if (summary.isAllSuccess && connected != null) offerSendBack()
             }.onFailure { say("Import failed: " + it.message) }
         }
+    }
+
+    private fun offerSendBack() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.nearby_two_way_title)
+            .setMessage(R.string.nearby_two_way_message)
+            .setNegativeButton(R.string.nearby_two_way_skip, null)
+            .setPositiveButton(R.string.nearby_two_way_send) { _, _ -> sendLibrary() }
+            .show()
     }
 
     private fun showFileReview(file: File, name: String) {

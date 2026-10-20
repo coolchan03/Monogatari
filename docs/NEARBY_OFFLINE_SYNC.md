@@ -54,3 +54,12 @@ archive is restored automatically.
 
 Potential next phase: true scheduled delta sync and automatic bulk chapter cache transfer, after
 cross-device conflict-resolution and battery/privacy policies are specified.
+
+## v1.1 additions (development branch)
+
+- **Choose settings:** when the received archive includes Settings, the receiver picks which groups to merge
+  (appearance, reader, library, sources, network, tracking, other). Network starts unticked because DNS/proxy choices
+  are usually device-specific. App lock, proxy password, tokens and storage folders never travel.
+- **Both ways:** after a successful merge the receiver is offered *Send back*; the sender then merges it, so both
+  devices end up with the same library. Merge rules are unchanged (newest wins, deletions win ties, nothing is
+  silently overwritten).

@@ -1503,6 +1503,10 @@ Optional — skip it and you appear as anon.</string>
     <string name="a11y_text_larger">Larger text</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
+    <string name="nearby_two_way_title">Sync both ways?</string>
+    <string name="nearby_two_way_message">This device now has both libraries. Send it back so the other device matches too. Nothing is overwritten: newer reading progress always wins.</string>
+    <string name="nearby_two_way_send">Send back</string>
+    <string name="nearby_two_way_skip">Not now</string>
     <string name="nearby_settings_groups_title">Which settings should come over?</string>
     <string name="nearby_settings_groups_apply">Merge</string>
     <string name="nearby_settings_appearance">Appearance (theme, colours, layout)</string>
