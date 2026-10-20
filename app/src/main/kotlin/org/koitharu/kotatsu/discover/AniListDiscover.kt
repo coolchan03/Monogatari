@@ -68,7 +68,83 @@ class AniListDiscover @Inject constructor(
 		parse(body)
 	}
 
+	/**
+	 * v1.3 draft release calendar: anime episodes airing between now and [days] days ahead, soonest first.
+	 * [label] formats the episode number and airing time (epoch seconds) for the card badge.
+	 */
+	suspend fun loadAiring(page: Int, days: Int, label: (episode: Int, airingAt: Long) -> String): Page =
+		withContext(Dispatchers.IO) {
+			val now = System.currentTimeMillis() / 1000
+			val request = Request.Builder()
+				.url(ENDPOINT)
+				.header("Accept", "application/json")
+				.post(buildAiringRequestBody(page, now, now + days * 86_400L).toString().toRequestBody(JSON))
+				.build()
+			val body = client.newCall(request).execute().use { response ->
+				if (!response.isSuccessful) throw IOException("AniList returned HTTP ${response.code}")
+				response.body?.string() ?: throw IOException("Empty AniList response")
+			}
+			parseAiring(body, label)
+		}
+
 	companion object {
+
+		private const val AIRING_QUERY = """
+query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
+  Page(page: ${'$'}page, perPage: 40) {
+    pageInfo { hasNextPage }
+    airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: TIME) {
+      episode
+      airingAt
+      media {
+        id
+        title { english romaji }
+        coverImage { large }
+        averageScore
+        isAdult
+        genres
+      }
+    }
+  }
+}"""
+
+		fun buildAiringRequestBody(page: Int, from: Long, to: Long): JSONObject = JSONObject()
+			.put("query", AIRING_QUERY.trim())
+			.put("variables", JSONObject().put("page", page).put("from", from).put("to", to))
+
+		/** Parses an `airingSchedules` page; each episode is its own card, badge from [label]. */
+		fun parseAiring(body: String, label: (episode: Int, airingAt: Long) -> String): Page {
+			val root = JSONObject(body)
+			root.optJSONArray("errors")?.optJSONObject(0)?.optString("message")?.let { message ->
+				if (message.isNotEmpty()) throw IOException(message)
+			}
+			val page = root.optJSONObject("data")?.optJSONObject("Page") ?: return Page(emptyList(), false)
+			val schedules = page.optJSONArray("airingSchedules") ?: JSONArray()
+			val items = (0 until schedules.length()).mapNotNull { i ->
+				val entry = schedules.optJSONObject(i) ?: return@mapNotNull null
+				val media = entry.optJSONObject("media") ?: return@mapNotNull null
+				val episode = entry.optInt("episode", 0)
+				val airingAt = entry.optLong("airingAt", 0L)
+				val titles = media.optJSONObject("title")
+				val english = titles?.optString("english")?.takeIf { it.isNotBlank() && it != "null" }
+				val romaji = titles?.optString("romaji")?.takeIf { it.isNotBlank() && it != "null" }
+				val title = english ?: romaji ?: return@mapNotNull null
+				Item(
+					// Episode-level id: the same show appears once per episode in the week.
+					id = media.optInt("id") * 31 + episode,
+					title = title,
+					alternativeTitle = romaji?.takeIf { it != title },
+					coverUrl = media.optJSONObject("coverImage")?.optString("large")?.takeIf { it.startsWith("https://") },
+					score = null,
+					isAdult = media.optBoolean("isAdult", false),
+					providerLabel = label(episode, airingAt),
+					genres = media.optJSONArray("genres")?.let { g -> (0 until g.length()).map { g.optString(it) } }
+						.orEmpty().filter { it.isNotBlank() },
+				)
+			}
+			val hasNext = page.optJSONObject("pageInfo")?.optBoolean("hasNextPage", false) ?: false
+			return Page(items, hasNext)
+		}
 
 		private const val ENDPOINT = "https://graphql.anilist.co"
 		private val JSON = "application/json; charset=utf-8".toMediaType()

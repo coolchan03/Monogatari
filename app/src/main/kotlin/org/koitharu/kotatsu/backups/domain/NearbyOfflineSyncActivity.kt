@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.sync.profile.SettingsGroupsDialog
 import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.R
 import android.Manifest
@@ -513,28 +514,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
 
     /** v1.1: pick which kinds of settings to take from the other device; secrets never travel. */
     private fun chooseSettingsGroups(onChosen: (Set<SettingsTransferProfile.Group>) -> Unit) {
-        val groups = SettingsTransferProfile.Group.entries
-        val labels = groups.map { group ->
-            getString(when (group) {
-                SettingsTransferProfile.Group.APPEARANCE -> R.string.nearby_settings_appearance
-                SettingsTransferProfile.Group.READER -> R.string.nearby_settings_reader
-                SettingsTransferProfile.Group.LIBRARY -> R.string.nearby_settings_library
-                SettingsTransferProfile.Group.SOURCES -> R.string.nearby_settings_sources
-                SettingsTransferProfile.Group.NETWORK -> R.string.nearby_settings_network
-                SettingsTransferProfile.Group.TRACKING -> R.string.nearby_settings_tracking
-                SettingsTransferProfile.Group.OTHER -> R.string.nearby_settings_other
-            })
-        }
-        // Network settings are often specific to one device (DNS, proxy), so they start unticked.
-        val checked = BooleanArray(groups.size) { groups[it] != SettingsTransferProfile.Group.NETWORK }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.nearby_settings_groups_title)
-            .setMultiChoiceItems(labels.toTypedArray(), checked) { _, which, value -> checked[which] = value }
-            .setCancelable(false)
-            .setPositiveButton(R.string.nearby_settings_groups_apply) { _, _ ->
-                onChosen(groups.filterIndexed { index, _ -> checked[index] }.toSet())
-            }
-            .show()
+        SettingsGroupsDialog.show(this, onChosen = onChosen)
     }
 
     private fun mergeReceived(file: File, sections: Set<BackupSection>, groups: Set<SettingsTransferProfile.Group>?) {

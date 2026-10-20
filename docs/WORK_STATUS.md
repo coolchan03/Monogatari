@@ -4,6 +4,15 @@
 - `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
 - Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
 
+## 2026-10-20 — post-1.1.0 batch (drafts branch, unreleased)
+- Search: Manga/Books/Video/Audio chips on the results screen (phone + tablet layouts); global type filter now also hides history/favourites/local rows.
+- Discover: Video/Books/Audio open on a shelf of popular titles from built-in sources (Dailymotion, Odysee, IA Video; Gutenberg, Royal Road, Open Library; LibriVox, IA Audio); Books catalog opens with the last search or Standard Ebooks new releases.
+- v1.3 draft: "Airing this week" chip in Discover Video (AniList airingSchedules, 7 days, episode + local time badge).
+- v1.1 follow-up: normal backup restore asks which settings groups to apply (shared SettingsGroupsDialog, also used by Nearby).
+- Feeds: OkHttp fetch with browser UA, https-only redirects, lenient FeedXml parsing (Android rejected the old secure-processing flag), any public https feed, included_feeds_v2 (9 feeds), per-feed article cache, All feeds chip, mascot empty state.
+- UI: core/ui/MonogatariViews.kt; backup import, Nearby, WebDAV, licences, StoryWeaver, feed player restyled with header/section cards.
+- Status: implemented; CI in progress; feed hosts unreachable from the sandbox; not device-verified.
+
 ## 2026-10-20 — Discover as a normal tab (after v1.1.0, unreleased)
 - Owner report: Discover opened as a separate page over the main screen (back arrow, navigation bar hidden).
 - New `discover/DiscoverFragment.kt` (logic moved from the activity) is the `nav_discover` tab in `MainNavigationDelegate`; Explore's "Discover" menu switches to that tab when it is on the bar. `DiscoverActivity` is now only a host for the fragment, used from More / Test Center or when Discover is not on the bar.

@@ -12,6 +12,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backups.domain.BackupSection
+import org.koitharu.kotatsu.sync.profile.SettingsGroupsDialog
+import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.AlertDialogFragment
 import org.koitharu.kotatsu.core.ui.list.OnListItemClickListener
@@ -61,12 +64,11 @@ class RestoreDialogFragment : AlertDialogFragment<DialogRestoreBinding>(), OnLis
 		when (v.id) {
 			R.id.button_cancel -> dismiss()
 			R.id.button_restore -> {
-				if (startRestoreService()) {
-					Toast.makeText(v.context, R.string.backup_restored_background, Toast.LENGTH_SHORT).show()
-					router.closeWelcomeSheet()
-					dismiss()
+				// v1.1: when settings are restored, choose which kinds (appearance, reader, sources...) to apply.
+				if (BackupSection.SETTINGS in viewModel.getCheckedSections()) {
+					SettingsGroupsDialog.show(v.context, onCancel = {}) { groups -> restore(v, groups) }
 				} else {
-					Toast.makeText(v.context, R.string.operation_not_supported, Toast.LENGTH_SHORT).show()
+					restore(v, null)
 				}
 			}
 		}
@@ -92,11 +94,22 @@ class RestoreDialogFragment : AlertDialogFragment<DialogRestoreBinding>(), OnLis
 		}
 	}
 
-	private fun startRestoreService(): Boolean {
+	private fun restore(v: View, settingsGroups: Set<SettingsTransferProfile.Group>?) {
+		if (startRestoreService(settingsGroups)) {
+			Toast.makeText(v.context, R.string.backup_restored_background, Toast.LENGTH_SHORT).show()
+			router.closeWelcomeSheet()
+			dismiss()
+		} else {
+			Toast.makeText(v.context, R.string.operation_not_supported, Toast.LENGTH_SHORT).show()
+		}
+	}
+
+	private fun startRestoreService(settingsGroups: Set<SettingsTransferProfile.Group>?): Boolean {
 		return RestoreService.start(
 			context ?: return false,
 			viewModel.uri ?: return false,
 			viewModel.getCheckedSections(),
+			settingsGroups,
 		)
 	}
 

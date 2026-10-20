@@ -97,6 +97,8 @@ class DiscoverFragment : Fragment() {
 	private var publicFeedSelected = false
 	/** Popular titles straight from built-in video, book and audio sources, so those sections open filled. */
 	private var shelfSelected = false
+	/** v1.3 draft release calendar: anime episodes airing this week. */
+	private var airingSelected = false
 	private val shelfOffsets = HashMap<String, Int>()
 	private var nextPage = 1
 	private var hasNextPage = true
@@ -117,6 +119,7 @@ class DiscoverFragment : Fragment() {
 		}
 		publicFeedSelected = savedInstanceState?.getBoolean(KEY_PUBLIC_FEED) ?: false
 		shelfSelected = savedInstanceState?.getBoolean(KEY_SHELF_FEED) ?: shelfSources(section).isNotEmpty()
+		airingSelected = savedInstanceState?.getBoolean(KEY_AIRING_FEED) ?: false
 
 		MediaSection.entries.forEach { media ->
 			binding.chipsMedia.addView(Chip(requireContext()).apply {
@@ -134,6 +137,7 @@ class DiscoverFragment : Fragment() {
 				shelfSelected = shelfSources(section).isNotEmpty()
 				publicFeedSelected = false
 				forYouSelected = false
+				airingSelected = false
 				feed = when (section) {
 					MediaSection.MANGA -> AniListDiscover.Feed.TRENDING_BL
 					MediaSection.BOOK -> AniListDiscover.Feed.LIGHT_NOVELS
@@ -145,11 +149,20 @@ class DiscoverFragment : Fragment() {
 			}
 		}
 		binding.chipsFeed.setOnCheckedStateChangeListener { _, checkedIds ->
-			if (SHELF_FEED_ID in checkedIds) {
+			if (AIRING_FEED_ID in checkedIds) {
+				if (!airingSelected) {
+					airingSelected = true
+					shelfSelected = false
+					forYouSelected = false
+					publicFeedSelected = false
+					reload()
+				}
+			} else if (SHELF_FEED_ID in checkedIds) {
 				if (!shelfSelected) {
 					shelfSelected = true
 					forYouSelected = false
 					publicFeedSelected = false
+					airingSelected = false
 					reload()
 				}
 			} else if (FOR_YOU_FEED_ID in checkedIds) {
@@ -157,21 +170,24 @@ class DiscoverFragment : Fragment() {
 					forYouSelected = true
 					publicFeedSelected = false
 					shelfSelected = false
+					airingSelected = false
 					reload()
 				}
 			} else if (PUBLIC_CATALOG_FEED_ID in checkedIds) {
 				forYouSelected = false
 				shelfSelected = false
+				airingSelected = false
 				if (!publicFeedSelected) {
 					publicFeedSelected = true
 					reload()
 				}
 			} else {
 				val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
-				if (selected != null && (selected != feed || publicFeedSelected || forYouSelected || shelfSelected)) {
+				if (selected != null && (selected != feed || publicFeedSelected || forYouSelected || shelfSelected || airingSelected)) {
 					publicFeedSelected = false
 					forYouSelected = false
 					shelfSelected = false
+					airingSelected = false
 					feed = selected
 					reload()
 				}
@@ -201,6 +217,7 @@ class DiscoverFragment : Fragment() {
 		outState.putString(KEY_SECTION, section.name)
 		outState.putBoolean(KEY_PUBLIC_FEED, publicFeedSelected)
 		outState.putBoolean(KEY_SHELF_FEED, shelfSelected)
+		outState.putBoolean(KEY_AIRING_FEED, airingSelected)
 	}
 
 	override fun onDestroyView() {
@@ -248,16 +265,25 @@ class DiscoverFragment : Fragment() {
 					else -> R.string.discover_shelf_books
 				})
 				isCheckable = true
-				isChecked = shelfSelected
+				isChecked = shelfSelected && !airingSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		}
+		if (section == MediaSection.VIDEO) {
+			binding.chipsFeed.addView(Chip(requireContext()).apply {
+				id = AIRING_FEED_ID
+				setText(R.string.discover_airing_this_week)
+				isCheckable = true
+				isChecked = airingSelected
+				MediaAccents.tintChip(requireContext(), section.name, this)
+			})
+		} else airingSelected = false
 		if (section == MediaSection.MANGA || section == MediaSection.VIDEO) {
 			binding.chipsFeed.addView(Chip(requireContext()).apply {
 				id = FOR_YOU_FEED_ID
 				setText(R.string.discover_for_you)
 				isCheckable = true
-				isChecked = forYouSelected && !shelfSelected
+				isChecked = forYouSelected && !shelfSelected && !airingSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		} else forYouSelected = false
@@ -266,7 +292,7 @@ class DiscoverFragment : Fragment() {
 				id = entry.ordinal + 1
 				setText(entry.titleRes)
 				isCheckable = true
-				isChecked = entry == feed && !publicFeedSelected && !forYouSelected && !shelfSelected
+				isChecked = entry == feed && !publicFeedSelected && !forYouSelected && !shelfSelected && !airingSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		}
@@ -275,7 +301,7 @@ class DiscoverFragment : Fragment() {
 				id = PUBLIC_CATALOG_FEED_ID
 				text = label
 				isCheckable = true
-				isChecked = publicFeedSelected && !shelfSelected
+				isChecked = publicFeedSelected && !shelfSelected && !airingSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		}
@@ -417,19 +443,22 @@ class DiscoverFragment : Fragment() {
 		val requestedSection = section
 		val requestedPublic = publicFeedSelected
 		val requestedShelf = shelfSelected
+		val requestedAiring = airingSelected
 		val page = nextPage
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
 		loadJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val result = when {
+					requestedAiring -> discover.loadAiring(page, 7, ::airingLabel)
 					requestedShelf -> loadShelf(requestedSection)
 					requestedPublic -> loadPublicFeed(requestedSection, page)
 					forYouSelected -> loadForYou(requestedFeed, page)
 					else -> discover.load(requestedFeed, page)
 				}
 				if (requestedFeed != feed || requestedSection != section ||
-					requestedPublic != publicFeedSelected || requestedShelf != shelfSelected) return@launch
+					requestedPublic != publicFeedSelected || requestedShelf != shelfSelected ||
+					requestedAiring != airingSelected) return@launch
 				val additions = result.items.filter { new -> adapter.items.none { it.id == new.id } }
 				adapter.items = adapter.items + additions
 				hasNextPage = result.hasNextPage && additions.isNotEmpty()
@@ -470,6 +499,12 @@ class DiscoverFragment : Fragment() {
 				else getString(R.string.discover_for_you_based_on, top.joinToString(", ")))
 		}
 		return AniListDiscover.Page(ranked.ifEmpty { candidates }, false)
+	}
+
+	/** "Ep 5 · Tue 18:30" in the device's locale and time zone. */
+	private fun airingLabel(episode: Int, airingAt: Long): String {
+		val time = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.getDefault()).format(java.util.Date(airingAt * 1000))
+		return if (episode > 0) getString(R.string.discover_airing_episode, episode, time) else time
 	}
 
 	/** Built-in sources whose no-query list is a real popular/trending listing that needs no account or key. */
@@ -601,5 +636,7 @@ class DiscoverFragment : Fragment() {
 		const val FOR_YOU_FEED_ID = 11001
 		const val SHELF_FEED_ID = 11002
 		const val KEY_SHELF_FEED = "shelf_feed"
+		const val AIRING_FEED_ID = 11003
+		const val KEY_AIRING_FEED = "airing_feed"
 	}
 }
