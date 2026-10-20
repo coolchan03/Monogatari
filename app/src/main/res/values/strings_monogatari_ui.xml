@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Monogatari screen text moved out of Kotlin code (1.0.2). -->
 <resources>
-    <string name="mono_nearby_no_cloud_or_internet_needed_turn">No cloud or internet needed. Turn on Bluetooth and Wi-Fi. </string>
+    <string name="mono_nearby_no_cloud_or_internet_needed_turn">"No cloud or internet needed. Turn on Bluetooth and Wi-Fi. "</string>
     <string name="mono_nearby_receive_make_this_device_visible">Receive: make this device visible</string>
     <string name="mono_nearby_send_find_a_nearby_device">Send: find a nearby device</string>
     <string name="mono_nearby_send_library_and_settings">Send library and settings</string>
     <string name="mono_nearby_send_an_offline_book_or_file">Send an offline book or file</string>
     <string name="mono_nearby_stop_and_disconnect">Stop and disconnect</string>
-    <string name="mono_nearby_library_transfer_includes_reading_history_favourites">Library transfer includes reading history, favourites, bookmarks, </string>
-    <string name="mono_nearby_connect">Connect: </string>
+    <string name="mono_nearby_library_transfer_includes_reading_history_favourites">"Library transfer includes reading history, favourites, bookmarks, "</string>
+    <string name="mono_nearby_connect">"Connect: "</string>
     <string name="mono_nearby_verify_nearby_device">Verify nearby device</string>
-    <string name="mono_nearby_device">Device: </string>
+    <string name="mono_nearby_device">"Device: "</string>
     <string name="mono_nearby_codes_match">Codes match</string>
     <string name="mono_nearby_reject">Reject</string>
     <string name="mono_nearby_send_your_library_and_settings">Send your library and settings?</string>
-    <string name="mono_nearby_this_creates_a_backup_of_saved">This creates a backup of saved library metadata, progress, sources, </string>
+    <string name="mono_nearby_this_creates_a_backup_of_saved">"This creates a backup of saved library metadata, progress, sources, "</string>
     <string name="mono_nearby_create_and_send">Create and send</string>
     <string name="mono_nearby_review_received_library_and_settings">Review received library and settings</string>
-    <string name="mono_nearby_archive_inspected_and_verified_select_sections">Archive inspected and verified. Select sections to MERGE into this </string>
+    <string name="mono_nearby_archive_inspected_and_verified_select_sections">"Archive inspected and verified. Select sections to MERGE into this "</string>
     <string name="mono_nearby_keep_existing_library">Keep existing library</string>
     <string name="mono_nearby_merge_selected">Merge selected</string>
-    <string name="mono_nearby_received">Received </string>
+    <string name="mono_nearby_received">"Received "</string>
     <string name="mono_nearby_checksum_verified_this_file_is_stored">Checksum verified. This file is stored temporarily until you choose.</string>
     <string name="mono_books_more_entertainment_catalogs">More entertainment catalogs</string>
     <string name="mono_books_invalid_standard_ebooks_link">Invalid Standard Ebooks link.</string>
@@ -104,18 +104,18 @@
     <string name="mono_news_remove">Remove</string>
     <string name="mono_news_feed_removed">Feed removed</string>
     <string name="mono_news_loading_feed">Loading feed…</string>
-    <string name="mono_news_site">Site: </string>
+    <string name="mono_news_site">"Site: "</string>
     <string name="mono_news_this_link_can_t_be_opened">This link can\'t be opened</string>
     <string name="mono_qa_report_copied">Report copied</string>
     <string name="mono_qa_paste_the_report_into_your_chat">Paste the report into your chat with ChatGPT or Claude. Your test answers and a sample of any source failures are included. Nothing was uploaded automatically.</string>
     <string name="mono_player_chapters">Chapters</string>
     <string name="mono_player_transcript">Transcript</string>
     <string name="mono_player_website">Website</string>
-    <string name="mono_player_playback_unavailable">Playback unavailable: </string>
+    <string name="mono_player_playback_unavailable">"Playback unavailable: "</string>
     <string name="mono_player_loading_chapters">Loading chapters...</string>
     <string name="mono_player_no_chapters_were_listed_for_this">No chapters were listed for this episode.</string>
     <string name="mono_player_jump_to_chapter">Jump to chapter</string>
-    <string name="mono_player_chapters_unavailable">Chapters unavailable: </string>
+    <string name="mono_player_chapters_unavailable">"Chapters unavailable: "</string>
     <string name="mono_player_no_browser_is_available_for_this">No browser is available for this link.</string>
     <string name="mono_library_filter_this_library">Filter this library</string>
     <string name="mono_epub_unable_to_open_epub">Unable to open EPUB</string>
