@@ -55,7 +55,7 @@ import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
@@ -92,6 +92,9 @@ class DiscoverFragment : Fragment() {
 
 	@Inject
 	lateinit var repositories: MangaRepository.Factory
+
+	@Inject
+	lateinit var libraryFinder: DiscoverLibraryFinder
 
 	@Inject
 	lateinit var airingReminders: AiringReminders
@@ -542,8 +545,10 @@ class DiscoverFragment : Fragment() {
 		val results = sources.map { source ->
 			async {
 				val offset = shelfOffsets[source.name] ?: 0
+				// A timeout counts as a failure of this source only (withTimeout would cancel the whole shelf).
 				source to runCatchingCancellable {
-					withTimeout(25_000) { repositories.create(source).getList(offset, null, null) }
+					withTimeoutOrNull(25_000) { repositories.create(source).getList(offset, null, null) }
+						?: throw java.io.IOException("${source.title} timed out")
 				}
 			}
 		}.awaitAll()
@@ -584,9 +589,28 @@ class DiscoverFragment : Fragment() {
 	}
 
 	/** Long-press menu of an "Airing this week" card: follow/unfollow reminders, or search the romaji title. */
+	/** Long-press on a card: add it to the library, or search its alternative title. */
+	private fun showCardMenu(item: AniListDiscover.Item, type: MediaType) {
+		val actions = ArrayList<Pair<String, () -> Unit>>()
+		actions.add(Pair<String, () -> Unit>(getString(R.string.discover_add_to_library), {
+			addDiscoverItemToLibrary(item, type, libraryFinder) { openTypedSearch(it, type) }
+		}))
+		item.alternativeTitle?.let { alternative ->
+			actions.add(Pair<String, () -> Unit>(getString(R.string.discover_search_alternative), { openTypedSearch(alternative, type) }))
+		}
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(item.title)
+			.setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
+	}
+
 	private fun showAiringMenu(item: AniListDiscover.Item, mediaId: Int, type: MediaType) {
 		val followed = airingReminders.isFollowed(mediaId)
 		val actions = ArrayList<Pair<String, () -> Unit>>()
+		actions.add(Pair<String, () -> Unit>(getString(R.string.discover_add_to_library), {
+			addDiscoverItemToLibrary(item, type, libraryFinder) { openTypedSearch(it, type) }
+		}))
 		if (followed) {
 			actions.add(Pair<String, () -> Unit>(getString(R.string.airing_reminder_unfollow), { unfollowAiring(mediaId, item.title) }))
 		} else {
@@ -703,8 +727,7 @@ class DiscoverFragment : Fragment() {
 					showAiringMenu(item, mediaId, type)
 					return@setOnLongClickListener true
 				}
-				val alternative = item.alternativeTitle ?: return@setOnLongClickListener false
-				openTypedSearch(alternative, type)
+				showCardMenu(item, type)
 				true
 			}
 		}
