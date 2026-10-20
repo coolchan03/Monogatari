@@ -47,4 +47,13 @@ class AniListDiscoverTest {
 		assertFalse(AniListDiscover.buildRequestBody(AniListDiscover.Feed.TRENDING_MANGA, 1)
 			.getJSONObject("variables").has("tags"))
 	}
+
+	@Test
+	fun parsesGenresForTheForYouRanking() {
+		val page = AniListDiscover.parse("""{"data":{"Page":{"pageInfo":{"hasNextPage":false},"media":[
+			{"id":7,"title":{"english":"Frieren"},"genres":["Adventure","Fantasy",""]}]}}}""")
+		org.junit.Assert.assertEquals(listOf("Adventure", "Fantasy"), page.items.single().genres)
+		org.junit.Assert.assertTrue(AniListDiscover.buildRequestBody(AniListDiscover.Feed.entries.first(), 1)
+			.getString("query").contains("genres"))
+	}
 }
