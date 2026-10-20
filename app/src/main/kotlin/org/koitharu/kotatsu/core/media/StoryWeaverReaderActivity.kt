@@ -17,8 +17,14 @@ import android.view.Menu
 import android.view.MenuItem
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.dp
+import org.koitharu.kotatsu.core.ui.headerCard
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.core.util.ext.getThemeColor
+import org.koitharu.kotatsu.core.util.ext.setThemeTextAppearance
+import com.google.android.material.R as materialR
 
 /** In-app view of the provider's own illustrated reader. No page scraping, paywall bypass or ad injection. */
 class StoryWeaverReaderActivity : AppCompatActivity() {
@@ -38,20 +44,23 @@ class StoryWeaverReaderActivity : AppCompatActivity() {
         storyUrl = url
         title = getString(R.string.storyweaver_reader_title)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        // Compact Kitsune card: the provider's credit and the online notice, leaving the page most of the screen.
+        val (header, statusView) = headerCard(MascotForm.BOOK, null, getString(R.string.storyweaver_online_notice), mascotSizeDp = 40)
+        status = statusView
         val attribution = intent.getStringExtra(EXTRA_CREDIT).orEmpty()
-        if (attribution.isNotBlank()) content.addView(TextView(this).apply {
+        if (attribution.isNotBlank()) (statusView.parent as? LinearLayout)?.addView(TextView(this).apply {
             text = attribution
-            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
-            setPadding(16, 8, 16, 8)
+            setThemeTextAppearance(materialR.attr.textAppearanceBodySmall, materialR.style.TextAppearance_Material3_BodySmall)
+            setTextColor(getThemeColor(materialR.attr.colorOnSurfaceVariant))
+            setPadding(0, 0, 0, dp(4))
             isFocusable = true
+        }, 0, LinearLayout.LayoutParams(-1, -2))
+        content.addView(header, LinearLayout.LayoutParams(-1, -2).apply {
+            val margin = dp(8)
+            setMargins(margin, margin, margin, margin)
         })
         val loading = LinearProgressIndicator(this).apply { isIndeterminate = false; max = 100 }
         content.addView(loading, LinearLayout.LayoutParams(-1, -2))
-        status = TextView(this).apply {
-            setText(R.string.storyweaver_online_notice)
-            setPadding(16, 8, 16, 8)
-        }
-        content.addView(status, LinearLayout.LayoutParams(-1, -2))
         browser = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true

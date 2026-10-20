@@ -1,10 +1,18 @@
 package org.koitharu.kotatsu.backups.domain
 
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.addHeaderCard
+import org.koitharu.kotatsu.core.ui.addPrimaryButton
+import org.koitharu.kotatsu.core.ui.addSecondaryButton
+import org.koitharu.kotatsu.core.ui.addSectionCard
+import org.koitharu.kotatsu.core.ui.pageColumn
+import org.koitharu.kotatsu.core.ui.scrollable
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -12,7 +20,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,29 +62,18 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         downloadId = savedInstanceState?.getString("pendingDownloadId")
             ?.takeIf(WebDavEndpoint::validDeviceId)
         title = getString(R.string.screen_title_webdav)
-        val pad = (16 * resources.displayMetrics.density).toInt()
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
-        }
-        status = TextView(this).apply {
-            text = getString(R.string.mono_webdav_only_manually_selected_zip_archives_are)
-        }
-        root.addView(status)
-        // First action (account setup) filled, the rest outlined, full width like the Nearby screen.
-        var buttonCount = 0
-        fun button(label: String, action: () -> Unit) {
-            val primary = buttonCount++ == 0
-            root.addView(MaterialButton(this, null,
-                if (primary) com.google.android.material.R.attr.materialButtonStyle
-                else com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                text = label
-                minHeight = (48 * resources.displayMetrics.density).toInt()
-                setOnClickListener { action() }
-            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = (pad / 3) })
-        }
-        button(getString(R.string.mono_webdav_configure_secure_webdav_account)) { configure() }
-        button(getString(R.string.mono_webdav_upload_selected_backup_zip)) {
+        val root = pageColumn()
+        // The header body is the status line, so progress and errors appear next to Kitsune.
+        status = root.addHeaderCard(
+            MascotForm.DEFAULT,
+            getString(R.string.mono_screen_header_webdav),
+            getString(R.string.mono_webdav_only_manually_selected_zip_archives_are),
+        ).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        val accountSection = root.addSectionCard(getString(R.string.mono_section_webdav_account))
+        val backupsSection = root.addSectionCard(getString(R.string.mono_section_webdav_backups))
+        // Account setup is the one filled action; the rest are outlined, full width like the Nearby screen.
+        accountSection.addPrimaryButton(getString(R.string.mono_webdav_configure_secure_webdav_account)) { configure() }
+        backupsSection.addSecondaryButton(getString(R.string.mono_webdav_upload_selected_backup_zip)) {
             if (account() != null) AlertDialog.Builder(this)
                 .setTitle(getString(R.string.mono_webdav_replace_this_device_s_remote_backup))
                 .setMessage(getString(R.string.mono_webdav_uploading_replaces_the_existing_zip_for))
@@ -86,8 +82,8 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                     uploadPicker.launch(arrayOf("application/zip", "application/octet-stream"))
                 }.show()
         }
-        button(getString(R.string.mono_webdav_list_and_download_backup_zip)) { listRemote() }
-        button(getString(R.string.mono_webdav_remove_account_from_this_device)) {
+        backupsSection.addSecondaryButton(getString(R.string.mono_webdav_list_and_download_backup_zip)) { listRemote() }
+        accountSection.addSecondaryButton(getString(R.string.mono_webdav_remove_account_from_this_device)) {
             AlertDialog.Builder(this).setTitle(getString(R.string.mono_webdav_remove_webdav_credentials))
                 .setMessage(getString(R.string.mono_webdav_this_removes_the_saved_account_from))
                 .setNegativeButton(android.R.string.cancel, null)
@@ -96,7 +92,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                     status.text = getString(R.string.mono_webdav_account_removed)
                 }.show()
         }
-        setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
+        setMonogatariContent(root.scrollable(), MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 
     private fun account(): WebDavAccount? = runCatching { accountStore.load() }.getOrNull().also {

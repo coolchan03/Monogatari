@@ -1,13 +1,19 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.addBodyText
+import org.koitharu.kotatsu.core.ui.addHeaderCard
+import org.koitharu.kotatsu.core.ui.addPrimaryButton
+import org.koitharu.kotatsu.core.ui.addSecondaryButton
+import org.koitharu.kotatsu.core.ui.addSectionCard
+import org.koitharu.kotatsu.core.ui.pageColumn
+import org.koitharu.kotatsu.core.ui.scrollable
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.WindowManager
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -51,32 +57,22 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		title = getString(R.string.foreign_backup_review_title)
-		val pad = (16f * resources.displayMetrics.density).toInt()
-		val root = LinearLayout(this).apply {
-			orientation = LinearLayout.VERTICAL
-			setPadding(pad, pad, pad, pad)
-		}
-		// Outlined, so the Import action that appears after review is the one filled button on the screen.
-		chooseFile = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-			text = getString(R.string.foreign_backup_choose)
-			setOnClickListener { picker.launch(arrayOf("*/*")) }
-		}
-		action = MaterialButton(this).apply {
-			isVisible = false
-			setOnClickListener { pendingAction?.invoke() }
-		}
-		status = TextView(this).apply {
-			text = getString(R.string.foreign_backup_read_only)
-			textSize = 15f
+		val root = pageColumn()
+		root.addHeaderCard(
+			MascotForm.DEFAULT,
+			getString(R.string.mono_screen_header_foreign_backup),
+			getString(R.string.mono_screen_header_foreign_backup_body),
+		)
+		val section = root.addSectionCard(getString(R.string.mono_section_backup_file))
+		status = section.addBodyText(getString(R.string.foreign_backup_read_only)).apply {
 			setTextIsSelectable(true)
 		}
-		root.addView(chooseFile)
-		root.addView(
-			ScrollView(this).apply { addView(status) },
-			LinearLayout.LayoutParams(-1, 0, 1f),
-		)
-		root.addView(action)
-		setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
+		// Outlined, so the Import action that appears after review is the one filled button on the screen.
+		chooseFile = section.addSecondaryButton(getString(R.string.foreign_backup_choose)) { picker.launch(arrayOf("*/*")) }
+		action = section.addPrimaryButton("") { pendingAction?.invoke() }.apply {
+			isVisible = false
+		}
+		setMonogatariContent(root.scrollable(), MonogatariChrome.TEXT_MAX_WIDTH_DP)
 	}
 
 	private fun displayName(uri: Uri): String =

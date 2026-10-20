@@ -7,9 +7,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -17,14 +17,23 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.backups.data.BackupRepository
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.addBodyText
+import org.koitharu.kotatsu.core.ui.addHeaderCard
+import org.koitharu.kotatsu.core.ui.addPrimaryButton
+import org.koitharu.kotatsu.core.ui.addSecondaryButton
+import org.koitharu.kotatsu.core.ui.addSectionCard
+import org.koitharu.kotatsu.core.ui.buttonParams
+import org.koitharu.kotatsu.core.ui.pageColumn
+import org.koitharu.kotatsu.core.ui.scrollable
+import org.koitharu.kotatsu.core.ui.secondaryButton
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import java.io.File
 import java.io.IOException
@@ -91,48 +100,34 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.screen_title_nearby)
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding, padding, padding)
-        }
-        val scroll = ScrollView(this).apply { addView(body) }
-        status = TextView(this).apply {
-            text = getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
-                "Confirm the same code on both devices before transferring."
-            setPadding(0, 0, 0, padding)
-        }
-        body.addView(status)
+        val body = pageColumn()
+        // The header body is the status line, so every step of the transfer appears next to Kitsune.
+        status = body.addHeaderCard(
+            MascotForm.DEFAULT,
+            getString(R.string.mono_screen_header_nearby),
+            getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
+                "Confirm the same code on both devices before transferring.",
+        ).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         // Receive / Send are the two main choices (filled); later steps are outlined, like Settings dialogs.
-        var buttonCount = 0
-        fun addButton(label: String, action: () -> Unit) {
-            val primary = buttonCount++ < 2
-            body.addView(MaterialButton(this, null,
-                if (primary) com.google.android.material.R.attr.materialButtonStyle
-                else com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                text = label
-                minHeight = (48 * resources.displayMetrics.density).toInt()
-                setOnClickListener { action() }
-            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = padding / 3 })
-        }
-        addButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
-        addButton(getString(R.string.mono_nearby_send_find_a_nearby_device)) { withPermissions(::discover) }
+        val connect = body.addSectionCard(getString(R.string.mono_section_nearby_connect))
+        connect.addPrimaryButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
+        connect.addPrimaryButton(getString(R.string.mono_nearby_send_find_a_nearby_device)) { withPermissions(::discover) }
         peers = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        body.addView(peers)
-        addButton(getString(R.string.mono_nearby_send_library_and_settings)) { sendLibrary() }
-        addButton(getString(R.string.mono_nearby_send_an_offline_book_or_file)) {
+        connect.addView(peers)
+        val transfer = body.addSectionCard(getString(R.string.mono_section_nearby_transfer))
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_send_library_and_settings)) { sendLibrary() }
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_send_an_offline_book_or_file)) {
             if (connected == null) say("Connect to the other device first.")
             else filePicker.launch(arrayOf("*/*"))
         }
-        addButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
-        body.addView(TextView(this).apply {
-            text = getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
+        body.addSectionCard(getString(R.string.mono_section_nearby_shared)).addBodyText(
+            getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
                 "source subscriptions, and preferences. Files are sent separately. " +
                 "The private community identity is NOT shared automatically. " +
-                "You must approve each receive and restore."
-            setPadding(0, padding, 0, 0)
-        })
-        setMonogatariContent(scroll, MonogatariChrome.TEXT_MAX_WIDTH_DP)
+                "You must approve each receive and restore.",
+        )
+        setMonogatariContent(body.scrollable(), MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 
     private fun say(message: String) {
@@ -213,14 +208,11 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     private fun refreshPeers() {
         peers.removeAllViews()
         discovered.forEach { (id, name) ->
-            peers.addView(MaterialButton(this).apply {
-                text = getString(R.string.mono_nearby_connect) + name
-                setOnClickListener {
-                    client.stopDiscovery()
-                    client.requestConnection(deviceLabel, id, connectionEvents)
-                        .addOnFailureListener { say("Connection failed: " + it.localizedMessage) }
-                }
-            })
+            peers.addView(secondaryButton(getString(R.string.mono_nearby_connect) + name) {
+                client.stopDiscovery()
+                client.requestConnection(deviceLabel, id, connectionEvents)
+                    .addOnFailureListener { say("Connection failed: " + it.localizedMessage) }
+            }, buttonParams())
         }
     }
 
