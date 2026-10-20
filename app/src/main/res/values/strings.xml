@@ -1503,6 +1503,12 @@ Optional — skip it and you appear as anon.</string>
     <string name="a11y_text_larger">Larger text</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
+    <string name="library_smart_new">New smart collection</string>
+    <string name="library_smart_chip">✦ %1$s</string>
+    <string name="library_smart_description">Smart collection %1$s: %2$s</string>
+    <string name="library_smart_name_hint">Name, e.g. Ongoing romance</string>
+    <string name="library_smart_rule_hint">Rule, e.g. media:manga tag:romance status:ongoing</string>
+    <string name="library_smart_help">Titles that match every term appear automatically. Terms: media: (manga, book, video, audio), tag:, source:, status: (ongoing, finished), or any word from the title. Put - in front to exclude, and quotes around words with spaces.</string>
     <string name="nearby_two_way_title">Sync both ways?</string>
     <string name="nearby_two_way_message">This device now has both libraries. Send it back so the other device matches too. Nothing is overwritten: newer reading progress always wins.</string>
     <string name="nearby_two_way_send">Send back</string>

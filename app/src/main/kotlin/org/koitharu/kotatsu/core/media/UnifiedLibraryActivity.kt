@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.favourites.smart.SmartCollectionRule
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
@@ -46,6 +47,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class UnifiedLibraryActivity : AppCompatActivity() {
     companion object {
+        private const val MENU_NEW_SMART = 7501
         const val EXTRA_MEDIA_KIND = "monogatari_library_media_kind"
         const val EXTRA_FILTER = "monogatari_library_filter"
     }
@@ -70,6 +72,9 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     /** Collections: the user's own folders across all media (long-press a title to file it). */
     private var collections: Map<String, Set<String>> = emptyMap()
     private var selectedCollection: String? = null
+    /** v1.5 draft: smart collections, name -> rule text (see [SmartCollectionRule]). */
+    private var smartCollections: Map<String, String> = emptyMap()
+    private var selectedSmart: String? = null
     private lateinit var collectionRow: LinearLayout
     private val collectionPrefs by lazy { getSharedPreferences("library_collections", MODE_PRIVATE) }
     private val eggTaps = TapCounter()
@@ -136,6 +141,8 @@ class UnifiedLibraryActivity : AppCompatActivity() {
             addView(collectionRow)
         }, LinearLayout.LayoutParams(-1, -2))
         collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
+        smartCollections = decodeSmart(collectionPrefs.getString("smart", null))
+        selectedSmart = savedInstanceState?.getString("selected_smart")?.takeIf { it in smartCollections }
         selectedCollection = savedInstanceState?.getString("selected_collection")?.takeIf { it in collections }
         search = EditText(this).apply { hint = getString(R.string.mono_library_filter_this_library); setSingleLine(true) }
         search.doAfterTextChanged { render() }
@@ -228,6 +235,70 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         paneOpen.isVisible = true
     }
 
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menu.add(0, MENU_NEW_SMART, 0, R.string.library_smart_new)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        if (item.itemId != MENU_NEW_SMART) return super.onOptionsItemSelected(item)
+        newSmartCollection()
+        return true
+    }
+
+    private fun newSmartCollection() {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val name = android.widget.EditText(this).apply { setHint(R.string.library_smart_name_hint); setSingleLine(true) }
+        val rule = android.widget.EditText(this).apply { setHint(R.string.library_smart_rule_hint) }
+        val form = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+            addView(name)
+            addView(rule)
+            addView(TextView(this@UnifiedLibraryActivity).apply { setText(R.string.library_smart_help) })
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.library_smart_new)
+            .setView(form)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val title = name.text.toString().trim().take(40)
+                val text = SmartCollectionRule.parse(rule.text.toString()).encode()
+                if (title.isNotEmpty() && text.isNotEmpty()) {
+                    saveSmart(smartCollections + (title to text))
+                    selectedSmart = title
+                    selectedCollection = null
+                    render()
+                }
+            }
+            .show()
+    }
+
+    /** What a smart rule can see about a library row; unread counts are not tracked here yet. */
+    private fun smartItem(row: Row) = SmartCollectionRule.Item(
+        title = row.title,
+        tags = row.manga?.tags?.map { it.title }.orEmpty(),
+        mediaType = row.kind.name,
+        source = row.manga?.source?.name.orEmpty(),
+        status = row.manga?.state?.name,
+        unreadChapters = 0,
+        favourite = false,
+    )
+
+    private fun saveSmart(value: Map<String, String>) {
+        smartCollections = value
+        collectionPrefs.edit().putString("smart", encodeSmart(value)).apply()
+        if (selectedSmart != null && selectedSmart !in value) selectedSmart = null
+        render()
+    }
+
+    private fun encodeSmart(value: Map<String, String>): String =
+        value.entries.joinToString("\n") { (k, v) -> k.replace('\t', ' ').replace('\n', ' ') + "\t" + v.replace('\n', ' ') }
+
+    private fun decodeSmart(raw: String?): Map<String, String> = raw.orEmpty().lineSequence()
+        .mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 && it[0].isNotBlank() } }
+        .associate { it[0] to it[1] }
+
     private fun keyOf(row: Row): String = row.manga?.id?.toString() ?: row.file?.absolutePath.orEmpty()
 
     private fun saveCollections(value: Map<String, Set<String>>) {
@@ -240,6 +311,30 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     /** One chip per collection; tap to show only its titles, tap again for everything. */
     private fun renderCollections() {
         collectionRow.removeAllViews()
+        for ((name, rule) in smartCollections.toSortedMap(String.CASE_INSENSITIVE_ORDER)) {
+            collectionRow.addView(com.google.android.material.chip.Chip(this).apply {
+                text = getString(R.string.library_smart_chip, name)
+                isCheckable = true
+                isChecked = name == selectedSmart
+                contentDescription = getString(R.string.library_smart_description, name, rule)
+                setOnClickListener {
+                    selectedSmart = if (isChecked) name else null
+                    if (selectedSmart != null) selectedCollection = null
+                    render()
+                }
+                setOnLongClickListener {
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UnifiedLibraryActivity)
+                        .setTitle(name)
+                        .setMessage(rule)
+                        .setPositiveButton(R.string.library_collection_delete) { _, _ ->
+                            saveSmart(smartCollections - name)
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                    true
+                }
+            })
+        }
         for (name in LibraryCollections.names(collections)) {
             collectionRow.addView(com.google.android.material.chip.Chip(this).apply {
                 text = "$name (${collections[name].orEmpty().size})"
@@ -247,6 +342,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
                 isChecked = name == selectedCollection
                 setOnClickListener {
                     selectedCollection = if (isChecked) name else null
+                    if (selectedCollection != null) selectedSmart = null
                     render()
                 }
                 setOnLongClickListener {
@@ -310,6 +406,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("selected_kind", selected?.name ?: "ALL")
         outState.putString("selected_collection", selectedCollection)
+        outState.putString("selected_smart", selectedSmart)
         if (::search.isInitialized) outState.putString("library_query", search.text?.toString().orEmpty())
         paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
         super.onSaveInstanceState(outState)
@@ -367,9 +464,11 @@ class UnifiedLibraryActivity : AppCompatActivity() {
     private fun render() {
         if (!::count.isInitialized) return
         val q = search.text?.toString().orEmpty().trim()
+        val smartRule = selectedSmart?.let { smartCollections[it] }?.let(SmartCollectionRule::parse)
         val filtered = all.filter { row ->
             (selected == null || row.kind == selected) &&
-                (selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) && (q.isBlank() ||
+                (selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) &&
+                (smartRule == null || smartRule.matches(smartItem(row))) && (q.isBlank() ||
                 row.title.contains(q, ignoreCase = true) || row.detail.contains(q, ignoreCase = true))
         }
         if (twoPane) {
