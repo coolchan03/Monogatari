@@ -1503,6 +1503,9 @@ Optional — skip it and you appear as anon.</string>
     <string name="a11y_text_larger">Larger text</string>
     <string name="a11y_show_options">Show options</string>
     <string name="a11y_use_suggestion">Copy this suggestion into the search box</string>
+    <string name="discover_for_you">For you</string>
+    <string name="discover_for_you_based_on">Picked for you from popular titles, based on what you read: %1$s</string>
+    <string name="discover_for_you_empty">Read a few titles first; until then this shows popular titles.</string>
     <string name="library_smart_new">New smart collection</string>
     <string name="library_smart_chip">✦ %1$s</string>
     <string name="library_smart_description">Smart collection %1$s: %2$s</string>

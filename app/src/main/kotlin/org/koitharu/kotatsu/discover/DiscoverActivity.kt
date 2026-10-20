@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.discover
 
+import org.koitharu.kotatsu.discover.taste.TasteProfile
+import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.os.Bundle
 import android.content.Intent
@@ -67,6 +69,12 @@ class DiscoverActivity : AppCompatActivity() {
 	@Inject
 	lateinit var coil: ImageLoader
 
+	@Inject
+	lateinit var history: HistoryRepository
+
+	/** v1.3 draft: popular titles re-ranked by tags from the user's own reading history (on device only). */
+	private var forYouSelected = false
+
 	private lateinit var binding: ActivityDiscoverBinding
 	private val adapter = ItemsAdapter()
 	private var section = MediaSection.MANGA
@@ -117,15 +125,23 @@ class DiscoverActivity : AppCompatActivity() {
 			}
 		}
 		binding.chipsFeed.setOnCheckedStateChangeListener { _, checkedIds ->
-			if (PUBLIC_CATALOG_FEED_ID in checkedIds) {
+			if (FOR_YOU_FEED_ID in checkedIds) {
+				if (!forYouSelected) {
+					forYouSelected = true
+					publicFeedSelected = false
+					reload()
+				}
+			} else if (PUBLIC_CATALOG_FEED_ID in checkedIds) {
+				forYouSelected = false
 				if (!publicFeedSelected) {
 					publicFeedSelected = true
 					reload()
 				}
 			} else {
 				val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
-				if (selected != null && (selected != feed || publicFeedSelected)) {
+				if (selected != null && (selected != feed || publicFeedSelected || forYouSelected)) {
 					publicFeedSelected = false
+					forYouSelected = false
 					feed = selected
 					reload()
 				}
@@ -187,12 +203,21 @@ class DiscoverActivity : AppCompatActivity() {
 			else -> null
 		}
 		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty() || publicLabel != null
+		if (section == MediaSection.MANGA || section == MediaSection.VIDEO) {
+			binding.chipsFeed.addView(Chip(this).apply {
+				id = FOR_YOU_FEED_ID
+				setText(R.string.discover_for_you)
+				isCheckable = true
+				isChecked = forYouSelected
+				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
+			})
+		} else forYouSelected = false
 		options.forEach { entry ->
 			binding.chipsFeed.addView(Chip(this).apply {
 				id = entry.ordinal + 1
 				setText(entry.titleRes)
 				isCheckable = true
-				isChecked = entry == feed && !publicFeedSelected
+				isChecked = entry == feed && !publicFeedSelected && !forYouSelected
 				MediaAccents.tintChip(this@DiscoverActivity, section.name, this)
 			})
 		}
@@ -344,8 +369,11 @@ class DiscoverActivity : AppCompatActivity() {
 		binding.textMessage.isVisible = false
 		loadJob = lifecycleScope.launch {
 			try {
-				val result = if (requestedPublic) loadPublicFeed(requestedSection, page)
-					else discover.load(requestedFeed, page)
+				val result = when {
+					requestedPublic -> loadPublicFeed(requestedSection, page)
+					forYouSelected -> loadForYou(requestedFeed, page)
+					else -> discover.load(requestedFeed, page)
+				}
 				if (requestedFeed != feed || requestedSection != section ||
 					requestedPublic != publicFeedSelected) return@launch
 				val additions = result.items.filter { new -> adapter.items.none { it.id == new.id } }
@@ -365,6 +393,27 @@ class DiscoverActivity : AppCompatActivity() {
 				binding.progress.isVisible = false
 			}
 		}
+	}
+
+	/** Two pages of the section's popular feed, re-ranked by the user's history tags; falls back to popular order. */
+	private suspend fun loadForYou(base: AniListDiscover.Feed, page: Int): AniListDiscover.Page {
+		if (page > 1) return AniListDiscover.Page(emptyList(), false)
+		val candidates = (discover.load(base, 1).items + runCatching { discover.load(base, 2).items }.getOrDefault(emptyList()))
+			.distinctBy { it.id }
+		val read = runCatching { history.getList(0, 150) }.getOrDefault(emptyList())
+		val profile = TasteProfile.build(read.mapIndexed { index, manga ->
+			TasteProfile.Signal(manga.tags.map { it.title }, favourite = false, readChapters = 5, dropped = false, ageDays = index)
+		})
+		val readTitles = read.mapTo(HashSet()) { it.title.lowercase() }
+		val ranked = profile.rank(candidates.map { item ->
+			TasteProfile.Candidate(item, item.genres, alreadyInLibrary = item.title.lowercase() in readTitles)
+		}, limit = 60)
+		val top = profile.topTags(3)
+		runOnUiThread {
+			showMessage(if (top.isEmpty()) getString(R.string.discover_for_you_empty)
+				else getString(R.string.discover_for_you_based_on, top.joinToString(", ")))
+		}
+		return AniListDiscover.Page(ranked.ifEmpty { candidates }, false)
 	}
 
 	private suspend fun loadPublicFeed(kind: MediaSection, page: Int): AniListDiscover.Page {
@@ -440,5 +489,6 @@ class DiscoverActivity : AppCompatActivity() {
 		const val KEY_SECTION = "media_section"
 		const val KEY_PUBLIC_FEED = "public_catalog_feed"
 		const val PUBLIC_CATALOG_FEED_ID = 11000
+		const val FOR_YOU_FEED_ID = 11001
 	}
 }

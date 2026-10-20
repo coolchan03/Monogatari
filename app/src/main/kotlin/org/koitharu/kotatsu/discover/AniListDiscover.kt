@@ -47,6 +47,8 @@ class AniListDiscover @Inject constructor(
 		/** Public catalog cards open legal provider listings; AniList cards retain global search. */
 		val officialUrl: String? = null,
 		val providerLabel: String? = null,
+		/** AniList genres, used by the on-device "For you" ranking. */
+		val genres: List<String> = emptyList(),
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)
@@ -79,6 +81,7 @@ query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}ta
       coverImage { large }
       averageScore
       isAdult
+      genres
     }
   }
 }"""
@@ -115,6 +118,8 @@ query (${'$'}page: Int, ${'$'}type: MediaType, ${'$'}sort: [MediaSort], ${'$'}ta
 					coverUrl = entry.optJSONObject("coverImage")?.optString("large")?.takeIf { it.startsWith("https://") },
 					score = entry.optInt("averageScore", 0).takeIf { it > 0 },
 					isAdult = entry.optBoolean("isAdult", false),
+					genres = entry.optJSONArray("genres")?.let { g -> (0 until g.length()).map { g.optString(it) } }
+						.orEmpty().filter { it.isNotBlank() },
 				)
 			}
 			val hasNext = page.optJSONObject("pageInfo")?.optBoolean("hasNextPage", false) ?: false
