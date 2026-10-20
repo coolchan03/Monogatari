@@ -595,7 +595,7 @@ class SearchViewModel @Inject constructor(
 			// while a year filter is active instead of pretending they matched it.
 			// A book-only sweep must not accidentally show manga favourites/history/local manga.
 			// We will include those collections once they carry reliable cross-media metadata.
-			if (!hasPublicationYearFilter && mediaTypeOverride == null) {
+			if (!hasPublicationYearFilter && effectiveMediaType == null) {
 				appendResult(searchHistory())
 				appendResult(searchFavorites())
 				appendResult(searchLocal())

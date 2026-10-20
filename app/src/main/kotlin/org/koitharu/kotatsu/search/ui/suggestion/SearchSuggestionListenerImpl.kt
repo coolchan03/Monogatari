@@ -46,7 +46,7 @@ class SearchSuggestionListenerImpl(
 			if (kind == SearchKind.SIMPLE && MangaLinkResolver.isValidLink(query)) {
 				router.openDetails(query.toUri())
 			} else {
-				router.openSearch(query, kind)
+				router.openSearch(query, kind, MainSearchScope.get(searchView.context))
 				if (kind != SearchKind.TAG) {
 					viewModel.saveQuery(query)
 				}

@@ -1,11 +1,9 @@
 package org.koitharu.kotatsu.core.media
 
 import org.koitharu.kotatsu.core.util.DisplayText
+import org.koitharu.kotatsu.core.util.FeedXml
 import org.w3c.dom.Element
-import org.xml.sax.InputSource
-import java.io.StringReader
 import java.net.URI
-import javax.xml.parsers.DocumentBuilderFactory
 
 /** Safe, bounded RSS/Atom podcast and video-feed parsing. */
 object MediaFeedParser {
@@ -58,19 +56,8 @@ object MediaFeedParser {
     }
     fun parse(xml: String): List<Episode> {
         require(xml.length <= MAX_XML_CHARS) { "RSS feed exceeds 4 MB safety limit" }
-        require(!Regex("<!\\s*(DOCTYPE|ENTITY)", RegexOption.IGNORE_CASE).containsMatchIn(xml)) {
-            "External entities are forbidden"
-        }
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            isNamespaceAware = false
-            isExpandEntityReferences = false
-            isXIncludeAware = false
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-        }
-        val root = factory.newDocumentBuilder().parse(InputSource(StringReader(xml))).documentElement
+        // Lenient pre-processing (BOM, HTML entities, simple DOCTYPE) with DTDs and entities still refused.
+        val root = FeedXml.parseDocument(xml).documentElement
         require(root.tagName in setOf("rss", "feed", "rdf:RDF", "RDF")) { "Not RSS or Atom" }
         val atom = root.tagName == "feed"
         val nodes = root.getElementsByTagName(if (atom) "entry" else "item")

@@ -1,5 +1,9 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.sync.conflict.HistoryConflictRepository
+import org.koitharu.kotatsu.sync.conflict.HistoryConflictSheet
+import org.koitharu.kotatsu.sync.conflict.HistoryConflicts
+import org.koitharu.kotatsu.sync.profile.SettingsGroupsDialog
 import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.R
 import android.Manifest
@@ -7,9 +11,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -17,14 +21,23 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.backups.data.BackupRepository
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.addBodyText
+import org.koitharu.kotatsu.core.ui.addHeaderCard
+import org.koitharu.kotatsu.core.ui.addPrimaryButton
+import org.koitharu.kotatsu.core.ui.addSecondaryButton
+import org.koitharu.kotatsu.core.ui.addSectionCard
+import org.koitharu.kotatsu.core.ui.buttonParams
+import org.koitharu.kotatsu.core.ui.pageColumn
+import org.koitharu.kotatsu.core.ui.scrollable
+import org.koitharu.kotatsu.core.ui.secondaryButton
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import java.io.File
 import java.io.IOException
@@ -40,6 +53,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class NearbyOfflineSyncActivity : AppCompatActivity() {
     @Inject lateinit var backups: BackupRepository
+    @Inject lateinit var historyConflicts: HistoryConflictRepository
     private val client by lazy { Nearby.getConnectionsClient(this) }
     private val serviceId by lazy { packageName + ".nearby.backups.v1" }
     private val deviceLabel by lazy { "Monogatari - " + Build.MODEL.take(35) }
@@ -91,48 +105,34 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.screen_title_nearby)
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding, padding, padding)
-        }
-        val scroll = ScrollView(this).apply { addView(body) }
-        status = TextView(this).apply {
-            text = getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
-                "Confirm the same code on both devices before transferring."
-            setPadding(0, 0, 0, padding)
-        }
-        body.addView(status)
+        val body = pageColumn()
+        // The header body is the status line, so every step of the transfer appears next to Kitsune.
+        status = body.addHeaderCard(
+            MascotForm.DEFAULT,
+            getString(R.string.mono_screen_header_nearby),
+            getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
+                "Confirm the same code on both devices before transferring.",
+        ).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         // Receive / Send are the two main choices (filled); later steps are outlined, like Settings dialogs.
-        var buttonCount = 0
-        fun addButton(label: String, action: () -> Unit) {
-            val primary = buttonCount++ < 2
-            body.addView(MaterialButton(this, null,
-                if (primary) com.google.android.material.R.attr.materialButtonStyle
-                else com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                text = label
-                minHeight = (48 * resources.displayMetrics.density).toInt()
-                setOnClickListener { action() }
-            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = padding / 3 })
-        }
-        addButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
-        addButton(getString(R.string.mono_nearby_send_find_a_nearby_device)) { withPermissions(::discover) }
+        val connect = body.addSectionCard(getString(R.string.mono_section_nearby_connect))
+        connect.addPrimaryButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
+        connect.addPrimaryButton(getString(R.string.mono_nearby_send_find_a_nearby_device)) { withPermissions(::discover) }
         peers = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        body.addView(peers)
-        addButton(getString(R.string.mono_nearby_send_library_and_settings)) { sendLibrary() }
-        addButton(getString(R.string.mono_nearby_send_an_offline_book_or_file)) {
+        connect.addView(peers)
+        val transfer = body.addSectionCard(getString(R.string.mono_section_nearby_transfer))
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_send_library_and_settings)) { sendLibrary() }
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_send_an_offline_book_or_file)) {
             if (connected == null) say("Connect to the other device first.")
             else filePicker.launch(arrayOf("*/*"))
         }
-        addButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
-        body.addView(TextView(this).apply {
-            text = getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
+        transfer.addSecondaryButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
+        body.addSectionCard(getString(R.string.mono_section_nearby_shared)).addBodyText(
+            getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
                 "source subscriptions, and preferences. Files are sent separately. " +
                 "The private community identity is NOT shared automatically. " +
-                "You must approve each receive and restore."
-            setPadding(0, padding, 0, 0)
-        })
-        setMonogatariContent(scroll, MonogatariChrome.TEXT_MAX_WIDTH_DP)
+                "You must approve each receive and restore.",
+        )
+        setMonogatariContent(body.scrollable(), MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 
     private fun say(message: String) {
@@ -213,14 +213,11 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     private fun refreshPeers() {
         peers.removeAllViews()
         discovered.forEach { (id, name) ->
-            peers.addView(MaterialButton(this).apply {
-                text = getString(R.string.mono_nearby_connect) + name
-                setOnClickListener {
-                    client.stopDiscovery()
-                    client.requestConnection(deviceLabel, id, connectionEvents)
-                        .addOnFailureListener { say("Connection failed: " + it.localizedMessage) }
-                }
-            })
+            peers.addView(secondaryButton(getString(R.string.mono_nearby_connect) + name) {
+                client.stopDiscovery()
+                client.requestConnection(deviceLabel, id, connectionEvents)
+                    .addOnFailureListener { say("Connection failed: " + it.localizedMessage) }
+            }, buttonParams())
         }
     }
 
@@ -511,51 +508,75 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 if (sections.isEmpty()) {
                     file.delete()
                     say("Nothing selected for import.")
-                } else if (BackupSection.SETTINGS in sections) {
-                    chooseSettingsGroups { groups -> mergeReceived(file, sections, groups) }
-                } else {
-                    mergeReceived(file, sections, null)
+                } else reviewConflicts(file, sections) { peerId, resolution ->
+                    if (BackupSection.SETTINGS in sections) {
+                        chooseSettingsGroups { groups -> mergeReceived(file, sections, groups, peerId, resolution) }
+                    } else {
+                        mergeReceived(file, sections, null, peerId, resolution)
+                    }
                 }
             }.show()
     }
 
-    /** v1.1: pick which kinds of settings to take from the other device; secrets never travel. */
-    private fun chooseSettingsGroups(onChosen: (Set<SettingsTransferProfile.Group>) -> Unit) {
-        val groups = SettingsTransferProfile.Group.entries
-        val labels = groups.map { group ->
-            getString(when (group) {
-                SettingsTransferProfile.Group.APPEARANCE -> R.string.nearby_settings_appearance
-                SettingsTransferProfile.Group.READER -> R.string.nearby_settings_reader
-                SettingsTransferProfile.Group.LIBRARY -> R.string.nearby_settings_library
-                SettingsTransferProfile.Group.SOURCES -> R.string.nearby_settings_sources
-                SettingsTransferProfile.Group.NETWORK -> R.string.nearby_settings_network
-                SettingsTransferProfile.Group.TRACKING -> R.string.nearby_settings_tracking
-                SettingsTransferProfile.Group.OTHER -> R.string.nearby_settings_other
-            })
+    /**
+     * v1.2: when history is merged, titles read on both devices since their last sync are listed so the user picks
+     * whose progress wins (newest by default). [onResolved] gets the other device's id for the last-sync record.
+     */
+    private fun reviewConflicts(
+        file: File,
+        sections: Set<BackupSection>,
+        onResolved: (String?, HistoryConflicts.Resolution) -> Unit,
+    ) {
+        if (BackupSection.HISTORY !in sections) {
+            onResolved(null, HistoryConflicts.Resolution.NONE)
+            return
         }
-        // Network settings are often specific to one device (DNS, proxy), so they start unticked.
-        val checked = BooleanArray(groups.size) { groups[it] != SettingsTransferProfile.Group.NETWORK }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.nearby_settings_groups_title)
-            .setMultiChoiceItems(labels.toTypedArray(), checked) { _, which, value -> checked[which] = value }
-            .setCancelable(false)
-            .setPositiveButton(R.string.nearby_settings_groups_apply) { _, _ ->
-                onChosen(groups.filterIndexed { index, _ -> checked[index] }.toSet())
+        say(getString(R.string.sync_conflict_checking))
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { historyConflicts.review(file) } }
+            result.onSuccess { review ->
+                if (review.conflicts.isEmpty()) onResolved(review.deviceId, HistoryConflicts.Resolution.NONE)
+                else HistoryConflictSheet.show(
+                    this@NearbyOfflineSyncActivity, review,
+                    onApply = { resolution -> onResolved(review.deviceId, resolution) },
+                    onCancel = {
+                        file.delete()
+                        say("Received archive discarded. No changes were made.")
+                    },
+                )
+            }.onFailure {
+                say(getString(R.string.sync_conflict_check_failed))
+                onResolved(null, HistoryConflicts.Resolution.NONE)
             }
-            .show()
+        }
     }
 
-    private fun mergeReceived(file: File, sections: Set<BackupSection>, groups: Set<SettingsTransferProfile.Group>?) {
+    /** v1.1: pick which kinds of settings to take from the other device; secrets never travel. */
+    private fun chooseSettingsGroups(onChosen: (Set<SettingsTransferProfile.Group>) -> Unit) {
+        SettingsGroupsDialog.show(this, onChosen = onChosen)
+    }
+
+    private fun mergeReceived(
+        file: File,
+        sections: Set<BackupSection>,
+        groups: Set<SettingsTransferProfile.Group>?,
+        peerId: String? = null,
+        resolution: HistoryConflicts.Resolution = HistoryConflicts.Resolution.NONE,
+    ) {
         say("Merging selected backup sections...")
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 try {
                     runCatching { ZipInputStream(file.inputStream()).use {
-                        backups.restoreBackup(it, sections, null, groups)
+                        backups.restoreBackup(it, sections, null, groups,
+                            keepLocalHistoryIds = resolution.keepLocal,
+                            takeIncomingHistoryIds = resolution.takeIncoming)
                     } }
                 } finally { file.delete() }
             }
             result.onSuccess { summary ->
+                // Later syncs with this device only ask about titles changed on both sides after this point.
+                if (summary.isAllSuccess && peerId != null) historyConflicts.markSynced(peerId)
                 if (summary.isAllSuccess) say("Selected library sections merged. " +
                     "Restart Monogatari to apply updated settings.")
                 else say("${summary.failures.size} import operations failed. " +

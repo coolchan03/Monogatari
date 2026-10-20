@@ -23,7 +23,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.headerCard
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import javax.inject.Inject
@@ -100,12 +102,18 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
             isHorizontalScrollBarEnabled = false
             addView(buttons)
         })
-        status = TextView(this).apply {
-            text = if (isAudio) "Audio · resume and seek in the player above"
-                else "Video · captions are available when supplied by the feed"
-            setPadding(0, pad, 0, pad)
-        }
-        root.addView(status)
+        // Compact Kitsune card under the player, in the audio or video form, holding the status line.
+        val (statusCard, statusView) = headerCard(
+            if (isAudio) MascotForm.AUDIO else MascotForm.VIDEO,
+            null,
+            if (isAudio) "Audio · resume and seek in the player above"
+                else "Video · captions are available when supplied by the feed",
+            mascotSizeDp = 40,
+        )
+        status = statusView.apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        root.addView(statusCard, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = pad })
         setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
 
         val start = savedInstanceState?.getLong(KEY_POSITION)

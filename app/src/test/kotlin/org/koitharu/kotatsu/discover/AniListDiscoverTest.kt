@@ -56,4 +56,68 @@ class AniListDiscoverTest {
 		org.junit.Assert.assertTrue(AniListDiscover.buildRequestBody(AniListDiscover.Feed.entries.first(), 1)
 			.getString("query").contains("genres"))
 	}
+
+	@Test
+	fun airingScheduleGivesOneCardPerEpisodeWithLabel() {
+		val body = """
+			{"data":{"Page":{"pageInfo":{"hasNextPage":false},"airingSchedules":[
+				{"episode":5,"airingAt":1000,"media":{"id":7,"title":{"english":"Given","romaji":"Given"},"coverImage":{"large":"https://img/7.jpg"},"isAdult":false}},
+				{"episode":6,"airingAt":2000,"media":{"id":7,"title":{"english":"Given","romaji":"Given"},"coverImage":{"large":"https://img/7.jpg"}}},
+				{"episode":1,"airingAt":3000,"media":null}
+			]}}}
+		""".trimIndent()
+		val page = AniListDiscover.parseAiring(body) { episode, at -> "Ep $episode @$at" }
+		assertFalse(page.hasNextPage)
+		assertEquals(listOf("Ep 5 @1000", "Ep 6 @2000"), page.items.map { it.providerLabel })
+		assertEquals(2, page.items.map { it.id }.distinct().size)
+		// Reminders follow the show, not the episode card.
+		assertEquals(listOf(7, 7), page.items.map { it.aniListMediaId })
+	}
+
+	@Test
+	fun airingRequestCoversTheRequestedWindow() {
+		val variables = AniListDiscover.buildAiringRequestBody(page = 1, from = 100L, to = 700L).getJSONObject("variables")
+		assertEquals(100, variables.getInt("from"))
+		assertEquals(700, variables.getInt("to"))
+	}
+
+	@Test
+	fun followedAiringRequestFiltersByMediaIdsAndWindow() {
+		val body = AniListDiscover.buildFollowedAiringRequestBody(listOf(42, 7, 42), from = 100L, to = 700L)
+		val variables = body.getJSONObject("variables")
+		val ids = variables.getJSONArray("ids")
+		assertEquals(listOf(7, 42), (0 until ids.length()).map { ids.getInt(it) })
+		assertEquals(100, variables.getInt("from"))
+		assertEquals(700, variables.getInt("to"))
+		assertEquals(1, variables.getInt("page"))
+		val query = body.getString("query")
+		assertTrue(query.contains("mediaId_in"))
+		assertTrue(query.contains("sort: TIME"))
+	}
+
+	@Test
+	fun parsesFollowedAiringEpisodes() {
+		val body = """
+			{"data":{"Page":{"pageInfo":{"hasNextPage":true},"airingSchedules":[
+				{"episode":5,"airingAt":1000,"media":{"id":7,"title":{"english":null,"romaji":"Sasaki to Miyano"}}},
+				{"episode":6,"airingAt":2000,"media":{"id":8,"title":{"english":"Given","romaji":"Given"}}},
+				{"episode":1,"airingAt":3000,"media":null},
+				{"episode":2,"airingAt":4000,"media":{"title":{"english":"No id"}}}
+			]}}}
+		""".trimIndent()
+		val page = AniListDiscover.parseFollowedAiring(body)
+		assertTrue(page.hasNextPage)
+		assertEquals(
+			listOf(
+				AniListDiscover.AiredEpisode(7, "Sasaki to Miyano", 5, 1000L),
+				AniListDiscover.AiredEpisode(8, "Given", 6, 2000L),
+			),
+			page.episodes,
+		)
+	}
+
+	@Test(expected = IOException::class)
+	fun followedAiringErrorsAreReported() {
+		AniListDiscover.parseFollowedAiring("""{"errors":[{"message":"Too Many Requests"}],"data":null}""")
+	}
 }

@@ -98,6 +98,20 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-20 — v1.2 candidate batch (drafts branch `93c1e29`, CI run 39433462300 green, unreleased)
+- Main search bar: filter icon picks All/Manga/Books/Video/Audio (remembered, prefs `monogatari_search`).
+- NewPipe: no-query lists use kiosks (YouTube trending_movies_and_shows/music/gaming; PeerTube Trending; SoundCloud New & hot), fallback to the old fixed search.
+- New Discover books / Discover videos pages (discover/media/): parallel cover shelves, scoped search, chips; optional nav items + More entries.
+- Airing reminders: follow from "Airing this week" (long-press); worker every 3 h; prefs `monogatari_airing_reminders`.
+- Nearby: history conflict review sheet (SyncConflictPlanner); new per-device ledger prefs `monogatari_nearby_sync_ledger`.
+- Earlier in this batch: Discover as a tab, search type chips, Discover shelves, Books catalog autoload, feed fixes + cache, restyled secondary screens, restore settings groups, Airing this week.
+- Status: implemented, unit tests + build + cold-start smoke green; NOT device-verified (feeds and NewPipe kiosks unreachable from the sandbox).
+
+## 2026-10-20 — v1.1.0 released
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.1.0 built from `devel` `3d3e25a` (drafts branch merged; build check run 39349438710 green; tag push blocked by proxy, release started by one owner-approved connector workflow dispatch). APK SHA-256 `f1b102fdefd3af9322ccd5febaedd7617a108264d7d1a82e20c92cc109308662`.
+- Implemented and CI/unit-tested, NOT device-verified: Mihon import, Nearby two-way sync with settings groups, Discover "For you", smart collections, side-by-side translation, player auto-next, EPUB read-aloud.
+- Audit note (2026-10-20): style grep found fixed 15sp text in OpenSourceLicensesActivity and ForeignBackupReviewActivity; no screen has been visually checked (no screenshots yet). Next proposed: CI screenshot pass (light/dark), tablet/Razr layout check, real .tachibk import test.
+
 ## 2026-10-19 — v1.0.1 released
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.0.1 built from `devel` `1d06598` (build check run 39330141224 green; release started by one owner-approved connector workflow dispatch). APK SHA-256 `831005d4ce7744689f8629011f6bb6c04019d9ef913d178d76e34f155b4714ca`.
 - Contents: owner feedback fixes, full-resolution Kitsune art, consistent screens (see `docs/RELEASE_1_0_1_NOTES.md`). v1.1+ drafts stay on `claude/monogatari-v1-release-sq1t2k`, which has `devel` merged back in.

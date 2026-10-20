@@ -27,11 +27,17 @@ class DiscoverySafetyTest {
         assertFalse(FollowedTagPolicy.matches(listOf("Love"), setOf("Boys' Love")))
     }
 
-    @Test fun rssHostsMustBeExplicitlyTrusted() {
+    @Test fun rssFeedsMustBePublicHttps() {
         assertTrue(NewsFeedPolicy.trustedFeed("https://www.animenewsnetwork.com/all/rss.xml"))
+        assertTrue(NewsFeedPolicy.trustedFeed("https://bookriot.com/feed/"))
         assertFalse(NewsFeedPolicy.trustedFeed("http://www.youtube.com/rss"))
-        assertFalse(NewsFeedPolicy.trustedFeed("https://youtube.com.attacker.test/rss"))
         assertFalse(NewsFeedPolicy.trustedFeed("https://user:secret@reddit.com/rss"))
+        assertFalse(NewsFeedPolicy.trustedFeed("https://localhost/feed"))
+        assertFalse(NewsFeedPolicy.trustedFeed("https://192.168.1.10/feed"))
+        assertFalse(NewsFeedPolicy.trustedFeed("https://127.0.0.1/feed"))
+        assertFalse(NewsFeedPolicy.trustedFeed("https://[::1]/feed"))
+        assertFalse(NewsFeedPolicy.trustedFeed("https://router/feed"))
+        assertFalse(NewsFeedPolicy.trustedFeed("file:///etc/passwd"))
     }
 
     @Test fun lockedPrivateCategoryDoesNotLeakToSecondarySurfaces() {

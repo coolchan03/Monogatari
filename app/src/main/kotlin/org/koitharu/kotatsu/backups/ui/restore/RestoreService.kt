@@ -26,6 +26,7 @@ import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.toUriOrNull
 import org.koitharu.kotatsu.core.util.ext.withPartialWakeLock
 import org.koitharu.kotatsu.core.util.progress.Progress
+import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import java.io.FileNotFoundException
 import java.io.File
 import java.util.zip.ZipInputStream
@@ -52,6 +53,9 @@ class RestoreService : BaseBackupRestoreService() {
 		val source = intent.getStringExtra(AppRouter.KEY_DATA)?.toUriOrNull() ?: throw FileNotFoundException()
 		val sections =
 			requireNotNull(intent.getSerializableExtraCompat<Array<BackupSection>>(AppRouter.KEY_ENTRIES)?.toSet())
+		val settingsGroups = intent.getStringArrayExtra(EXTRA_SETTINGS_GROUPS)?.mapNotNullTo(HashSet()) { name ->
+			SettingsTransferProfile.Group.entries.firstOrNull { it.name == name }
+		}
 		powerManager.withPartialWakeLock(TAG) {
 			val progress = MutableStateFlow(Progress.INDETERMINATE)
 			val progressUpdateJob = if (checkNotificationPermission(CHANNEL_ID)) {
@@ -74,7 +78,7 @@ class RestoreService : BaseBackupRestoreService() {
                     "Selected backup does not contain every requested restore section"
                 }
                 val result = ZipInputStream(staged.inputStream()).use { input ->
-                    repository.restoreBackup(input, sections, progress)
+                    repository.restoreBackup(input, sections, progress, settingsGroups)
                 }
                 showResultNotification(source, result)
             } finally {
@@ -118,11 +122,20 @@ class RestoreService : BaseBackupRestoreService() {
 		private const val TAG = "RESTORE"
 		private const val FOREGROUND_NOTIFICATION_ID = 39
 
+		private const val EXTRA_SETTINGS_GROUPS = "settings_groups"
+
+		/** [settingsGroups] limits which app settings are applied; null applies every transferable setting. */
 		@CheckResult
-		fun start(context: Context, uri: Uri, sections: Set<BackupSection>): Boolean = try {
+		fun start(
+			context: Context,
+			uri: Uri,
+			sections: Set<BackupSection>,
+			settingsGroups: Set<SettingsTransferProfile.Group>? = null,
+		): Boolean = try {
 			val intent = Intent(context, RestoreService::class.java)
 			intent.putExtra(AppRouter.KEY_DATA, uri.toString())
 			intent.putExtra(AppRouter.KEY_ENTRIES, sections.toTypedArray())
+			settingsGroups?.let { groups -> intent.putExtra(EXTRA_SETTINGS_GROUPS, groups.map { it.name }.toTypedArray()) }
 			ContextCompat.startForegroundService(context, intent)
 			true
 		} catch (e: Exception) {

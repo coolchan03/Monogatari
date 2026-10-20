@@ -40,7 +40,9 @@ import org.koitharu.kotatsu.core.util.ext.buildBundle
 import org.koitharu.kotatsu.core.util.ext.setContentDescriptionAndTooltip
 import org.koitharu.kotatsu.core.util.ext.smoothScrollToTop
 import org.koitharu.kotatsu.databinding.NavigationRailFabBinding
-import org.koitharu.kotatsu.discover.DiscoverActivity
+import org.koitharu.kotatsu.discover.DiscoverFragment
+import org.koitharu.kotatsu.discover.media.DiscoverBooksFragment
+import org.koitharu.kotatsu.discover.media.DiscoverVideoFragment
 import org.koitharu.kotatsu.explore.ui.ExploreFragment
 import org.koitharu.kotatsu.favourites.ui.container.FavouritesContainerFragment
 import org.koitharu.kotatsu.history.ui.HistoryListFragment
@@ -153,6 +155,13 @@ class MainNavigationDelegate(
 		navBar.selectedItemId = R.id.nav_explore
 	}
 
+	/** Switches to the Discover tab when it is on the navigation bar; returns false when it is not. */
+	fun openDiscover(): Boolean {
+		val item = navBar.menu.findItem(R.id.nav_discover)?.takeIf { it.isVisible } ?: return false
+		navBar.selectedItemId = item.itemId
+		return true
+	}
+
 	fun syncSelectedItem() {
 		val fragment = primaryFragment ?: return
 		onFragmentChanged(fragment, fromUser = false)
@@ -195,16 +204,15 @@ class MainNavigationDelegate(
 	}
 
 	private fun onNavigationItemSelected(@IdRes itemId: Int): Boolean {
-		if (itemId == R.id.nav_discover) {
-			navBar.context.startActivity(Intent(navBar.context, DiscoverActivity::class.java))
-			return false // Full-screen destination; preserve the current content tab.
-		}
 		if (itemId == R.id.nav_more) {
 			navBar.context.startActivity(Intent(navBar.context, MoreActivity::class.java))
 			return false // More is an activity; keep the current content tab checked.
 		}
 		val newFragment = when (itemId) {
 			R.id.nav_books -> BookLibraryFragment::class.java
+			R.id.nav_discover -> DiscoverFragment::class.java
+			R.id.nav_discover_books -> DiscoverBooksFragment::class.java
+			R.id.nav_discover_video -> DiscoverVideoFragment::class.java
 			R.id.nav_history -> HistoryListFragment::class.java
 			R.id.nav_favorites -> FavouritesContainerFragment::class.java
 			R.id.nav_explore -> ExploreFragment::class.java
@@ -224,6 +232,9 @@ class MainNavigationDelegate(
 
 	private fun getItemId(fragment: Fragment) = when (fragment) {
 		is BookLibraryFragment -> R.id.nav_books
+		is DiscoverFragment -> R.id.nav_discover
+		is DiscoverBooksFragment -> R.id.nav_discover_books
+		is DiscoverVideoFragment -> R.id.nav_discover_video
 		is HistoryListFragment -> R.id.nav_history
 		is FavouritesContainerFragment -> R.id.nav_favorites
 		is ExploreFragment -> R.id.nav_explore

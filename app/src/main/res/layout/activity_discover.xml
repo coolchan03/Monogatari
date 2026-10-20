@@ -92,7 +92,8 @@
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
 			android:clipToPadding="false"
-			android:padding="@dimen/margin_small" />
+			android:padding="@dimen/margin_small"
+			android:paddingBottom="96dp" />
 
 		<com.google.android.material.progressindicator.CircularProgressIndicator
 			android:id="@+id/progress"

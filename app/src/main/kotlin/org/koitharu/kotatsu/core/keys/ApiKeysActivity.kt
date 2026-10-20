@@ -11,10 +11,10 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.monogatariCard
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import javax.inject.Inject
 
@@ -51,9 +51,7 @@ class ApiKeysActivity : AppCompatActivity() {
 		list.removeAllViews()
 		val pad = (14 * resources.displayMetrics.density).toInt()
 		for (service in ApiServices.all) {
-			val card = MaterialCardView(this).apply {
-				radius = 16 * resources.displayMetrics.density
-				cardElevation = 0f
+			val card = monogatariCard().apply {
 				setContentPadding(pad, pad, pad, pad)
 			}
 			val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }

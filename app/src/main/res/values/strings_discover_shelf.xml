@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="discover_shelf_video">Trending videos</string>
+	<string name="discover_shelf_books">Popular free books</string>
+	<string name="discover_shelf_audio">Popular audiobooks</string>
+	<string name="discover_airing_this_week">Airing this week</string>
+	<string name="discover_airing_episode">Ep %1$d · %2$s</string>
+</resources>

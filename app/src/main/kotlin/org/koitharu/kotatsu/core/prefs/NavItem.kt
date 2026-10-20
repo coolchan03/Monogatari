@@ -24,6 +24,8 @@ enum class NavItem(
 	FEED(R.id.nav_feed, R.string.feed, R.drawable.ic_monogatari_nav_feed),
 	UPDATED(R.id.nav_updated, R.string.updated, R.drawable.ic_monogatari_nav_updated),
 	BOOKMARKS(R.id.nav_bookmarks, R.string.bookmarks, R.drawable.ic_monogatari_nav_bookmarks),
+	DISCOVER_BOOKS(R.id.nav_discover_books, R.string.media_discover_books_nav, R.drawable.ic_monogatari_nav_books),
+	DISCOVER_VIDEO(R.id.nav_discover_video, R.string.media_discover_video_nav, R.drawable.ic_play),
 	;
 
 	fun isAvailable(settings: AppSettings): Boolean = when (this) {

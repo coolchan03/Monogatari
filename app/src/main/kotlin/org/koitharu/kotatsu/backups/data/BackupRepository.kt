@@ -220,12 +220,18 @@ class BackupRepository @Inject constructor(
     /**
      * @param settingsGroups when not null, only these groups of app settings are applied from the SETTINGS section
      * (device-only values such as the app lock or proxy password are never applied); null applies every safe key.
+     * @param keepLocalHistoryIds manga whose history on this device the user chose to keep: their incoming history
+     * entries are skipped (sync conflict review). Empty keeps the usual newest-wins merge.
+     * @param takeIncomingHistoryIds manga whose incoming history the user chose over this device's, applied even
+     * when it is older. Empty keeps the usual newest-wins merge.
      */
     suspend fun restoreBackup(
         input: ZipInputStream,
         sections: Set<BackupSection>,
         progress: FlowCollector<Progress>?,
         settingsGroups: Set<SettingsTransferProfile.Group>? = null,
+        keepLocalHistoryIds: Set<Long> = emptySet(),
+        takeIncomingHistoryIds: Set<Long> = emptySet(),
     ): CompositeResult {
         progress?.emit(Progress.INDETERMINATE)
         var commonProgress = Progress(0, sections.size)
@@ -236,10 +242,12 @@ class BackupRepository @Inject constructor(
             if (section in sections) {
                 result += when (section) {
                     BackupSection.INDEX -> CompositeResult.EMPTY // useless in our case
-                    BackupSection.HISTORY -> input.readJsonArray<HistoryBackup>(serializer()).restoreToDb {
+                    BackupSection.HISTORY -> input.readJsonArray<HistoryBackup>(serializer()).filterNot {
+                        it.mangaId in keepLocalHistoryIds
+                    }.restoreToDb {
                         val incoming = it.toEntity()
                         val existing = getHistoryDao().findIncludingDeleted(incoming.mangaId)
-                        if (BackupMergePolicy.shouldReplace(
+                        if (incoming.mangaId in takeIncomingHistoryIds || BackupMergePolicy.shouldReplace(
                                 existing?.updatedAt, existing?.deletedAt ?: 0L,
                                 incoming.updatedAt, incoming.deletedAt)) {
                             upsertManga(it.manga)

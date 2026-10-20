@@ -120,4 +120,13 @@ class MediaFeedParserTest {
         assertEquals(750, item.durationSeconds)
         assertEquals("https://cdn.example/ch.json", item.chaptersUrl)
     }
+
+    @Test fun toleratesBomHtmlEntitiesAndSimpleDoctype() {
+        val feed = "\uFEFF\n<!DOCTYPE rss SYSTEM \"http://example.org/rss.dtd\">" +
+            "<rss><channel><item><title>Episode&nbsp;One &mdash; Q&A</title>" +
+            "<enclosure url=\"https://cdn.example/one.mp3?a=1&b=2\" type=\"audio/mpeg\"/></item></channel></rss>"
+        val item = MediaFeedParser.parse(feed).single()
+        assertEquals("Episode\u00A0One \u2014 Q&A", item.title)
+        assertEquals("https://cdn.example/one.mp3?a=1&b=2", item.mediaUrl)
+    }
 }

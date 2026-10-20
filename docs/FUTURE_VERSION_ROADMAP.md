@@ -138,3 +138,9 @@ Mihon/Tachiyomi import with reading position, two-way Nearby sync, settings-grou
 Discover "For you", side-by-side translation, auto-next, EPUB read-aloud. Still open for later 1.x: settings-group choice
 in the normal restore screen, sync conflict review UI (`SyncConflictPlanner`), remembered pairing and multi-file
 transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
+
+
+## Released in v1.2.0 (2026-10-20)
+
+- Discover books / Discover videos pages, Discover as a tab, airing calendar and reminders (v1.3 items pulled forward), search type picker, NewPipe trending kiosks, feed fixes with cache, Nearby history conflict review, settings groups on normal restore, restyled secondary screens.
+- Still open: remembered Nearby pairing, multi-file transfers, Komga as a source (v2.0), conflict review for favourites/categories.

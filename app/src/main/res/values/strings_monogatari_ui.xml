@@ -96,7 +96,7 @@
     <string name="mono_news_tags_to_follow_separated_by_commas">Tags to follow, separated by commas</string>
     <string name="mono_news_followed_topics">Followed topics</string>
     <string name="mono_news_built_in_entertainment_feeds">Built-in entertainment feeds</string>
-    <string name="mono_news_for_safety_use_an_approved_https">For safety, use an approved HTTPS RSS feed (Anime News Network, YouTube, or Reddit).</string>
+    <string name="mono_news_for_safety_use_an_approved_https">Enter a public HTTPS RSS or Atom feed address.</string>
     <string name="mono_news_remove_a_saved_feed_before_adding">Remove a saved feed before adding another</string>
     <string name="mono_news_no_saved_feeds">No saved feeds</string>
     <string name="mono_news_saved_feeds">Saved feeds</string>
@@ -125,4 +125,19 @@
     <string name="mono_qa_it_s_ok">It\'s OK</string>
     <string name="mono_qa_needs_work">Needs work</string>
     <string name="mono_qa_not_for_me">Not for me</string>
+    <!-- Header and section cards on the secondary screens. -->
+    <string name="mono_screen_header_foreign_backup">Bring your library over</string>
+    <string name="mono_screen_header_foreign_backup_body">Kotatsu, Mihon and Mangayomi backups are reviewed before anything is imported.</string>
+    <string name="mono_section_backup_file">Backup file</string>
+    <string name="mono_screen_header_nearby">Device to device</string>
+    <string name="mono_section_nearby_connect">Connect</string>
+    <string name="mono_section_nearby_transfer">Transfer</string>
+    <string name="mono_section_nearby_shared">What is shared</string>
+    <string name="mono_screen_header_webdav">Your own WebDAV server</string>
+    <string name="mono_section_webdav_account">Account</string>
+    <string name="mono_section_webdav_backups">Backups</string>
+    <string name="mono_screen_header_licences">Free and open source</string>
+    <string name="mono_screen_header_licences_body">Monogatari is GPL-3.0 software built on Kotatsu and other open-source projects.</string>
+    <string name="mono_section_licences_notices">Notices</string>
+    <string name="mono_section_licences_links">Full texts and source</string>
 </resources>

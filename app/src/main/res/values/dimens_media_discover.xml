@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<dimen name="media_discover_card_width">128dp</dimen>
+	<dimen name="media_discover_mascot_size">64dp</dimen>
+	<dimen name="media_discover_bottom_padding">96dp</dimen>
+	<integer name="media_discover_placeholder_count">6</integer>
+</resources>

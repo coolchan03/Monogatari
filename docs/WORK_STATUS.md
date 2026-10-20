@@ -1,8 +1,36 @@
 # Monogatari work checkpoint
 
+## 2026-10-20 — v1.2 candidate batch (drafts branch `93c1e29`, CI run 39433462300 green, unreleased)
+- Main search bar: filter icon picks All/Manga/Books/Video/Audio (remembered, prefs `monogatari_search`).
+- NewPipe: no-query lists use kiosks (YouTube trending_movies_and_shows/music/gaming; PeerTube Trending; SoundCloud New & hot), fallback to the old fixed search.
+- New Discover books / Discover videos pages (discover/media/): parallel cover shelves, scoped search, chips; optional nav items + More entries.
+- Airing reminders: follow from "Airing this week" (long-press); worker every 3 h; prefs `monogatari_airing_reminders`.
+- Nearby: history conflict review sheet (SyncConflictPlanner); new per-device ledger prefs `monogatari_nearby_sync_ledger`.
+- Earlier in this batch: Discover as a tab, search type chips, Discover shelves, Books catalog autoload, feed fixes + cache, restyled secondary screens, restore settings groups, Airing this week.
+- Status: implemented, unit tests + build + cold-start smoke green; NOT device-verified (feeds and NewPipe kiosks unreachable from the sandbox).
+
 ## 2026-10-20 — 1.0.2 work on devel; v1.1+ progress on drafts branch
 - `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
 - Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
+
+## 2026-10-20 — post-1.1.0 batch (drafts branch, unreleased)
+- Search: Manga/Books/Video/Audio chips on the results screen (phone + tablet layouts); global type filter now also hides history/favourites/local rows.
+- Discover: Video/Books/Audio open on a shelf of popular titles from built-in sources (Dailymotion, Odysee, IA Video; Gutenberg, Royal Road, Open Library; LibriVox, IA Audio); Books catalog opens with the last search or Standard Ebooks new releases.
+- v1.3 draft: "Airing this week" chip in Discover Video (AniList airingSchedules, 7 days, episode + local time badge).
+- v1.1 follow-up: normal backup restore asks which settings groups to apply (shared SettingsGroupsDialog, also used by Nearby).
+- Feeds: OkHttp fetch with browser UA, https-only redirects, lenient FeedXml parsing (Android rejected the old secure-processing flag), any public https feed, included_feeds_v2 (9 feeds), per-feed article cache, All feeds chip, mascot empty state.
+- UI: core/ui/MonogatariViews.kt; backup import, Nearby, WebDAV, licences, StoryWeaver, feed player restyled with header/section cards.
+- Status: implemented; CI in progress; feed hosts unreachable from the sandbox; not device-verified.
+
+## 2026-10-20 — Discover as a normal tab (after v1.1.0, unreleased)
+- Owner report: Discover opened as a separate page over the main screen (back arrow, navigation bar hidden).
+- New `discover/DiscoverFragment.kt` (logic moved from the activity) is the `nav_discover` tab in `MainNavigationDelegate`; Explore's "Discover" menu switches to that tab when it is on the bar. `DiscoverActivity` is now only a host for the fragment, used from More / Test Center or when Discover is not on the bar.
+- Status: implemented; CI pending; not device-verified.
+
+## 2026-10-20 — v1.1.0 released
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.1.0 built from `devel` `3d3e25a` (drafts branch merged; build check run 39349438710 green; tag push blocked by proxy, release started by one owner-approved connector workflow dispatch). APK SHA-256 `f1b102fdefd3af9322ccd5febaedd7617a108264d7d1a82e20c92cc109308662`.
+- Implemented and CI/unit-tested, NOT device-verified: Mihon import, Nearby two-way sync with settings groups, Discover "For you", smart collections, side-by-side translation, player auto-next, EPUB read-aloud.
+- Audit note (2026-10-20): style grep found fixed 15sp text in OpenSourceLicensesActivity and ForeignBackupReviewActivity; no screen has been visually checked (no screenshots yet). Next proposed: CI screenshot pass (light/dark), tablet/Razr layout check, real .tachibk import test.
 
 ## 2026-10-19 — v1.0.1 released
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.0.1 built from `devel` `1d06598` (build check run 39330141224 green; release started by one owner-approved connector workflow dispatch). APK SHA-256 `831005d4ce7744689f8629011f6bb6c04019d9ef913d178d76e34f155b4714ca`.

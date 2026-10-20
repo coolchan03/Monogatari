@@ -88,7 +88,7 @@ class ExploreFragment :
 			addItemDecoration(TypedListSpacingDecoration(context, false))
 			checkNotNull(sourceSelectionController).attachToRecyclerView(this)
 		}
-		addMenuProvider(ExploreMenuProvider(requireContext(), router, viewModel))
+		addMenuProvider(ExploreMenuProvider(requireActivity(), router, viewModel))
 		viewModel.content.observe(viewLifecycleOwner, checkNotNull(exploreAdapter))
         WorkManager.getInstance(requireContext())
             .getWorkInfosForUniqueWorkLiveData(SourceBootstrapWorker.NAME)

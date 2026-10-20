@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="vertical"
+	android:paddingTop="@dimen/margin_small"
+	android:paddingBottom="@dimen/margin_small">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:gravity="center_vertical"
+		android:orientation="horizontal"
+		android:paddingHorizontal="@dimen/margin_normal">
+
+		<LinearLayout
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:orientation="vertical">
+
+			<TextView
+				android:id="@+id/text_title"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:textAppearance="?attr/textAppearanceTitleLarge" />
+
+			<TextView
+				android:id="@+id/text_intro"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="4dp"
+				android:textAppearance="?attr/textAppearanceBodyMedium"
+				android:textColor="?attr/colorOnSurfaceVariant" />
+
+		</LinearLayout>
+
+		<ImageView
+			android:id="@+id/image_mascot"
+			android:layout_width="@dimen/media_discover_mascot_size"
+			android:layout_height="@dimen/media_discover_mascot_size"
+			android:layout_marginStart="@dimen/margin_small"
+			android:contentDescription="@string/mascot_default"
+			android:scaleType="fitCenter" />
+
+	</LinearLayout>
+
+	<com.google.android.material.textfield.TextInputLayout
+		android:id="@+id/layout_search"
+		style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="@dimen/margin_normal"
+		android:layout_marginTop="@dimen/margin_normal"
+		app:endIconMode="clear_text">
+
+		<com.google.android.material.textfield.TextInputEditText
+			android:id="@+id/edit_search"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:imeOptions="actionSearch"
+			android:importantForAutofill="no"
+			android:inputType="text"
+			android:maxLines="1" />
+
+	</com.google.android.material.textfield.TextInputLayout>
+
+	<HorizontalScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="@dimen/margin_small"
+		android:scrollbars="none">
+
+		<com.google.android.material.chip.ChipGroup
+			android:id="@+id/chips_actions"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="@dimen/margin_normal"
+			app:singleLine="true" />
+
+	</HorizontalScrollView>
+
+	<TextView
+		android:id="@+id/text_message"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:gravity="center"
+		android:padding="@dimen/margin_normal"
+		android:text="@string/media_discover_nothing_loaded"
+		android:textAppearance="?attr/textAppearanceBodyMedium"
+		android:visibility="gone" />
+
+</LinearLayout>
