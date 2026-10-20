@@ -110,7 +110,7 @@ class NewPipeVideoRepository(
             if (items.isEmpty()) continue
             val key = NewPipeKioskPlan.cacheKey(source, kioskId)
             val next = page.nextPage
-            if (Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
+            if (next != null && Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
             activeKiosk = kioskId
             lastWorkingKiosk = kioskId
             return items
@@ -129,7 +129,7 @@ class NewPipeVideoRepository(
             return emptyList()
         }
         val next = response.nextPage
-        if (Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
+        if (next != null && Page.isValid(next)) kioskNextPage[key] = next else kioskNextPage.remove(key)
         return response.items.filterIsInstance<StreamInfoItem>()
     }
 
