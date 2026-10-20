@@ -12,8 +12,11 @@ import org.koitharu.kotatsu.core.db.entity.TagEntity
 import org.koitharu.kotatsu.favourites.data.FavouriteCategoryEntity
 import org.koitharu.kotatsu.favourites.data.FavouriteEntity
 import org.koitharu.kotatsu.history.data.HistoryEntity
+import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
+import org.koitharu.kotatsu.jsext.repo.JsSourceIntegrity
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
+import org.koitharu.kotatsu.jsext.repo.SourceCodeLanguage
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
 import org.koitharu.kotatsu.jsext.source.jsUid
 import org.koitharu.kotatsu.list.domain.ListSortOrder
@@ -21,12 +24,16 @@ import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.parsers.model.RATING_UNKNOWN
 import org.koitharu.kotatsu.parsers.util.longHashCode
 import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
+import java.io.IOException
 import java.util.Locale
 import javax.inject.Inject
 
 /**
- * Imports a Mangayomi backup: library (favourites + categories) and reading progress. Missing extensions
- * are installed from the user's repositories first. Existing entries are never overwritten by older data.
+ * Imports a Mangayomi backup: its extension repositories, the extensions installed in Mangayomi (from the user's
+ * repositories, the JavaScript code saved in the backup, or the extension's own URL), then the library
+ * (favourites + categories, for manga, anime and novels alike) and reading progress. Titles whose extension can't
+ * run here are still added under a placeholder source so they can be migrated. Existing entries are never
+ * overwritten by older data, and installed extensions are left as they are.
  */
 @Reusable
 class MangayomiImporter @Inject constructor(
@@ -46,9 +53,30 @@ class MangayomiImporter @Inject constructor(
 		val matched: Int get() = plan.matched.size
 		val sourcesToInstall: List<String> get() = plan.toInstall.map { it.name }
 		val unmatchedSources: List<String> get() = plan.unmatched.map { it.source }.distinct().sorted()
+
+		/** Library titles by Mangayomi item type. */
+		val mangaTitles: Int get() = plan.titles.count { it.itemType == JsItemType.MANGA.code }
+		val animeTitles: Int get() = plan.titles.count { it.itemType == JsItemType.ANIME.code }
+		val novelTitles: Int get() = plan.titles.count { it.itemType == JsItemType.NOVEL.code }
+		val categories: Int get() = backup.categories.size
+
+		/** Extensions installed in Mangayomi. */
+		val extensionsInBackup: Int get() = backup.extensions.filter { it.isAdded }.distinctBy { it.id }.size
+		val extensionsToInstall: List<String> get() = plan.extensionInstalls.map { it.extension.name }
+		val extensionsWithCode: Int
+			get() = plan.extensionInstalls.count { MangayomiImportPlanner.InstallVia.BACKUP_CODE in it.attempts }
+		val extensionsAlreadyInstalled: Int get() = plan.alreadyInstalled
+		val unsupportedExtensions: List<String> get() = plan.unsupportedExtensions.map { it.name }.distinct().sorted()
+		val newRepos: List<String> get() = plan.newRepoUrls
 	}
 
-	class Result(val imported: Int, val skipped: Int, val installFailures: List<String>)
+	class Result(
+		val imported: Int,
+		val skipped: Int,
+		val installFailures: List<String>,
+		val installedSources: Int = 0,
+		val addedRepos: Int = 0,
+	)
 
 	internal suspend fun preview(backup: MangayomiBackup): Preview = withContext(Dispatchers.Default) {
 		val entries = LinkedHashMap<Long, JsSourceEntry>()
@@ -60,18 +88,37 @@ class MangayomiImporter @Inject constructor(
 		offered.forEach { entries.putIfAbsent(it.id, it) }
 		val installedIds = installed.list().mapTo(HashSet()) { it.id }
 		val sources = entries.values.map {
-			MangayomiImportPlanner.Source(it.id, it.name, it.lang, it.itemType.code, it.id in installedIds)
+			MangayomiImportPlanner.Source(it.id, it.name, it.lang, it.itemType.code, it.id in installedIds, it.version)
 		}
-		Preview(backup, MangayomiImportPlanner.plan(backup, sources), entries)
+		Preview(backup, MangayomiImportPlanner.plan(backup, sources, repositories.getRepos()), entries)
 	}
 
 	suspend fun importAll(preview: Preview, defaultCategoryTitle: String): Result = withContext(Dispatchers.IO) {
 		val failedInstalls = ArrayList<String>()
 		val failedIds = HashSet<Long>()
+		// Repositories first, so extensions without saved code can still come from them.
+		val addedRepos = preview.plan.newRepoUrls.count { repositories.addRepo(it) }
+		val entries = HashMap(preview.entries)
+		if (addedRepos > 0 && preview.plan.extensionInstalls.any { it.extension.id !in entries }) {
+			runCatching { repositories.fetchAll().jsSources.map { it.entry } }
+				.onFailure { if (it is CancellationException) throw it }
+				.getOrDefault(emptyList())
+				.forEach { entries.putIfAbsent(it.id, it) }
+		}
+		var installedSources = 0
+		for (install in preview.plan.extensionInstalls) {
+			if (installExtension(install, entries)) {
+				installedSources++
+			} else {
+				failedInstalls += install.extension.name
+				failedIds += install.extension.id
+			}
+		}
 		for (source in preview.plan.toInstall) {
-			val entry = preview.entries[source.id] ?: continue
+			val entry = entries[source.id] ?: continue
 			try {
 				repositories.installJsSource(entry)
+				installedSources++
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
@@ -96,8 +143,75 @@ class MangayomiImporter @Inject constructor(
 				skipped++
 			}
 		}
-		Result(imported, skipped, failedInstalls)
+		Result(imported, skipped, failedInstalls, installedSources, addedRepos)
 	}
+
+	/** @return `true` once one of the planned ways succeeded. */
+	private suspend fun installExtension(
+		install: MangayomiImportPlanner.ExtensionInstall,
+		entries: Map<Long, JsSourceEntry>,
+	): Boolean {
+		val ext = install.extension
+		for (via in install.attempts) {
+			try {
+				when (via) {
+					MangayomiImportPlanner.InstallVia.REPOSITORY -> {
+						val entry = entries[ext.id]?.takeIf { it.isRunnable } ?: continue
+						repositories.installJsSource(entry)
+					}
+
+					MangayomiImportPlanner.InstallVia.BACKUP_CODE -> installFromCode(ext.toEntry(), ext.sourceCode ?: continue)
+					MangayomiImportPlanner.InstallVia.SOURCE_URL -> repositories.installJsSource(ext.toEntry())
+				}
+				return true
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				// Try the next way.
+			}
+		}
+		return false
+	}
+
+	/**
+	 * Installs code saved in the backup with the checks `SourceRepoRepository.installJsSource` applies to downloaded
+	 * code (size, Mangayomi extension shape, no downgrade or silent change of an installed version). It only ever
+	 * runs sandboxed inside QuickJS, like any repository source.
+	 */
+	private fun installFromCode(entry: JsSourceEntry, code: String) {
+		if (!MangayomiImportPlanner.isInstallableCode(code)) {
+			throw IOException("Not a Mangayomi JavaScript source: ${entry.name}")
+		}
+		val current = installed.get(entry.id)
+		JsSourceIntegrity.validate(
+			version = entry.version,
+			contentHash = JsSourceIntegrity.sha256(code),
+			installedVersion = current?.entry?.version,
+			installedHash = current?.let { JsSourceIntegrity.sha256(it.code) },
+			declaredHash = null,
+		)
+		installed.install(entry, code)
+	}
+
+	private fun MangayomiBackup.Extension.toEntry() = JsSourceEntry(
+		id = id,
+		name = name,
+		baseUrl = baseUrl,
+		lang = lang,
+		version = version,
+		itemType = JsItemType.fromCode(itemType),
+		language = SourceCodeLanguage.JAVASCRIPT,
+		sourceCodeUrl = sourceCodeUrl,
+		iconUrl = iconUrl,
+		apiUrl = apiUrl,
+		dateFormat = dateFormat,
+		dateFormatLocale = dateFormatLocale,
+		isNsfw = isNsfw,
+		hasCloudflare = hasCloudflare,
+		additionalParams = additionalParams,
+		notes = notes,
+		repoUrl = repoUrl?.let { org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl(it) }.orEmpty(),
+	)
 
 	/** Mangayomi category id (or `null` for its implicit default) -> local category id, created by title as needed. */
 	private suspend fun resolveCategories(
