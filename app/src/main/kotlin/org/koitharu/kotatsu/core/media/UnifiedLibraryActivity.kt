@@ -137,7 +137,7 @@ class UnifiedLibraryActivity : AppCompatActivity() {
         }, LinearLayout.LayoutParams(-1, -2))
         collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
         selectedCollection = savedInstanceState?.getString("selected_collection")?.takeIf { it in collections }
-        search = EditText(this).apply { hint = "Filter this library"; setSingleLine(true) }
+        search = EditText(this).apply { hint = getString(R.string.mono_library_filter_this_library); setSingleLine(true) }
         search.doAfterTextChanged { render() }
         search.setText(savedInstanceState?.getString("library_query") ?: intent.getStringExtra(EXTRA_FILTER).orEmpty())
         root.addView(search, LinearLayout.LayoutParams(-1, -2))

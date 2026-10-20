@@ -250,7 +250,7 @@ class BookLibraryActivity : AppCompatActivity() {
             "Bilibili · public videos (official website)",
         )
         MaterialAlertDialogBuilder(this)
-            .setTitle("More entertainment catalogs")
+            .setTitle(getString(R.string.mono_books_more_entertainment_catalogs))
             .setItems(providers.toTypedArray()) { _, which ->
                 val term = query.text?.toString()?.trim().orEmpty()
                 when (which) {
@@ -466,7 +466,7 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun openStandardEpub(book: PublicBookCatalog.Book) {
         if (!StandardEbooksCatalog.officialPage(book.url)) {
-            catalogStatus.text = "Invalid Standard Ebooks link."
+            catalogStatus.text = getString(R.string.mono_books_invalid_standard_ebooks_link)
             return
         }
         catalogStatus.text = "Finding the compatible EPUB for ${book.title}..."
@@ -569,11 +569,11 @@ class BookLibraryActivity : AppCompatActivity() {
 
     private fun openOfficialLink(url: String) {
         if (!url.startsWith("https://")) {
-            catalogStatus.text = "Only secure official catalog links can be opened."
+            catalogStatus.text = getString(R.string.mono_books_only_secure_official_catalog_links_can)
             return
         }
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
-            .onFailure { catalogStatus.text = "No browser is available to open that catalog." }
+            .onFailure { catalogStatus.text = getString(R.string.mono_books_no_browser_is_available_to_open) }
     }
 
     private suspend fun searchProvider(source: String, term: String): List<PublicBookCatalog.Book> =
@@ -582,7 +582,7 @@ class BookLibraryActivity : AppCompatActivity() {
     private fun showSortOptions() {
         val options = BookCatalogSorter.Order.entries
         MaterialAlertDialogBuilder(this)
-            .setTitle("Sort catalog results")
+            .setTitle(getString(R.string.mono_books_sort_catalog_results))
             .setSingleChoiceItems(
                 options.map { it.label }.toTypedArray(), options.indexOf(catalogOrder)
             ) { dialog, selected ->

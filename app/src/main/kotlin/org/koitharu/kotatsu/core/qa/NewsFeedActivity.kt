@@ -104,7 +104,7 @@ class NewsFeedActivity : AppCompatActivity() {
             filters.addView(this)
         }
         searchInput = EditText(this).apply {
-            hint = "Filter articles by title or topic"
+            hint = getString(R.string.mono_news_filter_articles_by_title_or_topic)
             setSingleLine(true)
             setText(savedInstanceState?.getString("news_search").orEmpty())
             doAfterTextChanged { if (::entries.isInitialized) render() }
@@ -115,7 +115,7 @@ class NewsFeedActivity : AppCompatActivity() {
             isHorizontalScrollBarEnabled = false
             addView(chipsRow)
         }, LinearLayout.LayoutParams(-1, -2))
-        message = TextView(this).apply { text = "Long-press a story to save it" }
+        message = TextView(this).apply { text = getString(R.string.mono_news_long_press_a_story_to_save) }
         root.addView(message, LinearLayout.LayoutParams(-1, -2))
         loading = LinearProgressIndicator(this).apply {
             isIndeterminate = true
@@ -207,20 +207,20 @@ class NewsFeedActivity : AppCompatActivity() {
 
     private fun askForFeed() {
         val input = EditText(this).apply {
-            hint = "HTTPS RSS/Atom feed URL"
+            hint = getString(R.string.mono_news_https_rss_atom_feed_url)
             setSingleLine(true)
         }
-        AlertDialog.Builder(this).setTitle("Add a news feed").setView(input)
-            .setPositiveButton("Add") { _, _ -> saveAndLoad(input.text.toString().trim()) }
+        AlertDialog.Builder(this).setTitle(getString(R.string.mono_news_add_a_news_feed)).setView(input)
+            .setPositiveButton(getString(R.string.mono_news_add)) { _, _ -> saveAndLoad(input.text.toString().trim()) }
             .setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun editFollowedTopics() {
         val input = EditText(this).apply {
-            hint = "Tags to follow, separated by commas"
+            hint = getString(R.string.mono_news_tags_to_follow_separated_by_commas)
             setText(followedTags().sorted().joinToString(", "))
         }
-        AlertDialog.Builder(this).setTitle("Followed topics").setView(input)
+        AlertDialog.Builder(this).setTitle(getString(R.string.mono_news_followed_topics)).setView(input)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val tags = input.text.toString().split(',')
                     .map { it.trim() }.filter { it.length in 2..50 }.take(40).toSet()
@@ -232,7 +232,7 @@ class NewsFeedActivity : AppCompatActivity() {
     }
 
     private fun showSuggestedFeeds() {
-        AlertDialog.Builder(this).setTitle("Built-in entertainment feeds")
+        AlertDialog.Builder(this).setTitle(getString(R.string.mono_news_built_in_entertainment_feeds))
             .setItems(INCLUDED_FEEDS.map { it.first }.toTypedArray()) { _, index ->
                 saveAndLoad(INCLUDED_FEEDS[index].second)
             }
@@ -241,12 +241,12 @@ class NewsFeedActivity : AppCompatActivity() {
 
     private fun saveAndLoad(url: String) {
         if (!NewsFeedPolicy.trustedFeed(url)) {
-            message.text = "For safety, use an approved HTTPS RSS feed (Anime News Network, YouTube, or Reddit)."
+            message.text = getString(R.string.mono_news_for_safety_use_an_approved_https)
             return
         }
         val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty().toMutableSet()
         if (feeds.size >= 25 && url !in feeds) {
-            message.text = "Remove a saved feed before adding another"
+            message.text = getString(R.string.mono_news_remove_a_saved_feed_before_adding)
             return
         }
         feeds += url
@@ -258,19 +258,19 @@ class NewsFeedActivity : AppCompatActivity() {
 
     private fun showSavedFeeds() {
         val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty().sorted()
-        if (feeds.isEmpty()) { message.text = "No saved feeds"; return }
-        AlertDialog.Builder(this).setTitle("Saved feeds")
+        if (feeds.isEmpty()) { message.text = getString(R.string.mono_news_no_saved_feeds); return }
+        AlertDialog.Builder(this).setTitle(getString(R.string.mono_news_saved_feeds))
             .setItems(feeds.map(::feedLabel).toTypedArray()) { _, which ->
                 val selected = feeds[which]
                 AlertDialog.Builder(this).setTitle(selected)
-                    .setPositiveButton("Open") { _, _ ->
+                    .setPositiveButton(getString(R.string.mono_news_open)) { _, _ ->
                         currentFeed = selected
                         renderFeedChips()
                         load(selected)
                     }
-                    .setNegativeButton("Remove") { _, _ ->
+                    .setNegativeButton(getString(R.string.mono_news_remove)) { _, _ ->
                         prefs.edit().putStringSet("feeds", feeds.toMutableSet().apply { remove(selected) }).apply()
-                        message.text = "Feed removed"
+                        message.text = getString(R.string.mono_news_feed_removed)
                         renderFeedChips()
                     }
                     .setNeutralButton(android.R.string.cancel, null).show()
@@ -282,7 +282,7 @@ class NewsFeedActivity : AppCompatActivity() {
         feedJob?.cancel()
         items = emptyList()
         entries.removeAllViews()
-        message.text = "Loading feed…"
+        message.text = getString(R.string.mono_news_loading_feed)
         loading.isVisible = true
         feedJob = lifecycleScope.launch {
             try {
@@ -364,7 +364,7 @@ class NewsFeedActivity : AppCompatActivity() {
                 else compareByDescending { entry: NewsFeedParser.Entry -> dateKey(entry.date) },
             )
             .toList()
-        sourceChip?.text = "Site: " + (sourceFilter ?: "all")
+        sourceChip?.text = getString(R.string.mono_news_site) + (sourceFilter ?: "all")
         sourceChip?.isChecked = sourceFilter != null
         renderChips(tags)
         message.text = "${visible.size} articles · ${tags.size} followed topics · ${saved.size} saved" +
@@ -383,7 +383,7 @@ class NewsFeedActivity : AppCompatActivity() {
                     (if (entry.tags.isEmpty()) "" else "\n${entry.tags.joinToString(" · ")}")
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 setOnClickListener {
-                    if (!ExternalLinks.open(this@NewsFeedActivity, entry.link)) message.text = "This link can't be opened"
+                    if (!ExternalLinks.open(this@NewsFeedActivity, entry.link)) message.text = getString(R.string.mono_news_this_link_can_t_be_opened)
                 }
                 setOnLongClickListener {
                     val links = prefs.getStringSet("saved_stories", emptySet()).orEmpty().toMutableSet()

@@ -63,7 +63,7 @@ class MediaFeedActivity : AppCompatActivity() {
             setPadding(pad, pad / 2, pad, pad)
         }
         root.addView(TextView(this).apply {
-            text = "Podcasts, audio drama and video shows from RSS. Add your own feeds from the menu."
+            text = getString(R.string.mono_feeds_podcasts_audio_drama_and_video_shows)
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
             setPadding(0, 0, 0, pad / 2)
         })
@@ -86,7 +86,7 @@ class MediaFeedActivity : AppCompatActivity() {
         }
         root.addView(kindChips)
         status = TextView(this).apply {
-            text = "Add a feed URL to discover podcast or video episodes."
+            text = getString(R.string.mono_feeds_add_a_feed_url_to_discover)
             setPadding(0, pad / 2, 0, pad / 2)
         }
         root.addView(status)
@@ -158,7 +158,7 @@ class MediaFeedActivity : AppCompatActivity() {
             })
         }
         feedChips.addView(Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
-            text = "My playlist"
+            text = getString(R.string.mono_feeds_my_playlist)
             isCheckable = true
             isChecked = playlistOnly
             setOnClickListener {
@@ -200,21 +200,21 @@ class MediaFeedActivity : AppCompatActivity() {
     }
     private fun addFeed() {
         val input = EditText(this).apply {
-            hint = "https://example.com/podcast.xml"
+            hint = getString(R.string.mono_feeds_https_example_com_podcast_xml)
             setSingleLine(true)
         }
-        MaterialAlertDialogBuilder(this).setTitle("Subscribe to an entertainment feed")
+        MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_feeds_subscribe_to_an_entertainment_feed))
             .setView(input).setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("Subscribe") { _, _ ->
+            .setPositiveButton(getString(R.string.mono_feeds_subscribe)) { _, _ ->
                 val url = input.text?.toString()?.trim().orEmpty()
                 if (!MediaFeedRepository.validUrl(url)) {
-                    status.text = "Enter an HTTPS RSS or Atom feed URL."
+                    status.text = getString(R.string.mono_feeds_enter_an_https_rss_or_atom)
                 } else load(url, subscribe = true)
             }.show()
     }
     private fun chooseSuggestedFeed() {
         val presets = INCLUDED_FEEDS
-        MaterialAlertDialogBuilder(this).setTitle("Included entertainment feeds")
+        MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_feeds_included_entertainment_feeds))
             .setItems(presets.map { it.first }.toTypedArray()) { _, index ->
                 load(presets[index].second, subscribe = true)
             }
@@ -223,11 +223,11 @@ class MediaFeedActivity : AppCompatActivity() {
 
     private fun chooseFeed() {
         val options = subscribed().sorted()
-        if (options.isEmpty()) { status.text = "No feeds saved yet. Use Add feed or Included feeds in the menu."; return }
-        MaterialAlertDialogBuilder(this).setTitle("Subscribed feeds")
+        if (options.isEmpty()) { status.text = getString(R.string.mono_feeds_no_feeds_saved_yet_use_add); return }
+        MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_feeds_subscribed_feeds))
             .setItems(options.toTypedArray()) { _, i -> load(options[i]) }
-            .setNeutralButton("Remove feed") { _, _ ->
-                MaterialAlertDialogBuilder(this).setTitle("Unsubscribe")
+            .setNeutralButton(getString(R.string.mono_feeds_remove_feed)) { _, _ ->
+                MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_feeds_unsubscribe))
                     .setItems(options.toTypedArray()) { _, i ->
                         saved.edit().putStringSet("urls", subscribed() - options[i]).apply()
                         renderFeedChips()
@@ -245,7 +245,7 @@ class MediaFeedActivity : AppCompatActivity() {
         loadJob?.cancel()
         retryButton.isVisible = false
         loading.isVisible = true
-        status.text = "Loading feed..."
+        status.text = getString(R.string.mono_feeds_loading_feed)
         loadJob = lifecycleScope.launch {
             try {
                 val fetched = repository.read(url)
@@ -292,7 +292,7 @@ class MediaFeedActivity : AppCompatActivity() {
     }
     private fun playEpisode(entry: MediaFeedParser.Episode) {
         val media = entry.mediaUrl?.takeIf(MediaFeedPlaybackSpec::validStream) ?: run {
-            status.text = "This episode does not provide a supported HTTPS media stream."
+            status.text = getString(R.string.mono_feeds_this_episode_does_not_provide_a)
             return
         }
         startActivity(Intent(this, MediaFeedPlayerActivity::class.java)
@@ -334,20 +334,20 @@ class MediaFeedActivity : AppCompatActivity() {
                                     MediaFeedParser.Kind.AUDIO -> "audio/*"
                                 }
                             ))
-                        }.onFailure { status.text = "No compatible media player available." }
+                        }.onFailure { status.text = getString(R.string.mono_feeds_no_compatible_media_player_available) }
                     }
                 }
             }.show()
     }
     private fun showChapters(entry: MediaFeedParser.Episode) {
         val url = entry.chaptersUrl ?: return
-        status.text = "Loading chapters..."
+        status.text = getString(R.string.mono_feeds_loading_chapters)
         lifecycleScope.launch {
             try {
                 val chapters = repository.readChapters(url)
-                if (chapters.isEmpty()) { status.text = "This episode lists no chapters."; return@launch }
+                if (chapters.isEmpty()) { status.text = getString(R.string.mono_feeds_this_episode_lists_no_chapters); return@launch }
                 status.text = ""
-                MaterialAlertDialogBuilder(this@MediaFeedActivity).setTitle("Chapters")
+                MaterialAlertDialogBuilder(this@MediaFeedActivity).setTitle(getString(R.string.mono_feeds_chapters))
                     .setItems(chapters.map { "${MediaFeedParser.formatTimestamp(it.startSeconds)}  ${it.title}" }.toTypedArray(), null)
                     .setPositiveButton(android.R.string.ok, null).show()
             } catch (cancel: CancellationException) {
@@ -360,8 +360,8 @@ class MediaFeedActivity : AppCompatActivity() {
     private fun openPage(link: String?) {
         if (link?.startsWith("https://") == true) {
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
-                .onFailure { status.text = "No browser available." }
-        } else status.text = "This episode has no public HTTPS page."
+                .onFailure { status.text = getString(R.string.mono_feeds_no_browser_available) }
+        } else status.text = getString(R.string.mono_feeds_this_episode_has_no_public_https)
     }
     companion object {
         const val EXTRA_MEDIA_TYPE = "media_feed_type"

@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -92,9 +93,9 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply { marginEnd = (8 * dp).toInt() })
         }
-        if (chaptersUrl != null) addAction("Chapters") { showChapters() }
-        if (transcriptUrl != null) addAction("Transcript") { openOfficialUrl(transcriptUrl) }
-        if (pageUrl != null) addAction("Website") { openOfficialUrl(pageUrl) }
+        if (chaptersUrl != null) addAction(getString(R.string.mono_player_chapters)) { showChapters() }
+        if (transcriptUrl != null) addAction(getString(R.string.mono_player_transcript)) { openOfficialUrl(transcriptUrl) }
+        if (pageUrl != null) addAction(getString(R.string.mono_player_website)) { openOfficialUrl(pageUrl) }
         if (buttons.childCount > 0) root.addView(HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             addView(buttons)
@@ -133,7 +134,7 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
                 playerView.keepScreenOn = !isAudio && isPlaying
             }
             override fun onPlayerError(error: PlaybackException) {
-                status.text = "Playback unavailable: " +
+                status.text = getString(R.string.mono_player_playback_unavailable) +
                     (error.message ?: "Try the official website").take(140)
             }
         })
@@ -144,17 +145,17 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
 
     private fun showChapters() {
         val chaptersLink = chaptersUrl ?: return
-        status.text = "Loading chapters..."
+        status.text = getString(R.string.mono_player_loading_chapters)
         lifecycleScope.launch {
             try {
                 val chapters = feeds.readChapters(chaptersLink)
                 if (chapters.isEmpty()) {
-                    status.text = "No chapters were listed for this episode."
+                    status.text = getString(R.string.mono_player_no_chapters_were_listed_for_this)
                     return@launch
                 }
                 status.text = "${chapters.size} chapters"
                 MaterialAlertDialogBuilder(this@MediaFeedPlayerActivity)
-                    .setTitle("Jump to chapter")
+                    .setTitle(getString(R.string.mono_player_jump_to_chapter))
                     .setItems(chapters.map {
                         "${MediaFeedParser.formatTimestamp(it.startSeconds)}  ${it.title}"
                     }.toTypedArray()) { _, selected ->
@@ -170,7 +171,7 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (failure: Exception) {
-                status.text = "Chapters unavailable: " +
+                status.text = getString(R.string.mono_player_chapters_unavailable) +
                     failure.message.orEmpty().take(140)
             }
         }
@@ -179,7 +180,7 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
     private fun openOfficialUrl(candidate: String?) {
         val safeUrl = candidate?.takeIf(MediaFeedPlaybackSpec::validStream) ?: return
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))) }
-            .onFailure { status.text = "No browser is available for this link." }
+            .onFailure { status.text = getString(R.string.mono_player_no_browser_is_available_for_this) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

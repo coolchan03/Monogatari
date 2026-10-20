@@ -328,8 +328,8 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         )
         copy("Monogatari testing report", report)
         MaterialAlertDialogBuilder(this)
-            .setTitle("Report copied")
-            .setMessage("Paste the report into your chat with ChatGPT or Claude. Your test answers and a sample of any source failures are included. Nothing was uploaded automatically.")
+            .setTitle(getString(R.string.mono_qa_report_copied))
+            .setMessage(getString(R.string.mono_qa_paste_the_report_into_your_chat))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
