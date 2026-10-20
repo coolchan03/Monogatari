@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-20 — v1.2.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.2.0 built from `devel` `c50d9bb` (drafts merged; build check run 39470441626 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `e3adc2dd527fe5397d90f337f159551b9c3786eab6a57e0f3a3707e5e5f8cac1`.
+- Not device-verified yet.
+
 ## 2026-10-20 — v1.2 candidate batch (drafts branch `93c1e29`, CI run 39433462300 green, unreleased)
 - Main search bar: filter icon picks All/Manga/Books/Video/Audio (remembered, prefs `monogatari_search`).
 - NewPipe: no-query lists use kiosks (YouTube trending_movies_and_shows/music/gaming; PeerTube Trending; SoundCloud New & hot), fallback to the old fixed search.
