@@ -96,7 +96,7 @@
     <string name="mono_news_tags_to_follow_separated_by_commas">Tags to follow, separated by commas</string>
     <string name="mono_news_followed_topics">Followed topics</string>
     <string name="mono_news_built_in_entertainment_feeds">Built-in entertainment feeds</string>
-    <string name="mono_news_for_safety_use_an_approved_https">For safety, use an approved HTTPS RSS feed (Anime News Network, YouTube, or Reddit).</string>
+    <string name="mono_news_for_safety_use_an_approved_https">Enter a public HTTPS RSS or Atom feed address.</string>
     <string name="mono_news_remove_a_saved_feed_before_adding">Remove a saved feed before adding another</string>
     <string name="mono_news_no_saved_feeds">No saved feeds</string>
     <string name="mono_news_saved_feeds">Saved feeds</string>

@@ -195,6 +195,9 @@ class MediaFeedActivity : AppCompatActivity() {
         else status.text = if (alreadySaved) "Episode removed from playlist."
             else "Episode saved to your playlist."
     }
+    /** Last successfully loaded episodes of [url], so the screen opens with something to play. */
+    private fun cacheKey(url: String): String = "cache_v1:" + Integer.toHexString(url.hashCode())
+
     private fun persist(url: String) {
         saved.edit().putStringSet("urls", subscribed() + url).apply()
     }
@@ -245,6 +248,13 @@ class MediaFeedActivity : AppCompatActivity() {
         loadJob?.cancel()
         retryButton.isVisible = false
         loading.isVisible = true
+        // Show the episodes from the last successful load at once; the refresh below replaces them.
+        val cached = MediaFeedPlaylist.decode(saved.getString(cacheKey(url), null))
+        if (cached.isNotEmpty()) {
+            currentUrl = url
+            entries = cached
+            render()
+        }
         status.text = getString(R.string.mono_feeds_loading_feed)
         loadJob = lifecycleScope.launch {
             try {
@@ -252,13 +262,22 @@ class MediaFeedActivity : AppCompatActivity() {
                 currentUrl = url
                 entries = fetched
                 if (subscribe) persist(url)
+                if (fetched.isNotEmpty()) {
+                    saved.edit().putString(cacheKey(url), MediaFeedPlaylist.encode(fetched.take(MAX_CACHED_EPISODES))).apply()
+                }
                 render()
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
                 currentUrl = url
                 retryButton.isVisible = true
-                status.text = "Feed unavailable: ${error.message.orEmpty().take(140)}"
+                if (cached.isEmpty()) {
+                    entries = emptyList()
+                    render()
+                }
+                val reason = error.message.orEmpty().take(140)
+                status.text = if (cached.isNotEmpty()) getString(R.string.mono_feeds_showing_saved_episodes, reason)
+                    else "Feed unavailable: $reason"
             } finally {
                 loading.isVisible = false
             }
@@ -370,6 +389,7 @@ class MediaFeedActivity : AppCompatActivity() {
         private const val MENU_INCLUDED = 8102
         private const val MENU_REFRESH = 8103
         private const val MENU_REMOVE = 8104
+        private const val MAX_CACHED_EPISODES = 40
 
         /** Pre-installed on first open. The first three returned HTTP 200 in the 2026-10-15 provider check. */
         internal val INCLUDED_FEEDS = listOf(

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="mono_news_all_feeds">All feeds</string>
+	<string name="mono_news_showing_saved_articles">Showing saved articles · refresh failed: %1$s</string>
+	<string name="mono_news_feed_unavailable">Feed unavailable: %1$s</string>
+	<string name="mono_news_all_feeds_failed">No feed could be loaded right now. Check your connection and tap Retry.</string>
+	<string name="mono_news_no_feeds_yet">No feeds yet. Add one from the menu, or pick an included feed.</string>
+	<string name="mono_news_no_matching_articles">No articles match these filters.</string>
+	<string name="mono_feeds_showing_saved_episodes">Showing saved episodes · refresh failed: %1$s</string>
+</resources>

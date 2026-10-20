@@ -1,6 +1,16 @@
 package org.koitharu.kotatsu.core.qa
 
 import org.koitharu.kotatsu.core.util.ExternalLinks
+import org.koitharu.kotatsu.core.util.FeedXml
+import org.koitharu.kotatsu.core.media.MediaFeedRepository
+import org.koitharu.kotatsu.core.ui.Mascot
+import org.koitharu.kotatsu.core.ui.MascotForm
+import org.koitharu.kotatsu.core.ui.TapCounter
+import android.view.Gravity
+import android.widget.ImageView
+import com.google.android.material.button.MaterialButton
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import java.net.URI
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.chip.Chip
@@ -23,18 +33,23 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.charset.StandardCharsets
-import java.text.SimpleDateFormat
-import java.util.Locale
 
-/** User-initiated, HTTPS-only RSS/Atom feeds with locally saved followed-tag filters. */
+/**
+ * User-initiated, HTTPS-only RSS/Atom feeds with locally saved followed-tag filters.
+ * The last articles of each feed are kept on the device so the screen opens with stories while it refreshes.
+ */
+@AndroidEntryPoint
 class NewsFeedActivity : AppCompatActivity() {
+    @Inject lateinit var repository: MediaFeedRepository
     private var currentFeed: String = ""
     private lateinit var feedChips: ChipGroup
     private lateinit var searchInput: EditText
@@ -53,6 +68,14 @@ class NewsFeedActivity : AppCompatActivity() {
     private lateinit var chipsRow: LinearLayout
     private var sourceChip: Chip? = null
     private var feedJob: Job? = null
+    private lateinit var emptyState: LinearLayout
+    private lateinit var mascot: ImageView
+    private lateinit var retryButton: MaterialButton
+    private val eggTaps = TapCounter()
+    /** Shown instead of the counts when nothing could be loaded or cached. */
+    private var errorText: String? = null
+    /** Shown above the counts, e.g. when saved articles are displayed after a failed refresh. */
+    private var noticeText: String? = null
     private val prefs by lazy { getSharedPreferences("monogatari_news", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +96,7 @@ class NewsFeedActivity : AppCompatActivity() {
         }
         installIncludedFeedsOnce()
         currentFeed = savedInstanceState?.getString("news_feed_url")
-            ?: prefs.getString("selected", null) ?: INCLUDED_FEEDS.first().second
+            ?: prefs.getString("selected", null) ?: ALL_FEEDS
         // Feeds and filters use the same chip style as search and the media feeds screen.
         feedChips = ChipGroup(this).apply { isSingleSelection = true; isSingleLine = true }
         root.addView(HorizontalScrollView(this).apply {
@@ -123,13 +146,31 @@ class NewsFeedActivity : AppCompatActivity() {
             contentDescription = getString(R.string.news_feed_loading)
         }
         root.addView(loading, LinearLayout.LayoutParams(-1, -2))
+        // Kitsune keeps an empty or failed feed company, like the library screens. Tap her quickly for a surprise.
+        emptyState = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            isVisible = false
+        }
+        mascot = ImageView(this).apply {
+            adjustViewBounds = true
+            setOnClickListener { if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@NewsFeedActivity) }
+        }
+        emptyState.addView(mascot, LinearLayout.LayoutParams((160 * density).toInt(), -2))
+        retryButton = MaterialButton(this).apply {
+            setText(R.string.retry)
+            isVisible = false
+            setOnClickListener { load(currentFeed) }
+        }
+        emptyState.addView(retryButton, LinearLayout.LayoutParams(-2, -2))
+        root.addView(emptyState, LinearLayout.LayoutParams(-1, -2).apply { gravity = Gravity.CENTER_HORIZONTAL })
         listScroll = ScrollView(this)
         entries = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         listScroll.addView(entries)
         root.addView(listScroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setMonogatariContent(root)
         renderFeedChips()
-        load(currentFeed)
+        load(currentFeed, fallbackToAll = true)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -147,15 +188,10 @@ class NewsFeedActivity : AppCompatActivity() {
     private fun followedTags(): Set<String> = prefs.getStringSet("tags", emptySet()).orEmpty().toSet()
 
     /** Unknown dates remain last, preserving the original feed order among ties. */
-    private fun dateKey(value: String): Long {
-        for (pattern in listOf("EEE, dd MMM yyyy HH:mm:ss Z", "yyyy-MM-dd'T'HH:mm:ssXXX", "yyyy-MM-dd")) {
-            val parsed = runCatching {
-                SimpleDateFormat(pattern, Locale.ENGLISH).apply { isLenient = false }.parse(value)?.time
-            }.getOrNull()
-            if (parsed != null) return parsed
-        }
-        return Long.MIN_VALUE
-    }
+    private fun dateKey(value: String): Long = dateKeys.getOrPut(value) { FeedXml.parseDate(value) ?: Long.MIN_VALUE }
+
+    /** Parsed dates by their text; sorting compares each article many times. */
+    private val dateKeys = HashMap<String, Long>()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(0, MENU_ADD, 0, "Add feed URL")
@@ -178,18 +214,40 @@ class NewsFeedActivity : AppCompatActivity() {
         return true
     }
 
-    /** First open: the included feeds are saved so News is never empty. Feeds the user removes stay removed. */
+    /**
+     * First open: the included feeds are saved so News is never empty. Feeds the user removes stay removed.
+     * Each later batch has its own flag and adds only its new feeds; it also opens News on "All feeds" once.
+     */
     private fun installIncludedFeedsOnce() {
-        if (prefs.getBoolean(KEY_DEFAULTS_INSTALLED, false)) return
-        val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty() + INCLUDED_FEEDS.map { it.second }
-        prefs.edit().putStringSet("feeds", feeds).putBoolean(KEY_DEFAULTS_INSTALLED, true).apply()
+        if (!prefs.getBoolean(KEY_DEFAULTS_INSTALLED, false)) {
+            val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty() + INCLUDED_FEEDS_V1.map { it.second }
+            prefs.edit().putStringSet("feeds", feeds).putBoolean(KEY_DEFAULTS_INSTALLED, true).apply()
+        }
+        if (!prefs.getBoolean(KEY_DEFAULTS_INSTALLED_V2, false)) {
+            val feeds = prefs.getStringSet("feeds", emptySet()).orEmpty() + INCLUDED_FEEDS_V2.map { it.second }
+            prefs.edit().putStringSet("feeds", feeds).putString("selected", ALL_FEEDS)
+                .putBoolean(KEY_DEFAULTS_INSTALLED_V2, true).apply()
+        }
     }
+
+    private fun subscribedFeeds(): Set<String> = prefs.getStringSet("feeds", emptySet()).orEmpty().toSet()
 
     private fun feedLabel(url: String): String = INCLUDED_FEEDS.firstOrNull { it.second == url }?.first
         ?: runCatching { URI(url).host?.removePrefix("www.") }.getOrNull() ?: url
 
     private fun renderFeedChips() {
         feedChips.removeAllViews()
+        feedChips.addView(Chip(this).apply {
+            text = getString(R.string.mono_news_all_feeds)
+            isCheckable = true
+            isChecked = currentFeed == ALL_FEEDS
+            setOnClickListener {
+                currentFeed = ALL_FEEDS
+                prefs.edit().putString("selected", ALL_FEEDS).apply()
+                renderFeedChips()
+                load(ALL_FEEDS)
+            }
+        })
         for (url in prefs.getStringSet("feeds", emptySet()).orEmpty().sortedBy { feedLabel(it).lowercase() }) {
             feedChips.addView(Chip(this).apply {
                 text = feedLabel(url)
@@ -269,65 +327,156 @@ class NewsFeedActivity : AppCompatActivity() {
                         load(selected)
                     }
                     .setNegativeButton(getString(R.string.mono_news_remove)) { _, _ ->
-                        prefs.edit().putStringSet("feeds", feeds.toMutableSet().apply { remove(selected) }).apply()
+                        prefs.edit().putStringSet("feeds", feeds.toMutableSet().apply { remove(selected) })
+                            .remove(NewsFeedParser.cacheKey(selected)).apply()
                         message.text = getString(R.string.mono_news_feed_removed)
+                        if (currentFeed == selected) {
+                            currentFeed = ALL_FEEDS
+                            prefs.edit().putString("selected", ALL_FEEDS).apply()
+                            load(ALL_FEEDS)
+                        }
                         renderFeedChips()
                     }
                     .setNeutralButton(android.R.string.cancel, null).show()
             }.show()
     }
 
-    private fun load(url: String) {
-        if (!NewsFeedPolicy.trustedFeed(url)) return
+    /** Saved articles first, then a background refresh that replaces them. */
+    private fun load(url: String, fallbackToAll: Boolean = false) {
+        if (url == ALL_FEEDS) {
+            loadAll()
+            return
+        }
+        if (!NewsFeedPolicy.trustedFeed(url)) {
+            if (fallbackToAll) {
+                currentFeed = ALL_FEEDS
+                renderFeedChips()
+                loadAll()
+            }
+            return
+        }
         feedJob?.cancel()
-        items = emptyList()
-        entries.removeAllViews()
-        message.text = getString(R.string.mono_news_loading_feed)
+        val cached = cachedEntries(url)
+        items = cached
+        errorText = null
+        noticeText = null
         loading.isVisible = true
+        render()
+        // Every outcome hides the progress bar itself; a cancelled job leaves it to the load that replaced it.
         feedJob = lifecycleScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) { runCatching { fetchEntries(url) } }
-                if (url != currentFeed) return@launch
-                result.onSuccess { loaded ->
-                    items = loaded
-                    render()
-                    if (restoredScrollY > 0) {
-                        val position = restoredScrollY
-                        restoredScrollY = 0
-                        listScroll.post { listScroll.scrollTo(0, position) }
+            val result = fetchResult(url)
+            if (url != currentFeed) return@launch
+            loading.isVisible = false
+            result.onSuccess { loaded ->
+                items = loaded
+                saveCache(url, loaded)
+                render()
+                restoreScroll()
+            }.onFailure { error ->
+                val reason = error.message.orEmpty().take(140)
+                when {
+                    cached.isNotEmpty() -> {
+                        noticeText = getString(R.string.mono_news_showing_saved_articles, reason)
+                        render()
                     }
-                }.onFailure { error ->
-                    message.text = "Feed unavailable: ${error.message.orEmpty().take(140)}"
+                    // The first open should show stories, not an error: try every other feed instead.
+                    fallbackToAll -> {
+                        currentFeed = ALL_FEEDS
+                        renderFeedChips()
+                        loadAll()
+                    }
+                    else -> {
+                        errorText = getString(R.string.mono_news_feed_unavailable, reason)
+                        render()
+                    }
                 }
-            } finally {
-                loading.isVisible = false
             }
         }
     }
 
-    private fun fetchEntries(url: String): List<NewsFeedParser.Entry> {
-        require(NewsFeedPolicy.trustedFeed(url))
-        val conn = URL(url).openConnection() as HttpURLConnection
-        try {
-            conn.instanceFollowRedirects = false
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 12_000
-            conn.setRequestProperty("Accept", "application/rss+xml, application/atom+xml, application/xml")
-            require(conn.responseCode in 200..299) { "HTTP ${conn.responseCode}" }
-            val out = java.io.ByteArrayOutputStream()
-            conn.inputStream.use { input ->
-                val block = ByteArray(8192)
-                while (true) {
-                    val n = input.read(block)
-                    if (n < 0) break
-                    require(out.size() + n <= 1_000_000) { "Feed is too large" }
-                    out.write(block, 0, n)
-                }
-            }
-            return NewsFeedParser.parse(out.toString(StandardCharsets.UTF_8.name()))
-        } finally {
-            conn.disconnect()
+    /** "All feeds": the newest articles of every subscribed feed, merged. Failing feeds are skipped. */
+    private fun loadAll() {
+        feedJob?.cancel()
+        val feeds = subscribedFeeds().filter(NewsFeedPolicy::trustedFeed).sorted()
+        val latest = feeds.associateWith(::cachedEntries).toMutableMap()
+        items = merge(latest.values)
+        errorText = null
+        noticeText = null
+        if (feeds.isEmpty()) {
+            loading.isVisible = false
+            render()
+            return
         }
+        loading.isVisible = true
+        render()
+        feedJob = lifecycleScope.launch {
+            val permits = Semaphore(MAX_PARALLEL_FEEDS)
+            var showedEarly = items.isNotEmpty()
+            val outcomes = feeds.map { url ->
+                async {
+                    val result = permits.withPermit { fetchResult(url) }
+                    result.onSuccess { loaded ->
+                        if (loaded.isNotEmpty()) {
+                            latest[url] = loaded
+                            saveCache(url, loaded)
+                        }
+                        // Show the first feed that answers right away; later ones arrive in one update.
+                        if (!showedEarly && loaded.isNotEmpty() && currentFeed == ALL_FEEDS) {
+                            showedEarly = true
+                            items = merge(latest.values)
+                            render()
+                        }
+                    }
+                    result.isSuccess
+                }
+            }.awaitAll()
+            if (currentFeed != ALL_FEEDS) return@launch
+            loading.isVisible = false
+            items = merge(latest.values)
+            if (outcomes.none { it } && items.isEmpty()) {
+                errorText = getString(R.string.mono_news_all_feeds_failed)
+            }
+            render()
+            restoreScroll()
+        }
+    }
+
+    private fun merge(feeds: Collection<List<NewsFeedParser.Entry>>): List<NewsFeedParser.Entry> =
+        feeds.flatten().distinctBy { it.link }
+            .sortedByDescending { dateKey(it.date) }
+            .take(MAX_MERGED_ENTRIES)
+
+    private fun restoreScroll() {
+        if (restoredScrollY > 0 && items.isNotEmpty()) {
+            val position = restoredScrollY
+            restoredScrollY = 0
+            listScroll.post { listScroll.scrollTo(0, position) }
+        }
+    }
+
+    private fun cachedEntries(url: String): List<NewsFeedParser.Entry> =
+        runCatching { NewsFeedParser.decodeCache(url, prefs.getString(NewsFeedParser.cacheKey(url), null)) }
+            .getOrDefault(emptyList())
+
+    private fun saveCache(url: String, loaded: List<NewsFeedParser.Entry>) {
+        if (loaded.isEmpty()) return
+        val json = runCatching { NewsFeedParser.encodeCache(url, loaded, System.currentTimeMillis()) }.getOrNull() ?: return
+        prefs.edit().putString(NewsFeedParser.cacheKey(url), json).apply()
+    }
+
+    /** Network and parse errors become a failed result; cancellation still cancels. */
+    private suspend fun fetchResult(url: String): Result<List<NewsFeedParser.Entry>> = try {
+        Result.success(fetchEntries(url))
+    } catch (cancel: CancellationException) {
+        throw cancel
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+
+    private suspend fun fetchEntries(url: String): List<NewsFeedParser.Entry> {
+        require(NewsFeedPolicy.trustedFeed(url))
+        val xml = repository.fetchFeedText(url, NewsFeedParser.MAX_XML_CHARS, NewsFeedPolicy::trustedFeed)
+        return withContext(Dispatchers.Default) { NewsFeedParser.parse(xml, url) }
     }
 
     /** One chip per followed topic; tap to narrow the list to it, tap again to clear. */
@@ -367,8 +516,24 @@ class NewsFeedActivity : AppCompatActivity() {
         sourceChip?.text = getString(R.string.mono_news_site) + (sourceFilter ?: "all")
         sourceChip?.isChecked = sourceFilter != null
         renderChips(tags)
-        message.text = "${visible.size} articles · ${tags.size} followed topics · ${saved.size} saved" +
+        val counts = "${visible.size} articles · ${tags.size} followed topics · ${saved.size} saved" +
             if (onlyFollowing) " · followed only" else ""
+        val error = errorText
+        val notice = noticeText
+        message.text = when {
+            items.isEmpty() && error != null -> error
+            items.isEmpty() && loading.isVisible -> getString(R.string.mono_news_loading_feed)
+            currentFeed == ALL_FEEDS && subscribedFeeds().isEmpty() -> getString(R.string.mono_news_no_feeds_yet)
+            items.isNotEmpty() && visible.isEmpty() -> getString(R.string.mono_news_no_matching_articles)
+            notice != null -> "$notice\n$counts"
+            else -> counts
+        }
+        emptyState.isVisible = visible.isEmpty()
+        retryButton.isVisible = items.isEmpty() && error != null
+        if (emptyState.isVisible) {
+            Mascot.bind(mascot, if (error != null || items.isNotEmpty()) MascotForm.SAD else MascotForm.NEWS)
+        }
+        val showSite = currentFeed == ALL_FEEDS
         val pad = (12 * resources.displayMetrics.density).toInt()
         visible.forEach { entry ->
             val savedNow = entry.link in saved
@@ -378,8 +543,10 @@ class NewsFeedActivity : AppCompatActivity() {
                 setContentPadding(pad, pad, pad, pad)
             }
             val label = TextView(this).apply {
+                val site = if (showSite) runCatching { URI(entry.link).host?.removePrefix("www.") }.getOrNull() else null
                 text = (if (savedNow) "★  " else "") + entry.title +
-                    (if (entry.date.isNotBlank()) "\n${entry.date}" else "") +
+                    listOfNotNull(site, entry.date.takeIf { it.isNotBlank() }).joinToString(" · ")
+                        .let { if (it.isEmpty()) "" else "\n$it" } +
                     (if (entry.tags.isEmpty()) "" else "\n${entry.tags.joinToString(" · ")}")
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 setOnClickListener {
@@ -402,17 +569,38 @@ class NewsFeedActivity : AppCompatActivity() {
 
     private companion object {
         const val KEY_DEFAULTS_INSTALLED = "included_feeds_v1"
+        const val KEY_DEFAULTS_INSTALLED_V2 = "included_feeds_v2"
+        /** Selection value for the merged "All feeds" chip; never a URL, so it never reaches the network. */
+        const val ALL_FEEDS = "all_feeds"
+        const val MAX_PARALLEL_FEEDS = 4
+        const val MAX_MERGED_ENTRIES = 200
         const val MENU_ADD = 8201
         const val MENU_INCLUDED = 8202
         const val MENU_REMOVE = 8203
         const val MENU_TOPICS = 8204
         const val MENU_REFRESH = 8205
 
-        val INCLUDED_FEEDS = listOf(
+        /** Installed by [KEY_DEFAULTS_INSTALLED]. */
+        val INCLUDED_FEEDS_V1 = listOf(
             "Anime News Network" to "https://www.animenewsnetwork.com/news/rss.xml",
             "Anime News Network · everything" to "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us",
             "Anime Expo updates" to "https://www.anime-expo.org/blog/feed/",
             "Standard Ebooks · new releases" to "https://standardebooks.org/feeds/atom/new-releases",
         )
+
+        /** Installed once by [KEY_DEFAULTS_INSTALLED_V2]; long-running public HTTPS feeds. */
+        val INCLUDED_FEEDS_V2 = listOf(
+            "Anime Corner" to "https://animecorner.me/feed/",
+            "Otaku USA Magazine" to "https://otakuusamagazine.com/feed/",
+            "Anime Herald" to "https://www.animeherald.com/feed/",
+            "MyAnimeList news" to "https://myanimelist.net/rss/news.xml",
+            "Siliconera" to "https://www.siliconera.com/feed/",
+            "Book Riot" to "https://bookriot.com/feed/",
+            "Reactor · science fiction and fantasy" to "https://reactormag.com/feed/",
+            "NPR Books" to "https://feeds.npr.org/1032/rss.xml",
+            "The Verge" to "https://www.theverge.com/rss/index.xml",
+        )
+
+        val INCLUDED_FEEDS = INCLUDED_FEEDS_V1 + INCLUDED_FEEDS_V2
     }
 }
