@@ -51,9 +51,16 @@ class AniListDiscover @Inject constructor(
 		val genres: List<String> = emptyList(),
 		/** Set for titles listed straight from a built-in source; a tap opens their details page in the app. */
 		val manga: org.koitharu.kotatsu.parsers.model.Manga? = null,
+		/** AniList media id of an "Airing this week" card ([id] is per episode there); `null` for other cards. */
+		val aniListMediaId: Int? = null,
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)
+
+	/** One aired episode of a followed show, for airing reminders. [airingAt] is in epoch seconds. */
+	data class AiredEpisode(val mediaId: Int, val title: String, val episode: Int, val airingAt: Long)
+
+	class FollowedAiringPage(val episodes: List<AiredEpisode>, val hasNextPage: Boolean)
 
 	suspend fun load(feed: Feed, page: Int): Page = withContext(Dispatchers.IO) {
 		val request = Request.Builder()
@@ -87,7 +94,81 @@ class AniListDiscover @Inject constructor(
 			parseAiring(body, label)
 		}
 
+	/** Episodes of the followed [mediaIds] that aired in the [from, to) window (epoch seconds), oldest first. */
+	suspend fun loadFollowedAiring(mediaIds: Collection<Int>, from: Long, to: Long): List<AiredEpisode> =
+		withContext(Dispatchers.IO) {
+			if (mediaIds.isEmpty()) return@withContext emptyList()
+			val result = ArrayList<AiredEpisode>()
+			var page = 1
+			do {
+				val request = Request.Builder()
+					.url(ENDPOINT)
+					.header("Accept", "application/json")
+					.post(buildFollowedAiringRequestBody(mediaIds, from, to, page).toString().toRequestBody(JSON))
+					.build()
+				val body = client.newCall(request).execute().use { response ->
+					if (!response.isSuccessful) throw IOException("AniList returned HTTP ${response.code}")
+					response.body?.string() ?: throw IOException("Empty AniList response")
+				}
+				val parsed = parseFollowedAiring(body)
+				result += parsed.episodes
+				page++
+			} while (parsed.hasNextPage && page <= MAX_FOLLOWED_PAGES)
+			result
+		}
+
 	companion object {
+
+		private const val MAX_FOLLOWED_PAGES = 5
+
+		private const val FOLLOWED_AIRING_QUERY = """
+query (${'$'}page: Int, ${'$'}ids: [Int], ${'$'}from: Int, ${'$'}to: Int) {
+  Page(page: ${'$'}page, perPage: 50) {
+    pageInfo { hasNextPage }
+    airingSchedules(mediaId_in: ${'$'}ids, airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: TIME) {
+      episode
+      airingAt
+      media {
+        id
+        title { english romaji }
+      }
+    }
+  }
+}"""
+
+		fun buildFollowedAiringRequestBody(mediaIds: Collection<Int>, from: Long, to: Long, page: Int = 1): JSONObject {
+			val ids = JSONArray()
+			mediaIds.distinct().sorted().forEach { ids.put(it) }
+			return JSONObject()
+				.put("query", FOLLOWED_AIRING_QUERY.trim())
+				.put("variables", JSONObject().put("page", page).put("ids", ids).put("from", from).put("to", to))
+		}
+
+		/** Parses the followed-shows `airingSchedules` page; entries without a media id or title are skipped. */
+		fun parseFollowedAiring(body: String): FollowedAiringPage {
+			val root = JSONObject(body)
+			root.optJSONArray("errors")?.optJSONObject(0)?.optString("message")?.let { message ->
+				if (message.isNotEmpty()) throw IOException(message)
+			}
+			val page = root.optJSONObject("data")?.optJSONObject("Page") ?: return FollowedAiringPage(emptyList(), false)
+			val schedules = page.optJSONArray("airingSchedules") ?: JSONArray()
+			val episodes = (0 until schedules.length()).mapNotNull { i ->
+				val entry = schedules.optJSONObject(i) ?: return@mapNotNull null
+				val media = entry.optJSONObject("media") ?: return@mapNotNull null
+				val mediaId = media.optInt("id", 0).takeIf { it > 0 } ?: return@mapNotNull null
+				val titles = media.optJSONObject("title")
+				val english = titles?.optString("english")?.takeIf { it.isNotBlank() && it != "null" }
+				val romaji = titles?.optString("romaji")?.takeIf { it.isNotBlank() && it != "null" }
+				AiredEpisode(
+					mediaId = mediaId,
+					title = english ?: romaji ?: return@mapNotNull null,
+					episode = entry.optInt("episode", 0),
+					airingAt = entry.optLong("airingAt", 0L),
+				)
+			}
+			val hasNext = page.optJSONObject("pageInfo")?.optBoolean("hasNextPage", false) ?: false
+			return FollowedAiringPage(episodes, hasNext)
+		}
 
 		private const val AIRING_QUERY = """
 query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
@@ -140,6 +221,7 @@ query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
 					providerLabel = label(episode, airingAt),
 					genres = media.optJSONArray("genres")?.let { g -> (0 until g.length()).map { g.optString(it) } }
 						.orEmpty().filter { it.isNotBlank() },
+					aniListMediaId = media.optInt("id", 0).takeIf { it > 0 },
 				)
 			}
 			val hasNext = page.optJSONObject("pageInfo")?.optBoolean("hasNextPage", false) ?: false

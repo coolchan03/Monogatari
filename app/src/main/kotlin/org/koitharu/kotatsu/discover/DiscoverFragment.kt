@@ -1,6 +1,13 @@
 package org.koitharu.kotatsu.discover
 
 import org.koitharu.kotatsu.discover.taste.TasteProfile
+import org.koitharu.kotatsu.discover.reminders.AiringReminderWorker
+import org.koitharu.kotatsu.discover.reminders.AiringReminders
+import android.Manifest
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.material.snackbar.Snackbar
+import org.koitharu.kotatsu.core.util.ext.checkNotificationPermission
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.os.Bundle
@@ -85,6 +92,16 @@ class DiscoverFragment : Fragment() {
 
 	@Inject
 	lateinit var repositories: MangaRepository.Factory
+
+	@Inject
+	lateinit var airingReminders: AiringReminders
+
+	@Inject
+	lateinit var airingReminderScheduler: AiringReminderWorker.Scheduler
+
+	private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+		if (!granted) showSnackbar(getString(R.string.airing_reminder_permission_hint))
+	}
 
 	/** v1.3 draft: popular titles re-ranked by tags from the user's own reading history (on device only). */
 	private var forYouSelected = false
@@ -208,6 +225,7 @@ class DiscoverFragment : Fragment() {
 			}
 		})
 		binding.textMessage.setOnClickListener { if (adapter.itemCount == 0) reload() }
+		refreshBadges()
 		if (adapter.itemCount == 0) reload()
 	}
 
@@ -565,6 +583,57 @@ class DiscoverFragment : Fragment() {
 		return PublicDiscoverCatalog.asPage(books, if (kind == MediaSection.BOOK) 32 else 25)
 	}
 
+	/** Long-press menu of an "Airing this week" card: follow/unfollow reminders, or search the romaji title. */
+	private fun showAiringMenu(item: AniListDiscover.Item, mediaId: Int, type: MediaType) {
+		val followed = airingReminders.isFollowed(mediaId)
+		val actions = ArrayList<Pair<String, () -> Unit>>()
+		if (followed) {
+			actions.add(Pair<String, () -> Unit>(getString(R.string.airing_reminder_unfollow), { unfollowAiring(mediaId, item.title) }))
+		} else {
+			actions.add(Pair<String, () -> Unit>(getString(R.string.airing_reminder_follow), { followAiring(mediaId, item.title) }))
+		}
+		item.alternativeTitle?.let { alternative ->
+			actions.add(Pair<String, () -> Unit>(getString(R.string.airing_reminder_search_alternative), { openTypedSearch(alternative, type) }))
+		}
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(item.title)
+			.setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
+	}
+
+	private fun followAiring(mediaId: Int, title: String) {
+		val first = airingReminders.follow(mediaId, title)
+		airingReminderScheduler.update(hasFollowed = true)
+		refreshBadges()
+		val context = requireContext()
+		if (!context.checkNotificationPermission(AiringReminderWorker.CHANNEL_ID)) {
+			if (first && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+				notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+			} else {
+				showSnackbar(getString(R.string.airing_reminder_permission_hint))
+			}
+		} else {
+			showSnackbar(getString(R.string.airing_reminder_followed, title))
+		}
+	}
+
+	private fun unfollowAiring(mediaId: Int, title: String) {
+		airingReminders.unfollow(mediaId)
+		airingReminderScheduler.update(hasFollowed = airingReminders.followedIds().isNotEmpty())
+		refreshBadges()
+		showSnackbar(getString(R.string.airing_reminder_unfollowed, title))
+	}
+
+	private fun refreshBadges() {
+		adapter.followedIds = airingReminders.followedIds()
+	}
+
+	private fun showSnackbar(text: String) {
+		val view = _binding?.root ?: return
+		Snackbar.make(view, text, Snackbar.LENGTH_LONG).show()
+	}
+
 	private fun showMessage(text: String) {
 		val view = _binding?.textMessage ?: return
 		view.text = text
@@ -582,6 +651,14 @@ class DiscoverFragment : Fragment() {
 				notifyDataSetChanged()
 			}
 
+		/** AniList ids of shows with airing reminders; their cards get a bell in the badge. */
+		var followedIds: Set<Int> = emptySet()
+			set(value) {
+				field = value
+				@Suppress("NotifyDataSetChanged")
+				notifyDataSetChanged()
+			}
+
 		override fun getItemCount() = items.size
 
 		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -590,7 +667,9 @@ class DiscoverFragment : Fragment() {
 		override fun onBindViewHolder(holder: Holder, position: Int) {
 			val item = items[position]
 			holder.binding.textTitle.text = item.title
-			val badge = listOfNotNull(item.providerLabel, item.score?.let { "$it%" }, if (item.isAdult) "18+" else null)
+			val bell = item.aniListMediaId?.takeIf { it in followedIds }?.let { getString(R.string.airing_reminder_marker) }
+			val label = item.providerLabel?.let { if (bell != null) "$bell $it" else it } ?: bell
+			val badge = listOfNotNull(label, item.score?.let { "$it%" }, if (item.isAdult) "18+" else null)
 			holder.binding.textScore.isVisible = badge.isNotEmpty()
 			holder.binding.textScore.text = badge.joinToString(" · ")
 			holder.binding.imageCover.setImageDrawable(null)
@@ -620,6 +699,10 @@ class DiscoverFragment : Fragment() {
 				} else openTypedSearch(item.title, type)
 			}
 			holder.binding.root.setOnLongClickListener {
+				item.aniListMediaId?.let { mediaId ->
+					showAiringMenu(item, mediaId, type)
+					return@setOnLongClickListener true
+				}
 				val alternative = item.alternativeTitle ?: return@setOnLongClickListener false
 				openTypedSearch(alternative, type)
 				true

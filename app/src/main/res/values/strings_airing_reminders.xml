@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="airing_reminders_channel">New episode reminders</string>
+	<string name="airing_reminders_channel_summary">Anime you follow from Discover\'s \"Airing this week\" list</string>
+	<string name="airing_reminder_follow">Remind me when new episodes air</string>
+	<string name="airing_reminder_unfollow">Stop reminders</string>
+	<string name="airing_reminder_search_alternative">Search alternative title</string>
+	<string name="airing_reminder_followed">You\'ll be notified when new episodes of %s air</string>
+	<string name="airing_reminder_unfollowed">Reminders stopped for %s</string>
+	<string name="airing_reminder_permission_hint">Allow notifications for Monogatari in system settings to get episode reminders</string>
+	<string name="airing_reminder_episode_out">%1$s — episode %2$d is out</string>
+	<string name="airing_reminder_new_episode_out">%s — a new episode is out</string>
+	<string name="airing_reminder_tap_to_search">Tap to search your video sources</string>
+	<string name="airing_reminder_marker">🔔</string>
+</resources>
