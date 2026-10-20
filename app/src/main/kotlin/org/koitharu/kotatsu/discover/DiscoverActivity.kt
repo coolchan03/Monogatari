@@ -219,26 +219,26 @@ class DiscoverActivity : AppCompatActivity() {
 		}
 		when (section) {
 			MediaSection.MANGA -> {
-				action("Search manga") { askSearch(MediaType.MANGA) }
-				action("My library") { startActivity(Intent(this, UnifiedLibraryActivity::class.java)) }
+				action(getString(R.string.mono_discover_search_manga)) { askSearch(MediaType.MANGA) }
+				action(getString(R.string.mono_discover_my_library)) { startActivity(Intent(this, UnifiedLibraryActivity::class.java)) }
 			}
 			MediaSection.BOOK -> {
-				action("Books catalog & OPDS") { startActivity(Intent(this, BookLibraryActivity::class.java)) }
-				action("Search novel sources") { askSearch(MediaType.BOOK) }
+				action(getString(R.string.mono_discover_books_catalog_opds)) { startActivity(Intent(this, BookLibraryActivity::class.java)) }
+				action(getString(R.string.mono_discover_search_novel_sources)) { askSearch(MediaType.BOOK) }
 			}
 			MediaSection.VIDEO -> {
-				action("Search video websites") { askSearch(MediaType.VIDEO) }
-				action("Archive public videos") { searchArchiveVideos() }
-				action("Video RSS feeds") { openMediaFeeds(MediaType.VIDEO) }
-				action("My saved videos") { openLibrary(MediaType.VIDEO) }
+				action(getString(R.string.mono_discover_search_video_websites)) { askSearch(MediaType.VIDEO) }
+				action(getString(R.string.mono_discover_archive_public_videos)) { searchArchiveVideos() }
+				action(getString(R.string.mono_discover_video_rss_feeds)) { openMediaFeeds(MediaType.VIDEO) }
+				action(getString(R.string.mono_discover_my_saved_videos)) { openLibrary(MediaType.VIDEO) }
 			}
 			MediaSection.AUDIO -> {
-				action("Find audiobooks & dramas") { askSearch(MediaType.AUDIO) }
-				action("Fiction podcasts & audio drama") { openMediaFeeds(MediaType.AUDIO) }
-				action("My audiobooks") { openLibrary(MediaType.AUDIO) }
+				action(getString(R.string.mono_discover_find_audiobooks_dramas)) { askSearch(MediaType.AUDIO) }
+				action(getString(R.string.mono_discover_fiction_podcasts_audio_drama)) { openMediaFeeds(MediaType.AUDIO) }
+				action(getString(R.string.mono_discover_my_audiobooks)) { openLibrary(MediaType.AUDIO) }
 			}
 			MediaSection.NEWS -> {
-				action("News & followed tags") { startActivity(Intent(this, NewsFeedActivity::class.java)) }
+				action(getString(R.string.mono_discover_news_followed_tags)) { startActivity(Intent(this, NewsFeedActivity::class.java)) }
 			}
 		}
 		// Discover recommends titles; Explore browses the source websites themselves.
@@ -265,14 +265,14 @@ class DiscoverActivity : AppCompatActivity() {
 
 	private fun askSearch(type: MediaType) {
 		val input = EditText(this).apply {
-			hint = "Title, author or topic"
+			hint = getString(R.string.mono_discover_title_author_or_topic)
 			setSingleLine(true)
 		}
 		MaterialAlertDialogBuilder(this)
 			.setTitle("Search ${type.name.lowercase().replaceFirstChar { it.uppercaseChar() }} sources")
 			.setView(input)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton("Search") { _, _ ->
+			.setPositiveButton(getString(R.string.mono_discover_search)) { _, _ ->
 				val term = input.text?.toString()?.trim().orEmpty()
 				if (term.isNotBlank()) openTypedSearch(term, type)
 			}
@@ -280,19 +280,19 @@ class DiscoverActivity : AppCompatActivity() {
 	}
 
 	private fun searchArchiveVideos() {
-		val input = EditText(this).apply { hint = "Search public video archives"; setSingleLine(true) }
+		val input = EditText(this).apply { hint = getString(R.string.mono_discover_search_public_video_archives); setSingleLine(true) }
 		MaterialAlertDialogBuilder(this)
-			.setTitle("Internet Archive videos")
+			.setTitle(getString(R.string.mono_discover_internet_archive_videos))
 			.setView(input)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton("Search") { _, _ ->
+			.setPositiveButton(getString(R.string.mono_discover_search)) { _, _ ->
 				val term = input.text?.toString()?.trim().orEmpty()
 				if (term.isBlank()) return@setPositiveButton
 				lifecycleScope.launch {
 					val videos = runCatching { publicCatalog.searchInternetArchiveVideos(term) }
 					videos.onSuccess { results ->
 						if (results.isEmpty()) {
-							showMessage("No public Archive videos matched that search.")
+							showMessage(getString(R.string.mono_discover_no_public_archive_videos_matched_that))
 						} else {
 							MaterialAlertDialogBuilder(this@DiscoverActivity)
 								.setTitle("Internet Archive · ${results.size} results")
@@ -423,7 +423,7 @@ class DiscoverActivity : AppCompatActivity() {
 				val link = item.officialUrl
 				if (link != null && link.startsWith("https://")) {
 					runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
-						.onFailure { showMessage("No browser is available for this catalog link.") }
+						.onFailure { showMessage(getString(R.string.mono_discover_no_browser_is_available_for_this)) }
 				} else openTypedSearch(item.title, type)
 			}
 			holder.binding.root.setOnLongClickListener {

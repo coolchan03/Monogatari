@@ -80,7 +80,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             index = preferences.getInt(fileKey, 0)
             showChapter(index.coerceIn(0, (book!!.chapters.size - 1).coerceAtLeast(0)), restorePosition = true)
         } catch (error: Exception) {
-            position.text = "Unable to open EPUB"
+            position.text = getString(R.string.mono_epub_unable_to_open_epub)
             body.text = error.message
         }
     }

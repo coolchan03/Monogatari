@@ -61,7 +61,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
             setPadding(pad, pad, pad, pad)
         }
         status = TextView(this).apply {
-            text = "Only manually selected ZIP archives are transferred. No automatic merge or restore."
+            text = getString(R.string.mono_webdav_only_manually_selected_zip_archives_are)
         }
         root.addView(status)
         // First action (account setup) filled, the rest outlined, full width like the Nearby screen.
@@ -76,31 +76,31 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = (pad / 3) })
         }
-        button("Configure secure WebDAV account") { configure() }
-        button("Upload selected backup ZIP") {
+        button(getString(R.string.mono_webdav_configure_secure_webdav_account)) { configure() }
+        button(getString(R.string.mono_webdav_upload_selected_backup_zip)) {
             if (account() != null) AlertDialog.Builder(this)
-                .setTitle("Replace this device's remote backup?")
-                .setMessage("Uploading replaces the existing ZIP for this device. Existing remote files from other devices are not changed. Keep another local backup before continuing.")
+                .setTitle(getString(R.string.mono_webdav_replace_this_device_s_remote_backup))
+                .setMessage(getString(R.string.mono_webdav_uploading_replaces_the_existing_zip_for))
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("Choose backup ZIP") { _, _ ->
+                .setPositiveButton(getString(R.string.mono_webdav_choose_backup_zip)) { _, _ ->
                     uploadPicker.launch(arrayOf("application/zip", "application/octet-stream"))
                 }.show()
         }
-        button("List and download backup ZIP") { listRemote() }
-        button("Remove account from this device") {
-            AlertDialog.Builder(this).setTitle("Remove WebDAV credentials?")
-                .setMessage("This removes the saved account from this device. Server files are not deleted.")
+        button(getString(R.string.mono_webdav_list_and_download_backup_zip)) { listRemote() }
+        button(getString(R.string.mono_webdav_remove_account_from_this_device)) {
+            AlertDialog.Builder(this).setTitle(getString(R.string.mono_webdav_remove_webdav_credentials))
+                .setMessage(getString(R.string.mono_webdav_this_removes_the_saved_account_from))
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("Remove") { _, _ ->
+                .setPositiveButton(getString(R.string.mono_webdav_remove)) { _, _ ->
                     accountStore.clear()
-                    status.text = "Account removed"
+                    status.text = getString(R.string.mono_webdav_account_removed)
                 }.show()
         }
         setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
     }
 
     private fun account(): WebDavAccount? = runCatching { accountStore.load() }.getOrNull().also {
-        if (it == null) status.text = "Configure your HTTPS WebDAV account first"
+        if (it == null) status.text = getString(R.string.mono_webdav_configure_your_https_webdav_account_first)
     }
 
     private fun configure() {
@@ -114,12 +114,12 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 root.addView(this)
             }
         }
-        AlertDialog.Builder(this).setTitle("Encrypted WebDAV credentials").setView(root)
+        AlertDialog.Builder(this).setTitle(getString(R.string.mono_webdav_encrypted_webdav_credentials)).setView(root)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(getString(R.string.mono_webdav_save)) { _, _ ->
                 runCatching { accountStore.save(fields[0].text.toString().trim(),
                     fields[1].text.toString(), fields[2].text.toString()) }
-                    .onSuccess { status.text = "Credentials encrypted using Android Keystore" }
+                    .onSuccess { status.text = getString(R.string.mono_webdav_credentials_encrypted_using_android_keystore) }
                     .onFailure { status.text = "Configuration failed: ${it.message}" }
             }.show()
     }
@@ -128,7 +128,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         val account = account() ?: return
         if (busy) return
         busy = true
-        status.text = "Uploading selected ZIP…"
+        status.text = getString(R.string.mono_webdav_uploading_selected_zip)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching {
                 val file = File.createTempFile("dav-upload", ".zip", cacheDir)
@@ -143,7 +143,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 } finally { file.delete() }
             } }
             busy = false
-            result.onSuccess { status.text = "Backup ZIP uploaded for this device" }
+            result.onSuccess { status.text = getString(R.string.mono_webdav_backup_zip_uploaded_for_this_device) }
                 .onFailure { status.text = "Upload failed: ${it.message}" }
         }
     }
@@ -152,14 +152,14 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         val account = account() ?: return
         if (busy) return
         busy = true
-        status.text = "Listing backups…"
+        status.text = getString(R.string.mono_webdav_listing_backups)
         lifecycleScope.launch {
             val result = runCatching { transport.list(account.endpoint, account.auth) }
             busy = false
             result.onSuccess { ids ->
-                if (ids.isEmpty()) { status.text = "No device backups found"; return@onSuccess }
+                if (ids.isEmpty()) { status.text = getString(R.string.mono_webdav_no_device_backups_found); return@onSuccess }
                 AlertDialog.Builder(this@WebDavManualSyncActivity)
-                    .setTitle("Select a device ZIP to download")
+                    .setTitle(getString(R.string.mono_webdav_select_a_device_zip_to_download))
                     .setItems(ids.toTypedArray()) { _, index ->
                         downloadId = ids[index]
                         downloadPicker.launch("monogatari-${ids[index]}.zip")
@@ -174,7 +174,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         if (busy) return
         require(WebDavEndpoint.validDeviceId(id)) { "Invalid backup device" }
         busy = true
-        status.text = "Downloading ZIP…"
+        status.text = getString(R.string.mono_webdav_downloading_zip)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching {
                 val temporary = File.createTempFile("dav-download", ".zip", cacheDir)
@@ -188,7 +188,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 } finally { temporary.delete() }
             } }
             busy = false
-            result.onSuccess { status.text = "Backup ZIP saved. Restore it only through the normal restore-review flow." }
+            result.onSuccess { status.text = getString(R.string.mono_webdav_backup_zip_saved_restore_it_only) }
                 .onFailure { status.text = "Download failed: ${it.message}" }
         }
     }

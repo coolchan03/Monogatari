@@ -97,7 +97,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         }
         val scroll = ScrollView(this).apply { addView(body) }
         status = TextView(this).apply {
-            text = "No cloud or internet needed. Turn on Bluetooth and Wi-Fi. " +
+            text = getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
                 "Confirm the same code on both devices before transferring."
             setPadding(0, 0, 0, padding)
         }
@@ -114,18 +114,18 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = padding / 3 })
         }
-        addButton("Receive: make this device visible") { withPermissions(::advertise) }
-        addButton("Send: find a nearby device") { withPermissions(::discover) }
+        addButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
+        addButton(getString(R.string.mono_nearby_send_find_a_nearby_device)) { withPermissions(::discover) }
         peers = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         body.addView(peers)
-        addButton("Send library and settings") { sendLibrary() }
-        addButton("Send an offline book or file") {
+        addButton(getString(R.string.mono_nearby_send_library_and_settings)) { sendLibrary() }
+        addButton(getString(R.string.mono_nearby_send_an_offline_book_or_file)) {
             if (connected == null) say("Connect to the other device first.")
             else filePicker.launch(arrayOf("*/*"))
         }
-        addButton("Stop and disconnect") { stop(); say("Nearby transfer stopped.") }
+        addButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
         body.addView(TextView(this).apply {
-            text = "Library transfer includes reading history, favourites, bookmarks, " +
+            text = getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
                 "source subscriptions, and preferences. Files are sent separately. " +
                 "The private community identity is NOT shared automatically. " +
                 "You must approve each receive and restore."
@@ -213,7 +213,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         peers.removeAllViews()
         discovered.forEach { (id, name) ->
             peers.addView(MaterialButton(this).apply {
-                text = "Connect: " + name
+                text = getString(R.string.mono_nearby_connect) + name
                 setOnClickListener {
                     client.stopDiscovery()
                     client.requestConnection(deviceLabel, id, connectionEvents)
@@ -227,18 +227,18 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         override fun onConnectionInitiated(id: String, info: ConnectionInfo) {
             runOnUiThread {
                 MaterialAlertDialogBuilder(this@NearbyOfflineSyncActivity)
-                    .setTitle("Verify nearby device")
-                    .setMessage("Device: " + info.endpointName +
+                    .setTitle(getString(R.string.mono_nearby_verify_nearby_device))
+                    .setMessage(getString(R.string.mono_nearby_device) + info.endpointName +
                         "\nPairing code: " + info.authenticationDigits +
                         "\n\nCompare the code on BOTH screens. Accept only when they match.")
                     .setCancelable(false)
-                    .setPositiveButton("Codes match") { _, _ ->
+                    .setPositiveButton(getString(R.string.mono_nearby_codes_match)) { _, _ ->
                         client.acceptConnection(id, payloadEvents)
                             .addOnFailureListener {
                                 say("Pairing failed: " + it.localizedMessage)
                             }
                     }
-                    .setNegativeButton("Reject") { _, _ -> client.rejectConnection(id) }
+                    .setNegativeButton(getString(R.string.mono_nearby_reject)) { _, _ -> client.rejectConnection(id) }
                     .show()
             }
         }
@@ -273,12 +273,12 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         val endpoint = connectedPeer() ?: return
         if (busy) { say("Finish the current transfer first."); return }
         MaterialAlertDialogBuilder(this)
-            .setTitle("Send your library and settings?")
-            .setMessage("This creates a backup of saved library metadata, progress, sources, " +
+            .setTitle(getString(R.string.mono_nearby_send_your_library_and_settings))
+            .setMessage(getString(R.string.mono_nearby_this_creates_a_backup_of_saved) +
                 "bookmarks and settings. Your private community identity is excluded. " +
                 "Downloaded chapter files are not in this backup. Send files separately.")
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("Create and send") { _, _ ->
+            .setPositiveButton(getString(R.string.mono_nearby_create_and_send)) { _, _ ->
                 busy = true
                 say("Preparing your library backup...")
                 lifecycleScope.launch {
@@ -494,18 +494,18 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             return
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("Review received library and settings")
-            .setMessage("Archive inspected and verified. Select sections to MERGE into this " +
+            .setTitle(getString(R.string.mono_nearby_review_received_library_and_settings))
+            .setMessage(getString(R.string.mono_nearby_archive_inspected_and_verified_select_sections) +
                 "device. Private community identity is never imported through nearby transfers. " +
                 "Keep a backup of this device before importing.")
             .setMultiChoiceItems(choices.map { it.name.replace('_', ' ') }.toTypedArray(),
                 selected) { _, which, checked -> selected[which] = checked }
             .setCancelable(false)
-            .setNegativeButton("Keep existing library") { _, _ ->
+            .setNegativeButton(getString(R.string.mono_nearby_keep_existing_library)) { _, _ ->
                 file.delete()
                 say("Received archive discarded. No changes were made.")
             }
-            .setPositiveButton("Merge selected") { _, _ ->
+            .setPositiveButton(getString(R.string.mono_nearby_merge_selected)) { _, _ ->
                 val sections = choices.filterIndexed { index, _ -> selected[index] }.toSet()
                 if (sections.isEmpty()) {
                     file.delete()
@@ -537,8 +537,8 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         val options = if (isBook) arrayOf("Add to Books shelf", "Save elsewhere", "Discard")
             else arrayOf("Save elsewhere", "Discard")
         MaterialAlertDialogBuilder(this)
-            .setTitle("Received " + name)
-            .setMessage("Checksum verified. This file is stored temporarily until you choose.")
+            .setTitle(getString(R.string.mono_nearby_received) + name)
+            .setMessage(getString(R.string.mono_nearby_checksum_verified_this_file_is_stored))
             .setItems(options) { _, index ->
                 when (options[index]) {
                     "Add to Books shelf" -> addBook(file, name)
