@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event_name == 'push' && github.ref || inputs.source_ref }}
       - uses: actions/setup-java@v5
@@ -39,7 +39,7 @@ jobs:
           MONOGATARI_REPOS: ${{ secrets.MONOGATARI_REPOS }}
         shell: bash
         run: printf 'monogatari.repos=%s\n' "$MONOGATARI_REPOS" >> local.properties
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - name: Validate release inputs and credentials
         env:
           TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
@@ -96,7 +96,7 @@ jobs:
             --out dist/Monogatari-release.apk "$INPUT"
           "$SIGNER" verify --verbose --print-certs dist/Monogatari-release.apk
           (cd dist && sha256sum Monogatari-release.apk > SHA256SUMS.txt)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: signed-release
           path: dist/
