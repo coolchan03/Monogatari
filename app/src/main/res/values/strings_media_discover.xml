@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Navigation / More entries -->
+	<string name="media_discover_books_nav">Discover books</string>
+	<string name="media_discover_video_nav">Discover videos</string>
+
+	<!-- Headers -->
+	<string name="media_discover_books_title">Discover books</string>
+	<string name="media_discover_books_intro">Popular light novels, web serials and free public-domain classics.</string>
+	<string name="media_discover_video_title">Discover videos</string>
+	<string name="media_discover_video_intro">What is trending now, anime airing this week and free films from public archives.</string>
+	<string name="media_discover_books_search_hint">Search novel and book sources</string>
+	<string name="media_discover_video_search_hint">Search video sources</string>
+
+	<!-- Shelves -->
+	<string name="media_discover_see_all">See all</string>
+	<string name="media_discover_shelf_youtube">Trending on YouTube</string>
+	<string name="media_discover_shelf_airing">Airing this week</string>
+	<string name="media_discover_shelf_trending_anime">Trending anime</string>
+	<string name="media_discover_shelf_bl_anime">BL anime</string>
+	<string name="media_discover_shelf_dailymotion">Dailymotion trending</string>
+	<string name="media_discover_shelf_odysee">Odysee trending</string>
+	<string name="media_discover_shelf_ia_video">Internet Archive films</string>
+	<string name="media_discover_shelf_light_novels">Light novels</string>
+	<string name="media_discover_shelf_gutenberg">Popular on Project Gutenberg</string>
+	<string name="media_discover_shelf_royal_road">Royal Road best rated</string>
+	<string name="media_discover_shelf_ao3">Archive of Our Own — recent</string>
+	<string name="media_discover_shelf_scribble_hub">Scribble Hub</string>
+	<string name="media_discover_shelf_wikisource">Wikisource featured</string>
+	<string name="media_discover_shelf_open_library">Open Library</string>
+	<string name="media_discover_shelf_ia_books">Internet Archive books</string>
+	<string name="media_discover_airing_episode">Ep %1$d · %2$s</string>
+	<string name="media_discover_adult_badge">18+</string>
+	<string name="media_discover_score_badge">%1$d%%</string>
+	<string name="media_discover_nothing_loaded">Nothing could be loaded right now. Check your connection and try again.</string>
+
+	<!-- Action chips -->
+	<string name="media_discover_action_video_rss">Video RSS feeds</string>
+	<string name="media_discover_action_saved_videos">My saved videos</string>
+	<string name="media_discover_action_browse_video_sources">Browse video sources</string>
+	<string name="media_discover_action_books_catalog">Books catalog</string>
+	<string name="media_discover_action_my_books">My books</string>
+	<string name="media_discover_action_search_novels">Search novel sources</string>
+</resources>

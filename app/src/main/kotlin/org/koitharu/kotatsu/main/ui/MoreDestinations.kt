@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.main.ui
 
 import org.koitharu.kotatsu.discover.DiscoverActivity
+import org.koitharu.kotatsu.discover.media.MediaDiscoverActivity
 import android.app.Activity
 import android.content.Intent
 import org.koitharu.kotatsu.R
@@ -39,6 +40,10 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java),
         Page("Discover", "Manga, novels, anime, films and audio across sources",
             R.drawable.ic_monogatari_nav_explore, DiscoverActivity::class.java),
+        Page("Discover books", "Light novels, web fiction and free classics, ready to browse",
+            R.drawable.ic_monogatari_nav_books, MediaDiscoverActivity::class.java, "monogatari://discover/books"),
+        Page("Discover videos", "Trending videos, anime airing this week and public films",
+            R.drawable.ic_play, MediaDiscoverActivity::class.java, "monogatari://discover/video"),
         Page("Podcasts & video RSS", "Your fiction, film, drama and entertainment subscriptions",
             R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java),
         Page("News & followed tags", "RSS feeds and saved interests",
@@ -67,7 +72,8 @@ internal object MoreDestinations {
     private val groupOf = mapOf(
         "Unified Library" to "Library", "Books catalog" to "Library", "Downloads" to "Library",
         "Bookmarks" to "Library", "Reading statistics" to "Library",
-        "Discover" to "Find something", "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
+        "Discover" to "Find something", "Discover books" to "Find something", "Discover videos" to "Find something",
+        "Sources" to "Find something", "Podcasts & video RSS" to "Find something",
         "News & followed tags" to "Find something", "API keys & accounts" to "Find something",
         "Source activity log" to "Find something",
         "Nearby offline sync" to "Backup and import",
