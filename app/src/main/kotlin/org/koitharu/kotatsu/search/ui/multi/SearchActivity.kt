@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.media.MediaAccents
+import com.google.android.material.chip.Chip
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.widget.Toast
 import android.content.Intent
@@ -68,6 +71,39 @@ class SearchActivity :
 	MangaListListener,
 	ListSelectionController.Callback {
 
+	/** One tap narrows the search to Manga, Books, Video or Audio sources; the sources are filtered before querying. */
+	private fun bindMediaTypeChips() {
+		val group = viewBinding.chipsMediaType
+		val scopes = listOf("ALL") + MediaType.entries.map { it.name }
+		for (scope in scopes) {
+			group.addView(Chip(this).apply {
+				id = View.generateViewId()
+				tag = scope
+				text = when (scope) {
+					MediaType.MANGA.name -> getString(R.string.search_media_manga)
+					MediaType.BOOK.name -> getString(R.string.search_media_books)
+					MediaType.VIDEO.name -> getString(R.string.search_media_video)
+					MediaType.AUDIO.name -> getString(R.string.search_media_audio)
+					else -> getString(R.string.search_media_all)
+				}
+				isCheckable = true
+				isChecked = scope == viewModel.selectedMediaScope
+				if (scope != "ALL") MediaAccents.tintChip(this@SearchActivity, scope, this)
+			})
+		}
+		group.setOnCheckedStateChangeListener { chipGroup, checkedIds ->
+			val selection = checkedIds.firstOrNull()?.let { chipGroup.findViewById<Chip>(it)?.tag as? String }
+			if (selection == null || selection == viewModel.selectedMediaScope) return@setOnCheckedStateChangeListener
+			startActivity(Intent(this, SearchActivity::class.java)
+				.putExtra(AppRouter.KEY_QUERY, viewModel.query)
+				.putExtra(AppRouter.KEY_KIND, viewModel.kind)
+				.putExtra(EXTRA_MEDIA_TYPE, selection))
+			finish()
+			@Suppress("DEPRECATION")
+			overridePendingTransition(0, 0)
+		}
+	}
+
 	companion object {
 		/** Intent scope for a one-off book search; never mutates the global media filter. */
 		const val EXTRA_MEDIA_TYPE = "monogatari.search.media_type"
@@ -116,6 +152,7 @@ class SearchActivity :
 		if (viewModel.mediaTypeOverride == MediaType.BOOK) {
 			title = getString(R.string.monogatari_catalog_online_search_title, viewModel.query)
 		}
+		bindMediaTypeChips()
 
 		val itemClickListener = OnListItemClickListener<SearchResultsListModel> { item, view ->
 			if (view.id == R.id.button_retry) {

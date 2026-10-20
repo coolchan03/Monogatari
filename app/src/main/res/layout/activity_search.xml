@@ -19,6 +19,24 @@
 			android:layout_height="wrap_content"
 			app:layout_scrollFlags="scroll|enterAlways" />
 
+		<HorizontalScrollView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:scrollbars="none"
+			app:layout_scrollFlags="scroll|enterAlways">
+
+			<com.google.android.material.chip.ChipGroup
+				android:id="@+id/chips_media_type"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:paddingHorizontal="@dimen/margin_normal"
+				android:paddingBottom="@dimen/margin_small"
+				app:selectionRequired="true"
+				app:singleLine="true"
+				app:singleSelection="true" />
+
+		</HorizontalScrollView>
+
 	</com.google.android.material.appbar.AppBarLayout>
 
 	<org.koitharu.kotatsu.core.ui.list.fastscroll.FastScrollRecyclerView
