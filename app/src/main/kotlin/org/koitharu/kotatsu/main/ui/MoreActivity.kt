@@ -19,12 +19,32 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.BookShelfCard
+import org.koitharu.kotatsu.core.prefs.NavItem
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
 
 /** Full-screen, theme-aware More hub; no duplicate hard-coded menu destinations. */
 class MoreActivity : AppCompatActivity() {
+    companion object {
+        /** [NavItem] names configured for the navigation bar that had no room on it; listed first. */
+        const val EXTRA_OVERFLOW_ITEMS = "monogatari_more_overflow_items"
+    }
+
+    /** A navigation bar item listed here because it did not fit on the bar. */
+    private data class OverflowEntry(val item: NavItem)
+
+    /** [MoreDestinations.sections], preceded by the navigation items that did not fit on the bar. */
+    private val sections: List<Any> by lazy {
+        val overflow = intent.getStringArrayListExtra(EXTRA_OVERFLOW_ITEMS).orEmpty()
+            .mapNotNull { name -> NavItem.entries.firstOrNull { it.name == name } }
+        if (overflow.isEmpty()) {
+            MoreDestinations.sections
+        } else {
+            listOf<Any>(getString(R.string.nav_overflow_section)) + overflow.map(::OverflowEntry) + MoreDestinations.sections
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.screen_title_more)
@@ -58,7 +78,7 @@ class MoreActivity : AppCompatActivity() {
                 // Section titles span the whole row, like category headings in Settings.
                 spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                     override fun getSpanSize(position: Int): Int =
-                        if (MoreDestinations.sections[position] is String) columns else 1
+                        if (sections[position] is String) columns else 1
                 }
             }
             adapter = DestinationsAdapter()
@@ -67,14 +87,30 @@ class MoreActivity : AppCompatActivity() {
         setMonogatariContent(root, MonogatariChrome.LIST_MAX_WIDTH_DP)
     }
 
+    /** Opens the item on the main screen, like tapping it on the bar would, and closes this page. */
+    private fun bindOverflow(holder: Holder, item: NavItem) {
+        BookShelfCard.bind(holder.card, getString(item.title), getString(R.string.nav_overflow_item_subtitle)) {
+            startActivity(
+                Intent(this, MainActivity::class.java)
+                    .putExtra(MainActivity.EXTRA_OPEN_NAV_ITEM, item.name)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            )
+            finish()
+        }
+        holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).apply {
+            setImageResource(item.icon)
+            imageTintList = null
+        }
+    }
+
     private class Holder(val card: MaterialCardView) : RecyclerView.ViewHolder(card)
 
     private class HeaderHolder(val title: TextView) : RecyclerView.ViewHolder(title)
 
     private inner class DestinationsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun getItemCount(): Int = MoreDestinations.sections.size
+        override fun getItemCount(): Int = sections.size
 
-        override fun getItemViewType(position: Int): Int = if (MoreDestinations.sections[position] is String) 1 else 0
+        override fun getItemViewType(position: Int): Int = if (sections[position] is String) 1 else 0
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             if (viewType == 1) {
@@ -93,12 +129,16 @@ class MoreActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val item = MoreDestinations.sections[position]
+            val item = sections[position]
             if (holder is HeaderHolder) {
                 holder.title.text = item as String
                 return
             }
             holder as Holder
+            if (item is OverflowEntry) {
+                bindOverflow(holder, item.item)
+                return
+            }
             val page = item as MoreDestinations.Page
             BookShelfCard.bind(holder.card, page.title, page.subtitle) {
                 val destination = Intent(this@MoreActivity, page.target)
