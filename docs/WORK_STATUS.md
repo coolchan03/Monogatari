@@ -1,5 +1,14 @@
 # Monogatari work checkpoint
 
+## 2026-10-20 — v1.2 candidate batch (drafts branch `93c1e29`, CI run 39433462300 green, unreleased)
+- Main search bar: filter icon picks All/Manga/Books/Video/Audio (remembered, prefs `monogatari_search`).
+- NewPipe: no-query lists use kiosks (YouTube trending_movies_and_shows/music/gaming; PeerTube Trending; SoundCloud New & hot), fallback to the old fixed search.
+- New Discover books / Discover videos pages (discover/media/): parallel cover shelves, scoped search, chips; optional nav items + More entries.
+- Airing reminders: follow from "Airing this week" (long-press); worker every 3 h; prefs `monogatari_airing_reminders`.
+- Nearby: history conflict review sheet (SyncConflictPlanner); new per-device ledger prefs `monogatari_nearby_sync_ledger`.
+- Earlier in this batch: Discover as a tab, search type chips, Discover shelves, Books catalog autoload, feed fixes + cache, restyled secondary screens, restore settings groups, Airing this week.
+- Status: implemented, unit tests + build + cold-start smoke green; NOT device-verified (feeds and NewPipe kiosks unreachable from the sandbox).
+
 ## 2026-10-20 — 1.0.2 work on devel; v1.1+ progress on drafts branch
 - `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
 - Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
