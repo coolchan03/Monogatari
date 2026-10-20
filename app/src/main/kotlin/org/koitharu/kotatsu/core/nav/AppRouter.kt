@@ -141,6 +141,16 @@ class AppRouter private constructor(
         )
     }
 
+    /** [mediaScope] is "ALL" or a MediaType name limiting which sources are searched; null follows Explore's setting. */
+    fun openSearch(query: String, kind: SearchKind, mediaScope: String?) {
+        startActivity(
+            Intent(contextOrNull() ?: return, SearchActivity::class.java)
+                .putExtra(KEY_QUERY, query)
+                .putExtra(KEY_KIND, kind)
+                .apply { mediaScope?.let { putExtra(SearchActivity.EXTRA_MEDIA_TYPE, it) } },
+        )
+    }
+
     fun openSearch(source: MangaSource, query: String) = openList(source, MangaListFilter(query = query), null)
 
     fun openDetails(manga: Manga) {

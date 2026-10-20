@@ -32,6 +32,11 @@ class SearchSuggestionMenuProvider(
 				voiceInputLauncher.tryLaunch(context.getString(R.string.search_manga), null)
 			}
 
+			R.id.action_search_type -> {
+				chooseSearchType(menuItem)
+				true
+			}
+
 			else -> false
 		}
 	}
@@ -39,6 +44,30 @@ class SearchSuggestionMenuProvider(
 	override fun onPrepareMenu(menu: Menu) {
 		super.onPrepareMenu(menu)
 		menu.findItem(R.id.action_voice_search)?.isVisible = voiceInputLauncher.resolve(context, null) != null
+		menu.findItem(R.id.action_search_type)?.let { updateSearchTypeTitle(it) }
+	}
+
+	/** Manga, books, video or audio only: the main search bar then queries just those sources. */
+	private fun chooseSearchType(menuItem: MenuItem) {
+		val scopes = MainSearchScope.scopes
+		val current = scopes.indexOf(MainSearchScope.get(context) ?: "ALL").coerceAtLeast(0)
+		buildAlertDialog(context, isCentered = true) {
+			setTitle(R.string.search_media_type)
+			setIcon(R.drawable.ic_filter_menu)
+			setSingleChoiceItems(scopes.map { MainSearchScope.label(context, it) }.toTypedArray(), current) { dialog, which ->
+				MainSearchScope.set(context, scopes[which])
+				updateSearchTypeTitle(menuItem)
+				dialog.dismiss()
+			}
+			setNegativeButton(android.R.string.cancel, null)
+		}.show()
+	}
+
+	private fun updateSearchTypeTitle(menuItem: MenuItem) {
+		menuItem.title = context.getString(
+			R.string.main_search_type_title,
+			MainSearchScope.label(context, MainSearchScope.get(context)),
+		)
 	}
 
 	private fun clearSearchHistory() {
