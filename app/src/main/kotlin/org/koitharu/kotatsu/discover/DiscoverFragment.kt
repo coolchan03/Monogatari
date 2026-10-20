@@ -40,6 +40,15 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.builtin.BuiltinSource
+import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.parsers.model.ContentRating
+import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
@@ -74,6 +83,9 @@ class DiscoverFragment : Fragment() {
 	@Inject
 	lateinit var history: HistoryRepository
 
+	@Inject
+	lateinit var repositories: MangaRepository.Factory
+
 	/** v1.3 draft: popular titles re-ranked by tags from the user's own reading history (on device only). */
 	private var forYouSelected = false
 
@@ -83,6 +95,9 @@ class DiscoverFragment : Fragment() {
 	private var section = MediaSection.MANGA
 	private var feed = AniListDiscover.Feed.TRENDING_BL
 	private var publicFeedSelected = false
+	/** Popular titles straight from built-in video, book and audio sources, so those sections open filled. */
+	private var shelfSelected = false
+	private val shelfOffsets = HashMap<String, Int>()
 	private var nextPage = 1
 	private var hasNextPage = true
 	private var loadJob: Job? = null
@@ -101,6 +116,7 @@ class DiscoverFragment : Fragment() {
 			AniListDiscover.Feed.entries.find { it.name == name }?.let { feed = it }
 		}
 		publicFeedSelected = savedInstanceState?.getBoolean(KEY_PUBLIC_FEED) ?: false
+		shelfSelected = savedInstanceState?.getBoolean(KEY_SHELF_FEED) ?: shelfSources(section).isNotEmpty()
 
 		MediaSection.entries.forEach { media ->
 			binding.chipsMedia.addView(Chip(requireContext()).apply {
@@ -115,7 +131,9 @@ class DiscoverFragment : Fragment() {
 			val chosen = checkedIds.firstOrNull()?.let { MediaSection.entries.getOrNull(it - 100) }
 			if (chosen != null && chosen != section) {
 				section = chosen
-				publicFeedSelected = section == MediaSection.AUDIO
+				shelfSelected = shelfSources(section).isNotEmpty()
+				publicFeedSelected = false
+				forYouSelected = false
 				feed = when (section) {
 					MediaSection.MANGA -> AniListDiscover.Feed.TRENDING_BL
 					MediaSection.BOOK -> AniListDiscover.Feed.LIGHT_NOVELS
@@ -127,23 +145,33 @@ class DiscoverFragment : Fragment() {
 			}
 		}
 		binding.chipsFeed.setOnCheckedStateChangeListener { _, checkedIds ->
-			if (FOR_YOU_FEED_ID in checkedIds) {
+			if (SHELF_FEED_ID in checkedIds) {
+				if (!shelfSelected) {
+					shelfSelected = true
+					forYouSelected = false
+					publicFeedSelected = false
+					reload()
+				}
+			} else if (FOR_YOU_FEED_ID in checkedIds) {
 				if (!forYouSelected) {
 					forYouSelected = true
 					publicFeedSelected = false
+					shelfSelected = false
 					reload()
 				}
 			} else if (PUBLIC_CATALOG_FEED_ID in checkedIds) {
 				forYouSelected = false
+				shelfSelected = false
 				if (!publicFeedSelected) {
 					publicFeedSelected = true
 					reload()
 				}
 			} else {
 				val selected = checkedIds.firstOrNull()?.let { AniListDiscover.Feed.entries.getOrNull(it - 1) }
-				if (selected != null && (selected != feed || publicFeedSelected || forYouSelected)) {
+				if (selected != null && (selected != feed || publicFeedSelected || forYouSelected || shelfSelected)) {
 					publicFeedSelected = false
 					forYouSelected = false
+					shelfSelected = false
 					feed = selected
 					reload()
 				}
@@ -172,6 +200,7 @@ class DiscoverFragment : Fragment() {
 		outState.putString(KEY_FEED, feed.name)
 		outState.putString(KEY_SECTION, section.name)
 		outState.putBoolean(KEY_PUBLIC_FEED, publicFeedSelected)
+		outState.putBoolean(KEY_SHELF_FEED, shelfSelected)
 	}
 
 	override fun onDestroyView() {
@@ -207,13 +236,28 @@ class DiscoverFragment : Fragment() {
 			MediaSection.AUDIO -> "Public audiobooks"
 			else -> null
 		}
-		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty() || publicLabel != null
+		val shelf = shelfSources(section)
+		if (shelf.isEmpty()) shelfSelected = false
+		(binding.chipsFeed.parent as ViewGroup).isVisible = options.isNotEmpty() || publicLabel != null || shelf.isNotEmpty()
+		if (shelf.isNotEmpty()) {
+			binding.chipsFeed.addView(Chip(requireContext()).apply {
+				id = SHELF_FEED_ID
+				setText(when (section) {
+					MediaSection.VIDEO -> R.string.discover_shelf_video
+					MediaSection.AUDIO -> R.string.discover_shelf_audio
+					else -> R.string.discover_shelf_books
+				})
+				isCheckable = true
+				isChecked = shelfSelected
+				MediaAccents.tintChip(requireContext(), section.name, this)
+			})
+		}
 		if (section == MediaSection.MANGA || section == MediaSection.VIDEO) {
 			binding.chipsFeed.addView(Chip(requireContext()).apply {
 				id = FOR_YOU_FEED_ID
 				setText(R.string.discover_for_you)
 				isCheckable = true
-				isChecked = forYouSelected
+				isChecked = forYouSelected && !shelfSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		} else forYouSelected = false
@@ -222,7 +266,7 @@ class DiscoverFragment : Fragment() {
 				id = entry.ordinal + 1
 				setText(entry.titleRes)
 				isCheckable = true
-				isChecked = entry == feed && !publicFeedSelected && !forYouSelected
+				isChecked = entry == feed && !publicFeedSelected && !forYouSelected && !shelfSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		}
@@ -231,7 +275,7 @@ class DiscoverFragment : Fragment() {
 				id = PUBLIC_CATALOG_FEED_ID
 				text = label
 				isCheckable = true
-				isChecked = publicFeedSelected
+				isChecked = publicFeedSelected && !shelfSelected
 				MediaAccents.tintChip(requireContext(), section.name, this)
 			})
 		}
@@ -352,8 +396,9 @@ class DiscoverFragment : Fragment() {
 		loadJob = null
 		adapter.items = emptyList()
 		nextPage = 1
+		shelfOffsets.clear()
 		hasNextPage = section in setOf(MediaSection.MANGA, MediaSection.BOOK, MediaSection.VIDEO) ||
-			(section == MediaSection.AUDIO && publicFeedSelected)
+			(section == MediaSection.AUDIO && (publicFeedSelected || shelfSelected))
 		if (hasNextPage) {
 			loadMore()
 		} else {
@@ -371,18 +416,20 @@ class DiscoverFragment : Fragment() {
 		val requestedFeed = feed
 		val requestedSection = section
 		val requestedPublic = publicFeedSelected
+		val requestedShelf = shelfSelected
 		val page = nextPage
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
 		loadJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val result = when {
+					requestedShelf -> loadShelf(requestedSection)
 					requestedPublic -> loadPublicFeed(requestedSection, page)
 					forYouSelected -> loadForYou(requestedFeed, page)
 					else -> discover.load(requestedFeed, page)
 				}
 				if (requestedFeed != feed || requestedSection != section ||
-					requestedPublic != publicFeedSelected) return@launch
+					requestedPublic != publicFeedSelected || requestedShelf != shelfSelected) return@launch
 				val additions = result.items.filter { new -> adapter.items.none { it.id == new.id } }
 				adapter.items = adapter.items + additions
 				hasNextPage = result.hasNextPage && additions.isNotEmpty()
@@ -423,6 +470,54 @@ class DiscoverFragment : Fragment() {
 				else getString(R.string.discover_for_you_based_on, top.joinToString(", ")))
 		}
 		return AniListDiscover.Page(ranked.ifEmpty { candidates }, false)
+	}
+
+	/** Built-in sources whose no-query list is a real popular/trending listing that needs no account or key. */
+	private fun shelfSources(kind: MediaSection): List<BuiltinSource> = when (kind) {
+		MediaSection.VIDEO -> listOf(BuiltinSource.DAILYMOTION, BuiltinSource.ODYSEE, BuiltinSource.IA_VIDEO)
+		MediaSection.BOOK -> listOf(BuiltinSource.GUTENBERG, BuiltinSource.ROYAL_ROAD, BuiltinSource.OPEN_LIBRARY)
+		MediaSection.AUDIO -> listOf(BuiltinSource.LIBRIVOX, BuiltinSource.IA_AUDIO)
+		else -> emptyList()
+	}
+
+	/**
+	 * The next page of every shelf source, interleaved so no single site fills the screen. A source that fails is
+	 * skipped; the page only fails when all of them do.
+	 */
+	private suspend fun loadShelf(kind: MediaSection): AniListDiscover.Page = coroutineScope {
+		val sources = shelfSources(kind)
+		val results = sources.map { source ->
+			async {
+				val offset = shelfOffsets[source.name] ?: 0
+				source to runCatchingCancellable {
+					withTimeout(25_000) { repositories.create(source).getList(offset, null, null) }
+				}
+			}
+		}.awaitAll()
+		results.forEach { (source, result) ->
+			result.getOrNull()?.let { shelfOffsets[source.name] = (shelfOffsets[source.name] ?: 0) + it.size }
+		}
+		if (results.all { it.second.isFailure }) {
+			throw results.first().second.exceptionOrNull() ?: IllegalStateException()
+		}
+		val lists = results.map { (source, result) ->
+			result.getOrDefault(emptyList()).map { manga ->
+				AniListDiscover.Item(
+					id = manga.id.hashCode(),
+					title = manga.title,
+					alternativeTitle = null,
+					coverUrl = manga.coverUrl?.takeIf { it.startsWith("https://") },
+					score = null,
+					isAdult = manga.contentRating == ContentRating.ADULT,
+					providerLabel = source.title,
+					manga = manga,
+				)
+			}
+		}
+		val mixed = ArrayList<AniListDiscover.Item>()
+		val longest = lists.maxOfOrNull { it.size } ?: 0
+		for (i in 0 until longest) lists.forEach { list -> list.getOrNull(i)?.let { mixed += it } }
+		AniListDiscover.Page(mixed, lists.any { it.isNotEmpty() })
 	}
 
 	private suspend fun loadPublicFeed(kind: MediaSection, page: Int): AniListDiscover.Page {
@@ -479,6 +574,10 @@ class DiscoverFragment : Fragment() {
 				else -> MediaType.MANGA
 			}
 			holder.binding.root.setOnClickListener {
+				item.manga?.let { manga ->
+					router.openDetails(manga)
+					return@setOnClickListener
+				}
 				val link = item.officialUrl
 				if (link != null && link.startsWith("https://")) {
 					runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
@@ -500,5 +599,7 @@ class DiscoverFragment : Fragment() {
 		const val KEY_PUBLIC_FEED = "public_catalog_feed"
 		const val PUBLIC_CATALOG_FEED_ID = 11000
 		const val FOR_YOU_FEED_ID = 11001
+		const val SHELF_FEED_ID = 11002
+		const val KEY_SHELF_FEED = "shelf_feed"
 	}
 }

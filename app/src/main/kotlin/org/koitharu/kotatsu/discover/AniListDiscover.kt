@@ -49,6 +49,8 @@ class AniListDiscover @Inject constructor(
 		val providerLabel: String? = null,
 		/** AniList genres, used by the on-device "For you" ranking. */
 		val genres: List<String> = emptyList(),
+		/** Set for titles listed straight from a built-in source; a tap opens their details page in the app. */
+		val manga: org.koitharu.kotatsu.parsers.model.Manga? = null,
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)

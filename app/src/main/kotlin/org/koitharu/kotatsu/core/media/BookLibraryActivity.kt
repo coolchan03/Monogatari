@@ -229,6 +229,13 @@ class BookLibraryActivity : AppCompatActivity() {
         // Preserve query and provider when the phone rotates or Android recreates this Activity.
         savedInstanceState?.getString("catalog_provider")?.takeIf { it.isNotBlank() }
             ?.let(::search)
+        if (savedInstanceState == null) {
+            // Open with books on screen: repeat the last search, or show Standard Ebooks' newest releases,
+            // which need no search term.
+            val lastProvider = catalogPrefs.getString("last_provider", null)
+            if (!lastProvider.isNullOrBlank() && query.text?.isNotBlank() == true) search(lastProvider)
+            else search("Standard Ebooks")
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
