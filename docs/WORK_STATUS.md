@@ -1,5 +1,14 @@
 # Monogatari work checkpoint
 
+## 2026-10-20 — 1.0.2 work on devel; v1.1+ progress on drafts branch
+- `devel` `c4da23b` (green, run 39346646019): GitHub Actions on Node 24 versions; 124 screen texts moved to `strings_monogatari_ui.xml`; quoted strings keep edge spaces. Not released; version still 1.0.1 until owner device feedback.
+- Drafts branch `9372d4c` (green, run 39346922739): Mihon import carries reading position; Nearby receive picks settings groups and offers Send back (two-way sync); smart collections in the Library; Discover "For you" ranking from local history; Test Center checks for these.
+
+## 2026-10-19 — v1.0.1 released
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.0.1 built from `devel` `1d06598` (build check run 39330141224 green; release started by one owner-approved connector workflow dispatch). APK SHA-256 `831005d4ce7744689f8629011f6bb6c04019d9ef913d178d76e34f155b4714ca`.
+- Contents: owner feedback fixes, full-resolution Kitsune art, consistent screens (see `docs/RELEASE_1_0_1_NOTES.md`). v1.1+ drafts stay on `claude/monogatari-v1-release-sq1t2k`, which has `devel` merged back in.
+- Next: owner device test with the Test Center; 1.0.2 candidates: move hard-coded screen text to string resources, update deprecated GitHub Actions (checkout/upload-artifact/setup-gradle v4).
+
 ## 2026-10-19 — v1.0.1 release line
 - Built on `devel` (v1.0.0) as local `release-1.0.1`: owner-feedback fixes (cherry-picked `d20cb3b`), new Kitsune art (`182b9b5`), and a screen-consistency pass (Books, Library, feeds, News, Discover, EPUB/PDF readers, player, Nearby, WebDAV, backup import, Source log, StoryWeaver, fiction browser). v1.1+ drafts excluded.
 - Operation: push to `devel`, wait for build check, start the release workflow for `v1.0.1`, verify APK and SHA-256, then merge `devel` back into `claude/monogatari-v1-release-sq1t2k`.

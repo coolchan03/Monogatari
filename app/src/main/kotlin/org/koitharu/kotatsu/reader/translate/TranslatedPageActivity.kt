@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.reader.translate
 
+import androidx.core.view.isVisible
+import androidx.core.view.children
 import android.content.Context
 import android.content.Intent
 import android.graphics.PointF
@@ -39,6 +41,7 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 	private lateinit var result: PageTranslator.Result
 	private var meta: TranslationMeta? = null
 	private var showingOriginal = false
+	private var sideBySide = false
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -52,6 +55,11 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 			targetLanguage = intent.getStringExtra(EXTRA_TARGET).orEmpty(),
 		)
 		showingOriginal = savedInstanceState?.getBoolean(STATE_ORIGINAL) ?: false
+		sideBySide = savedInstanceState?.getBoolean(STATE_SIDE_BY_SIDE) ?: false
+		viewBinding.buttonSideBySide.setOnClickListener {
+			sideBySide = !sideBySide
+			showImage()
+		}
 		meta = translator.readMeta(result)
 		viewBinding.buttonBack.setOnClickListener(this)
 		viewBinding.buttonToggle.setOnClickListener(this)
@@ -75,6 +83,7 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 	override fun onSaveInstanceState(outState: Bundle) {
 		super.onSaveInstanceState(outState)
 		outState.putBoolean(STATE_ORIGINAL, showingOriginal)
+		outState.putBoolean(STATE_SIDE_BY_SIDE, sideBySide)
 	}
 
 	override fun onClick(v: View) {
@@ -106,6 +115,32 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 	}
 
 	private fun showImage() {
+		// Side by side: translation (tappable for corrections) plus the original; columns when wide, rows when tall.
+		val config = resources.configuration
+		viewBinding.pages.orientation = if (config.screenWidthDp >= config.screenHeightDp) {
+			android.widget.LinearLayout.HORIZONTAL
+		} else {
+			android.widget.LinearLayout.VERTICAL
+		}
+		viewBinding.pages.children.forEach { child ->
+			child.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+				if (viewBinding.pages.orientation == android.widget.LinearLayout.HORIZONTAL) {
+					width = 0; height = ViewGroup.LayoutParams.MATCH_PARENT
+				} else {
+					width = ViewGroup.LayoutParams.MATCH_PARENT; height = 0
+				}
+			}
+		}
+		viewBinding.ssivOriginal.isVisible = sideBySide
+		viewBinding.buttonToggle.isVisible = !sideBySide
+		viewBinding.buttonSideBySide.setText(
+			if (sideBySide) R.string.translated_page_single else R.string.translated_page_side_by_side,
+		)
+		if (sideBySide) {
+			showingOriginal = false
+			viewBinding.ssivOriginal.setImage(ImageSource.file(result.originalFile))
+			viewBinding.ssivOriginal.contentDescription = getString(R.string.translated_page_viewing_original)
+		}
 		val file = if (showingOriginal) result.originalFile else result.file
 		viewBinding.ssiv.setImage(ImageSource.file(file))
 		viewBinding.ssiv.contentDescription = getString(
@@ -186,6 +221,8 @@ class TranslatedPageActivity : BaseActivity<ActivityTranslatedPageBinding>(), Vi
 	}
 
 	companion object {
+
+		private const val STATE_SIDE_BY_SIDE = "side_by_side"
 
 		private const val EXTRA_TRANSLATED = "translated"
 		private const val EXTRA_ORIGINAL = "original"

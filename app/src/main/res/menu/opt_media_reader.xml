@@ -16,6 +16,13 @@
 		app:showAsAction="never" />
 
 	<item
+		android:id="@+id/action_auto_next"
+		android:checkable="true"
+		android:title="@string/media_auto_next"
+		android:visible="false"
+		app:showAsAction="never" />
+
+	<item
 		android:id="@+id/action_picture_in_picture"
 		android:title="@string/media_picture_in_picture"
 		android:visible="false"

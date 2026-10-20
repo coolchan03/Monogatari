@@ -25,4 +25,10 @@
     <string name="update_snapshots_item">Before update from version %1$d · %2$s · %3$s</string>
     <string name="update_snapshots_confirm">Replace your current library, history and settings with this copy? Anything changed since then will be lost. The app will close; open it again to finish.</string>
     <string name="update_snapshots_restore">Restore and close app</string>
+    <string name="foreign_backup_mihon_summary">Mihon/Tachiyomi backup: %1$d titles, %2$d favourites, %3$d with reading progress. %4$d titles are on sources Monogatari also has.</string>
+    <string name="foreign_backup_mihon_how">Preview import: each favourite on a matching source is searched there by its exact title and added to the same-named category. Your reading position moves by chapter number when the title has no history here yet. Titles on other sources are listed afterwards so you can add them by hand.</string>
+    <string name="foreign_backup_mihon_progress">Looking up titles: %1$d of %2$d</string>
+    <string name="foreign_backup_mihon_not_found">Not found by exact title (add these by hand): %1$s</string>
+    <string name="foreign_backup_mihon_unsupported">%1$d favourites are on sources Monogatari doesn\'t have.</string>
+    <string name="foreign_backup_mihon_progress_done">Reading position carried over for %1$d titles.</string>
 </resources>

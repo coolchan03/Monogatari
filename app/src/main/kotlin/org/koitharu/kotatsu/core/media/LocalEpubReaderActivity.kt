@@ -27,6 +27,9 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     private lateinit var body: TextView
     private lateinit var position: TextView
     private lateinit var scroll: ScrollView
+    private var narrator: ParagraphNarrator? = null
+    /** Keep reading into the next chapter when a chapter read aloud finishes. */
+    private var continuousNarration = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +90,9 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             .setIcon(R.drawable.ic_list).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(0, MENU_SMALLER, 1, R.string.a11y_text_smaller)
         menu.add(0, MENU_LARGER, 2, R.string.a11y_text_larger)
+        menu.add(0, MENU_READ_ALOUD, 3, R.string.epub_read_aloud)
+        menu.add(0, MENU_SLEEP, 4, R.string.epub_sleep_timer)
+        menu.add(0, MENU_SLEEP_CANCEL, 5, R.string.epub_sleep_timer_cancel)
         return true
     }
 
@@ -95,9 +101,39 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             MENU_CHAPTERS -> showChapterPicker()
             MENU_SMALLER -> changeTextSize(-2f)
             MENU_LARGER -> changeTextSize(2f)
+            MENU_READ_ALOUD -> {
+                val engine = narrator ?: ParagraphNarrator(this) { readNextChapterAloud() }.also { narrator = it }
+                if (engine.isSpeaking || continuousNarration) {
+                    continuousNarration = false
+                    engine.stop()
+                } else {
+                    continuousNarration = true
+                    engine.speak(chapterParagraphs())
+                }
+            }
+            MENU_SLEEP -> narrator?.sleepAfterMinutes(15)
+            MENU_SLEEP_CANCEL -> narrator?.sleepAfterMinutes(0)
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    private fun chapterParagraphs(): List<String> = body.text.toString().split(Regex("\\n\\s*\\n|\\n"))
+
+    private fun readNextChapterAloud() {
+        val parsed = book ?: return
+        if (!continuousNarration || index + 1 !in parsed.chapters.indices) {
+            continuousNarration = false
+            return
+        }
+        showChapter(index + 1)
+        body.post { narrator?.speak(chapterParagraphs()) }
+    }
+
+    override fun onDestroy() {
+        narrator?.shutdown()
+        narrator = null
+        super.onDestroy()
     }
 
     /** Keyboard: Page Up/Down and Space scroll, arrow keys or [ ] change chapter, Ctrl +/- change text size. */
@@ -159,5 +195,8 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         const val MENU_CHAPTERS = 7111
         const val MENU_SMALLER = 7112
         const val MENU_LARGER = 7113
+        const val MENU_READ_ALOUD = 7101
+        const val MENU_SLEEP = 7102
+        const val MENU_SLEEP_CANCEL = 7103
     }
 }
