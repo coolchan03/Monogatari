@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-21 — v1.3.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.3.0 built from `devel` `0f7cb5f` (drafts merged; build check run 39525327963 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `fb79ac670109f95fd9557831f5777cfe5175a08ef83df8f513b68c92ceae66af`.
+- Includes Add files, Add to library from Discover, 8-item navigation, Mangayomi extension/library import, shelf timeout fix. Not device-verified yet.
+
 ## 2026-10-21 — Add files to the library (working tree, uncommitted)
 - "Add files" (outlined button + overflow item) on All media (UnifiedLibraryFragment), Books tab button, Favourites menu item; router `core/media/LocalFileImporter.kt` (classify + shared book import, now also used by BookCatalogFragment), comics via ImportService, videos/audio kept by uri in `core/media/LocalMediaShelf.kt` (prefs `monogatari_local_media`), played in MediaFeedPlayerActivity (new extra `media_feed.local_uri`).
 - Status: LocalFileImporterTest (7 tests) green with standalone kotlinc; Android code not compiled locally; not committed; not device-verified.
