@@ -25,4 +25,13 @@
 	<item name="nav_updated" type="id" />
 	<item name="nav_suggestions" type="id" />
 	<item name="nav_bookmarks" type="id" />
+	<item name="nav_news" type="id" />
+	<item name="nav_media_feeds" type="id" />
+	<item name="nav_unified_library" type="id" />
+	<item name="nav_book_catalog" type="id" />
+	<item name="nav_search" type="id" />
+	<item name="nav_downloads" type="id" />
+	<item name="nav_stats" type="id" />
+	<item name="nav_sources" type="id" />
+	<item name="nav_settings" type="id" />
 </resources>

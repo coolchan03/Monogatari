@@ -32,7 +32,7 @@ private const val STATE_UP = 2
 private const val SLIDE_UP_ANIMATION_DURATION = 225L
 private const val SLIDE_DOWN_ANIMATION_DURATION = 175L
 
-private const val MAX_ITEM_COUNT = 6
+private const val MAX_ITEM_COUNT = 8
 
 open class SlidingBottomNavigationView @JvmOverloads constructor(
 	context: Context,

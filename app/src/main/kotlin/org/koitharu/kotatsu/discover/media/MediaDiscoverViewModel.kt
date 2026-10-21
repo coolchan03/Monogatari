@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.core.parser.MangaRepository
@@ -58,8 +58,10 @@ class MediaDiscoverViewModel @Inject constructor(
 		_shelves.value = specs.map { MediaDiscoverShelfModel(it, MediaDiscoverShelfState.Loading) }
 		specs.forEach { shelf ->
 			jobs += viewModelScope.launch {
+				// withTimeoutOrNull: a timeout is a CancellationException, which runCatchingCancellable rethrows and
+				// would leave the shelf spinning forever instead of hiding it.
 				val items = runCatchingCancellable {
-					withTimeout(LOAD_TIMEOUT_MS) { load(shelf) }
+					withTimeoutOrNull(LOAD_TIMEOUT_MS) { load(shelf) }
 				}.getOrNull().orEmpty()
 				val visible = if (settings.isNsfwContentDisabled) items.filterNot { it.isAdult } else items
 				val state = if (visible.isEmpty()) {

@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
@@ -38,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,6 +57,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -106,9 +110,7 @@ fun FloatingNavBar(
 	) {
 		// 48dp per destination is the minimum accessible touch target. Calculate before composing
 		// the children so a long translated label cannot consume the Continue button's width.
-		val iconOnlyBarWidth = 16.dp +
-			(48.dp * items.size) +
-			(4.dp * (items.size - 1).coerceAtLeast(0))
+		val iconOnlyBarWidth = barWidth(items.size, RegularMetrics)
 		val continueWidth = 56.dp + 8.dp
 		val stackContinue = showContinue && iconOnlyBarWidth + continueWidth > maxWidth
 		val availableBarWidth = if (showContinue && !stackContinue) {
@@ -116,8 +118,13 @@ fun FloatingNavBar(
 		} else {
 			maxWidth
 		}
+		// With up to eight destinations the regular spacing no longer fits a phone: tighten it first, and when
+		// even that is too wide let the pill scroll sideways instead of dropping or squashing items.
+		val metrics = if (iconOnlyBarWidth > availableBarWidth) CompactMetrics else RegularMetrics
+		val pillWidth = barWidth(items.size, metrics)
+		val scrollable = pillWidth > availableBarWidth
 		val showSelectedLabel = showLabels &&
-			iconOnlyBarWidth + selectedLabelExtra <= availableBarWidth
+			pillWidth + selectedLabelExtra <= availableBarWidth
 
 		if (stackContinue) {
 			Column(
@@ -134,6 +141,8 @@ fun FloatingNavBar(
 					selectedId = selectedId,
 					showSelectedLabel = showSelectedLabel,
 					colors = colors,
+					metrics = metrics,
+					maxBarWidth = if (scrollable) availableBarWidth else null,
 					onItemSelected = onItemSelected,
 					onItemReselected = onItemReselected,
 				)
@@ -149,6 +158,8 @@ fun FloatingNavBar(
 					selectedId = selectedId,
 					showSelectedLabel = showSelectedLabel,
 					colors = colors,
+					metrics = metrics,
+					maxBarWidth = if (scrollable) availableBarWidth else null,
 					onItemSelected = onItemSelected,
 					onItemReselected = onItemReselected,
 				)
@@ -162,17 +173,47 @@ fun FloatingNavBar(
 	}
 }
 
+/** Size of one destination and the gap between destinations on the pill. */
+private data class FloatingNavMetrics(
+	val itemWidth: Dp,
+	val spacing: Dp,
+)
+
+private val RegularMetrics = FloatingNavMetrics(itemWidth = 48.dp, spacing = 4.dp)
+private val CompactMetrics = FloatingNavMetrics(itemWidth = 44.dp, spacing = 2.dp)
+
+/** Width of an icon-only pill: its 8dp inner padding on both sides plus every item and gap. */
+private fun barWidth(count: Int, metrics: FloatingNavMetrics): Dp =
+	16.dp + (metrics.itemWidth * count) + (metrics.spacing * (count - 1).coerceAtLeast(0))
+
 @Composable
 private fun FloatingNavItemsSurface(
 	items: List<FloatingNavBarItem>,
 	selectedId: Int,
 	showSelectedLabel: Boolean,
 	colors: FloatingNavBarColors,
+	metrics: FloatingNavMetrics,
+	maxBarWidth: Dp?,
 	onItemSelected: (Int) -> Unit,
 	onItemReselected: (Int) -> Unit,
 ) {
+	val scrollState = rememberScrollState()
+	val density = LocalDensity.current
+	if (maxBarWidth != null) {
+		// Keep the selected destination in view when the pill is too narrow to show every item at once.
+		LaunchedEffect(selectedId, maxBarWidth, metrics) {
+			val index = items.indexOfFirst { it.id == selectedId }
+			if (index < 0) return@LaunchedEffect
+			val target = with(density) {
+				val itemStart = (8.dp + (metrics.itemWidth + metrics.spacing) * index).roundToPx()
+				itemStart - (maxBarWidth.roundToPx() - metrics.itemWidth.roundToPx()) / 2
+			}
+			scrollState.animateScrollTo(target.coerceIn(0, scrollState.maxValue))
+		}
+	}
 	Surface(
 		modifier = Modifier
+			.then(if (maxBarWidth != null) Modifier.widthIn(max = maxBarWidth) else Modifier)
 			.shadow(8.dp, RoundedCornerShape(50))
 			.wrapContentWidth(),
 		shape = RoundedCornerShape(50),
@@ -181,10 +222,11 @@ private fun FloatingNavItemsSurface(
 	) {
 		Row(
 			modifier = Modifier
+				.then(if (maxBarWidth != null) Modifier.horizontalScroll(scrollState) else Modifier)
 				.heightIn(min = 64.dp)
 				.padding(horizontal = 8.dp, vertical = 8.dp)
 				.animateContentSize(animationSpec = SpringSize),
-			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			horizontalArrangement = Arrangement.spacedBy(metrics.spacing),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			items.forEach { item ->
@@ -193,6 +235,7 @@ private fun FloatingNavItemsSurface(
 					selected = item.id == selectedId,
 					showLabel = showSelectedLabel,
 					colors = colors,
+					itemWidth = metrics.itemWidth,
 					onClick = {
 						if (item.id == selectedId) {
 							onItemReselected(item.id)
@@ -266,6 +309,7 @@ private fun FloatingNavItem(
 	selected: Boolean,
 	showLabel: Boolean,
 	colors: FloatingNavBarColors,
+	itemWidth: Dp,
 	onClick: () -> Unit,
 ) {
 	val container by animateColorAsState(
@@ -284,7 +328,7 @@ private fun FloatingNavItem(
 	Box(
 		modifier = Modifier
 			.height(48.dp)
-			.widthIn(min = 48.dp)
+			.widthIn(min = itemWidth)
 			.background(color = container, shape = CircleShape)
 			.clickable(
 				interactionSource = interactionSource,
@@ -299,7 +343,7 @@ private fun FloatingNavItem(
 		contentAlignment = Alignment.Center,
 	) {
 		Row(
-			modifier = Modifier.padding(horizontal = 12.dp),
+			modifier = Modifier.padding(horizontal = (itemWidth - 24.dp) / 2),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.Center,
 		) {

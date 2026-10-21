@@ -33,7 +33,8 @@ assert action.get(android + "minHeight") == "48dp"
 assert action.get(android + "visibility") == "gone"
 
 more_activity = (src / "main" / "ui" / "MoreActivity.kt").read_text(encoding="utf-8")
-book_activity = (src / "core" / "media" / "BookLibraryActivity.kt").read_text(encoding="utf-8")
+# The catalog UI lives in BookCatalogFragment (BookLibraryActivity only hosts it).
+book_activity = (src / "core" / "media" / "BookCatalogFragment.kt").read_text(encoding="utf-8")
 adapter = (src / "core" / "media" / "CatalogResultsAdapter.kt").read_text(encoding="utf-8")
 assert "R.layout.item_monogatari_settings_destination" in more_activity
 assert "screenWidthDp >= 720" in more_activity

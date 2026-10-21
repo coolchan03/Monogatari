@@ -49,7 +49,10 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val stream = intent.getStringExtra(EXTRA_MEDIA_URL)
+        // The user's own file from the library (Add files); only content:// documents the app holds access to.
+        val localUri = intent.getStringExtra(EXTRA_LOCAL_URI)
+            ?.takeIf { it.startsWith("content://") }
+        val stream = localUri ?: intent.getStringExtra(EXTRA_MEDIA_URL)
             ?.takeIf(MediaFeedPlaybackSpec::validStream) ?: run {
             finish()
             return
@@ -106,8 +109,13 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         val (statusCard, statusView) = headerCard(
             if (isAudio) MascotForm.AUDIO else MascotForm.VIDEO,
             null,
-            if (isAudio) "Audio · resume and seek in the player above"
-                else "Video · captions are available when supplied by the feed",
+            when {
+                localUri != null -> getString(
+                    if (isAudio) R.string.add_files_player_local_audio else R.string.add_files_player_local_video
+                )
+                isAudio -> "Audio · resume and seek in the player above"
+                else -> "Video · captions are available when supplied by the feed"
+            },
             mascotSizeDp = 40,
         )
         status = statusView.apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
@@ -222,6 +230,8 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         const val EXTRA_CHAPTERS_URL = "media_feed.chapters"
         const val EXTRA_TRANSCRIPT_URL = "media_feed.transcript"
         const val EXTRA_PAGE_URL = "media_feed.page"
+        /** content:// uri of a local video or audio file kept in [LocalMediaShelf]. */
+        const val EXTRA_LOCAL_URI = "media_feed.local_uri"
         private const val KEY_POSITION = "playback_position"
         private const val KEY_PLAYING = "playback_started"
     }

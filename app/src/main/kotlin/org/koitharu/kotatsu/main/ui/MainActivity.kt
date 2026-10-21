@@ -106,6 +106,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 		/** Set by Discover's "Browse source websites" button to land on the Explore tab. */
 		const val EXTRA_OPEN_EXPLORE = "open_explore"
+
+		/** A [NavItem] name, set by the More page for a navigation item that had no room on the bar. */
+		const val EXTRA_OPEN_NAV_ITEM = "open_nav_item"
 	}
 
 	@Inject
@@ -168,9 +171,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			navBar = checkNotNull(bottomNav ?: viewBinding.navRail),
 			fragmentManager = supportFragmentManager,
 			settings = settings,
+			onSearchRequested = {
+				if (!viewBinding.searchView.isShowing) {
+					viewBinding.searchView.show()
+				}
+			},
 		)
 		navigationDelegate.addOnFragmentChangedListener(this)
 		navigationDelegate.onCreate(this, savedInstanceState)
+		if (savedInstanceState == null) {
+			intent?.getStringExtra(EXTRA_OPEN_NAV_ITEM)?.let(navigationDelegate::openNavItem)
+		}
 		viewBinding.textViewTitle?.let { tv ->
 			navigationDelegate.observeTitle().observe(this) { tv.text = it }
 		}
@@ -250,6 +261,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		if (intent.getBooleanExtra(EXTRA_OPEN_EXPLORE, false)) {
 			navigationDelegate.openExplore()
 		}
+		intent.getStringExtra(EXTRA_OPEN_NAV_ITEM)?.let(navigationDelegate::openNavItem)
 	}
 
 	/** Shows Discover as a main tab when it is on the navigation bar; returns false when it is not. */

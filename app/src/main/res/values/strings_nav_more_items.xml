@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Extra navigation bar destinations (settings > main screen sections). Keep them short: they are tab labels. -->
+	<string name="nav_item_news">News</string>
+	<string name="nav_item_media_feeds">Podcasts</string>
+	<string name="nav_item_unified_library">All media</string>
+	<string name="nav_item_book_catalog">Book catalog</string>
+	<string name="nav_item_search">Search</string>
+	<string name="nav_item_downloads">Downloads</string>
+	<string name="nav_item_stats">Statistics</string>
+	<string name="nav_item_sources">Sources</string>
+	<string name="nav_item_settings">Settings</string>
+	<!-- More hub: section listing the navigation items that did not fit on the bar. -->
+	<string name="nav_overflow_section">More from your navigation bar</string>
+	<string name="nav_overflow_item_subtitle">On your navigation bar, but there was no room for it on this screen</string>
+</resources>

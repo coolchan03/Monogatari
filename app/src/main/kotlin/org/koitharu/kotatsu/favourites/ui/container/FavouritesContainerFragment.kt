@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.favourites.ui.container
 
 import android.os.Bundle
 import android.content.Intent
+import org.koitharu.kotatsu.core.media.LocalFileImportLauncher
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import android.view.LayoutInflater
 import android.view.View
@@ -40,6 +41,7 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 	View.OnClickListener {
 
 	private val viewModel: FavouritesContainerViewModel by viewModels()
+	private val fileImporter = LocalFileImportLauncher(this)
 
 	override val recyclerView: RecyclerView?
 		get() = (findCurrentFragment() as? RecyclerViewOwner)?.recyclerView
@@ -68,6 +70,7 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 		viewModel.categories.observe(viewLifecycleOwner, pagerAdapter)
 		viewModel.isEmpty.observe(viewLifecycleOwner, ::onEmptyStateChanged)
 		addMenuProvider(FavouritesContainerMenuProvider(router, this, viewModel))
+		addMenuProvider(fileImporter.menuProvider())
 		viewModel.privacyState.observe(viewLifecycleOwner) { activity?.invalidateOptionsMenu() }
 		viewModel.onActionDone.observeEvent(viewLifecycleOwner, ReversibleActionObserver(binding.pager))
 	}

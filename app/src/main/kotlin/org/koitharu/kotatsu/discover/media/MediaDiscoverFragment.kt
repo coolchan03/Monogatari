@@ -23,6 +23,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.request.target
 import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.color.MaterialColors
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
@@ -40,6 +41,8 @@ import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
 import org.koitharu.kotatsu.databinding.ItemMediaDiscoverHeaderBinding
 import org.koitharu.kotatsu.databinding.ItemMediaDiscoverShelfBinding
 import org.koitharu.kotatsu.discover.AniListDiscover
+import org.koitharu.kotatsu.discover.DiscoverLibraryFinder
+import org.koitharu.kotatsu.discover.addDiscoverItemToLibrary
 import org.koitharu.kotatsu.main.ui.MainActivity
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
@@ -57,6 +60,9 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 
 	@Inject
 	lateinit var coil: ImageLoader
+
+	@Inject
+	lateinit var libraryFinder: DiscoverLibraryFinder
 
 	private val viewModel: MediaDiscoverViewModel by viewModels()
 
@@ -172,9 +178,20 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		}
 	}
 
+	/** Long-press on a cover: add it to the library, or search its alternative title. */
 	private fun onItemLongClick(item: AniListDiscover.Item): Boolean {
-		val alternative = item.alternativeTitle ?: return false
-		openTypedSearch(alternative)
+		val actions = ArrayList<Pair<String, () -> Unit>>()
+		actions.add(Pair<String, () -> Unit>(getString(R.string.discover_add_to_library), {
+			addDiscoverItemToLibrary(item, mediaType, libraryFinder) { openTypedSearch(it) }
+		}))
+		item.alternativeTitle?.let { alternative ->
+			actions.add(Pair<String, () -> Unit>(getString(R.string.discover_search_alternative), { openTypedSearch(alternative) }))
+		}
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(item.title)
+			.setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
 		return true
 	}
 

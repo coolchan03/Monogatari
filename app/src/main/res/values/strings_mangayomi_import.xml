@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mangayomi_import_summary">Mangayomi backup\n\n• Library: %1$d manga, %2$d anime, %3$d novels in %4$d categories\n• %5$d with reading progress\n• %6$d will open straight away with the same extension</string>
+    <string name="mangayomi_import_sources">Extensions: %1$d installed in Mangayomi. %2$d will be installed here (%3$d of them saved in the backup with their code), %4$d are installed here already.</string>
+    <string name="mangayomi_import_unsupported">These Mangayomi extensions can\'t run here (Dart, Mihon, LNReader or Aidoku): %1$s. Their titles are still added.</string>
+    <string name="mangayomi_import_repos">%1$d extension repositories will be added:\n%2$s</string>
+    <string name="mangayomi_import_encrypted">this Mangayomi backup is password-protected. In Mangayomi, turn off backup encryption (More › Data and storage), create a new backup and import that one</string>
+    <string name="mangayomi_import_done_sources">Extensions installed: %1$d.</string>
+    <string name="mangayomi_import_done_repos">Repositories added: %1$d.</string>
+</resources>

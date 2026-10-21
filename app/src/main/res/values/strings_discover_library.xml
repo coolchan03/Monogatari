@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="discover_add_to_library">Add to library</string>
+	<string name="discover_library_finding">Looking for “%s” on your sources…</string>
+	<string name="discover_library_not_found">“%s” wasn\'t found on your sources by exact title</string>
+	<string name="discover_search_alternative">Search alternative title</string>
+</resources>

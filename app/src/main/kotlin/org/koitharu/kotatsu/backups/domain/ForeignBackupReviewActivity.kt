@@ -130,8 +130,17 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 				val isKotatsu = runCatching { BackupArchiveInspector.inspect(staged) }.isSuccess
 				if (isKotatsu) return Detected.Kotatsu
 			}
-			val backup = runCatching { staged.inputStream().use { MangayomiBackup.read(it) } }.getOrNull()
-				?: return Detected.Unknown
+			val backup = try {
+				MangayomiBackup.read(staged)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: MangayomiBackup.EncryptedBackupException) {
+				throw IOException(getString(R.string.mangayomi_import_encrypted), e)
+			} catch (e: Exception) {
+				// A file that is clearly a Mangayomi backup gets the real reason instead of "unknown format".
+				if (name.endsWith(".backup") || name.contains("mangayomi")) throw e
+				return Detected.Unknown
+			}
 			return Detected.Mangayomi(mangayomiImporter.preview(backup))
 		} finally {
 			staged.delete()
@@ -150,10 +159,31 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 				status.text = buildString {
 					append(
 						getString(
-							R.string.foreign_backup_mangayomi_summary,
-							preview.titles, preview.favourites, preview.withProgress, preview.matched,
+							R.string.mangayomi_import_summary,
+							preview.mangaTitles, preview.animeTitles, preview.novelTitles, preview.categories,
+							preview.withProgress, preview.matched,
 						),
 					)
+					append("\n\n")
+					append(
+						getString(
+							R.string.mangayomi_import_sources,
+							preview.extensionsInBackup, preview.extensionsToInstall.size,
+							preview.extensionsWithCode, preview.extensionsAlreadyInstalled,
+						),
+					)
+					if (preview.extensionsToInstall.isNotEmpty()) {
+						append("\n")
+						append(preview.extensionsToInstall.joinToString(", "))
+					}
+					if (preview.unsupportedExtensions.isNotEmpty()) {
+						append("\n\n")
+						append(getString(R.string.mangayomi_import_unsupported, preview.unsupportedExtensions.joinToString(", ")))
+					}
+					if (preview.newRepos.isNotEmpty()) {
+						append("\n\n")
+						append(getString(R.string.mangayomi_import_repos, preview.newRepos.size, preview.newRepos.joinToString("\n")))
+					}
 					if (preview.sourcesToInstall.isNotEmpty()) {
 						append("\n\n")
 						append(getString(R.string.foreign_backup_mangayomi_install, preview.sourcesToInstall.joinToString(", ")))
@@ -203,6 +233,8 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 					buildString {
 						append(getString(R.string.foreign_backup_done, r.imported))
 						if (r.skipped > 0) append("\n").append(getString(R.string.foreign_backup_done_skipped, r.skipped))
+						if (r.installedSources > 0) append("\n").append(getString(R.string.mangayomi_import_done_sources, r.installedSources))
+						if (r.addedRepos > 0) append("\n").append(getString(R.string.mangayomi_import_done_repos, r.addedRepos))
 						if (r.installFailures.isNotEmpty()) {
 							append("\n\n")
 							append(getString(R.string.foreign_backup_done_install_failed, r.installFailures.joinToString(", ")))

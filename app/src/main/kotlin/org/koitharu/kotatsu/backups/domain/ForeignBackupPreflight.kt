@@ -21,7 +21,7 @@ internal object ForeignBackupPreflight {
             // A generic JSON document is not proof of a Mangayomi backup.
             // The recognizable shape is still a preflight hint, not an import guarantee.
             val recognizable = snippet.startsWith("{") &&
-                listOf("manga", "mangas", "sources", "history", "categories")
+                listOf("manga", "mangas", "sources", "extensions", "history", "categories")
                     .count { key -> snippet.contains("\"$key\"") } >= 2
             if (recognizable) return ForeignBackupFormat.MANGAYOMI_JSON
         }

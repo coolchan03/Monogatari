@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="add_files">Add files</string>
+	<string name="add_files_added">Added %1$s</string>
+	<string name="add_files_nothing_added">Nothing was added</string>
+	<string name="add_files_unsupported">; %1$d unsupported (%2$s)</string>
+	<string name="add_files_failed">; %1$d could not be added (%2$s)</string>
+	<string name="add_files_comics_hint">Comics are imported in the background and appear under On device.</string>
+	<plurals name="add_files_books">
+		<item quantity="one">%d book</item>
+		<item quantity="other">%d books</item>
+	</plurals>
+	<plurals name="add_files_comics">
+		<item quantity="one">%d comic</item>
+		<item quantity="other">%d comics</item>
+	</plurals>
+	<plurals name="add_files_videos">
+		<item quantity="one">%d video</item>
+		<item quantity="other">%d videos</item>
+	</plurals>
+	<plurals name="add_files_audio">
+		<item quantity="one">%d audio file</item>
+		<item quantity="other">%d audio files</item>
+	</plurals>
+	<string name="add_files_local_video">Local video</string>
+	<string name="add_files_local_audio">Local audio</string>
+	<string name="add_files_resume_at">Resume at %1$s</string>
+	<string name="add_files_not_started">Not started</string>
+	<string name="add_files_missing">File moved or deleted</string>
+	<string name="add_files_collections">Collections…</string>
+	<string name="add_files_remove">Remove from library</string>
+	<string name="add_files_remove_title">Remove “%1$s”?</string>
+	<string name="add_files_remove_book_message">Monogatari\'s copy of this book is deleted. The original file you picked is not affected.</string>
+	<string name="add_files_remove_media_message">Monogatari forgets this file. The file itself stays on your device.</string>
+	<string name="add_files_missing_message">This file was moved or deleted, so it can no longer be played. Remove it from the library?</string>
+	<string name="add_files_player_local_video">Video · from this device</string>
+	<string name="add_files_player_local_audio">Audio · from this device, resumes where you stopped</string>
+</resources>

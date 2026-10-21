@@ -58,7 +58,7 @@ internal object ForeignBackupReview {
 
         val groups = linkedMapOf(
             "Manga" to listOf("manga", "mangas"),
-            "Sources" to listOf("sources"),
+            "Sources" to listOf("sources", "extensions"),
             "History" to listOf("history"),
             "Categories" to listOf("categories"),
         )

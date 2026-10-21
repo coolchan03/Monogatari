@@ -29,10 +29,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksFragment
+import org.koitharu.kotatsu.core.media.BookCatalogFragment
 import org.koitharu.kotatsu.core.media.BookLibraryFragment
+import org.koitharu.kotatsu.core.media.MediaFeedFragment
+import org.koitharu.kotatsu.core.media.UnifiedLibraryFragment
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.NavItem
+import org.koitharu.kotatsu.core.qa.NewsFeedFragment
 import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
 import org.koitharu.kotatsu.core.ui.widgets.FloatingBottomNavigationView
 import org.koitharu.kotatsu.core.ui.widgets.SlidingBottomNavigationView
@@ -43,10 +47,14 @@ import org.koitharu.kotatsu.databinding.NavigationRailFabBinding
 import org.koitharu.kotatsu.discover.DiscoverFragment
 import org.koitharu.kotatsu.discover.media.DiscoverBooksFragment
 import org.koitharu.kotatsu.discover.media.DiscoverVideoFragment
+import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.explore.ui.ExploreFragment
 import org.koitharu.kotatsu.favourites.ui.container.FavouritesContainerFragment
 import org.koitharu.kotatsu.history.ui.HistoryListFragment
 import org.koitharu.kotatsu.local.ui.LocalListFragment
+import org.koitharu.kotatsu.settings.SettingsActivity
+import org.koitharu.kotatsu.settings.sources.catalog.SourcesCatalogActivity
+import org.koitharu.kotatsu.stats.ui.StatsActivity
 import org.koitharu.kotatsu.suggestions.ui.SuggestionsFragment
 import org.koitharu.kotatsu.tracker.ui.feed.FeedFragment
 import org.koitharu.kotatsu.tracker.ui.updates.UpdatesFragment
@@ -59,11 +67,19 @@ class MainNavigationDelegate(
 	private val navBar: NavigationBarView,
 	private val fragmentManager: FragmentManager,
 	private val settings: AppSettings,
+	/** Opens the main screen's search view; the Search navigation item does nothing without it. */
+	private val onSearchRequested: (() -> Unit)? = null,
 ) : OnBackPressedCallback(false),
 	NavigationBarView.OnItemSelectedListener,
 	NavigationBarView.OnItemReselectedListener, View.OnClickListener {
 
 	private val listeners = LinkedList<OnFragmentChangedListener>()
+
+	/** The configured items that are on this navigation face, in order (More added when some did not fit). */
+	private var shownItems: List<NavItem> = emptyList()
+
+	/** Configured items with no room on this navigation face; the More page lists them instead. */
+	private var overflowItems: List<NavItem> = emptyList()
 	val navRailHeader = (navBar as? NavigationRailView)?.headerView?.let {
 		NavigationRailFabBinding.bind(it)
 	}
@@ -97,7 +113,13 @@ class MainNavigationDelegate(
 	}
 
 	override fun onNavigationItemReselected(item: MenuItem) {
-		onNavigationItemReselected()
+		val fragment = primaryFragment
+		if (fragment != null && getItemId(fragment) != item.itemId) {
+			// A destination from the More page is showing while this item stayed checked: go back to the item.
+			onNavigationItemSelected(item.itemId)
+		} else {
+			onNavigationItemReselected()
+		}
 	}
 
 	override fun onClick(v: View) {
@@ -115,8 +137,12 @@ class MainNavigationDelegate(
 	}
 
 	fun onCreate(lifecycleOwner: LifecycleOwner, savedInstanceState: Bundle?) {
+		splitItems(settings.mainNavItems, navBar.maxItemCount).let { (shown, overflow) ->
+			shownItems = shown
+			overflowItems = overflow
+		}
 		if (navBar.menu.isEmpty()) {
-			createMenu(settings.mainNavItems, navBar.menu)
+			createMenu(shownItems, navBar.menu)
 		}
 		observeSettings(lifecycleOwner)
 		val fragment = primaryFragment
@@ -132,7 +158,26 @@ class MainNavigationDelegate(
 			} else {
 				navBar.selectedItemId
 			}
-			onNavigationItemSelected(itemId)
+			if (itemId == 0 || isShortcut(itemId)) {
+				// Only shortcuts (More, Search, Settings...) are configured: never open one of them on launch.
+				setPrimaryFragment(ExploreFragment::class.java)
+			} else {
+				onNavigationItemSelected(itemId)
+			}
+		}
+	}
+
+	/**
+	 * Shows a navigation destination by its [NavItem] name, e.g. one picked from the More page because there was no
+	 * room for it on the bar. Items on the bar are selected as if tapped; the others are opened directly, which
+	 * leaves the bar's current selection as it is.
+	 */
+	fun openNavItem(name: String) {
+		val item = NavItem.entries.firstOrNull { it.name == name } ?: return
+		if (navBar.menu.findItem(item.id)?.isVisible == true) {
+			navBar.selectedItemId = item.id
+		} else {
+			onNavigationItemSelected(item.id)
 		}
 	}
 
@@ -174,6 +219,8 @@ class MainNavigationDelegate(
 	private fun setCounter(@IdRes id: Int, counter: Int) {
 		// The Compose face draws its own badges; the MenuItem ones only show in legacy mode.
 		(navBar as? FloatingBottomNavigationView)?.setComposeBadge(id, counter)
+		// Material throws for a badge on an item that is not on the bar (for example one moved under More).
+		navBar.menu.findItem(id) ?: return
 		if (counter == 0) {
 			navBar.getBadge(id)?.isVisible = false
 		} else {
@@ -204,9 +251,27 @@ class MainNavigationDelegate(
 	}
 
 	private fun onNavigationItemSelected(@IdRes itemId: Int): Boolean {
-		if (itemId == R.id.nav_more) {
-			navBar.context.startActivity(Intent(navBar.context, MoreActivity::class.java))
-			return false // More is an activity; keep the current content tab checked.
+		val context = navBar.context
+		val page = when (itemId) {
+			R.id.nav_more -> Intent(context, MoreActivity::class.java).putStringArrayListExtra(
+				MoreActivity.EXTRA_OVERFLOW_ITEMS,
+				overflowItems.filter { it.isAvailable(settings) }.mapTo(ArrayList()) { it.name },
+			)
+
+			R.id.nav_downloads -> Intent(context, DownloadsActivity::class.java)
+			R.id.nav_stats -> Intent(context, StatsActivity::class.java)
+			R.id.nav_sources -> Intent(context, SourcesCatalogActivity::class.java)
+			R.id.nav_settings -> Intent(context, SettingsActivity::class.java)
+			R.id.nav_search -> {
+				onSearchRequested?.invoke()
+				return false // Search opens over the current tab, which stays checked.
+			}
+
+			else -> null
+		}
+		if (page != null) {
+			context.startActivity(page)
+			return false // These open their own page; keep the current content tab checked.
 		}
 		val newFragment = when (itemId) {
 			R.id.nav_books -> BookLibraryFragment::class.java
@@ -221,6 +286,10 @@ class MainNavigationDelegate(
 			R.id.nav_suggestions -> SuggestionsFragment::class.java
 			R.id.nav_bookmarks -> AllBookmarksFragment::class.java
 			R.id.nav_updated -> UpdatesFragment::class.java
+			R.id.nav_news -> NewsFeedFragment::class.java
+			R.id.nav_media_feeds -> MediaFeedFragment::class.java
+			R.id.nav_unified_library -> UnifiedLibraryFragment::class.java
+			R.id.nav_book_catalog -> BookCatalogFragment::class.java
 			else -> return false
 		}
 		if (!setPrimaryFragment(newFragment)) {
@@ -243,8 +312,15 @@ class MainNavigationDelegate(
 		is SuggestionsFragment -> R.id.nav_suggestions
 		is AllBookmarksFragment -> R.id.nav_bookmarks
 		is UpdatesFragment -> R.id.nav_updated
+		is NewsFeedFragment -> R.id.nav_news
+		is MediaFeedFragment -> R.id.nav_media_feeds
+		is UnifiedLibraryFragment -> R.id.nav_unified_library
+		is BookCatalogFragment -> R.id.nav_book_catalog
 		else -> 0
 	}
+
+	private fun isShortcut(@IdRes itemId: Int): Boolean =
+		NavItem.entries.firstOrNull { it.id == itemId }?.isShortcut == true
 
 	private fun setPrimaryFragment(fragmentClass: Class<out Fragment>): Boolean {
 		if (fragmentManager.isStateSaved || fragmentClass.isInstance(primaryFragment)) {
@@ -273,13 +349,14 @@ class MainNavigationDelegate(
 		listeners.forEach { it.onFragmentChanged(fragment, fromUser) }
 	}
 
+	/** [items] were already fitted to this face by [splitItems]; the size check is only a safety net. */
 	private fun createMenu(items: List<NavItem>, menu: Menu) {
 		for (item in items) {
-			menu.add(Menu.NONE, item.id, Menu.NONE, item.title)
-				.setIcon(item.icon)
 			if (menu.size >= navBar.maxItemCount) {
 				break
 			}
+			menu.add(Menu.NONE, item.id, Menu.NONE, item.title)
+				.setIcon(item.icon)
 		}
 	}
 
@@ -303,7 +380,7 @@ class MainNavigationDelegate(
 					// The Compose face renders its own items, so it needs the menu contents pushed to
 					// it separately - the MenuItems themselves only drive the legacy fallback.
 					navBar.setUseLegacyNavigation(!isFloating)
-					navBar.setComposeItems(settings.mainNavItems)
+					navBar.setComposeItems(shownItems)
 					navBar.setComposeLabeled(isLabeled)
 					navBar.setComposeItemVisibility(R.id.nav_suggestions, settings.isSuggestionsEnabled)
 					navBar.setComposeItemVisibility(R.id.nav_feed, settings.isTrackerEnabled)
@@ -318,7 +395,7 @@ class MainNavigationDelegate(
 	private fun firstItem(): MenuItem? {
 		val menu = navBar.menu
 		for (item in menu) {
-			if (item.isVisible && item.itemId != R.id.nav_more) return item
+			if (item.isVisible && !isShortcut(item.itemId)) return item
 		}
 		return null
 	}
@@ -343,7 +420,14 @@ class MainNavigationDelegate(
 			setNavbarIsExpanded(false)
 		}
 		navBar.labelVisibilityMode = if (value) {
-			NavigationBarView.LABEL_VISIBILITY_LABELED
+			// Six or more labelled items get too narrow for their text on a phone's bottom bar, so only the
+			// selected one keeps its label there. The rail stacks items vertically and has room for all of them.
+			val visibleCount = navBar.menu.iterator().asSequence().count { it.isVisible }
+			if (navBar !is NavigationRailView && visibleCount > MAX_FULLY_LABELED_ITEMS) {
+				NavigationBarView.LABEL_VISIBILITY_SELECTED
+			} else {
+				NavigationBarView.LABEL_VISIBILITY_LABELED
+			}
 		} else {
 			NavigationBarView.LABEL_VISIBILITY_UNLABELED
 		}
@@ -391,6 +475,26 @@ class MainNavigationDelegate(
 
 	companion object {
 
-		const val MAX_ITEM_COUNT = 6
+		/** How many items can be configured. A face with less room puts the rest under More, see [splitItems]. */
+		const val MAX_ITEM_COUNT = 8
+
+		private const val MAX_FULLY_LABELED_ITEMS = 5
+
+		/**
+		 * Fits the configured [items] to a navigation face that shows at most [maxCount] items. When they do not all
+		 * fit, the first ones stay in their configured order, More takes the last slot (or keeps its own place when
+		 * it was configured early) and the rest are returned as overflow, to be listed on the More page.
+		 */
+		fun splitItems(items: List<NavItem>, maxCount: Int): Pair<List<NavItem>, List<NavItem>> {
+			if (maxCount <= 0 || items.size <= maxCount) {
+				return items to emptyList()
+			}
+			val others = items.filter { it != NavItem.MORE }
+			val kept = others.take((maxCount - 1).coerceAtLeast(0)).toSet()
+			val shown = items.filter { it == NavItem.MORE || it in kept }.let {
+				if (NavItem.MORE in it) it else it + NavItem.MORE
+			}
+			return shown to others.filterNot { it in kept }
+		}
 	}
 }

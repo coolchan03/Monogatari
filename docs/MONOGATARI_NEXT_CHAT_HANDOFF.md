@@ -98,6 +98,17 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-21 — post-1.2.0 batch (drafts branch `d1d743b`, CI run 39517947734 green, unreleased)
+- Nav bar: up to 8 items (floating pill compacts/scrolls; overflow listed in More); new tabs News & RSS, Podcasts, All media, Book catalog (fragments with thin activity hosts); shortcuts Search, Downloads, Statistics, Sources, Settings.
+- Mangayomi import matched to the current format (.backup zip with .backup.db JSON v2): installs every installed JS extension (repos, else backup sourceCode with the repo checks, else sourceCodeUrl), adds https extension repos, imports manga/anime/novel library even without the extension, large backups (base64 APKs) no longer rejected, encrypted backups explained.
+- Discover: long-press > Add to library (built-in titles directly; AniList titles via exact-title lookup on enabled sources of that type).
+- Fix: timeouts inside runCatchingCancellable cancelled whole Discover shelves / left Books-Videos shelves spinning; now withTimeoutOrNull.
+- Status: implemented, CI green; not device-verified; real Mangayomi backup not tested (owner's file >30 MB).
+
+## 2026-10-20 — v1.2.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.2.0 built from `devel` `c50d9bb` (drafts merged; build check run 39470441626 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `e3adc2dd527fe5397d90f337f159551b9c3786eab6a57e0f3a3707e5e5f8cac1`.
+- Not device-verified yet.
+
 ## 2026-10-20 — v1.2 candidate batch (drafts branch `93c1e29`, CI run 39433462300 green, unreleased)
 - Main search bar: filter icon picks All/Manga/Books/Video/Audio (remembered, prefs `monogatari_search`).
 - NewPipe: no-query lists use kiosks (YouTube trending_movies_and_shows/music/gaming; PeerTube Trending; SoundCloud New & hot), fallback to the old fixed search.
