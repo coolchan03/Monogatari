@@ -144,3 +144,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Discover books / Discover videos pages, Discover as a tab, airing calendar and reminders (v1.3 items pulled forward), search type picker, NewPipe trending kiosks, feed fixes with cache, Nearby history conflict review, settings groups on normal restore, restyled secondary screens.
 - Still open: remembered Nearby pairing, multi-file transfers, Komga as a source (v2.0), conflict review for favourites/categories.
+
+## Released in v1.3.0 (2026-10-21)
+
+- Add files (books, comics, local video/audio), Add to library from Discover, 8-item navigation with new tabs and shortcuts, Mangayomi import of extensions/repos/library from the current backup format, Discover shelf timeout fix.
+- Still open: remembered Nearby pairing, multi-file transfers, Komga as a source (v2.0), conflict review for favourites/categories, CBR/image-folder import from Add files, encrypted Mangayomi backups.
