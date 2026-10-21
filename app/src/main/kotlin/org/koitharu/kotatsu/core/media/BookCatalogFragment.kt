@@ -81,33 +81,10 @@ class BookCatalogFragment : Fragment() {
 	private fun importBooks(uris: List<Uri>) {
 		if (uris.isEmpty()) return
 		val context = requireContext()
-		val contentResolver = context.contentResolver
 		viewLifecycleOwner.lifecycleScope.launch {
 			val report = withContext(Dispatchers.IO) {
-				val dir = File(context.filesDir, "imported-books").apply { mkdirs() }
-				uris.map { uri ->
-					try {
-						val name = queryDisplayName(context, uri)
-						if (name.substringAfterLast('.', "").lowercase() !in setOf("epub", "pdf", "txt", "text", "md", "markdown", "html", "htm", "xhtml")) {
-							return@map getString(R.string.monogatari_catalog_import_bad_format, name)
-						}
-						val safeName = name.replace(Regex("[^a-zA-Z0-9._ -]"), "_").take(120)
-						val dest = File.createTempFile("book-", "-$safeName", dir)
-						var completed = false
-						try {
-							contentResolver.openInputStream(uri)?.use { input ->
-								dest.outputStream().use { input.copyTo(it) }
-							} ?: error(getString(R.string.monogatari_catalog_import_read_failed))
-							require(dest.length() > 0) { "The selected book is empty" }
-							completed = true
-						} finally {
-							// Failed or cancelled copies must never appear on the user's book shelf.
-							if (!completed) dest.delete()
-						}
-						getString(R.string.monogatari_catalog_imported, name)
-					} catch (cancel: CancellationException) { throw cancel }
-					catch (e: Exception) { getString(R.string.monogatari_catalog_import_failed, uri.lastPathSegment.orEmpty(), e.message.orEmpty()) }
-				}
+				// Shared with Add files, so both import books the same way.
+				uris.map { uri -> LocalFileImporter.importBook(context, uri).message }
 			}
 			showLines(report)
 		}
@@ -636,13 +613,6 @@ class BookCatalogFragment : Fragment() {
 		startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)
 			.putExtra(UnifiedLibraryActivity.EXTRA_MEDIA_KIND, MediaType.BOOK.name)
 			.putExtra(UnifiedLibraryActivity.EXTRA_FILTER, filter))
-	}
-
-	private fun queryDisplayName(context: Context, uri: Uri): String {
-		context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
-			if (it.moveToFirst()) return it.getString(0) ?: "book"
-		}
-		return "book"
 	}
 
 	private fun showLines(lines: List<String>) {

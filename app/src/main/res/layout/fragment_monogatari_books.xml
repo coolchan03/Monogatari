@@ -49,6 +49,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="@string/monogatari_books_discover" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/monogatari_book_add_files"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/add_files"
+                app:icon="@drawable/ic_add" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
     <com.google.android.material.textfield.TextInputLayout

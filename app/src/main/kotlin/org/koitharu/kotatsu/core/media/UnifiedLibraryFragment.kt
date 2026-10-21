@@ -58,7 +58,10 @@ class UnifiedLibraryFragment : Fragment() {
 	@Inject lateinit var favorites: FavouritesRepository
 	@Inject lateinit var history: HistoryRepository
 	private data class Row(val title: String, val detail: String, val kind: MediaType,
-		val manga: Manga? = null, val file: File? = null)
+		val manga: Manga? = null, val file: File? = null,
+		/** The user's own video or audio file (Add files); [missing] when it can no longer be opened. */
+		val media: LocalMediaShelf.Entry? = null, val missing: Boolean = false)
+	private val fileImporter = LocalFileImportLauncher(this) { if (view != null && ::search.isInitialized) refresh() }
 	private var all = emptyList<Row>()
 	/** Most recently opened titles, newest first, for the Continue strip. */
 	private var recent = emptyList<Row>()
@@ -158,6 +161,12 @@ class UnifiedLibraryFragment : Fragment() {
 		search.doAfterTextChanged { render() }
 		search.setText(savedInstanceState?.getString("library_query") ?: arguments?.getString(UnifiedLibraryActivity.EXTRA_FILTER).orEmpty())
 		root.addView(search, LinearLayout.LayoutParams(-1, -2))
+		// Books, comics, videos and audio from the device (also in the overflow menu).
+		root.addView(MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+			setText(R.string.add_files)
+			setIconResource(R.drawable.ic_add)
+			setOnClickListener { fileImporter.launchOrToast() }
+		}, LinearLayout.LayoutParams(-2, -2))
 		count = TextView(context)
 		root.addView(count, LinearLayout.LayoutParams(-1, -2))
 		loading = com.google.android.material.progressindicator.LinearProgressIndicator(context).apply {
@@ -202,6 +211,7 @@ class UnifiedLibraryFragment : Fragment() {
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 		addMenuProvider(LibraryMenuProvider())
+		addMenuProvider(fileImporter.menuProvider())
 	}
 
 	private fun buildPane(px: Int): View {
@@ -321,7 +331,7 @@ class UnifiedLibraryFragment : Fragment() {
 		.mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 && it[0].isNotBlank() } }
 		.associate { it[0] to it[1] }
 
-	private fun keyOf(row: Row): String = row.manga?.id?.toString() ?: row.file?.absolutePath.orEmpty()
+	private fun keyOf(row: Row): String = row.manga?.id?.toString() ?: row.media?.uri ?: row.file?.absolutePath.orEmpty()
 
 	private fun saveCollections(value: Map<String, Set<String>>) {
 		collections = value
@@ -417,12 +427,49 @@ class UnifiedLibraryFragment : Fragment() {
 	}
 
 	private fun openRow(row: Row) {
+		if (row.media != null) {
+			if (row.missing) confirmRemove(row) else startActivity(LocalMediaShelf.playerIntent(requireContext(), row.media))
+			return
+		}
 		val intent = when {
 			row.file != null -> BookShelf.readerIntent(requireContext(), row.file)
 			row.manga != null -> AppRouter.detailsIntent(requireContext(), row.manga)
 			else -> null
 		}
 		if (intent != null) startActivity(intent)
+	}
+
+	/** Long-press on the user's own files: collections as for every title, plus Remove from library. */
+	private fun showLocalActions(row: Row) {
+		val actions = arrayOf(getString(R.string.add_files_collections), getString(R.string.add_files_remove))
+		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+			.setTitle(row.title)
+			.setItems(actions) { _, which -> if (which == 0) chooseCollections(row) else confirmRemove(row) }
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
+	}
+
+	private fun confirmRemove(row: Row) {
+		val message = when {
+			row.missing -> R.string.add_files_missing_message
+			row.media != null -> R.string.add_files_remove_media_message
+			else -> R.string.add_files_remove_book_message
+		}
+		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+			.setTitle(getString(R.string.add_files_remove_title, row.title))
+			.setMessage(message)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(R.string.add_files_remove) { _, _ ->
+				val context = context ?: return@setPositiveButton
+				when {
+					// Media is only forgotten; the file on the device is left alone.
+					row.media != null -> LocalMediaShelf.remove(context, row.media.uri)
+					// Books on the shelf are Monogatari's own copies in app storage.
+					row.file != null -> row.file.delete()
+				}
+				refresh()
+			}
+			.show()
 	}
 
 	override fun onSaveInstanceState(outState: Bundle) {
@@ -460,6 +507,11 @@ class UnifiedLibraryFragment : Fragment() {
 					Row(BookShelf.title(file), "Local ${file.extension.uppercase()} · " +
 						BookShelf.progress(context, file), MediaType.BOOK, file = file)
 				}
+				val media = LocalMediaShelf.list(context).map { entry ->
+					val readable = LocalMediaShelf.isReadable(context, entry)
+					Row(LocalMediaShelf.title(entry), LocalMediaShelf.detail(context, entry, readable),
+						entry.mediaType, media = entry, missing = !readable)
+				}
 				recent = runCatching { history.getList(0, 30) }.getOrDefault(emptyList()).map { manga ->
 					val source = manga.source.name
 					val kind = when {
@@ -470,7 +522,7 @@ class UnifiedLibraryFragment : Fragment() {
 					}
 					Row(manga.title, source, kind, manga = manga)
 				}
-				(remote + local).sortedBy { it.title.lowercase() }
+				(remote + local + media).sortedBy { it.title.lowercase() }
 			}
 			render()
 			} catch (cancel: CancellationException) {
@@ -563,7 +615,10 @@ class UnifiedLibraryFragment : Fragment() {
 					notifyDataSetChanged()
 				} else openRow(row)
 			}
-			holder.card.setOnLongClickListener { chooseCollections(row); true }
+			holder.card.setOnLongClickListener {
+				if (row.file != null || row.media != null) showLocalActions(row) else chooseCollections(row)
+				true
+			}
 			holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(
 				when (row.kind) {
 					MediaType.MANGA -> R.drawable.ic_manga_source

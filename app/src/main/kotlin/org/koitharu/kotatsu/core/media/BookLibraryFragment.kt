@@ -21,6 +21,8 @@ class BookLibraryFragment : Fragment() {
     private val shelfAdapter = BookShelfRecyclerAdapter { file ->
         startActivity(BookShelf.readerIntent(requireContext(), file))
     }
+    /** Books, comics, videos and audio from the device; books land on this shelf. */
+    private val fileImporter = LocalFileImportLauncher(this) { refresh() }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,6 +38,8 @@ class BookLibraryFragment : Fragment() {
             .setOnClickListener {
                 startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
             }
+        view.findViewById<MaterialButton>(R.id.monogatari_book_add_files)
+            .setOnClickListener { fileImporter.launchOrToast() }
         view.findViewById<RecyclerView>(R.id.monogatari_book_list).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = shelfAdapter

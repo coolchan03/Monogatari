@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-21 — Add files to the library (working tree, uncommitted)
+- "Add files" (outlined button + overflow item) on All media (UnifiedLibraryFragment), Books tab button, Favourites menu item; router `core/media/LocalFileImporter.kt` (classify + shared book import, now also used by BookCatalogFragment), comics via ImportService, videos/audio kept by uri in `core/media/LocalMediaShelf.kt` (prefs `monogatari_local_media`), played in MediaFeedPlayerActivity (new extra `media_feed.local_uri`).
+- Status: LocalFileImporterTest (7 tests) green with standalone kotlinc; Android code not compiled locally; not committed; not device-verified.
+
 ## 2026-10-21 — post-1.2.0 batch (drafts branch `d1d743b`, CI run 39517947734 green, unreleased)
 - Nav bar: up to 8 items (floating pill compacts/scrolls; overflow listed in More); new tabs News & RSS, Podcasts, All media, Book catalog (fragments with thin activity hosts); shortcuts Search, Downloads, Statistics, Sources, Settings.
 - Mangayomi import matched to the current format (.backup zip with .backup.db JSON v2): installs every installed JS extension (repos, else backup sourceCode with the repo checks, else sourceCodeUrl), adds https extension repos, imports manga/anime/novel library even without the extension, large backups (base64 APKs) no longer rejected, encrypted backups explained.
