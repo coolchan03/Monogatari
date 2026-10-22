@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_backup">
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.userdata.BackupsSettingsFragment"
+		android:icon="@drawable/ic_backup_restore"
+		android:key="userdata"
+		android:summary="@string/settings_link_backup_summary"
+		android:title="@string/backup_restore" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.backups.ui.periodical.PeriodicalBackupSettingsFragment"
+		android:icon="@drawable/ic_save"
+		android:key="monogatari_link_periodic_backup"
+		android:persistent="false"
+		android:title="@string/periodic_backups" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.SyncSettingsFragment"
+		android:icon="@drawable/ic_sync"
+		android:key="monogatari_link_sync"
+		android:persistent="false"
+		android:summary="@string/settings_link_sync_summary"
+		android:title="@string/sync" />
+
+	<Preference
+		android:icon="@drawable/ic_wifi"
+		android:key="monogatari_link_nearby"
+		android:persistent="false"
+		android:summary="@string/settings_link_nearby_summary"
+		android:title="@string/settings_link_nearby" />
+
+	<Preference
+		android:icon="@drawable/ic_web"
+		android:key="monogatari_link_webdav"
+		android:persistent="false"
+		android:summary="@string/settings_link_webdav_summary"
+		android:title="@string/settings_link_webdav" />
+
+	<Preference
+		android:icon="@drawable/ic_storage"
+		android:key="monogatari_link_foreign_import"
+		android:persistent="false"
+		android:summary="@string/settings_link_foreign_import_summary"
+		android:title="@string/settings_link_foreign_import" />
+
+</PreferenceScreen>

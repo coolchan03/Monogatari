@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_sources">
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.sources.SourcesSettingsFragment"
+		android:icon="@drawable/ic_monogatari_nav_explore"
+		android:key="remote_sources"
+		android:summary="@string/settings_link_sources_summary"
+		android:title="@string/remote_sources" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.sourcerepo.ui.SourceReposFragment"
+		android:icon="@drawable/ic_manga_source"
+		android:key="monogatari_link_source_repos"
+		android:persistent="false"
+		android:summary="@string/settings_link_repos_summary"
+		android:title="@string/settings_link_repos" />
+
+	<Preference
+		android:icon="@drawable/ic_data_privacy"
+		android:key="monogatari_link_api_keys"
+		android:persistent="false"
+		android:summary="@string/settings_link_api_keys_summary"
+		android:title="@string/settings_link_api_keys" />
+
+	<Preference
+		android:icon="@drawable/ic_history"
+		android:key="monogatari_link_source_log"
+		android:persistent="false"
+		android:summary="@string/settings_link_source_log_summary"
+		android:title="@string/settings_link_source_log" />
+
+</PreferenceScreen>

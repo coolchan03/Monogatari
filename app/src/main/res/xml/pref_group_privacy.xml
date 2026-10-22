@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_privacy">
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.AppearanceSettingsFragment"
+		android:icon="@drawable/ic_lock"
+		android:key="monogatari_link_app_lock"
+		android:persistent="false"
+		android:summary="@string/settings_link_app_lock_summary"
+		android:title="@string/protect_application">
+		<extra
+			android:name="pref_key"
+			android:value="protect_app" />
+	</Preference>
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.AppearanceSettingsFragment"
+		android:icon="@drawable/ic_data_privacy"
+		android:key="monogatari_link_screenshots"
+		android:persistent="false"
+		android:summary="@string/settings_link_screenshots_summary"
+		android:title="@string/screenshots_policy">
+		<extra
+			android:name="pref_key"
+			android:value="screenshots_policy" />
+	</Preference>
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.sources.SourcesSettingsFragment"
+		android:icon="@drawable/ic_sfw"
+		android:key="monogatari_link_nsfw"
+		android:persistent="false"
+		android:summary="@string/settings_link_nsfw_summary"
+		android:title="@string/settings_link_nsfw">
+		<extra
+			android:name="pref_key"
+			android:value="no_nsfw" />
+	</Preference>
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.sourcescore.ui.CommunitySettingsFragment"
+		android:icon="@drawable/ic_trending_small"
+		android:key="monogatari_link_community"
+		android:persistent="false"
+		android:summary="@string/settings_link_community_summary"
+		android:title="@string/community" />
+
+</PreferenceScreen>

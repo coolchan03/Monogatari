@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.annotation.XmlRes
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import androidx.preference.get
@@ -11,11 +12,19 @@ import dagger.Reusable
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.ui.periodical.PeriodicalBackupSettingsFragment
 import org.koitharu.kotatsu.core.LocalizedAppContext
+import org.koitharu.kotatsu.sourcescore.ui.CommunitySettingsFragment
+import org.koitharu.kotatsu.settings.AdvancedSettingsFragment
 import org.koitharu.kotatsu.settings.AppearanceSettingsFragment
+import org.koitharu.kotatsu.settings.BackupSettingsGroupFragment
+import org.koitharu.kotatsu.settings.DiscoverSettingsGroupFragment
 import org.koitharu.kotatsu.settings.DownloadsSettingsFragment
+import org.koitharu.kotatsu.settings.LibrarySettingsGroupFragment
+import org.koitharu.kotatsu.settings.NotificationsSettingsGroupFragment
+import org.koitharu.kotatsu.settings.PrivacySettingsGroupFragment
 import org.koitharu.kotatsu.settings.ProxySettingsFragment
 import org.koitharu.kotatsu.settings.ReaderSettingsFragment
 import org.koitharu.kotatsu.settings.ServicesSettingsFragment
+import org.koitharu.kotatsu.settings.SourcesSettingsGroupFragment
 import org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment
 import org.koitharu.kotatsu.settings.SuggestionsSettingsFragment
 import org.koitharu.kotatsu.settings.about.AboutSettingsFragment
@@ -85,6 +94,25 @@ class SettingsSearchHelper @Inject constructor(
             listOf(),
             SourcesSettingsFragment::class.java,
         )
+        // The settings root's groups, so entries that open other pages (API keys, WebDAV, news...) are found too.
+        preferenceManager.inflateTo(result, R.xml.pref_group_library, emptyList(), LibrarySettingsGroupFragment::class.java)
+        preferenceManager.inflateTo(result, R.xml.pref_group_sources, emptyList(), SourcesSettingsGroupFragment::class.java)
+        preferenceManager.inflateTo(result, R.xml.pref_group_discover, emptyList(), DiscoverSettingsGroupFragment::class.java)
+        preferenceManager.inflateTo(
+            result,
+            R.xml.pref_group_notifications,
+            emptyList(),
+            NotificationsSettingsGroupFragment::class.java,
+        )
+        preferenceManager.inflateTo(result, R.xml.pref_group_backup, emptyList(), BackupSettingsGroupFragment::class.java)
+        preferenceManager.inflateTo(result, R.xml.pref_group_privacy, emptyList(), PrivacySettingsGroupFragment::class.java)
+        preferenceManager.inflateTo(result, R.xml.pref_advanced, emptyList(), AdvancedSettingsFragment::class.java)
+        preferenceManager.inflateTo(
+            result,
+            R.xml.pref_community,
+            listOf(context.getString(R.string.services)),
+            CommunitySettingsFragment::class.java,
+        )
         return result
     }
 
@@ -103,7 +131,7 @@ class SettingsSearchHelper @Inject constructor(
         )
     }
 
-    private fun PreferenceScreen.inflateTo(
+    private fun PreferenceGroup.inflateTo(
         result: MutableList<SettingsItem>,
         breadcrumbs: List<String>,
         fragmentClass: Class<out PreferenceFragmentCompat>
@@ -116,6 +144,9 @@ class SettingsSearchHelper @Inject constructor(
                 breadcrumbs = if (screenTitle.isNullOrEmpty()) breadcrumbs else breadcrumbs + screenTitle,
                 fragmentClass = fragmentClass,
             )
+        } else if (pref is PreferenceGroup) {
+            // Categories only group entries on the same screen; their entries are searchable too.
+            pref.inflateTo(result, breadcrumbs, fragmentClass)
         } else {
             result.add(
                 SettingsItem(
@@ -123,6 +154,7 @@ class SettingsSearchHelper @Inject constructor(
                     title = pref.title ?: return@repeat,
                     breadcrumbs = breadcrumbs,
                     fragmentClass = fragmentClass,
+                    summary = pref.summary,
                 ),
             )
         }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_discover">
+
+	<Preference
+		android:icon="@drawable/ic_star_rate_outline"
+		android:key="monogatari_link_discover"
+		android:persistent="false"
+		android:summary="@string/settings_link_discover_summary"
+		android:title="@string/settings_link_discover" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.SuggestionsSettingsFragment"
+		android:icon="@drawable/ic_suggestion"
+		android:key="monogatari_link_suggestions"
+		android:persistent="false"
+		android:title="@string/suggestions" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.ServicesSettingsFragment"
+		android:icon="@drawable/ic_trending_small"
+		android:key="monogatari_link_related"
+		android:persistent="false"
+		android:summary="@string/settings_link_related_summary"
+		android:title="@string/related_manga">
+		<extra
+			android:name="pref_key"
+			android:value="related_manga" />
+	</Preference>
+
+	<Preference
+		android:icon="@drawable/ic_feed"
+		android:key="monogatari_link_news"
+		android:persistent="false"
+		android:summary="@string/settings_link_news_summary"
+		android:title="@string/settings_link_news" />
+
+	<Preference
+		android:icon="@drawable/ic_voice_input"
+		android:key="monogatari_link_podcasts"
+		android:persistent="false"
+		android:summary="@string/settings_link_podcasts_summary"
+		android:title="@string/settings_link_podcasts" />
+
+</PreferenceScreen>

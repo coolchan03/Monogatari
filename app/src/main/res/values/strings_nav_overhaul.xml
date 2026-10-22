@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Settings root: a short list of groups, each opening its own page. -->
+	<string name="settings_group_appearance">Appearance &amp; navigation</string>
+	<string name="settings_group_appearance_summary">Theme, accent colour, lists and the navigation bar</string>
+	<string name="settings_group_reading">Reading &amp; playback</string>
+	<string name="settings_group_reading_summary">Reader modes, page turning, novels, video and audio</string>
+	<string name="settings_group_library">Library &amp; downloads</string>
+	<string name="settings_group_library_summary">Downloads, storage, ebooks, bookmarks and statistics</string>
+	<string name="settings_group_sources">Sources &amp; extensions</string>
+	<string name="settings_group_sources_summary">Websites, extension repositories, API keys and source log</string>
+	<string name="settings_group_discover">Discover &amp; recommendations</string>
+	<string name="settings_group_discover_summary">Suggestions, Discover, news feeds and podcasts</string>
+	<string name="settings_group_notifications">Notifications &amp; tracking</string>
+	<string name="settings_group_notifications_summary">New chapter checks, notifications, AniList and MyAnimeList</string>
+	<string name="settings_group_backup">Backup, sync &amp; import</string>
+	<string name="settings_group_backup_summary">Backups, sync, nearby transfer, WebDAV and imports from other apps</string>
+	<string name="settings_group_privacy">Privacy &amp; security</string>
+	<string name="settings_group_privacy_summary">App lock, screenshots, adult content and community data</string>
+	<string name="settings_group_advanced">Advanced</string>
+	<string name="settings_group_advanced_summary">Storage and network, services, diagnostics and the Test Center</string>
+	<string name="settings_group_about_summary">Version %s, updates, licences and help</string>
+
+	<!-- Entries inside the groups. -->
+	<string name="settings_link_downloads_list">Open downloads</string>
+	<string name="settings_link_downloads_list_summary">Saved chapters and the download queue</string>
+	<string name="settings_link_storage_summary">Storage usage, cache, data removal and network options</string>
+	<string name="settings_link_data_cleanup_summary">Free space used by caches and leftover files</string>
+	<string name="settings_link_bookmarks">Bookmarks</string>
+	<string name="settings_link_bookmarks_summary">Saved pages and reading positions</string>
+	<string name="settings_link_stats">Reading statistics</string>
+	<string name="settings_link_stats_summary">Activity, progress and exports</string>
+	<string name="settings_link_sources_summary">Enable, sort and configure websites</string>
+	<string name="settings_link_repos">Extension repositories &amp; diagnostics</string>
+	<string name="settings_link_repos_summary">Add repositories, check extension health and compatibility</string>
+	<string name="settings_link_api_keys">API keys &amp; accounts</string>
+	<string name="settings_link_api_keys_summary">Your own keys for Jellyfin, Plex, Twitch and Vimeo, with sign-up links</string>
+	<string name="settings_link_source_log">Source activity log</string>
+	<string name="settings_link_source_log_summary">See which sources worked or failed</string>
+	<string name="settings_link_discover">Open Discover</string>
+	<string name="settings_link_discover_summary">Manga, novels, anime, video, audio and news across sources</string>
+	<string name="settings_link_related_summary">Similar titles on details pages and the Related manga switch</string>
+	<string name="settings_link_news">News &amp; followed tags</string>
+	<string name="settings_link_news_summary">RSS feeds and saved interests</string>
+	<string name="settings_link_podcasts">Podcasts &amp; video RSS</string>
+	<string name="settings_link_podcasts_summary">Fiction, film, drama and entertainment subscriptions</string>
+	<string name="settings_link_tracking_services">Tracking services</string>
+	<string name="settings_link_tracking_services_summary">AniList, Kitsu, MyAnimeList and Shikimori</string>
+	<string name="settings_link_discord_summary">Show what you are reading on Discord</string>
+	<string name="settings_link_backup_summary">Create, restore and schedule backups</string>
+	<string name="settings_link_sync_summary">Synchronise history and favourites with a server</string>
+	<string name="settings_link_nearby">Nearby offline sync</string>
+	<string name="settings_link_nearby_summary">Pair by code; transfer and merge library or send files</string>
+	<string name="settings_link_webdav">Manual WebDAV backups</string>
+	<string name="settings_link_webdav_summary">Explicit ZIP transfers; no auto-restore</string>
+	<string name="settings_link_foreign_import">Import from Kotatsu / Mangayomi</string>
+	<string name="settings_link_foreign_import_summary">Bring over your library, categories and reading progress</string>
+	<string name="settings_link_app_lock_summary">Ask for a PIN or fingerprint when the app opens</string>
+	<string name="settings_link_screenshots_summary">Allow or block screenshots and the recent apps preview</string>
+	<string name="settings_link_nsfw">Adult content &amp; incognito</string>
+	<string name="settings_link_nsfw_summary">Hide adult sources and read them without history</string>
+	<string name="settings_link_community_summary">Shared source scores, telemetry and your community data</string>
+	<string name="settings_link_services_summary">Sync, statistics, related titles, tracking and Discord</string>
+	<string name="settings_link_test_center_summary">Test the app feature by feature and copy a report</string>
+	<string name="settings_link_licences">Open-source licences</string>
+	<string name="settings_link_licences_summary">Offline credits, full GPL and upstream notices</string>
+
+	<!-- Navigation bar settings: the "Add" list is grouped. -->
+	<string name="nav_config_group_tabs">Tabs</string>
+	<string name="nav_config_group_shortcuts">Shortcuts</string>
+	<string name="nav_config_restore_default">Restore default</string>
+</resources>

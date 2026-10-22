@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_notifications">
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.tracker.TrackerSettingsFragment"
+		android:icon="@drawable/ic_monogatari_nav_updated"
+		android:key="tracker"
+		android:summary="@string/track_sources"
+		android:title="@string/check_for_new_chapters" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.tracker.TrackerSettingsFragment"
+		android:icon="@drawable/ic_notification"
+		android:key="monogatari_link_notifications"
+		android:persistent="false"
+		android:title="@string/notifications_settings">
+		<extra
+			android:name="pref_key"
+			android:value="notifications_settings" />
+	</Preference>
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.ServicesSettingsFragment"
+		android:icon="@drawable/ic_anilist"
+		android:key="monogatari_link_tracking_services"
+		android:persistent="false"
+		android:summary="@string/settings_link_tracking_services_summary"
+		android:title="@string/settings_link_tracking_services">
+		<extra
+			android:name="pref_key"
+			android:value="anilist" />
+	</Preference>
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.discord.DiscordSettingsFragment"
+		android:icon="@drawable/ic_discord"
+		android:key="monogatari_link_discord"
+		android:persistent="false"
+		android:summary="@string/settings_link_discord_summary"
+		android:title="@string/discord_rpc" />
+
+</PreferenceScreen>

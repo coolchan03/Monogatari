@@ -54,7 +54,7 @@ class MoreActivity : AppCompatActivity() {
             setPadding(margin, margin, margin, margin)
         }
         val info = TextView(this).apply {
-            text = "Library · Find something · Backup · App and tools"
+            text = MoreDestinations.groupOrder.joinToString(" · ")
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
             setPadding(0, 0, 0, margin)
         }
