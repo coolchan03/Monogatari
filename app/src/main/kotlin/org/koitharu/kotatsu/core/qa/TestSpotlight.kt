@@ -30,6 +30,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.koitharu.kotatsu.core.util.ext.getThemeColor
 
 /**
  * Guided-test spotlight: after "Open feature" in the Test Center, every screen of the app shows a small card
@@ -102,9 +103,16 @@ object TestSpotlight {
 	private class Overlay(private val activity: Activity, private val case: TestCase) : FrameLayout(activity) {
 
 		private val density = resources.displayMetrics.density
+
+		// Theme colours (scheme, accent, Material You) with the old fixed colours as fallbacks.
+		private val ringColor = activity.getThemeColor(androidx.appcompat.R.attr.colorPrimary, RING_COLOR)
+		private val cardColor = activity.getThemeColor(com.google.android.material.R.attr.colorSurfaceContainerHigh, CARD_COLOR)
+		private val onCardColor = activity.getThemeColor(com.google.android.material.R.attr.colorOnSurface, Color.WHITE)
+		private val onCardVariantColor = activity.getThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant, Color.WHITE)
+
 		private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
 			style = Paint.Style.STROKE
-			color = RING_COLOR
+			color = ringColor
 		}
 		// Drawn outside the highlighted control only; touches still reach the app.
 		private val shadePaint = Paint().apply { color = Color.argb(155, 0, 0, 0) }
@@ -245,14 +253,14 @@ object TestSpotlight {
 				elevation = 8 * density
 				background = GradientDrawable().apply {
 					cornerRadius = 16 * density
-					setColor(CARD_COLOR)
-					setStroke((2 * density).toInt(), RING_COLOR)
+					setColor(cardColor)
+					setStroke((2 * density).toInt(), ringColor)
 				}
 				addView(TextView(context).apply {
 					text = "Testing: ${case.title}  ⇅"
-					setTextColor(Color.WHITE)
+					setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+					setTextColor(onCardColor)
 					setTypeface(typeface, Typeface.BOLD)
-					textSize = 15f
 					// Tap the title to move the card out of the way.
 					setOnClickListener {
 						cardAtTop = !cardAtTop
@@ -261,15 +269,15 @@ object TestSpotlight {
 				})
 				addView(TextView(context).apply {
 					text = case.instructions
-					setTextColor(Color.argb(230, 255, 255, 255))
-					textSize = 13f
+					setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+					setTextColor(onCardVariantColor)
 					maxLines = 5
 					setPadding(0, pad / 3, 0, pad / 3)
 				})
 				addView(TextView(context).apply {
 					text = "Try the highlighted area, then tell us how you feel:"
-					setTextColor(Color.WHITE)
-					textSize = 12f
+					setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+					setTextColor(onCardColor)
 				})
 				addView(LinearLayout(context).apply {
 					orientation = LinearLayout.HORIZONTAL
@@ -310,7 +318,7 @@ object TestSpotlight {
 		private fun button(label: String, onClick: () -> Unit) = Button(context, null, android.R.attr.borderlessButtonStyle).apply {
 			text = label
 			isAllCaps = false
-			setTextColor(Color.WHITE)
+			setTextColor(ringColor)
 			setOnClickListener { onClick() }
 		}
 

@@ -32,4 +32,18 @@ class TasteProfileTest {
 		))
 		assertEquals(listOf("isekai fantasy", "adventure"), ranked)
 	}
+
+	@Test
+	fun sourceTagsMatchCatalogGenresThroughAliases() {
+		val bl = TasteProfile.build(listOf(
+			Signal(listOf("Yaoi", "Sci-Fi"), favourite = false, readChapters = 10, dropped = false, ageDays = 1),
+		))
+		assertTrue(bl.weightOf("Boys' Love") > 0)
+		assertTrue(bl.weightOf("Boys Love") > 0)
+		assertTrue(bl.weightOf("sci fi") > 0)
+		assertEquals(
+			listOf("given"),
+			bl.rank(listOf(Candidate("cooking", listOf("Cooking"), false), Candidate("given", listOf("Drama", "Boys' Love"), false))),
+		)
+	}
 }

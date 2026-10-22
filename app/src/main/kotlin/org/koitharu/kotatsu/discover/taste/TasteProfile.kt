@@ -53,7 +53,38 @@ class TasteProfile private constructor(private val weights: Map<String, Double>)
 			return TasteProfile(weights.mapValues { it.value / max })
 		}
 
-		internal fun normalize(tag: String): String = tag.trim().lowercase(Locale.ROOT)
-			.replace(Regex("[\\s_-]+"), " ")
+		private val SEPARATORS = Regex("[\\s_-]+")
+		private val APOSTROPHES = Regex("['\u2019`]")
+
+		/**
+		 * Source tags and catalog genres name the same thing differently ("Yaoi", "Shounen Ai", AniList "Boys' Love",
+		 * MyAnimeList "Boys Love"); without these aliases the "For you" ranking found no overlap and showed popular order.
+		 */
+		private val ALIASES = mapOf(
+			"yaoi" to "boys love",
+			"bl" to "boys love",
+			"shounen ai" to "boys love",
+			"shonen ai" to "boys love",
+			"danmei" to "boys love",
+			"yuri" to "girls love",
+			"shoujo ai" to "girls love",
+			"shojo ai" to "girls love",
+			"gl" to "girls love",
+			"scifi" to "sci fi",
+			"science fiction" to "sci fi",
+			"school life" to "school",
+			"gender bender" to "gender bending",
+			"martial art" to "martial arts",
+			"superpower" to "super power",
+			"rom com" to "romantic comedy",
+			"romcom" to "romantic comedy",
+		)
+
+		internal fun normalize(tag: String): String {
+			val plain = tag.trim().lowercase(Locale.ROOT)
+				.replace(APOSTROPHES, "")
+				.replace(SEPARATORS, " ")
+			return ALIASES[plain] ?: plain
+		}
 	}
 }

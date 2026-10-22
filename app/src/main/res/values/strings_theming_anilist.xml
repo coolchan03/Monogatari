@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Discover: AniList errors and the MyAnimeList (Jikan) fallback -->
+	<string name="discover_rate_limited">too many requests right now (HTTP 429). Try again in a minute.</string>
+	<string name="discover_blocked_by_cloudflare">the request was blocked by Cloudflare protection</string>
+	<string name="discover_fallback_failed">%1$s (MyAnimeList fallback also failed: %2$s)</string>
+</resources>

@@ -157,7 +157,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
 
     private fun showChapterPicker() {
         val chapters = book?.chapters ?: return
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.epub_chapters)
             .setItems(chapters.map { it.title }.toTypedArray()) { _, selected -> showChapter(selected) }
             .show()

@@ -120,4 +120,25 @@ class AniListDiscoverTest {
 	fun followedAiringErrorsAreReported() {
 		AniListDiscover.parseFollowedAiring("""{"errors":[{"message":"Too Many Requests"}],"data":null}""")
 	}
+
+	@Test
+	fun strongNonSpoilerTagsJoinGenresForTaste() {
+		val page = AniListDiscover.parse("""{"data":{"Page":{"pageInfo":{"hasNextPage":false},"media":[
+			{"id":7,"title":{"english":"Given"},"genres":["Drama","Romance"],"tags":[
+				{"name":"Boys' Love","rank":95,"isMediaSpoiler":false},
+				{"name":"Music","rank":80,"isMediaSpoiler":false},
+				{"name":"Tragedy","rank":90,"isMediaSpoiler":true},
+				{"name":"Kissing","rank":20,"isMediaSpoiler":false},
+				{"name":"Romance","rank":70,"isMediaSpoiler":false}]}]}}}""")
+		assertEquals(listOf("Drama", "Romance", "Boys' Love", "Music"), page.items.single().genres)
+		assertTrue(AniListDiscover.buildRequestBody(AniListDiscover.Feed.TRENDING_BL, 1).getString("query").contains("tags {"))
+	}
+
+	@Test
+	fun httpErrorBodiesKeepAniListsMessage() {
+		assertEquals("Invalid tag", AniListDiscover.errorMessage("""{"errors":[{"message":"Invalid tag","status":400}],"data":null}"""))
+		assertNull(AniListDiscover.errorMessage("<html>Just a moment...</html>"))
+		assertEquals("Unknown error", AniListDiscover.describe(IOException("Unknown error")))
+		assertEquals("IOException", AniListDiscover.describe(IOException()))
+	}
 }
