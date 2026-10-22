@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/library_section_title"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:accessibilityHeading="true"
+	android:paddingHorizontal="@dimen/library_card_spacing"
+	android:paddingTop="@dimen/library_section_padding_top"
+	android:paddingBottom="@dimen/library_section_padding_bottom"
+	android:textAppearance="?attr/textAppearanceTitleMedium" />

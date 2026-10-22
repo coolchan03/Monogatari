@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="library_ov_search_hint">Search your library</string>
+	<string name="library_ov_sort">Sort library</string>
+	<string name="library_ov_sort_added">Recently added</string>
+	<string name="library_ov_sort_read">Recently read</string>
+	<string name="library_ov_sort_title">Title A–Z</string>
+	<string name="library_ov_chip_all">All</string>
+	<string name="library_ov_chip_manga">Manga</string>
+	<string name="library_ov_chip_books">Books</string>
+	<string name="library_ov_chip_video">Video</string>
+	<string name="library_ov_chip_audio">Audio</string>
+	<string name="library_ov_chip_count">%1$s · %2$d</string>
+	<string name="library_ov_section_count">%1$s · %2$d</string>
+	<string name="library_ov_section_favourites">Favourites</string>
+	<string name="library_ov_section_imported">Imported files</string>
+	<string name="library_ov_section_on_device">Downloaded / On device</string>
+	<string name="library_ov_categories">Categories</string>
+	<string name="library_ov_find_books">Find books</string>
+	<string name="library_ov_detail_favourite">Favourite</string>
+	<string name="library_ov_detail_on_device">On device</string>
+	<string name="library_ov_detail_local_book">Local %1$s · %2$s</string>
+	<string name="library_ov_detail_join">%1$s · %2$s</string>
+	<string name="library_ov_empty_all">Your library is empty. Save a title, or add books, comics, videos and audio from this device.</string>
+	<string name="library_ov_empty_manga">No manga yet. Save a title from Explore, or add CBZ comics from this device.</string>
+	<string name="library_ov_empty_book">No books yet. Find free books, or add EPUB, PDF and text files from this device.</string>
+	<string name="library_ov_empty_video">No videos yet. Save an anime, or add video files from this device.</string>
+	<string name="library_ov_empty_audio">No audio yet. Save an audiobook, or add audio files from this device.</string>
+	<string name="library_ov_empty_collection">Nothing in this collection matches the selected type.</string>
+	<string name="library_ov_no_match">Nothing in your library matches “%1$s”.</string>
+	<string name="library_ov_action_open">Open</string>
+	<string name="library_ov_action_collections">Add to collection…</string>
+	<string name="library_ov_action_remove_continue">Remove from Continue</string>
+	<string name="library_ov_remove_favourite_message">This title is removed from your favourites. Reading progress is kept.</string>
+	<string name="library_ov_remove_favourite_on_device_message">This title is removed from your favourites. The downloaded copy stays under Downloaded / On device.</string>
+	<string name="library_ov_remove_on_device_message">The downloaded copy is deleted from this device.</string>
+	<string name="library_ov_remove_failed">Could not remove “%1$s”: %2$s</string>
+	<string name="library_ov_load_partial">Part of your library could not be loaded (%1$s). Everything else is shown.</string>
+	<string name="library_ov_recovered">%1$d imported books were repaired and are back on your shelf.</string>
+	<string name="library_ov_kind_badge">%1$s, %2$s</string>
+	<plurals name="library_ov_items">
+		<item quantity="one">%d item</item>
+		<item quantity="other">%d items</item>
+	</plurals>
+</resources>

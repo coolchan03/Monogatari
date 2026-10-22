@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:paddingTop="@dimen/library_header_spacing">
+
+	<!-- Header: search, Add files, sort. -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="@dimen/library_gutter"
+		android:gravity="center_vertical"
+		android:orientation="horizontal">
+
+		<com.google.android.material.textfield.TextInputLayout
+			android:id="@+id/library_search_layout"
+			style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:hint="@string/library_ov_search_hint"
+			app:endIconMode="clear_text">
+
+			<com.google.android.material.textfield.TextInputEditText
+				android:id="@+id/library_search"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:imeOptions="actionSearch"
+				android:inputType="text"
+				android:maxLines="1" />
+
+		</com.google.android.material.textfield.TextInputLayout>
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_add_files"
+			style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="@dimen/library_header_spacing"
+			android:contentDescription="@string/add_files"
+			android:tooltipText="@string/add_files"
+			app:icon="@drawable/ic_add" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_sort"
+			style="@style/Widget.Material3.Button.IconButton.Outlined"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:contentDescription="@string/library_ov_sort"
+			android:tooltipText="@string/library_ov_sort"
+			app:icon="@drawable/ic_sort_desc" />
+
+	</LinearLayout>
+
+	<!-- Type chips: All · Manga · Books · Video · Audio, each with its count. -->
+	<HorizontalScrollView
+		android:id="@+id/library_tabs_scroll"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:clipToPadding="false"
+		android:paddingHorizontal="@dimen/library_gutter"
+		android:scrollbars="none">
+
+		<com.google.android.material.chip.ChipGroup
+			android:id="@id/monogatari_library_tabs"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			app:chipSpacingHorizontal="@dimen/library_chip_spacing"
+			app:selectionRequired="true"
+			app:singleLine="true"
+			app:singleSelection="true" />
+
+	</HorizontalScrollView>
+
+	<!-- Favourites categories, the user's collections and smart collections. -->
+	<HorizontalScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:clipToPadding="false"
+		android:paddingHorizontal="@dimen/library_gutter"
+		android:scrollbars="none">
+
+		<com.google.android.material.chip.ChipGroup
+			android:id="@+id/library_collections"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			app:chipSpacingHorizontal="@dimen/library_chip_spacing"
+			app:singleLine="true" />
+
+	</HorizontalScrollView>
+
+	<com.google.android.material.progressindicator.LinearProgressIndicator
+		android:id="@+id/library_loading"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:contentDescription="@string/library_loading"
+		android:indeterminate="true"
+		android:visibility="gone" />
+
+	<TextView
+		android:id="@+id/library_status"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="@dimen/library_gutter"
+		android:accessibilityLiveRegion="polite"
+		android:textAppearance="?attr/textAppearanceBodySmall"
+		android:textColor="?attr/colorOnSurfaceVariant"
+		android:visibility="gone" />
+
+	<FrameLayout
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1">
+
+		<androidx.recyclerview.widget.RecyclerView
+			android:id="@id/monogatari_library_results_list"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:clipToPadding="false"
+			android:paddingHorizontal="@dimen/library_card_spacing" />
+
+		<LinearLayout
+			android:id="@+id/library_empty"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_gravity="center"
+			android:gravity="center"
+			android:orientation="vertical"
+			android:padding="@dimen/library_empty_padding"
+			android:visibility="gone">
+
+			<ImageView
+				android:id="@+id/library_empty_mascot"
+				android:layout_width="@dimen/library_empty_mascot"
+				android:layout_height="@dimen/library_empty_mascot"
+				android:scaleType="fitCenter" />
+
+			<TextView
+				android:id="@+id/library_empty_text"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="@dimen/library_header_spacing"
+				android:gravity="center"
+				android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/library_empty_add"
+				style="@style/Widget.Material3.Button.TonalButton"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="@dimen/library_header_spacing"
+				android:text="@string/add_files"
+				app:icon="@drawable/ic_add" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/library_empty_find_books"
+				style="@style/Widget.Material3.Button.TextButton"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/library_ov_find_books"
+				android:visibility="gone" />
+
+		</LinearLayout>
+
+	</FrameLayout>
+
+</LinearLayout>

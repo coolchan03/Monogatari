@@ -1,70 +1,106 @@
 package org.koitharu.kotatsu.core.media
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.HorizontalScrollView
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.net.toUri
 import androidx.core.text.HtmlCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.db.MangaDatabase
+import org.koitharu.kotatsu.core.db.entity.toManga
+import org.koitharu.kotatsu.core.db.entity.toMangaTags
 import org.koitharu.kotatsu.core.image.CoilImageView
+import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
-import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.TapCounter
+import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
+import org.koitharu.kotatsu.favourites.data.toManga
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.favourites.smart.SmartCollectionRule
 import org.koitharu.kotatsu.history.data.HistoryRepository
+import org.koitharu.kotatsu.image.ui.CoverImageView
+import org.koitharu.kotatsu.local.data.LocalMangaRepository
+import org.koitharu.kotatsu.local.data.LocalStorageChanges
+import org.koitharu.kotatsu.local.domain.DeleteLocalMangaUseCase
+import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.main.ui.NavLayoutPolicy
 import org.koitharu.kotatsu.parsers.model.Manga
-import java.io.File
+import org.koitharu.kotatsu.parsers.model.SortOrder
 import javax.inject.Inject
 
+private typealias Row = LibraryShelf.Item
+
 /**
- * User-facing unified library across saved manga, novels, anime, audio and imported books.
- * Shown as a main navigation tab, or inside [UnifiedLibraryActivity] when opened from elsewhere
- * (its [UnifiedLibraryActivity.EXTRA_MEDIA_KIND] / [UnifiedLibraryActivity.EXTRA_FILTER] extras arrive as arguments).
+ * The main Library: everything the user saved or added, across manga, books, video and audio — favourites,
+ * downloaded / "On device" titles, imported books and the user's own video and audio files — with a Continue strip
+ * from history. Shown as a main navigation tab, as the Books tab ([BookLibraryFragment], locked to books), or inside
+ * [UnifiedLibraryActivity] (its [UnifiedLibraryActivity.EXTRA_MEDIA_KIND] / [UnifiedLibraryActivity.EXTRA_FILTER]
+ * extras arrive as arguments).
  */
 @AndroidEntryPoint
 class UnifiedLibraryFragment : Fragment() {
-	private companion object {
-		const val MENU_NEW_SMART = 7501
+
+	companion object {
+		private const val MENU_NEW_SMART = 7501
+		private const val HISTORY_LIMIT = 300
+		private const val KEY_SORT = "sort"
+
+		/** Shows only this [MediaType] (by name) and hides the type chips; used by the Books tab. */
+		const val ARG_LOCKED_KIND = "monogatari_library_locked_kind"
 	}
+
+	@Inject lateinit var db: MangaDatabase
 	@Inject lateinit var favorites: FavouritesRepository
 	@Inject lateinit var history: HistoryRepository
-	private data class Row(val title: String, val detail: String, val kind: MediaType,
-		val manga: Manga? = null, val file: File? = null,
-		/** The user's own video or audio file (Add files); [missing] when it can no longer be opened. */
-		val media: LocalMediaShelf.Entry? = null, val missing: Boolean = false)
+	@Inject lateinit var localManga: LocalMangaRepository
+	@Inject lateinit var deleteLocalManga: DeleteLocalMangaUseCase
+	@Inject @LocalStorageChanges lateinit var localStorageChanges: SharedFlow<LocalManga?>
+
 	private val fileImporter = LocalFileImportLauncher(this) { if (view != null && ::search.isInitialized) refresh() }
 	private var all = emptyList<Row>()
 	/** Most recently opened titles, newest first, for the Continue strip. */
 	private var recent = emptyList<Row>()
+	/** Sources that failed to load in the last refresh; everything else is still shown. */
+	private var loadProblems = emptyList<String>()
 	/** At 840dp and wider the library shows a details pane next to the list (#63). */
 	private var twoPane = false
 	private lateinit var paneCover: CoilImageView
@@ -74,27 +110,30 @@ class UnifiedLibraryFragment : Fragment() {
 	private lateinit var paneOpen: MaterialButton
 	private var paneRow: Row? = null
 	private var restoredPaneKey: String? = null
-	private lateinit var mascot: ImageView
-	private lateinit var loading: com.google.android.material.progressindicator.LinearProgressIndicator
 	/** Collections: the user's own folders across all media (long-press a title to file it). */
 	private var collections: Map<String, Set<String>> = emptyMap()
 	private var selectedCollection: String? = null
 	/** v1.5 draft: smart collections, name -> rule text (see [SmartCollectionRule]). */
 	private var smartCollections: Map<String, String> = emptyMap()
 	private var selectedSmart: String? = null
-	private lateinit var collectionRow: LinearLayout
 	private val collectionPrefs by lazy { requireContext().getSharedPreferences("library_collections", Context.MODE_PRIVATE) }
+	private val uiPrefs by lazy { requireContext().getSharedPreferences("library_ui", Context.MODE_PRIVATE) }
 	private val eggTaps = TapCounter()
-	private lateinit var continueLabel: TextView
-	private lateinit var continueRow: LinearLayout
-	private lateinit var continueScroll: HorizontalScrollView
 	/** Null represents All media, including items with an unknown/older source type. */
 	private var selected: MediaType? = null
-	private var requestedKind: MediaType? = null
+	private var lockedKind: MediaType? = null
+	private var sort = LibraryShelf.Sort.RECENTLY_ADDED
 	private var refreshJob: Job? = null
 	private lateinit var search: EditText
-	private lateinit var count: TextView
-	private val adapter = Rows()
+	private lateinit var status: TextView
+	private lateinit var loading: LinearProgressIndicator
+	private lateinit var list: RecyclerView
+	private lateinit var layoutManager: GridLayoutManager
+	private lateinit var emptyView: LinearLayout
+	private lateinit var emptyMascot: ImageView
+	private lateinit var emptyText: TextView
+	private lateinit var collectionRow: ChipGroup
+	private val adapter = Entries()
 	private val buttons = mutableListOf<Pair<MediaType?, Chip>>()
 	private val isBottomTab: Boolean
 		get() = arguments?.getBoolean(AppRouter.KEY_IS_BOTTOMTAB, false) == true
@@ -106,99 +145,27 @@ class UnifiedLibraryFragment : Fragment() {
 	): View {
 		val context = requireContext()
 		buttons.clear()
-		requestedKind = MediaType.entries.firstOrNull {
-			it.name.equals(arguments?.getString(UnifiedLibraryActivity.EXTRA_MEDIA_KIND), ignoreCase = true)
+		lockedKind = parseKind(arguments?.getString(ARG_LOCKED_KIND))
+		val requestedKind = lockedKind ?: parseKind(arguments?.getString(UnifiedLibraryActivity.EXTRA_MEDIA_KIND))
+		selected = when {
+			lockedKind != null -> lockedKind
+			savedInstanceState?.containsKey("selected_kind") == true -> parseKind(savedInstanceState?.getString("selected_kind"))
+			else -> requestedKind
 		}
-		selected = if (savedInstanceState?.containsKey("selected_kind") == true) {
-			MediaType.entries.firstOrNull { it.name == savedInstanceState?.getString("selected_kind") }
-		} else requestedKind
+		sort = runCatching { LibraryShelf.Sort.valueOf(uiPrefs.getString(KEY_SORT, null).orEmpty()) }
+			.getOrDefault(LibraryShelf.Sort.RECENTLY_ADDED)
 		restoredPaneKey = savedInstanceState?.getString("pane_row_key")
 		twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
-		val px = (12 * resources.displayMetrics.density).toInt()
-		val root = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(px, px, px, px) }
-		val tabs = LinearLayout(context).apply {
-			id = R.id.monogatari_library_tabs
-			orientation = LinearLayout.HORIZONTAL
-		}
-		for (type in listOf<MediaType?>(null) + MediaType.entries) {
-			// Filter chips, matching search and Discover, instead of filled toggle buttons.
-			val button = Chip(context).apply {
-				text = type?.name?.lowercase()?.replaceFirstChar { it.uppercaseChar() } ?: "All"
-				isCheckable = true
-				setOnClickListener { selected = type; render() }
-			}
-			buttons += type to button
-			tabs.addView(button, LinearLayout.LayoutParams(-2, -2).apply {
-				marginEnd = (6 * resources.displayMetrics.density).toInt()
-			})
-		}
-		root.addView(HorizontalScrollView(context).apply {
-			isHorizontalScrollBarEnabled = false
-			addView(tabs)
-		})
-		continueLabel = TextView(context).apply {
-			setText(R.string.library_continue)
-			setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
-			setPadding(0, px / 2, 0, 0)
-		}
-		continueRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-		continueScroll = HorizontalScrollView(context).apply {
-			isHorizontalScrollBarEnabled = false
-			addView(continueRow)
-		}
-		root.addView(continueLabel, LinearLayout.LayoutParams(-1, -2))
-		root.addView(continueScroll, LinearLayout.LayoutParams(-1, -2))
-		collectionRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-		root.addView(HorizontalScrollView(context).apply {
-			isHorizontalScrollBarEnabled = false
-			addView(collectionRow)
-		}, LinearLayout.LayoutParams(-1, -2))
+		val root = inflater.inflate(R.layout.fragment_unified_library, container, false)
+		bindHeader(root, savedInstanceState)
+		bindList(root)
 		collections = LibraryCollections.decode(collectionPrefs.getString("data", null))
 		smartCollections = decodeSmart(collectionPrefs.getString("smart", null))
 		selectedSmart = savedInstanceState?.getString("selected_smart")?.takeIf { it in smartCollections }
 		selectedCollection = savedInstanceState?.getString("selected_collection")?.takeIf { it in collections }
-		search = EditText(context).apply { hint = getString(R.string.mono_library_filter_this_library); setSingleLine(true) }
-		search.doAfterTextChanged { render() }
-		search.setText(savedInstanceState?.getString("library_query") ?: arguments?.getString(UnifiedLibraryActivity.EXTRA_FILTER).orEmpty())
-		root.addView(search, LinearLayout.LayoutParams(-1, -2))
-		// Books, comics, videos and audio from the device (also in the overflow menu).
-		root.addView(MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-			setText(R.string.add_files)
-			setIconResource(R.drawable.ic_add)
-			setOnClickListener { fileImporter.launchOrToast() }
-		}, LinearLayout.LayoutParams(-2, -2))
-		count = TextView(context)
-		root.addView(count, LinearLayout.LayoutParams(-1, -2))
-		loading = com.google.android.material.progressindicator.LinearProgressIndicator(context).apply {
-			isIndeterminate = true
-			contentDescription = getString(R.string.library_loading)
-			visibility = View.GONE
-		}
-		root.addView(loading, LinearLayout.LayoutParams(-1, -2))
-		// Kitsune keeps an empty library company, in the form of the selected tab. Tap her quickly for a surprise.
-		mascot = ImageView(context).apply {
-			adjustViewBounds = true
-			setOnClickListener { if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(requireActivity()) }
-		}
-		root.addView(mascot, LinearLayout.LayoutParams((160 * resources.displayMetrics.density).toInt(), -2).apply {
-			gravity = android.view.Gravity.CENTER_HORIZONTAL
-		})
-		val list = RecyclerView(context).apply {
-			// Stable resource ID lets RecyclerView defer state restoration until async rows load.
-			id = R.id.monogatari_library_results_list
-			layoutManager = GridLayoutManager(context,
-				if (twoPane) NavLayoutPolicy.libraryListColumns(resources.configuration.screenWidthDp)
-				else MonogatariChrome.columns(context))
-			adapter = this@UnifiedLibraryFragment.adapter
-			if (isBottomTab) {
-				// Room for the floating navigation bar, which is drawn over the main screen's content.
-				clipToPadding = false
-				setPadding(0, 0, 0, (96 * resources.displayMetrics.density).toInt())
-			}
-		}
-		root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
 		// onResume refreshes when the screen first opens and when a reader changes progress.
 		return if (twoPane) {
+			val px = resources.getDimensionPixelSize(R.dimen.library_gutter)
 			val split = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
 			split.addView(root, LinearLayout.LayoutParams(0, -1, 1f))
 			split.addView(buildPane(px), LinearLayout.LayoutParams(0, -1, 1f))
@@ -208,10 +175,135 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 	}
 
+	private fun parseKind(name: String?): MediaType? =
+		MediaType.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+	private fun bindHeader(root: View, savedInstanceState: Bundle?) {
+		val context = root.context
+		search = root.findViewById(R.id.library_search)
+		search.setText(savedInstanceState?.getString("library_query") ?: arguments?.getString(UnifiedLibraryActivity.EXTRA_FILTER).orEmpty())
+		search.doAfterTextChanged { render() }
+		// Books, comics, videos and audio from the device (also in the overflow menu).
+		root.findViewById<MaterialButton>(R.id.library_add_files).setOnClickListener { fileImporter.launchOrToast() }
+		root.findViewById<MaterialButton>(R.id.library_empty_add).setOnClickListener { fileImporter.launchOrToast() }
+		root.findViewById<MaterialButton>(R.id.library_sort).setOnClickListener { chooseSort() }
+		root.findViewById<MaterialButton>(R.id.library_empty_find_books).apply {
+			isVisible = lockedKind == MediaType.BOOK
+			setOnClickListener { openBookCatalog() }
+		}
+		val tabs = root.findViewById<ChipGroup>(R.id.monogatari_library_tabs)
+		root.findViewById<View>(R.id.library_tabs_scroll).isVisible = lockedKind == null
+		if (lockedKind == null) {
+			for (type in listOf<MediaType?>(null) + MediaType.entries) {
+				// Filter chips, matching search and Discover; each shows how many items it holds.
+				val chip = Chip(context).apply {
+					text = kindLabel(type)
+					isCheckable = true
+					if (type != null) MediaAccents.tintChip(context, type.name, this)
+					setOnClickListener { selected = type; render() }
+				}
+				buttons += type to chip
+				tabs.addView(chip)
+			}
+		}
+		collectionRow = root.findViewById(R.id.library_collections)
+		status = root.findViewById(R.id.library_status)
+		loading = root.findViewById(R.id.library_loading)
+		emptyView = root.findViewById(R.id.library_empty)
+		emptyMascot = root.findViewById(R.id.library_empty_mascot)
+		emptyText = root.findViewById(R.id.library_empty_text)
+		// Kitsune keeps an empty library company, in the form of the selected tab. Tap her quickly for a surprise.
+		emptyMascot.setOnClickListener {
+			if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(requireActivity())
+		}
+	}
+
+	private fun bindList(root: View) {
+		list = root.findViewById(R.id.monogatari_library_results_list)
+		layoutManager = GridLayoutManager(root.context, initialColumns())
+		layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+			override fun getSpanSize(position: Int): Int =
+				if (adapter.isFullWidth(position)) layoutManager.spanCount else 1
+		}
+		list.layoutManager = layoutManager
+		list.adapter = adapter
+		// Room for the floating navigation bar, which is drawn over the main screen's content.
+		list.updatePadding(bottom = resources.getDimensionPixelSize(
+			if (isBottomTab) R.dimen.library_bottom_padding_tab else R.dimen.library_bottom_padding,
+		))
+		list.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ ->
+			if (right - left != oldRight - oldLeft) {
+				val columns = columnsFor(view.width - view.paddingLeft - view.paddingRight)
+				if (columns != layoutManager.spanCount) view.post { layoutManager.spanCount = columns }
+			}
+		}
+	}
+
+	private fun initialColumns(): Int {
+		val width = resources.displayMetrics.widthPixels
+		return columnsFor(if (twoPane) width / 2 else width)
+	}
+
+	private fun columnsFor(widthPx: Int): Int {
+		val min = resources.getDimensionPixelSize(R.dimen.library_cover_min_width) +
+			2 * resources.getDimensionPixelSize(R.dimen.library_card_spacing)
+		return (widthPx / min.coerceAtLeast(1)).coerceIn(2, 8)
+	}
+
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 		addMenuProvider(LibraryMenuProvider())
 		addMenuProvider(fileImporter.menuProvider())
+		// Comics from Add files are copied in the background; show them as soon as each one lands.
+		viewLifecycleOwner.lifecycleScope.launch {
+			viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+				localStorageChanges.collect { refresh() }
+			}
+		}
+	}
+
+	private fun kindLabel(type: MediaType?): String = getString(
+		when (type) {
+			null -> R.string.library_ov_chip_all
+			MediaType.MANGA -> R.string.library_ov_chip_manga
+			MediaType.BOOK -> R.string.library_ov_chip_books
+			MediaType.VIDEO -> R.string.library_ov_chip_video
+			MediaType.AUDIO -> R.string.library_ov_chip_audio
+		},
+	)
+
+	private fun kindIcon(type: MediaType): Int = when (type) {
+		MediaType.MANGA -> R.drawable.ic_manga_source
+		MediaType.VIDEO -> R.drawable.ic_play
+		MediaType.AUDIO -> R.drawable.ic_play
+		MediaType.BOOK -> R.drawable.ic_monogatari_nav_books
+	}
+
+	private fun chooseSort() {
+		val options = LibraryShelf.Sort.entries
+		val labels = options.map {
+			getString(
+				when (it) {
+					LibraryShelf.Sort.RECENTLY_ADDED -> R.string.library_ov_sort_added
+					LibraryShelf.Sort.RECENTLY_READ -> R.string.library_ov_sort_read
+					LibraryShelf.Sort.TITLE -> R.string.library_ov_sort_title
+				},
+			)
+		}.toTypedArray()
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(R.string.library_ov_sort)
+			.setSingleChoiceItems(labels, options.indexOf(sort)) { dialog, which ->
+				sort = options[which]
+				uiPrefs.edit().putString(KEY_SORT, sort.name).apply()
+				render()
+				dialog.dismiss()
+			}
+			.setNegativeButton(android.R.string.cancel, null)
+			.show()
+	}
+
+	private fun openBookCatalog() {
+		startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
 	}
 
 	private fun buildPane(px: Int): View {
@@ -234,7 +326,7 @@ class UnifiedLibraryFragment : Fragment() {
 			setText(R.string.library_pane_open)
 			setOnClickListener { paneRow?.let(::openRow) }
 		}
-		column.addView(paneCover, LinearLayout.LayoutParams(-1, (240 * resources.displayMetrics.density).toInt()))
+		column.addView(paneCover, LinearLayout.LayoutParams(-1, resources.getDimensionPixelSize(R.dimen.library_pane_cover_height)))
 		column.addView(paneTitle, LinearLayout.LayoutParams(-1, -2))
 		column.addView(paneMeta, LinearLayout.LayoutParams(-1, -2))
 		column.addView(paneOpen, LinearLayout.LayoutParams(-2, -2))
@@ -253,9 +345,15 @@ class UnifiedLibraryFragment : Fragment() {
 			paneOpen.isVisible = false
 			return
 		}
-		paneCover.setImageAsync(row.manga?.coverUrl)
+		val coverUrl = row.manga?.coverUrl ?: row.coverFile?.toUri()?.toString()
+		if (coverUrl != null) {
+			paneCover.setImageAsync(coverUrl)
+		} else {
+			paneCover.disposeImage()
+			paneCover.setImageDrawable(GeneratedCoverDrawable(row.title, row.manga?.authors?.firstOrNull(), row.kind))
+		}
 		paneTitle.text = row.title
-		paneMeta.text = "${row.kind.name.lowercase().replaceFirstChar { it.uppercaseChar() }} · ${row.detail}"
+		paneMeta.text = getString(R.string.library_ov_detail_join, kindLabel(row.kind), row.detail)
 		val description = row.manga?.description?.takeIf { it.isNotBlank() }
 		paneDescription.text = if (description != null) {
 			HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_COMPACT)
@@ -279,7 +377,7 @@ class UnifiedLibraryFragment : Fragment() {
 	}
 
 	private fun newSmartCollection() {
-		val pad = (16 * resources.displayMetrics.density).toInt()
+		val pad = resources.getDimensionPixelSize(R.dimen.library_gutter)
 		val name = android.widget.EditText(requireContext()).apply { setHint(R.string.library_smart_name_hint); setSingleLine(true) }
 		val rule = android.widget.EditText(requireContext()).apply { setHint(R.string.library_smart_rule_hint) }
 		val form = LinearLayout(requireContext()).apply {
@@ -289,7 +387,7 @@ class UnifiedLibraryFragment : Fragment() {
 			addView(rule)
 			addView(TextView(requireContext()).apply { setText(R.string.library_smart_help) })
 		}
-		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(R.string.library_smart_new)
 			.setView(form)
 			.setNegativeButton(android.R.string.cancel, null)
@@ -314,7 +412,7 @@ class UnifiedLibraryFragment : Fragment() {
 		source = row.manga?.source?.name.orEmpty(),
 		status = row.manga?.state?.name,
 		unreadChapters = 0,
-		favourite = false,
+		favourite = row.favourite,
 	)
 
 	private fun saveSmart(value: Map<String, String>) {
@@ -331,7 +429,7 @@ class UnifiedLibraryFragment : Fragment() {
 		.mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 && it[0].isNotBlank() } }
 		.associate { it[0] to it[1] }
 
-	private fun keyOf(row: Row): String = row.manga?.id?.toString() ?: row.media?.uri ?: row.file?.absolutePath.orEmpty()
+	private fun keyOf(row: Row): String = row.key
 
 	private fun saveCollections(value: Map<String, Set<String>>) {
 		collections = value
@@ -340,11 +438,28 @@ class UnifiedLibraryFragment : Fragment() {
 		render()
 	}
 
-	/** One chip per collection; tap to show only its titles, tap again for everything. */
+	/**
+	 * Favourites categories (the existing categories screen), Find books on the Books tab, then one chip per smart
+	 * collection and collection; tap to show only its titles, tap again for everything.
+	 */
 	private fun renderCollections() {
 		collectionRow.removeAllViews()
+		collectionRow.addView(Chip(requireContext()).apply {
+			setText(R.string.library_ov_categories)
+			setChipIconResource(R.drawable.ic_monogatari_nav_favorites)
+			isChipIconVisible = true
+			setOnClickListener { router.openFavoriteCategories() }
+		})
+		if (lockedKind == MediaType.BOOK) {
+			collectionRow.addView(Chip(requireContext()).apply {
+				setText(R.string.library_ov_find_books)
+				setChipIconResource(R.drawable.ic_monogatari_nav_books)
+				isChipIconVisible = true
+				setOnClickListener { openBookCatalog() }
+			})
+		}
 		for ((name, rule) in smartCollections.toSortedMap(String.CASE_INSENSITIVE_ORDER)) {
-			collectionRow.addView(com.google.android.material.chip.Chip(requireContext()).apply {
+			collectionRow.addView(Chip(requireContext()).apply {
 				text = getString(R.string.library_smart_chip, name)
 				isCheckable = true
 				isChecked = name == selectedSmart
@@ -355,7 +470,7 @@ class UnifiedLibraryFragment : Fragment() {
 					render()
 				}
 				setOnLongClickListener {
-					com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+					MaterialAlertDialogBuilder(requireContext())
 						.setTitle(name)
 						.setMessage(rule)
 						.setPositiveButton(R.string.library_collection_delete) { _, _ ->
@@ -368,8 +483,8 @@ class UnifiedLibraryFragment : Fragment() {
 			})
 		}
 		for (name in LibraryCollections.names(collections)) {
-			collectionRow.addView(com.google.android.material.chip.Chip(requireContext()).apply {
-				text = "$name (${collections[name].orEmpty().size})"
+			collectionRow.addView(Chip(requireContext()).apply {
+				text = getString(R.string.library_ov_chip_count, name, collections[name].orEmpty().size)
 				isCheckable = true
 				isChecked = name == selectedCollection
 				setOnClickListener {
@@ -378,7 +493,7 @@ class UnifiedLibraryFragment : Fragment() {
 					render()
 				}
 				setOnLongClickListener {
-					com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+					MaterialAlertDialogBuilder(requireContext())
 						.setTitle(name)
 						.setPositiveButton(R.string.library_collection_delete) { _, _ -> saveCollections(LibraryCollections.delete(collections, name)) }
 						.setNegativeButton(android.R.string.cancel, null)
@@ -395,7 +510,7 @@ class UnifiedLibraryFragment : Fragment() {
 		if (key.isBlank()) return
 		val names = LibraryCollections.names(collections)
 		val checked = BooleanArray(names.size) { key in collections[names[it]].orEmpty() }
-		val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+		val builder = MaterialAlertDialogBuilder(requireContext())
 			.setTitle(getString(R.string.library_collection_title, row.title))
 			.setNegativeButton(android.R.string.cancel, null)
 			.setNeutralButton(R.string.library_collection_new) { _, _ -> newCollection(row) }
@@ -416,7 +531,7 @@ class UnifiedLibraryFragment : Fragment() {
 
 	private fun newCollection(row: Row) {
 		val input = EditText(requireContext()).apply { setSingleLine(true); setHint(R.string.library_collection_name_hint) }
-		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(R.string.library_collection_new)
 			.setView(input)
 			.setNegativeButton(android.R.string.cancel, null)
@@ -439,12 +554,21 @@ class UnifiedLibraryFragment : Fragment() {
 		if (intent != null) startActivity(intent)
 	}
 
-	/** Long-press on the user's own files: collections as for every title, plus Remove from library. */
-	private fun showLocalActions(row: Row) {
-		val actions = arrayOf(getString(R.string.add_files_collections), getString(R.string.add_files_remove))
-		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+	/** The same long-press menu for every kind of item: Open, Add to collection, Remove. */
+	private fun showActions(row: Row, fromContinue: Boolean) {
+		val actions = mutableListOf<Pair<String, () -> Unit>>(
+			getString(R.string.library_ov_action_open) to { openRow(row) },
+			getString(R.string.library_ov_action_collections) to { chooseCollections(row) },
+		)
+		if (fromContinue) {
+			val manga = row.manga
+			if (manga != null) actions += getString(R.string.library_ov_action_remove_continue) to { removeFromContinue(manga) }
+		} else {
+			actions += getString(R.string.add_files_remove) to { confirmRemove(row) }
+		}
+		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(row.title)
-			.setItems(actions) { _, which -> if (which == 0) chooseCollections(row) else confirmRemove(row) }
+			.setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
 			.setNegativeButton(android.R.string.cancel, null)
 			.show()
 	}
@@ -453,23 +577,55 @@ class UnifiedLibraryFragment : Fragment() {
 		val message = when {
 			row.missing -> R.string.add_files_missing_message
 			row.media != null -> R.string.add_files_remove_media_message
-			else -> R.string.add_files_remove_book_message
+			row.file != null -> R.string.add_files_remove_book_message
+			row.favourite && row.onDevice -> R.string.library_ov_remove_favourite_on_device_message
+			row.favourite -> R.string.library_ov_remove_favourite_message
+			else -> R.string.library_ov_remove_on_device_message
 		}
-		com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(getString(R.string.add_files_remove_title, row.title))
 			.setMessage(message)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton(R.string.add_files_remove) { _, _ ->
-				val context = context ?: return@setPositiveButton
-				when {
-					// Media is only forgotten; the file on the device is left alone.
-					row.media != null -> LocalMediaShelf.remove(context, row.media.uri)
-					// Books on the shelf are Monogatari's own copies in app storage.
-					row.file != null -> row.file.delete()
-				}
-				refresh()
-			}
+			.setPositiveButton(R.string.add_files_remove) { _, _ -> remove(row) }
 			.show()
+	}
+
+	private fun remove(row: Row) {
+		val context = context?.applicationContext ?: return
+		viewLifecycleOwner.lifecycleScope.launch {
+			try {
+				withContext(Dispatchers.IO) {
+					when {
+						// Media is only forgotten; the file on the device is left alone.
+						row.media != null -> LocalMediaShelf.remove(context, row.media.uri)
+						// Books on the shelf are Monogatari's own copies in app storage.
+						row.file != null -> row.file.delete()
+						row.manga != null && row.favourite -> favorites.removeFromFavourites(setOf(row.manga.id))
+						row.manga != null && row.onDevice -> deleteLocalManga(row.manga)
+						else -> Unit
+					}
+					Unit
+				}
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				showStatus(getString(R.string.library_ov_remove_failed, row.title, error.message.orEmpty().take(160)))
+			}
+			refresh()
+		}
+	}
+
+	private fun removeFromContinue(manga: Manga) {
+		viewLifecycleOwner.lifecycleScope.launch {
+			try {
+				history.delete(setOf(manga.id))
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				showStatus(getString(R.string.library_ov_remove_failed, manga.title, error.message.orEmpty().take(160)))
+			}
+			refresh()
+		}
 	}
 
 	override fun onSaveInstanceState(outState: Bundle) {
@@ -483,151 +639,362 @@ class UnifiedLibraryFragment : Fragment() {
 
 	override fun onResume() { super.onResume(); if (view != null && ::search.isInitialized) refresh() }
 
+	private class Loaded(val items: List<Row>, val recent: List<Row>, val problems: List<String>, val recovered: Int)
+
+	/** Runs one part of the library load; a failure is reported but never hides the other parts. */
+	private inline fun <T> part(problems: MutableList<String>, default: T, block: () -> T): T = try {
+		block()
+	} catch (cancel: CancellationException) {
+		throw cancel
+	} catch (error: Exception) {
+		problems += error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
+		default
+	}
+
+	/** Everything the user added, from every place it can live; call off the main thread. */
+	private suspend fun load(context: Context): Loaded {
+		val problems = mutableListOf<String>()
+		val groups = part(problems, emptyMap()) { MediaType.entries.associateWith { it.persistedSourceNames() } }
+		val favouriteRows = part(problems, emptyList()) {
+			db.getFavouritesDao().findAll().map { favourite ->
+				val manga = favourite.toManga()
+				Row(
+					key = LibraryShelf.mangaKey(manga.id),
+					title = manga.title,
+					detail = manga.source.getTitle(context),
+					kind = LibraryShelf.kindOf(manga.source.name, groups),
+					origin = LibraryShelf.Origin.FAVOURITE,
+					addedAt = favourite.favourite.createdAt,
+					manga = manga,
+				)
+			}
+		}
+		val onDeviceLabel = context.getString(R.string.library_ov_detail_on_device)
+		// Downloads and comics imported with Add files ("On device"), which are not favourites by themselves.
+		val onDeviceRows = part(problems, emptyList()) {
+			localManga.getList(0, SortOrder.NEWEST, null).map { manga ->
+				Row(
+					key = LibraryShelf.mangaKey(manga.id),
+					title = manga.title,
+					detail = onDeviceLabel,
+					kind = MediaType.MANGA,
+					origin = LibraryShelf.Origin.ON_DEVICE,
+					addedAt = runCatching { LocalManga(manga).createdAt }.getOrDefault(0L),
+					manga = manga,
+				)
+			}
+		}
+		val recovered = part(problems, 0) { BookShelf.recoverUnlisted(context) }
+		val bookRows = part(problems, emptyList()) {
+			BookShelf.list(context).map { file ->
+				Row(
+					key = file.absolutePath,
+					title = BookShelf.title(file),
+					detail = context.getString(
+						R.string.library_ov_detail_local_book,
+						file.extension.uppercase(),
+						BookShelf.progress(context, file),
+					),
+					kind = MediaType.BOOK,
+					origin = LibraryShelf.Origin.IMPORTED,
+					addedAt = file.lastModified(),
+					file = file,
+					coverFile = BookShelf.cachedCover(context, file),
+				)
+			}
+		}
+		val mediaRows = part(problems, emptyList()) {
+			LocalMediaShelf.list(context).map { entry ->
+				val readable = LocalMediaShelf.isReadable(context, entry)
+				Row(
+					key = entry.uri,
+					title = LocalMediaShelf.title(entry),
+					detail = LocalMediaShelf.detail(context, entry, readable),
+					kind = entry.mediaType,
+					origin = LibraryShelf.Origin.IMPORTED,
+					addedAt = entry.addedAt,
+					media = entry,
+					missing = !readable,
+				)
+			}
+		}
+		val favouriteKeys = favouriteRows.mapTo(HashSet()) { it.key }
+		val historyRows = part(problems, emptyList()) {
+			db.getHistoryDao().findAll(0, HISTORY_LIMIT).map { entry ->
+				val manga = entry.manga.toManga(entry.tags.toMangaTags(), null)
+				val key = LibraryShelf.mangaKey(manga.id)
+				Row(
+					key = key,
+					title = manga.title,
+					detail = manga.source.getTitle(context),
+					kind = LibraryShelf.kindOf(manga.source.name, groups),
+					origin = LibraryShelf.Origin.FAVOURITE,
+					readAt = entry.history.updatedAt,
+					favourite = key in favouriteKeys,
+					onDevice = false,
+					manga = manga,
+				)
+			}
+		}
+		val readTimes = HashMap<String, Long>()
+		for (row in historyRows) readTimes[row.key] = maxOf(readTimes[row.key] ?: 0L, row.readAt)
+		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows).map { row ->
+			if (row.favourite && row.onDevice) row.copy(detail = context.getString(R.string.library_ov_detail_join, row.detail, onDeviceLabel)) else row
+		}
+		return Loaded(LibraryShelf.withReadTimes(merged, readTimes), historyRows, problems, recovered)
+	}
+
 	private fun refresh() {
-		count.text = getString(R.string.library_loading)
+		if (view == null || !::status.isInitialized) return
 		loading.visibility = View.VISIBLE
-		mascot.isVisible = false
 		refreshJob?.cancel()
-		val context = requireContext()
+		val context = requireContext().applicationContext
 		refreshJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
-			all = withContext(Dispatchers.IO) {
-				val groups = MediaType.entries.associateWith { it.persistedSourceNames() }
-				val remote = favorites.getAllManga().distinctBy { it.id }.map { manga ->
-					val source = manga.source.name
-					val kind = when {
-						source in groups.getValue(MediaType.VIDEO) -> MediaType.VIDEO
-						source in groups.getValue(MediaType.AUDIO) -> MediaType.AUDIO
-						source in groups.getValue(MediaType.BOOK) -> MediaType.BOOK
-						else -> MediaType.MANGA
-					}
-					Row(manga.title, source, kind, manga = manga)
+				val loaded = withContext(Dispatchers.IO) { load(context) }
+				all = loaded.items
+				recent = loaded.recent
+				loadProblems = loaded.problems
+				render()
+				if (loaded.recovered > 0) {
+					showStatus(getString(R.string.library_ov_recovered, loaded.recovered))
 				}
-				val local = BookShelf.list(context).map { file ->
-					Row(BookShelf.title(file), "Local ${file.extension.uppercase()} · " +
-						BookShelf.progress(context, file), MediaType.BOOK, file = file)
-				}
-				val media = LocalMediaShelf.list(context).map { entry ->
-					val readable = LocalMediaShelf.isReadable(context, entry)
-					Row(LocalMediaShelf.title(entry), LocalMediaShelf.detail(context, entry, readable),
-						entry.mediaType, media = entry, missing = !readable)
-				}
-				recent = runCatching { history.getList(0, 30) }.getOrDefault(emptyList()).map { manga ->
-					val source = manga.source.name
-					val kind = when {
-						source in groups.getValue(MediaType.VIDEO) -> MediaType.VIDEO
-						source in groups.getValue(MediaType.AUDIO) -> MediaType.AUDIO
-						source in groups.getValue(MediaType.BOOK) -> MediaType.BOOK
-						else -> MediaType.MANGA
-					}
-					Row(manga.title, source, kind, manga = manga)
-				}
-				(remote + local + media).sortedBy { it.title.lowercase() }
-			}
-			render()
+				loadCovers(context)
 			} catch (cancel: CancellationException) {
 				throw cancel
 			} catch (error: Exception) {
 				// Keep the previous library visible and explain an I/O or database problem.
-				count.text = getString(R.string.library_load_failed, error.message.orEmpty().take(160))
+				showStatus(getString(R.string.library_load_failed, error.message.orEmpty().take(160)))
 			} finally {
 				loading.visibility = View.GONE
 			}
 		}
 	}
 
+	/** Extracts EPUB covers not seen before (once per book), then shows them. */
+	private suspend fun loadCovers(context: Context) {
+		val pending = all.mapNotNull { row -> row.file?.takeIf { row.coverFile == null && BookShelf.needsCoverLookup(context, it) } }
+		if (pending.isEmpty()) return
+		val covers = withContext(Dispatchers.IO) {
+			pending.mapNotNull { file -> BookShelf.extractCover(context, file)?.let { file.absolutePath to it } }.toMap()
+		}
+		if (covers.isEmpty()) return
+		all = all.map { row -> covers[row.file?.absolutePath]?.let { row.copy(coverFile = it) } ?: row }
+		render()
+	}
+
+	private fun showStatus(text: String) {
+		if (!::status.isInitialized) return
+		status.text = text
+		status.isVisible = true
+	}
+
 	private fun render() {
-		if (!::count.isInitialized) return
+		if (!::status.isInitialized) return
 		val q = search.text?.toString().orEmpty().trim()
 		val smartRule = selectedSmart?.let { smartCollections[it] }?.let(SmartCollectionRule::parse)
-		val filtered = all.filter { row ->
-			(selected == null || row.kind == selected) &&
-				(selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) &&
-				(smartRule == null || smartRule.matches(smartItem(row))) && (q.isBlank() ||
-				row.title.contains(q, ignoreCase = true) || row.detail.contains(q, ignoreCase = true))
+		val inScope = all.filter { row ->
+			(selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) &&
+				(smartRule == null || smartRule.matches(smartItem(row))) &&
+				LibraryShelf.matches(row, null, q)
+		}
+		val filtered = inScope.filter { LibraryShelf.matches(it, selected, "") }
+		val sections = LibraryShelf.sections(filtered, sort)
+		val continueRows = if (selectedCollection == null && selectedSmart == null && q.isEmpty()) {
+			LibraryShelf.continueItems(recent, selected)
+		} else {
+			emptyList()
 		}
 		if (twoPane) {
 			val previousKey = paneRow?.let(::keyOf) ?: restoredPaneKey
-			showPane(filtered.firstOrNull { keyOf(it) == previousKey } ?: filtered.firstOrNull())
+			val ordered = sections.flatMap { it.items }
+			showPane(ordered.firstOrNull { keyOf(it) == previousKey } ?: ordered.firstOrNull())
 			restoredPaneKey = null
 		}
-		adapter.setRows(filtered.take(1000))
-		renderContinue()
+		adapter.submit(continueRows, sections)
 		renderCollections()
-		mascot.isVisible = filtered.isEmpty()
-		Mascot.bind(mascot, if (filtered.isEmpty() && q.isNotBlank()) MascotForm.SAD else Mascot.formFor(selected))
-		val category = selected?.name?.lowercase() ?: "saved"
-		count.text = when {
-			filtered.isEmpty() && q.isNotBlank() -> "No matching ${category} titles"
-			filtered.isEmpty() -> "No ${category} items yet. Save a title or import a book to begin."
-			else -> "${filtered.size} ${category} items" +
-				if (filtered.size > 1000) " (first 1000 shown)" else ""
+		renderEmpty(filtered.isEmpty(), q, continueRows.isNotEmpty())
+		val summary = resources.getQuantityString(R.plurals.library_ov_items, filtered.size, filtered.size)
+		status.text = if (loadProblems.isEmpty()) {
+			summary
+		} else {
+			summary + "\n" + getString(R.string.library_ov_load_partial, loadProblems.distinct().joinToString("; ").take(200))
 		}
+		status.isVisible = true
 		// Keep every media filter accessible, even on an empty or new installation.
-		buttons.forEach { (type, button) ->
-			val matching = if (type == null) all.size else all.count { it.kind == type }
-			val label = type?.name?.lowercase()?.replaceFirstChar { it.uppercaseChar() } ?: "All"
-			button.text = "$label ($matching)"
-			button.isChecked = type == selected
+		val counts = LibraryShelf.counts(inScope)
+		buttons.forEach { (type, chip) ->
+			chip.text = getString(R.string.library_ov_chip_count, kindLabel(type), counts[type] ?: 0)
+			chip.isChecked = type == selected
 		}
 	}
 
-	/** Quick "continue reading / watching / listening" buttons for the selected media tab. */
-	private fun renderContinue() {
-		val items = recent.filter { selected == null || it.kind == selected }.take(10)
-		continueRow.removeAllViews()
-		val visible = items.isNotEmpty()
-		continueLabel.isVisible = visible
-		continueScroll.isVisible = visible
-		for (row in items) {
-			val manga = row.manga ?: continue
-			continueRow.addView(MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-				text = row.title
-				isAllCaps = false
-				maxLines = 1
-				maxWidth = (220 * resources.displayMetrics.density).toInt()
-				contentDescription = getString(R.string.library_continue_item, row.title)
-				setOnClickListener { startActivity(AppRouter.detailsIntent(requireContext(), manga)) }
-			}, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = (6 * resources.displayMetrics.density).toInt() })
+	private fun renderEmpty(isEmpty: Boolean, query: String, hasContinue: Boolean) {
+		emptyView.isVisible = isEmpty
+		if (!isEmpty) return
+		// Below the Continue strip when it is shown, centred otherwise.
+		(emptyView.layoutParams as? FrameLayout.LayoutParams)?.let {
+			it.gravity = if (hasContinue) Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL else Gravity.CENTER
+			emptyView.layoutParams = it
 		}
-	}
-
-	private inner class Rows : RecyclerView.Adapter<Rows.Holder>() {
-		private var rows = emptyList<Row>()
-		init { stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY }
-		fun setRows(value: List<Row>) {
-			rows = value
-			notifyDataSetChanged()
-		}
-		override fun getItemCount(): Int = rows.size
-		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-			val card = LayoutInflater.from(parent.context)
-				.inflate(R.layout.item_monogatari_book, parent, false) as MaterialCardView
-			return Holder(card)
-		}
-		override fun onBindViewHolder(holder: Holder, position: Int) {
-			val row = rows[position]
-			holder.card.isCheckable = twoPane
-			holder.card.isChecked = twoPane && paneRow?.let(::keyOf) == keyOf(row)
-			BookShelfCard.bind(holder.card, row.title, row.detail) {
-				if (twoPane) {
-					showPane(row)
-					notifyDataSetChanged()
-				} else openRow(row)
-			}
-			holder.card.setOnLongClickListener {
-				if (row.file != null || row.media != null) showLocalActions(row) else chooseCollections(row)
-				true
-			}
-			holder.card.findViewById<ImageView>(R.id.monogatari_book_item_icon).setImageResource(
-				when (row.kind) {
-					MediaType.MANGA -> R.drawable.ic_manga_source
-					MediaType.VIDEO -> R.drawable.ic_play
-					MediaType.AUDIO -> R.drawable.ic_play
-					MediaType.BOOK -> R.drawable.ic_monogatari_nav_books
+		Mascot.bind(emptyMascot, if (query.isNotEmpty()) MascotForm.SAD else Mascot.formFor(selected))
+		emptyText.text = when {
+			query.isNotEmpty() -> getString(R.string.library_ov_no_match, query)
+			selectedCollection != null || selectedSmart != null -> getString(R.string.library_ov_empty_collection)
+			else -> getString(
+				when (selected) {
+					null -> R.string.library_ov_empty_all
+					MediaType.MANGA -> R.string.library_ov_empty_manga
+					MediaType.BOOK -> R.string.library_ov_empty_book
+					MediaType.VIDEO -> R.string.library_ov_empty_video
+					MediaType.AUDIO -> R.string.library_ov_empty_audio
 				},
 			)
 		}
-		inner class Holder(val card: MaterialCardView) : RecyclerView.ViewHolder(card)
+	}
+
+	private fun sectionTitle(origin: LibraryShelf.Origin): String = getString(
+		when (origin) {
+			LibraryShelf.Origin.FAVOURITE -> R.string.library_ov_section_favourites
+			LibraryShelf.Origin.IMPORTED -> R.string.library_ov_section_imported
+			LibraryShelf.Origin.ON_DEVICE -> R.string.library_ov_section_on_device
+		},
+	)
+
+	/** One cover card, the same for favourites, downloads, books, videos, audio and Continue. */
+	private fun bindCard(holder: CardHolder, row: Row, fromContinue: Boolean, onClick: () -> Unit) {
+		val card = holder.card
+		holder.title.text = row.title
+		holder.detail.text = row.detail
+		holder.kind.setImageResource(kindIcon(row.kind))
+		val badge = when {
+			fromContinue -> 0
+			row.favourite -> R.drawable.ic_heart
+			row.onDevice -> R.drawable.ic_storage
+			else -> 0
+		}
+		holder.badge.isVisible = badge != 0
+		if (badge != 0) holder.badge.setImageResource(badge)
+		val manga = row.manga
+		when {
+			manga != null -> holder.cover.setImageAsync(manga.coverUrl, manga)
+			row.coverFile != null -> holder.cover.setImageAsync(row.coverFile.toUri().toString())
+			else -> {
+				holder.cover.disposeImage()
+				holder.cover.setImageDrawable(GeneratedCoverDrawable(row.title, null, row.kind))
+			}
+		}
+		card.contentDescription = getString(
+			R.string.library_ov_kind_badge, row.title,
+			getString(R.string.library_ov_detail_join, kindLabel(row.kind), row.detail),
+		)
+		card.isCheckable = twoPane && !fromContinue
+		card.isChecked = card.isCheckable && paneRow?.let(::keyOf) == keyOf(row)
+		card.setOnClickListener { onClick() }
+		card.setOnLongClickListener {
+			showActions(row, fromContinue)
+			true
+		}
+	}
+
+	private class CardHolder(val card: MaterialCardView) : RecyclerView.ViewHolder(card) {
+		val cover: CoverImageView = card.findViewById(R.id.library_item_cover)
+		val kind: ImageView = card.findViewById(R.id.library_item_kind)
+		val badge: ImageView = card.findViewById(R.id.library_item_badge)
+		val title: TextView = card.findViewById(R.id.library_item_title)
+		val detail: TextView = card.findViewById(R.id.library_item_detail)
+	}
+
+	private fun createCard(parent: ViewGroup): CardHolder = CardHolder(
+		LayoutInflater.from(parent.context).inflate(R.layout.item_library_cover, parent, false) as MaterialCardView,
+	)
+
+	private sealed class Entry {
+		class Continue(val rows: List<Row>) : Entry()
+		class Header(val title: String) : Entry()
+		class Card(val row: Row) : Entry()
+	}
+
+	/** Continue strip, then a header and a cover grid per section (Favourites, Imported files, On device). */
+	private inner class Entries : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+		private var entries = emptyList<Entry>()
+		private val continueAdapter = ContinueCards()
+		init { stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY }
+
+		fun submit(continueRows: List<Row>, sections: List<LibraryShelf.Section>) {
+			entries = buildList {
+				if (continueRows.isNotEmpty()) add(Entry.Continue(continueRows))
+				for (section in sections) {
+					add(Entry.Header(getString(R.string.library_ov_section_count, sectionTitle(section.origin), section.items.size)))
+					section.items.mapTo(this) { Entry.Card(it) }
+				}
+			}
+			continueAdapter.submit(continueRows)
+			notifyDataSetChanged()
+		}
+
+		fun isFullWidth(position: Int): Boolean = entries.getOrNull(position) !is Entry.Card
+
+		override fun getItemCount(): Int = entries.size
+
+		override fun getItemViewType(position: Int): Int = when (entries[position]) {
+			is Entry.Continue -> R.layout.item_library_continue
+			is Entry.Header -> R.layout.item_library_section
+			is Entry.Card -> R.layout.item_library_cover
+		}
+
+		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
+			R.layout.item_library_continue -> {
+				val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
+				view.findViewById<RecyclerView>(R.id.library_continue_list).apply {
+					layoutManager = LinearLayoutManager(parent.context, LinearLayoutManager.HORIZONTAL, false)
+					adapter = continueAdapter
+				}
+				object : RecyclerView.ViewHolder(view) {}
+			}
+			R.layout.item_library_section -> object : RecyclerView.ViewHolder(
+				LayoutInflater.from(parent.context).inflate(viewType, parent, false),
+			) {}
+			else -> createCard(parent)
+		}
+
+		override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+			when (val entry = entries[position]) {
+				is Entry.Continue -> Unit
+				is Entry.Header -> (holder.itemView as TextView).text = entry.title
+				is Entry.Card -> bindCard(holder as CardHolder, entry.row, fromContinue = false) {
+					if (twoPane) {
+						showPane(entry.row)
+						notifyDataSetChanged()
+					} else {
+						openRow(entry.row)
+					}
+				}
+			}
+		}
+	}
+
+	/** Recently opened titles, newest first; tapping one opens it straight away. */
+	private inner class ContinueCards : RecyclerView.Adapter<CardHolder>() {
+		private var rows = emptyList<Row>()
+
+		fun submit(value: List<Row>) {
+			rows = value
+			notifyDataSetChanged()
+		}
+
+		override fun getItemCount(): Int = rows.size
+
+		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardHolder = createCard(parent).also {
+			it.card.layoutParams = it.card.layoutParams.apply {
+				width = resources.getDimensionPixelSize(R.dimen.library_continue_card_width)
+			}
+		}
+
+		override fun onBindViewHolder(holder: CardHolder, position: Int) {
+			val row = rows[position]
+			bindCard(holder, row, fromContinue = true) { openRow(row) }
+			holder.card.contentDescription = getString(R.string.library_continue_item, row.title)
+		}
 	}
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="vertical">
+
+	<TextView
+		android:id="@+id/library_section_title"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:accessibilityHeading="true"
+		android:paddingHorizontal="@dimen/library_card_spacing"
+		android:paddingTop="@dimen/library_section_padding_top"
+		android:paddingBottom="@dimen/library_section_padding_bottom"
+		android:text="@string/library_continue"
+		android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+	<androidx.recyclerview.widget.RecyclerView
+		android:id="@+id/library_continue_list"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:clipToPadding="false"
+		android:orientation="horizontal"
+		android:scrollbars="none" />
+
+</LinearLayout>

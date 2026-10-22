@@ -95,6 +95,27 @@ object LocalFileImporter {
 		return "$name.$ext"
 	}
 
+	/**
+	 * File name a book is stored under. Keeps letters of any script (so the shelf title stays readable) and always
+	 * keeps the extension: a long name used to be cut before it, which made the book invisible on the shelf.
+	 */
+	fun safeBookName(name: String): String {
+		val ext = extensionOf(name)
+		val base = (if (ext.isEmpty()) name else name.substring(0, name.length - ext.length - 1))
+			.replace(Regex("[^\\p{L}\\p{N}._ -]"), "_")
+			.trim(' ', '.')
+			.ifBlank { "book" }
+		// "book-<number>-" plus the name must fit the 255-byte file name limit, even for 3-byte UTF-8 letters.
+		var short = base.take(MAX_BOOK_BASE_CHARS)
+		while (short.length > 1 && (short.toByteArray(Charsets.UTF_8).size + ext.length) > MAX_BOOK_NAME_BYTES) {
+			short = short.dropLast(1)
+		}
+		return if (ext.isEmpty()) short else "$short.$ext"
+	}
+
+	private const val MAX_BOOK_BASE_CHARS = 100
+	private const val MAX_BOOK_NAME_BYTES = 200
+
 	/** Playback position as m:ss or h:mm:ss. */
 	fun formatPosition(positionMs: Long): String {
 		val total = (positionMs / 1000L).coerceAtLeast(0L)
@@ -124,9 +145,8 @@ object LocalFileImporter {
 			if (name.substringAfterLast('.', "").lowercase() !in BOOK_EXTENSIONS) {
 				return BookResult(context.getString(R.string.monogatari_catalog_import_bad_format, name), false)
 			}
-			val dir = File(context.filesDir, "imported-books").apply { mkdirs() }
-			val safeName = name.replace(Regex("[^a-zA-Z0-9._ -]"), "_").take(120)
-			val dest = File.createTempFile("book-", "-$safeName", dir)
+			val dir = File(context.filesDir, BookShelf.DIR_NAME).apply { mkdirs() }
+			val dest = File.createTempFile("book-", "-" + safeBookName(name), dir)
 			var completed = false
 			try {
 				contentResolver.openInputStream(uri)?.use { input ->
