@@ -172,7 +172,12 @@ class SourceRepoRepository @Inject constructor(
 		// Try the predictable language/name path only for that malformed GitHub raw URL shape.
 		val sourceUrl = sourceCodeDownloadUrl(entry)
 		val request = Request.Builder().get().url(sourceUrl).build()
-		val code = client.newCall(request).await().use { response ->
+		if (!request.url.isHttps) throw java.io.IOException("JavaScript source must use HTTPS")
+		val secureClient = client.newBuilder().followSslRedirects(false).build()
+		val code = secureClient.newCall(request).await().use { response ->
+			if (!response.request.url.isHttps) {
+				throw java.io.IOException("JavaScript source must use HTTPS")
+			}
 			if (!response.isSuccessful) {
 				throw java.io.IOException("HTTP ${response.code} from $sourceUrl")
 			}
@@ -180,7 +185,20 @@ class SourceRepoRepository @Inject constructor(
 			if (body.contentLength() > MAX_SOURCE_BYTES) {
 				throw java.io.IOException("Source is unexpectedly large")
 			}
-			body.string()
+			val bounded = body.byteStream().use { stream ->
+				val output = java.io.ByteArrayOutputStream()
+				val buffer = ByteArray(8192)
+				var total = 0L
+				while (true) {
+					val read = stream.read(buffer)
+					if (read < 0) break
+					total += read
+					if (total > MAX_SOURCE_BYTES) throw java.io.IOException("Source is unexpectedly large")
+					output.write(buffer, 0, read)
+				}
+				output.toByteArray()
+			}
+			bounded.toString(Charsets.UTF_8)
 		}
 		if (code.length > MAX_SOURCE_BYTES || !code.contains("DefaultExtension")) {
 			throw java.io.IOException("Not a Mangayomi JavaScript source: ${entry.name}")
