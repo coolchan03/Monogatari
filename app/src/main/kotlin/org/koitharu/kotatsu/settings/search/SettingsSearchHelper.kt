@@ -12,6 +12,7 @@ import dagger.Reusable
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.ui.periodical.PeriodicalBackupSettingsFragment
 import org.koitharu.kotatsu.core.LocalizedAppContext
+import org.koitharu.kotatsu.recommend.AutoDownloadSettingsFragment
 import org.koitharu.kotatsu.sourcescore.ui.CommunitySettingsFragment
 import org.koitharu.kotatsu.settings.AdvancedSettingsFragment
 import org.koitharu.kotatsu.settings.AppearanceSettingsFragment
@@ -112,6 +113,12 @@ class SettingsSearchHelper @Inject constructor(
             R.xml.pref_community,
             listOf(context.getString(R.string.services)),
             CommunitySettingsFragment::class.java,
+        )
+        preferenceManager.inflateTo(
+            result,
+            R.xml.pref_auto_download,
+            emptyList(),
+            AutoDownloadSettingsFragment::class.java,
         )
         return result
     }

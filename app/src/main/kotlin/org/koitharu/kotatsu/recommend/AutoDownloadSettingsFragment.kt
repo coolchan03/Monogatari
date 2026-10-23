@@ -95,6 +95,7 @@ class AutoDownloadSettingsFragment : BasePreferenceFragment(R.string.auto_downlo
 		binding.checkManga.isChecked = store.isMangaEnabled
 		binding.checkBooks.isChecked = store.isBooksEnabled
 		binding.checkVideo.isChecked = false
+		binding.checkVideo.isEnabled = false // videos are not supported
 		binding.checkCharging.isChecked = store.isChargingRequired
 		MaterialAlertDialogBuilder(context)
 			.setTitle(R.string.auto_download_setup)
@@ -144,6 +145,19 @@ class AutoDownloadSettingsFragment : BasePreferenceFragment(R.string.auto_downlo
 					bindUsage(reconcile = false)
 				}
 			}.show()
+	}
+
+	/** Opting out also stops the chapters the auto-downloader already queued (never the user's own). */
+	private fun cancelQueuedDownloads() {
+		viewLifecycleScope.launch {
+			try {
+				withContext(Dispatchers.Default) { cleaner.cancelQueuedDownloads() }
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				e.printStackTraceDebug()
+			}
+		}
 	}
 
 	private fun updateSchedule(isEnabled: Boolean) {

@@ -179,11 +179,17 @@ class AutoDownloadWorker @AssistedInject constructor(
 			)
 			remaining -= estimate
 		}
-		if (tasks.isEmpty()) {
-			return 0
+		if (tasks.isEmpty() || !store.isEnabled) {
+			return 0 // opted out while we were looking up details: queue nothing
 		}
-		downloadScheduler.schedule(tasks)
+		// Record ownership first so that work queued right before an interruption is still accounted.
 		newEntries.forEach(store::add)
+		try {
+			downloadScheduler.schedule(tasks)
+		} catch (e: Throwable) {
+			store.remove(newEntries.mapTo(HashSet()) { it.key })
+			throw e
+		}
 		return newEntries.sumOf { it.chapterIds.size }
 	}
 
@@ -222,6 +228,7 @@ class AutoDownloadWorker @AssistedInject constructor(
 				continue
 			}
 			attempts++
+			val startedAt = System.currentTimeMillis()
 			val file = runCatchingCancellable {
 				val link = publicBookCatalog.resolveStandardEbooksEpub(book.url)
 				if (link == null || !OfficialEpubDownloader.approved(book.catalog, link)) {
@@ -233,21 +240,26 @@ class AutoDownloadWorker @AssistedInject constructor(
 			if (file.absolutePath in existingFiles) {
 				continue // the user already had this one: it is not ours to account or evict
 			}
+			if (!AutoDownloadOwnership.isFreshlyCreated(file.lastModified(), startedAt)) {
+				continue // it was there before this attempt (saved by the user meanwhile): not ours
+			}
 			val size = file.length()
+			val entry = AutoDownloadEntry(
+				kind = AutoDownloadEntry.KIND_BOOK,
+				title = book.title,
+				filePath = file.absolutePath,
+				bytes = size,
+				isMeasured = true,
+				createdAt = System.currentTimeMillis(),
+			)
 			if (size > remaining) {
-				file.delete() // never exceed the limit
+				// Never exceed the limit; re-check right now that the file is still ours and unopened.
+				if (AutoDownloadOwnership.mayDiscardBook(file.lastModified(), startedAt, cleaner.isOpened(entry))) {
+					file.delete()
+				}
 				continue
 			}
-			store.add(
-				AutoDownloadEntry(
-					kind = AutoDownloadEntry.KIND_BOOK,
-					title = book.title,
-					filePath = file.absolutePath,
-					bytes = size,
-					isMeasured = true,
-					createdAt = System.currentTimeMillis(),
-				),
-			)
+			store.add(entry)
 			remaining -= size
 			saved++
 		}

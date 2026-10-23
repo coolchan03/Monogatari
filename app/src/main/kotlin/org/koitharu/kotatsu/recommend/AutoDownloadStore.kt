@@ -74,10 +74,7 @@ class AutoDownloadStore @Inject constructor(
 		get() = prefs.getBoolean(KEY_MEDIA_BOOKS, true)
 		set(value) = prefs.edit { putBoolean(KEY_MEDIA_BOOKS, value) }
 
-	/** Stored for the future; there is no offline video download path yet, so the worker ignores it. */
-	var isVideoEnabled: Boolean
-		get() = prefs.getBoolean(KEY_MEDIA_VIDEO, false)
-		set(value) = prefs.edit { putBoolean(KEY_MEDIA_VIDEO, value) }
+	// Videos are not supported (no offline video download path): KEY_MEDIA_VIDEO is reserved and never read or written.
 
 	/** Wi-Fi (unmetered) is always required; charging is the user's choice. */
 	var isChargingRequired: Boolean
@@ -95,6 +92,11 @@ class AutoDownloadStore @Inject constructor(
 
 	fun setEntries(entries: List<AutoDownloadEntry>) = synchronized(lock) {
 		prefs.edit { putString(KEY_ENTRIES, json.encodeToString(entriesSerializer, entries)) }
+	}
+
+	/** One atomic read-modify-write of the ledger. [transform] must not suspend or block. */
+	fun update(transform: (List<AutoDownloadEntry>) -> List<AutoDownloadEntry>) = synchronized(lock) {
+		setEntries(transform(getEntries()))
 	}
 
 	fun add(entry: AutoDownloadEntry) = synchronized(lock) {

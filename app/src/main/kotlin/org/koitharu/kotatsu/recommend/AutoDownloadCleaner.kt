@@ -29,8 +29,10 @@ class AutoDownloadCleaner @Inject constructor(
 
 	/** Replaces size estimates with the real size on disk and forgets entries whose files are gone. */
 	suspend fun reconcile(now: Long = System.currentTimeMillis()): List<AutoDownloadEntry> {
-		val updated = store.getEntries().mapNotNull { entry ->
-			try {
+		// Measure first (suspending), then merge into the ledger as it is by then, atomically.
+		val results = HashMap<String, AutoDownloadEntry?>()
+		for (entry in store.getEntries()) {
+			results[entry.key] = try {
 				reconcile(entry, now)
 			} catch (e: CancellationException) {
 				throw e
@@ -39,8 +41,8 @@ class AutoDownloadCleaner @Inject constructor(
 				entry
 			}
 		}
-		store.setEntries(updated)
-		return updated
+		store.update { AutoDownloadOwnership.mergeReconciled(it, results) }
+		return store.getEntries()
 	}
 
 	suspend fun isOpened(entry: AutoDownloadEntry): Boolean {
@@ -70,21 +72,34 @@ class AutoDownloadCleaner @Inject constructor(
 		val victims = AutoDownloadPlanner.selectForEviction(entries, store.storageLimitBytes) {
 			opened[it.key] ?: true
 		}
+		val removed = HashSet<String>()
 		for (victim in victims) {
-			delete(victim)
+			if (delete(victim)) {
+				removed.add(victim.key)
+			}
 		}
-		store.remove(victims.mapTo(HashSet()) { it.key })
-		return victims.size
+		store.remove(removed) // entries whose deletion failed stay in the ledger and are retried later
+		return removed.size
 	}
 
 	/** User-requested: removes everything auto-downloaded, opened or not. Never touches user downloads. */
 	suspend fun removeAll() {
-		val entries = store.getEntries()
-		cancelPendingDownloads(entries.filter { it.kind == AutoDownloadEntry.KIND_MANGA }.mapTo(HashSet()) { it.mangaId })
-		for (entry in entries) {
-			delete(entry)
+		val removed = HashSet<String>()
+		for (entry in store.getEntries()) {
+			if (delete(entry)) {
+				removed.add(entry.key)
+			}
 		}
-		store.remove(entries.mapTo(HashSet()) { it.key })
+		store.remove(removed)
+	}
+
+	/** Cancels the downloads this feature queued (not the user's own) and keeps the ledger as it is. */
+	suspend fun cancelQueuedDownloads() {
+		for (entry in store.getEntries()) {
+			if (entry.kind == AutoDownloadEntry.KIND_MANGA) {
+				cancelOwnedDownloads(entry)
+			}
+		}
 	}
 
 	private suspend fun reconcile(entry: AutoDownloadEntry, now: Long): AutoDownloadEntry? {
@@ -104,7 +119,11 @@ class AutoDownloadCleaner @Inject constructor(
 					?: return if (isStale) null else entry
 				val local = localMangaRepository.findSavedManga(manga, withDetails = false)
 				if (local != null) {
-					entry.copy(bytes = local.file.computeSize(), isMeasured = true)
+					val ageMs = now - entry.createdAt
+					entry.copy(
+						bytes = AutoDownloadOwnership.accountedBytes(local.file.computeSize(), entry.bytes, entry.isMeasured, ageMs),
+						isMeasured = !AutoDownloadOwnership.isStillInFlight(entry.isMeasured, ageMs),
+					)
 				} else if (isStale) {
 					null // the download failed, was cancelled, or the user deleted it
 				} else {
@@ -114,11 +133,13 @@ class AutoDownloadCleaner @Inject constructor(
 		}
 	}
 
-	private suspend fun delete(entry: AutoDownloadEntry) {
-		try {
+	/** Returns true when the content is gone (or was never there) so the ledger entry can be dropped. */
+	private suspend fun delete(entry: AutoDownloadEntry): Boolean {
+		return try {
 			when (entry.kind) {
 				AutoDownloadEntry.KIND_BOOK -> withContext(Dispatchers.IO) {
-					entry.filePath?.let { File(it).delete() }
+					val file = entry.filePath?.let { File(it) }
+					file == null || !file.exists() || file.delete()
 				}
 
 				else -> deleteMangaChapters(entry)
@@ -127,40 +148,52 @@ class AutoDownloadCleaner @Inject constructor(
 			throw e
 		} catch (e: Exception) {
 			e.printStackTraceDebug()
+			false
 		}
 	}
 
-	private suspend fun deleteMangaChapters(entry: AutoDownloadEntry) {
-		cancelPendingDownloads(setOf(entry.mangaId))
-		val manga = mangaDataRepository.findMangaById(entry.mangaId, withChapters = false) ?: return
-		val local = localMangaRepository.findSavedManga(manga, withDetails = true) ?: return
+	private suspend fun deleteMangaChapters(entry: AutoDownloadEntry): Boolean {
+		if (cancelOwnedDownloads(entry)) {
+			return false // the user has downloads of this title in progress: leave everything alone
+		}
+		val manga = mangaDataRepository.findMangaById(entry.mangaId, withChapters = false) ?: return true
+		val local = localMangaRepository.findSavedManga(manga, withDetails = true) ?: return true
 		val localIds = local.manga.chapters?.ids().orEmpty()
-		val ours = entry.chapterIds.toSet()
-		if (localIds.isEmpty() || ours.containsAll(localIds)) {
-			localMangaRepository.delete(local.manga)
-		} else {
+		val toDelete = AutoDownloadOwnership.chaptersToDelete(localIds, entry.chapterIds.toSet())
+		return when {
+			toDelete == null -> localMangaRepository.delete(local.manga)
 			// The user downloaded more chapters of this title themselves: keep those.
-			val toDelete = localIds.filterTo(HashSet()) { it in ours }
-			if (toDelete.isNotEmpty()) {
+			toDelete.isNotEmpty() -> {
 				localMangaRepository.deleteChapters(local.manga, toDelete)
+				true
 			}
+
+			else -> true
 		}
 	}
 
-	private suspend fun cancelPendingDownloads(mangaIds: Set<Long>) {
-		if (mangaIds.isEmpty()) {
-			return
-		}
+	/**
+	 * Cancels the unfinished downloads that this entry queued, recognised by their exact chapters.
+	 * Returns true when other unfinished downloads of the same manga exist (not ours: left running).
+	 */
+	private suspend fun cancelOwnedDownloads(entry: AutoDownloadEntry): Boolean {
+		var hasForeign = false
 		val works = downloadScheduler.observeWorks().first()
 		for (work in works) {
 			if (work.state.isFinished) {
 				continue
 			}
 			val task = downloadScheduler.getTask(work.id) ?: continue
-			if (task.mangaId in mangaIds) {
+			if (task.mangaId != entry.mangaId) {
+				continue
+			}
+			if (AutoDownloadOwnership.ownsWork(entry, task.mangaId, task.chaptersIds?.toList(), task.isSilent)) {
 				downloadScheduler.cancel(work.id)
+			} else {
+				hasForeign = true
 			}
 		}
+		return hasForeign
 	}
 
 	private companion object {
