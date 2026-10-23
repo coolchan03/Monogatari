@@ -54,6 +54,7 @@ data class RepoPreview(
 )
 
 private const val MAX_SOURCE_BYTES = 2L * 1024 * 1024
+private const val MAX_INDEX_BYTES = 4L * 1024 * 1024
 
 @Singleton
 class SourceRepoRepository @Inject constructor(
@@ -218,11 +219,30 @@ class SourceRepoRepository @Inject constructor(
 
 	private suspend fun fetchIndex(url: String): FetchedIndex {
 		val request = Request.Builder().get().url(url).build()
-		val text = client.newCall(request).await().use { response ->
+		if (!request.url.isHttps) throw java.io.IOException("Extension repository must use HTTPS")
+		val secureClient = client.newBuilder().followSslRedirects(false).build()
+		val text = secureClient.newCall(request).await().use { response ->
+			if (!response.request.url.isHttps) {
+				throw java.io.IOException("Extension repository redirected to HTTP")
+			}
 			if (!response.isSuccessful) {
 				throw java.io.IOException("HTTP ${response.code} from $url")
 			}
-			response.body.string()
+			val body = response.body
+			if (body.contentLength() > MAX_INDEX_BYTES) throw java.io.IOException("Extension index is too large")
+			val bytes = java.io.ByteArrayOutputStream()
+			body.byteStream().use { input ->
+				val buffer = ByteArray(8192)
+				var total = 0L
+				while (true) {
+					val count = input.read(buffer)
+					if (count < 0) break
+					total += count
+					if (total > MAX_INDEX_BYTES) throw java.io.IOException("Extension index is too large")
+					bytes.write(buffer, 0, count)
+				}
+			}
+			bytes.toString(Charsets.UTF_8.name())
 		}
 		return if (MangayomiIndexParser.looksLikeMangayomiIndex(text)) {
 			FetchedIndex(emptyList(), MangayomiIndexParser.parse(text, url))

@@ -160,3 +160,9 @@
 - Implemented explicit Search > filter menu for available result tags/demographics, normalized source language, public catalog formats, and actual local history (opened/not opened), preserving choices via SavedStateHandle.
 - Unsupported reading-direction metadata is deliberately not fabricated; controls appear only when at least one result exposes relevant metadata. Public external catalogs are excluded from local-history selection and genre selection when no genre metadata is supplied.
 - Added `SearchMetadataFiltersTest`; still awaiting exact-commit GitHub-hosted unit tests, R8 APK and cold start. Do not count #32 fully DONE until those checks and unsupported direction behavior are reviewed.
+
+## 2026-10-23 — Prepared v1.4 audit repair batch applied to isolated development branch
+- Source: previously generated Monogatari_v1.4_Audit_Fixpack_PREPARED.zip (SHA-256 verified transfer of patcher and complete rollback source/test files).
+- Scope: B01/B05/B06/B07/B09/C01/C02/C03/R01 candidates across 11 app/workflow/test files; full audit findings remain in docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md.
+- Source anchors dry-ran against clean branch v1.4-audit-fixes-20261021, then applied. git diff --check produced no errors. Android compile/CI/device testing NOT yet done; remaining audit findings NOT implemented in this batch.
+- The v1.4.0 release remains unpublished. Changes here are for a development-branch commit, not a certified production APK.
