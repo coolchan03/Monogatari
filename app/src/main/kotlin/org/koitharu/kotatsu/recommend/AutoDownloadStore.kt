@@ -10,6 +10,8 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal const val AUTO_DOWNLOAD_WORK_TAG = "monogatari_auto_owned_download"
+
 /**
  * Something the auto-download worker put on the device. Only these are ever evicted automatically;
  * downloads the user started are never recorded here.
@@ -95,6 +97,18 @@ class AutoDownloadStore @Inject constructor(
 
 	fun setEntries(entries: List<AutoDownloadEntry>) = synchronized(lock) {
 		prefs.edit { putString(KEY_ENTRIES, json.encodeToString(entriesSerializer, entries)) }
+	}
+
+	/** Merge a measured snapshot without losing records changed by another worker during I/O. */
+	fun mergeReconciled(original: List<AutoDownloadEntry>, measured: List<AutoDownloadEntry>): List<AutoDownloadEntry> = synchronized(lock) {
+		val originals = original.associateBy { it.key }
+		val updated = measured.associateBy { it.key }
+		val merged = getEntries().mapNotNull { current ->
+			val previous = originals[current.key] ?: return@mapNotNull current
+			if (current != previous) current else updated[current.key]
+		}
+		setEntries(merged)
+		merged
 	}
 
 	fun add(entry: AutoDownloadEntry) = synchronized(lock) {

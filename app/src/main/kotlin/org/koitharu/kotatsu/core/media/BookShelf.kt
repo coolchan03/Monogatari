@@ -106,6 +106,7 @@ internal object BookShelf {
     /** Display the original filename, not the temporary import prefix or file extension. */
     fun title(file: File): String = file.name
         .replaceFirst(Regex("^book-[A-Za-z0-9]+-"), "")
+        .replaceFirst(Regex("^autobook-[a-f0-9-]{36}_"), "")
         .substringBeforeLast('.', file.name)
 
     fun readerIntent(context: Context, file: File): Intent {

@@ -29,7 +29,8 @@ class AutoDownloadCleaner @Inject constructor(
 
 	/** Replaces size estimates with the real size on disk and forgets entries whose files are gone. */
 	suspend fun reconcile(now: Long = System.currentTimeMillis()): List<AutoDownloadEntry> {
-		val updated = store.getEntries().mapNotNull { entry ->
+		val original = store.getEntries()
+		val updated = original.mapNotNull { entry ->
 			try {
 				reconcile(entry, now)
 			} catch (e: CancellationException) {
@@ -39,8 +40,7 @@ class AutoDownloadCleaner @Inject constructor(
 				entry
 			}
 		}
-		store.setEntries(updated)
-		return updated
+		return store.mergeReconciled(original, updated)
 	}
 
 	suspend fun isOpened(entry: AutoDownloadEntry): Boolean {
@@ -153,8 +153,8 @@ class AutoDownloadCleaner @Inject constructor(
 		}
 		val works = downloadScheduler.observeWorks().first()
 		for (work in works) {
-			if (work.state.isFinished) {
-				continue
+			if (work.state.isFinished || AUTO_DOWNLOAD_WORK_TAG !in work.tags) {
+				continue // Never cancel manual downloads that happen to be for the same manga.
 			}
 			val task = downloadScheduler.getTask(work.id) ?: continue
 			if (task.mangaId in mangaIds) {

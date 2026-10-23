@@ -182,7 +182,7 @@ class AutoDownloadWorker @AssistedInject constructor(
 		if (tasks.isEmpty()) {
 			return 0
 		}
-		downloadScheduler.schedule(tasks)
+		downloadScheduler.schedule(tasks, workTag = AUTO_DOWNLOAD_WORK_TAG, requiresCharging = store.isChargingRequired)
 		newEntries.forEach(store::add)
 		return newEntries.sumOf { it.chapterIds.size }
 	}
@@ -212,13 +212,14 @@ class AutoDownloadWorker @AssistedInject constructor(
 		val existing = BookShelf.list(applicationContext)
 		val existingFiles = existing.mapTo(HashSet()) { it.absolutePath }
 		val existingTitles = existing.mapTo(HashSet()) { BookShelf.title(it).lowercase() }
+		val trackedTitles = entries.filter { it.kind == AutoDownloadEntry.KIND_BOOK }.mapTo(HashSet()) { it.title.lowercase() }
 		var saved = 0
 		var attempts = 0
 		for (book in candidates.values) {
 			if (saved >= wanted || attempts >= wanted * 3 || remaining < AutoDownloadPlanner.DEFAULT_BOOK_BYTES) {
 				break
 			}
-			if (book.title.lowercase() in existingTitles) {
+			if (book.title.lowercase() in existingTitles || book.title.lowercase() in trackedTitles) {
 				continue
 			}
 			attempts++
@@ -227,7 +228,7 @@ class AutoDownloadWorker @AssistedInject constructor(
 				if (link == null || !OfficialEpubDownloader.approved(book.catalog, link)) {
 					null
 				} else {
-					OfficialEpubDownloader.save(httpClient, libraryDir, book.title, book.catalog, link)
+					OfficialEpubDownloader.save(httpClient, libraryDir, "autobook-${java.util.UUID.randomUUID()}_${book.title}", book.catalog, link)
 				}
 			}.onFailure(Throwable::printStackTraceDebug).getOrNull() ?: continue
 			if (file.absolutePath in existingFiles) {

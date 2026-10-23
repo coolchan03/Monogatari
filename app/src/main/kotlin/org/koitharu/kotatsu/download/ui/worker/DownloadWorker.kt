@@ -562,15 +562,20 @@ class DownloadWorker @AssistedInject constructor(
 			}
 		}
 
-		suspend fun schedule(tasks: Collection<Pair<Manga, DownloadTask>>) {
+		suspend fun schedule(
+			tasks: Collection<Pair<Manga, DownloadTask>>,
+			workTag: String? = null,
+			requiresCharging: Boolean = false,
+		) {
 			if (tasks.isEmpty()) {
 				return
 			}
 			val requests = tasks.map { (manga, task) ->
 				mangaDataRepository.storeManga(manga, replaceExisting = true)
 				OneTimeWorkRequestBuilder<DownloadWorker>()
-					.setConstraints(createConstraints(task.allowMeteredNetwork))
+					.setConstraints(createConstraints(task.allowMeteredNetwork, workTag != null, requiresCharging))
 					.addTag(TAG)
+					.apply { if (workTag != null) addTag(workTag) }
 					.keepResultsForAtLeast(30, TimeUnit.DAYS)
 					.setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
 					.setInputData(task.toData())
@@ -580,8 +585,19 @@ class DownloadWorker @AssistedInject constructor(
 			workManager.enqueue(requests).await()
 		}
 
-		private fun createConstraints(allowMeteredNetwork: Boolean) = Constraints.Builder()
+		private fun createConstraints(
+			allowMeteredNetwork: Boolean,
+			autoDownload: Boolean = false,
+			requiresCharging: Boolean = false,
+		) = Constraints.Builder()
 			.setRequiredNetworkType(if (allowMeteredNetwork) NetworkType.CONNECTED else NetworkType.UNMETERED)
+			.apply {
+				if (autoDownload) {
+					setRequiresBatteryNotLow(true)
+					setRequiresStorageNotLow(true)
+					setRequiresCharging(requiresCharging)
+				}
+			}
 			.build()
 	}
 

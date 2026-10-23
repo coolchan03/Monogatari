@@ -100,6 +100,8 @@ jobs:
         with:
           name: signed-release
           path: dist/
+      - name: Record checked-out build SHA
+        run: echo "BUILT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Publish public GitHub release
         if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         env:
@@ -115,6 +117,6 @@ jobs:
           else
             echo "Signed Android release." > dist/release-notes.md
           fi
-          printf '\n\nCommit: %s\nSHA256SUMS.txt verifies the APK download.\n' "$GITHUB_SHA" >> dist/release-notes.md
+          printf '\n\nCommit: %s\nSHA256SUMS.txt verifies the APK download.\n' "$BUILT_SHA" >> dist/release-notes.md
           gh release create "$TAG" dist/Monogatari-release.apk dist/SHA256SUMS.txt \
-            --target "$GITHUB_SHA" --title "Monogatari $TAG" --notes-file dist/release-notes.md
+            --target "$BUILT_SHA" --title "Monogatari $TAG" --notes-file dist/release-notes.md

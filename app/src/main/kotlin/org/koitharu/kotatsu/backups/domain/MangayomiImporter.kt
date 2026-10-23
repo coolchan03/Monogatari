@@ -166,8 +166,11 @@ class MangayomiImporter @Inject constructor(
 				return true
 			} catch (e: CancellationException) {
 				throw e
+			} catch (e: JsSourceIntegrity.IntegrityException) {
+				// A rejected hash or downgrade is not a network failure. Never fall back to unverified code.
+				return false
 			} catch (e: Exception) {
-				// Try the next way.
+				// Try the next way only for ordinary download/install failures.
 			}
 		}
 		return false
