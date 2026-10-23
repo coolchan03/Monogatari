@@ -193,15 +193,8 @@ class MangayomiImporter @Inject constructor(
 		if (!MangayomiImportPlanner.isInstallableCode(code)) {
 			throw IOException("Not a Mangayomi JavaScript source: ${entry.name}")
 		}
-		val current = installed.get(entry.id)
-		JsSourceIntegrity.validate(
-			version = entry.version,
-			contentHash = JsSourceIntegrity.sha256(code),
-			installedVersion = current?.entry?.version,
-			installedHash = current?.let { JsSourceIntegrity.sha256(it.code) },
-			declaredHash = null,
-		)
-		installed.install(entry, code)
+		// Validates (no downgrade, no silent change) and installs under one lock.
+		installed.installValidated(entry, code)
 	}
 
 	private fun MangayomiBackup.Extension.toEntry() = JsSourceEntry(
