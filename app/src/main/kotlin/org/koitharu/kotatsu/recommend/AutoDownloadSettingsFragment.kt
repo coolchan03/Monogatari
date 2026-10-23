@@ -113,7 +113,6 @@ class AutoDownloadSettingsFragment : BasePreferenceFragment(R.string.auto_downlo
 				)
 				store.isMangaEnabled = binding.checkManga.isChecked
 				store.isBooksEnabled = binding.checkBooks.isChecked
-				store.isVideoEnabled = false
 				store.isChargingRequired = binding.checkCharging.isChecked
 				if (enableOnConfirm) {
 					findPreference<SwitchPreferenceCompat>(AutoDownloadStore.KEY_ENABLED)?.isChecked = true

@@ -23,6 +23,8 @@
 	<string name="more_page_stats_summary">Activity, progress and exports</string>
 	<string name="more_page_discover">Discover</string>
 	<string name="more_page_discover_summary">Manga, novels, anime, films, audio and news across sources</string>
+	<string name="more_page_discover_books">Discover books</string>
+	<string name="more_page_discover_video">Discover videos</string>
 	<string name="more_page_discover_books_summary">Light novels, free ebooks and public catalogs with cover art</string>
 	<string name="more_page_discover_video_summary">Anime recommendations and public video collections</string>
 	<string name="more_page_sources">Sources</string>
