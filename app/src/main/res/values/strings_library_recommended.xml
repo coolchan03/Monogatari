@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="library_rec_section_on_device">On this device</string>
+	<string name="library_rec_section_recommended">Recommended</string>
+	<string name="library_rec_chip_on_device">On this device</string>
+	<string name="library_rec_loading">Loading recommendations</string>
+	<string name="library_rec_item">%1$s, recommended</string>
+</resources>

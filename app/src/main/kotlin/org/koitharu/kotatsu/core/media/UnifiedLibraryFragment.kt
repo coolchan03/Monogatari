@@ -48,6 +48,7 @@ import org.koitharu.kotatsu.core.image.CoilImageView
 import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
@@ -56,6 +57,9 @@ import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import org.koitharu.kotatsu.core.util.ext.setThemeTextAppearance
+import org.koitharu.kotatsu.discover.DiscoverLibraryFinder
+import org.koitharu.kotatsu.discover.RecommendationLoader
+import org.koitharu.kotatsu.discover.addDiscoverItemToLibrary
 import org.koitharu.kotatsu.favourites.data.toManga
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.favourites.smart.SmartCollectionRule
@@ -69,6 +73,8 @@ import org.koitharu.kotatsu.main.ui.NavLayoutPolicy
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.SortOrder
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
+import org.koitharu.kotatsu.search.domain.SearchKind
+import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import javax.inject.Inject
 
 private typealias Row = LibraryShelf.Item
@@ -98,6 +104,9 @@ class UnifiedLibraryFragment : Fragment() {
 	@Inject lateinit var localManga: LocalMangaRepository
 	@Inject lateinit var deleteLocalManga: DeleteLocalMangaUseCase
 	@Inject @LocalStorageChanges lateinit var localStorageChanges: SharedFlow<LocalManga?>
+	@Inject lateinit var settings: AppSettings
+	@Inject lateinit var recommendations: RecommendationLoader
+	@Inject lateinit var libraryFinder: DiscoverLibraryFinder
 
 	private val fileImporter = LocalFileImportLauncher(this) { if (view != null && ::search.isInitialized) refresh() }
 	private var all = emptyList<Row>()
@@ -130,6 +139,15 @@ class UnifiedLibraryFragment : Fragment() {
 	private var lockedKind: MediaType? = null
 	private var sort = LibraryShelf.Sort.RECENTLY_ADDED
 	private var refreshJob: Job? = null
+	/** "On this device" toggle: only imported files and downloads. */
+	private var onDeviceOnly = false
+	/** Recommended cards per type chip (null key is All), kept for the fragment's lifetime; an empty list hides the strip. */
+	private val recommended = HashMap<MediaType?, List<RecommendationLoader.Recommendation>>()
+	private var recJob: Job? = null
+	private var recType: MediaType? = null
+	private var recLoading = false
+	private var listStrip: RecommendedStrip? = null
+	private lateinit var emptyStrip: RecommendedStrip
 	private lateinit var search: EditText
 	private lateinit var status: TextView
 	private lateinit var loading: LinearProgressIndicator
@@ -161,6 +179,7 @@ class UnifiedLibraryFragment : Fragment() {
 		sort = runCatching { LibraryShelf.Sort.valueOf(uiPrefs.getString(KEY_SORT, null).orEmpty()) }
 			.getOrDefault(LibraryShelf.Sort.RECENTLY_ADDED)
 		restoredPaneKey = savedInstanceState?.getString("pane_row_key")
+		onDeviceOnly = savedInstanceState?.getBoolean("on_device_only", false) ?: false
 		twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
 		val root = inflater.inflate(R.layout.fragment_unified_library, container, false)
 		bindHeader(root, savedInstanceState)
@@ -218,6 +237,12 @@ class UnifiedLibraryFragment : Fragment() {
 		emptyView = root.findViewById(R.id.library_empty)
 		emptyMascot = root.findViewById(R.id.library_empty_mascot)
 		emptyText = root.findViewById(R.id.library_empty_text)
+		// A fresh install is not blank: Recommended sits below the mascot, with room for the floating bar.
+		emptyStrip = RecommendedStrip(LayoutInflater.from(context).inflate(R.layout.item_library_recommended, emptyView, false))
+		emptyView.addView(emptyStrip.root)
+		emptyView.updatePadding(bottom = emptyView.paddingBottom + resources.getDimensionPixelSize(
+			if (isBottomTab) R.dimen.library_bottom_padding_tab else R.dimen.library_bottom_padding,
+		))
 		// Kitsune keeps an empty library company, in the form of the selected tab. Tap her quickly for a surprise.
 		emptyMascot.setOnClickListener {
 			if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(requireActivity())
@@ -451,6 +476,14 @@ class UnifiedLibraryFragment : Fragment() {
 	private fun renderCollections() {
 		collectionRow.removeAllViews()
 		collectionRow.addView(Chip(requireContext()).apply {
+			setText(R.string.library_rec_chip_on_device)
+			setChipIconResource(R.drawable.ic_storage)
+			isChipIconVisible = true
+			isCheckable = true
+			isChecked = onDeviceOnly
+			setOnClickListener { onDeviceOnly = isChecked; render() }
+		})
+		collectionRow.addView(Chip(requireContext()).apply {
 			setText(R.string.library_ov_categories)
 			setChipIconResource(R.drawable.ic_monogatari_nav_favorites)
 			isChipIconVisible = true
@@ -638,9 +671,18 @@ class UnifiedLibraryFragment : Fragment() {
 		outState.putString("selected_kind", selected?.name ?: "ALL")
 		outState.putString("selected_collection", selectedCollection)
 		outState.putString("selected_smart", selectedSmart)
+		outState.putBoolean("on_device_only", onDeviceOnly)
 		if (::search.isInitialized) outState.putString("library_query", search.text?.toString().orEmpty())
 		paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
 		super.onSaveInstanceState(outState)
+	}
+
+	override fun onDestroyView() {
+		recJob?.cancel()
+		recJob = null
+		recLoading = false
+		listStrip = null
+		super.onDestroyView()
 	}
 
 	override fun onResume() { super.onResume(); if (view != null && ::search.isInitialized) refresh() }
@@ -816,11 +858,12 @@ class UnifiedLibraryFragment : Fragment() {
 		val inScope = all.filter { row ->
 			(selectedCollection == null || keyOf(row) in collections[selectedCollection].orEmpty()) &&
 				(smartRule == null || smartRule.matches(smartItem(row))) &&
+				(!onDeviceOnly || LibraryShelf.isOnThisDevice(row)) &&
 				LibraryShelf.matches(row, null, q)
 		}
 		val filtered = inScope.filter { LibraryShelf.matches(it, selected, "") }
 		val sections = LibraryShelf.sections(filtered, sort)
-		val continueRows = if (selectedCollection == null && selectedSmart == null && q.isEmpty()) {
+		val continueRows = if (selectedCollection == null && selectedSmart == null && !onDeviceOnly && q.isEmpty()) {
 			LibraryShelf.continueItems(recent, selected, resumable = resumable)
 		} else {
 			emptyList()
@@ -831,7 +874,7 @@ class UnifiedLibraryFragment : Fragment() {
 			showPane(ordered.firstOrNull { keyOf(it) == previousKey } ?: ordered.firstOrNull())
 			restoredPaneKey = null
 		}
-		adapter.submit(continueRows, sections)
+		adapter.submit(continueRows, sections, listVisible = filtered.isNotEmpty())
 		renderCollections()
 		renderEmpty(filtered.isEmpty(), q, continueRows.isNotEmpty())
 		val summary = resources.getQuantityString(R.plurals.library_ov_items, filtered.size, filtered.size)
@@ -847,10 +890,57 @@ class UnifiedLibraryFragment : Fragment() {
 			chip.text = getString(R.string.library_ov_chip_count, kindLabel(type), counts[type] ?: 0)
 			chip.isChecked = type == selected
 		}
+		// Local content is on screen first; Recommended loads afterwards and ignores the search field.
+		loadRecommended()
+	}
+
+	private fun openTypedSearch(title: String, type: MediaType) {
+		startActivity(
+			Intent(requireContext(), SearchActivity::class.java)
+				.putExtra(AppRouter.KEY_QUERY, title)
+				.putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
+				.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, type.name),
+		)
+	}
+
+	/** Loads the Recommended strip of the selected chip once (also when it comes back empty); a failure hides it. */
+	private fun loadRecommended() {
+		val type = selected
+		if (recommended.containsKey(type)) {
+			if (recLoading && recType != type) {
+				recJob?.cancel()
+				recLoading = false
+			}
+			return
+		}
+		if (recJob?.isActive == true && recType == type) return
+		recJob?.cancel()
+		recType = type
+		recLoading = true
+		refreshRecommended()
+		recJob = viewLifecycleOwner.lifecycleScope.launch {
+			try {
+				val result = runCatchingCancellable { recommendations.load(type, settings.isNsfwContentDisabled) }
+					.getOrDefault(emptyList())
+				recommended[type] = result
+			} finally {
+				if (recType == type) recLoading = false
+			}
+			refreshRecommended()
+		}
+	}
+
+	private fun isRecommendedLoading(): Boolean = recLoading && recType == selected
+
+	private fun refreshRecommended() {
+		if (!::emptyStrip.isInitialized) return
+		emptyStrip.bind()
+		adapter.refreshRecommended()
 	}
 
 	private fun renderEmpty(isEmpty: Boolean, query: String, hasContinue: Boolean) {
 		emptyView.isVisible = isEmpty
+		emptyStrip.bind()
 		if (!isEmpty) return
 		// Below the Continue strip when it is shown, centred otherwise.
 		(emptyView.layoutParams as? FrameLayout.LayoutParams)?.let {
@@ -873,11 +963,10 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 	}
 
-	private fun sectionTitle(origin: LibraryShelf.Origin): String = getString(
-		when (origin) {
-			LibraryShelf.Origin.FAVOURITE -> R.string.library_ov_section_favourites
-			LibraryShelf.Origin.IMPORTED -> R.string.library_ov_section_imported
-			LibraryShelf.Origin.ON_DEVICE -> R.string.library_ov_section_on_device
+	private fun sectionTitle(group: LibraryShelf.Group): String = getString(
+		when (group) {
+			LibraryShelf.Group.FAVOURITES -> R.string.library_ov_section_favourites
+			LibraryShelf.Group.ON_THIS_DEVICE -> R.string.library_rec_section_on_device
 		},
 	)
 
@@ -933,21 +1022,39 @@ class UnifiedLibraryFragment : Fragment() {
 		class Continue(val rows: List<Row>) : Entry()
 		class Header(val title: String) : Entry()
 		class Card(val row: Row) : Entry()
+		data object Recommended : Entry()
 	}
 
-	/** Continue strip, then a header and a cover grid per section (Favourites, Imported files, On device). */
+	/** Continue strip, a header and a cover grid per section (Favourites, On this device), then Recommended. */
 	private inner class Entries : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 		private var entries = emptyList<Entry>()
 		private val continueAdapter = ContinueCards()
+		private var listVisible = false
 		init { stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY }
 
-		fun submit(continueRows: List<Row>, sections: List<LibraryShelf.Section>) {
+		private fun wantRecommended(): Boolean =
+			listVisible && (recommended[selected].orEmpty().isNotEmpty() || isRecommendedLoading())
+
+		/** Shows or hides the Recommended entry at the end of the list, or rebinds it, without touching the rest. */
+		fun refreshRecommended() {
+			val had = entries.lastOrNull() is Entry.Recommended
+			val want = wantRecommended()
+			when {
+				want && !had -> { entries = entries + Entry.Recommended; notifyItemInserted(entries.lastIndex) }
+				!want && had -> { entries = entries.dropLast(1); notifyItemRemoved(entries.size) }
+				want -> notifyItemChanged(entries.lastIndex)
+			}
+		}
+
+		fun submit(continueRows: List<Row>, sections: List<LibraryShelf.Section>, listVisible: Boolean) {
+			this.listVisible = listVisible
 			entries = buildList {
 				if (continueRows.isNotEmpty()) add(Entry.Continue(continueRows))
 				for (section in sections) {
-					add(Entry.Header(getString(R.string.library_ov_section_count, sectionTitle(section.origin), section.items.size)))
+					add(Entry.Header(getString(R.string.library_ov_section_count, sectionTitle(section.group), section.items.size)))
 					section.items.mapTo(this) { Entry.Card(it) }
 				}
+				if (wantRecommended()) add(Entry.Recommended)
 			}
 			continueAdapter.submit(continueRows)
 			notifyDataSetChanged()
@@ -961,6 +1068,7 @@ class UnifiedLibraryFragment : Fragment() {
 			is Entry.Continue -> R.layout.item_library_continue
 			is Entry.Header -> R.layout.item_library_section
 			is Entry.Card -> R.layout.item_library_cover
+			is Entry.Recommended -> R.layout.item_library_recommended
 		}
 
 		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
@@ -972,6 +1080,9 @@ class UnifiedLibraryFragment : Fragment() {
 				}
 				object : RecyclerView.ViewHolder(view) {}
 			}
+			R.layout.item_library_recommended -> RecommendedHolder(
+				RecommendedStrip(LayoutInflater.from(parent.context).inflate(viewType, parent, false)),
+			).also { listStrip = it.strip }
 			R.layout.item_library_section -> object : RecyclerView.ViewHolder(
 				LayoutInflater.from(parent.context).inflate(viewType, parent, false),
 			) {}
@@ -981,6 +1092,7 @@ class UnifiedLibraryFragment : Fragment() {
 		override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
 			when (val entry = entries[position]) {
 				is Entry.Continue -> Unit
+				is Entry.Recommended -> (holder as RecommendedHolder).strip.bind()
 				is Entry.Header -> (holder.itemView as TextView).text = entry.title
 				is Entry.Card -> bindCard(holder as CardHolder, entry.row, fromContinue = false) {
 					if (twoPane) {
@@ -1015,6 +1127,76 @@ class UnifiedLibraryFragment : Fragment() {
 			val row = rows[position]
 			bindCard(holder, row, fromContinue = true) { openRow(row) }
 			holder.card.contentDescription = getString(R.string.library_continue_item, row.title)
+		}
+	}
+
+	private inner class RecommendedHolder(val strip: RecommendedStrip) : RecyclerView.ViewHolder(strip.root)
+
+	/** The Recommended header, progress bar and horizontal row of covers; used in the list and in the empty state. */
+	private inner class RecommendedStrip(val root: View) {
+		private val progress: LinearProgressIndicator = root.findViewById(R.id.library_rec_progress)
+		private val cards = RecommendedCards()
+
+		init {
+			root.findViewById<RecyclerView>(R.id.library_rec_list).apply {
+				layoutManager = LinearLayoutManager(root.context, LinearLayoutManager.HORIZONTAL, false)
+				adapter = cards
+			}
+		}
+
+		fun bind() {
+			val items = recommended[selected].orEmpty()
+			val busy = isRecommendedLoading()
+			root.isVisible = items.isNotEmpty() || busy
+			progress.isVisible = busy && items.isEmpty()
+			cards.submit(items)
+		}
+	}
+
+	/** Suggested titles (not in the library yet): tap opens or searches them, long-press offers Add to library. */
+	private inner class RecommendedCards : RecyclerView.Adapter<CardHolder>() {
+		private var rows = emptyList<RecommendationLoader.Recommendation>()
+
+		fun submit(value: List<RecommendationLoader.Recommendation>) {
+			if (value == rows) return
+			rows = value
+			notifyDataSetChanged()
+		}
+
+		override fun getItemCount(): Int = rows.size
+
+		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardHolder = createCard(parent).also {
+			it.card.layoutParams = it.card.layoutParams.apply {
+				width = resources.getDimensionPixelSize(R.dimen.library_continue_card_width)
+			}
+		}
+
+		override fun onBindViewHolder(holder: CardHolder, position: Int) {
+			val rec = rows[position]
+			val item = rec.item
+			holder.title.text = item.title
+			holder.detail.text = listOfNotNull(item.providerLabel, item.score?.let { "$it%" }).joinToString(" \u00b7 ")
+			holder.kind.setImageResource(kindIcon(rec.type))
+			holder.badge.isVisible = false
+			val manga = item.manga
+			val coverUrl = item.coverUrl
+			when {
+				manga != null -> holder.cover.setImageAsync(manga.coverUrl, manga)
+				coverUrl != null -> holder.cover.setImageAsync(coverUrl)
+				else -> {
+					holder.cover.disposeImage()
+					holder.cover.setImageDrawable(GeneratedCoverDrawable(item.title, null, rec.type))
+				}
+			}
+			holder.card.isCheckable = false
+			holder.card.contentDescription = getString(R.string.library_rec_item, item.title)
+			holder.card.setOnClickListener {
+				if (manga != null) router.openDetails(manga) else openTypedSearch(item.title, rec.type)
+			}
+			holder.card.setOnLongClickListener {
+				addDiscoverItemToLibrary(item, rec.type, libraryFinder) { openTypedSearch(it, rec.type) }
+				true
+			}
 		}
 	}
 }

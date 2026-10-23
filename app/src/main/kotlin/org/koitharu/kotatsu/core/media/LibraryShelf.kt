@@ -37,7 +37,18 @@ internal object LibraryShelf {
 		val coverFile: File? = null,
 	)
 
-	data class Section(val origin: Origin, val items: List<Item>)
+	/** What a section is called on screen. Imported files and downloads share one "On this device" group. */
+	enum class Group { FAVOURITES, ON_THIS_DEVICE }
+
+	data class Section(val group: Group, val items: List<Item>)
+
+	fun groupOf(item: Item): Group = when (item.origin) {
+		Origin.FAVOURITE -> Group.FAVOURITES
+		Origin.IMPORTED, Origin.ON_DEVICE -> Group.ON_THIS_DEVICE
+	}
+
+	/** True for anything stored on this device: imported files and downloads, also when they are favourites too. */
+	fun isOnThisDevice(item: Item): Boolean = item.onDevice || item.origin == Origin.IMPORTED
 
 	fun mangaKey(id: Long): String = id.toString()
 
@@ -108,11 +119,11 @@ internal object LibraryShelf {
 
 	fun sort(items: List<Item>, sort: Sort): List<Item> = items.sortedWith(comparator(sort))
 
-	/** Non-empty sections in [Origin] order, each sorted by [sort]. */
+	/** Non-empty sections in [Group] order (Favourites, On this device), each sorted by [sort]. */
 	fun sections(items: List<Item>, sort: Sort): List<Section> {
-		val grouped = items.groupBy { it.origin }
-		return Origin.entries.mapNotNull { origin ->
-			grouped[origin]?.takeIf { it.isNotEmpty() }?.let { Section(origin, sort(it, sort)) }
+		val grouped = items.groupBy(::groupOf)
+		return Group.entries.mapNotNull { group ->
+			grouped[group]?.takeIf { it.isNotEmpty() }?.let { Section(group, sort(it, sort)) }
 		}
 	}
 

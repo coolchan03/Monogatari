@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="vertical">
+
+	<TextView
+		android:id="@+id/library_rec_title"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:accessibilityHeading="true"
+		android:paddingHorizontal="@dimen/library_card_spacing"
+		android:paddingTop="@dimen/library_section_padding_top"
+		android:paddingBottom="@dimen/library_section_padding_bottom"
+		android:text="@string/library_rec_section_recommended"
+		android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+	<com.google.android.material.progressindicator.LinearProgressIndicator
+		android:id="@+id/library_rec_progress"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:contentDescription="@string/library_rec_loading"
+		android:indeterminate="true"
+		android:visibility="gone" />
+
+	<androidx.recyclerview.widget.RecyclerView
+		android:id="@+id/library_rec_list"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:clipToPadding="false"
+		android:orientation="horizontal"
+		android:scrollbars="none" />
+
+</LinearLayout>
