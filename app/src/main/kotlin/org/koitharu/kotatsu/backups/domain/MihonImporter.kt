@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.domain
 
+import androidx.room.withTransaction
 import dagger.Reusable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -10,9 +11,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+import org.koitharu.kotatsu.core.db.MangaDatabase
+import org.koitharu.kotatsu.core.db.entity.toEntities
+import org.koitharu.kotatsu.core.db.entity.toEntity
 import org.koitharu.kotatsu.core.model.MangaSource
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.favourites.data.FavouriteEntity
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
@@ -39,6 +44,7 @@ class MihonImporter @Inject constructor(
 	private val favourites: FavouritesRepository,
 	private val jsStore: JsSourceStore,
 	private val history: HistoryRepository,
+	private val database: MangaDatabase,
 ) {
 
 	class Preview internal constructor(
@@ -105,7 +111,7 @@ class MihonImporter @Inject constructor(
 			}
 			val titles = item.categoryOrders.mapNotNull { categoryTitles[it] }.ifEmpty { listOf(defaultCategoryTitle) }
 			for (title in titles.distinct()) {
-				favourites.addToCategory(categoryId(title), listOf(manga))
+				addIfAbsent(categoryId(title), manga)
 			}
 			imported++
 			if (transferProgress(item, manga)) progressCount++
@@ -114,18 +120,43 @@ class MihonImporter @Inject constructor(
 	}
 
 	/**
+	 * Import-specific add: unlike the user's Add action it never replaces a favourite row that already exists, so a
+	 * live favourite keeps its sort key, pin and date, and a removed one (tombstone) is not brought back.
+	 */
+	private suspend fun addIfAbsent(categoryId: Long, manga: Manga) {
+		database.withTransaction {
+			if (database.getFavouritesDao().findIncludingDeleted(manga.id, categoryId) != null) return@withTransaction
+			if (manga.id !in database.getMangaDao()) {
+				val tags = manga.tags.toEntities()
+				database.getTagsDao().upsert(tags)
+				database.getMangaDao().upsert(manga.toEntity(), tags)
+			}
+			database.getFavouritesDao().insert(
+				FavouriteEntity(
+					mangaId = manga.id,
+					categoryId = categoryId,
+					sortKey = 0,
+					isPinned = false,
+					createdAt = System.currentTimeMillis(),
+					deletedAt = 0L,
+				),
+			)
+		}
+	}
+
+	/**
 	 * Marks the same-numbered chapter as the reading position when Mihon recorded chapters as read. Never overwrites
-	 * history Monogatari already has for the title. Chapter numbers are the only link: ids and links differ per source.
+	 * history Monogatari already has (a removed entry counts) for the title. Chapter numbers are the only link: ids and links differ per source.
 	 */
 	private suspend fun transferProgress(item: MihonBackup.Manga, manga: Manga): Boolean = try {
 		val target = MihonProgress.lastReadNumber(item.chapters)
-		if (target == null || history.getOne(manga) != null) {
+		if (target == null || database.getHistoryDao().findIncludingDeleted(manga.id) != null) {
 			false
 		} else {
-			val details = withTimeout(20_000) { repositories.create(manga.source).getDetails(manga) }
-			val chapters = details.chapters.orEmpty()
+			val details = withTimeoutOrNull(20_000) { repositories.create(manga.source).getDetails(manga) }
+			val chapters = details?.chapters.orEmpty()
 			val index = MihonProgress.indexOfNumber(chapters.map { it.number }, target)
-			if (index < 0) false else {
+			if (details == null || index < 0) false else {
 				val percent = if (chapters.size > 1) index.toFloat() / (chapters.size - 1) else 1f
 				history.addOrUpdate(details, chapters[index].id, 0, 0, percent, force = true)
 				true
@@ -139,8 +170,8 @@ class MihonImporter @Inject constructor(
 
 	private suspend fun findOnSource(sourceKey: String, item: MihonBackup.Manga): Manga? = try {
 		val repository = repositories.create(MangaSource(sourceKey))
-		val results = withTimeout(20_000) { repository.getList(0, null, MangaListFilter(query = item.title)) }
-		MihonTitleMatch.pick(item.title, results.map { it.title to it }.toList())
+		val results = withTimeoutOrNull(20_000) { repository.getList(0, null, MangaListFilter(query = item.title)) }
+		results?.let { MihonTitleMatch.pick(item.title, it.map { m -> m.title to m }.toList()) }
 	} catch (e: CancellationException) {
 		throw e
 	} catch (_: Exception) {

@@ -167,10 +167,21 @@ class MangayomiImporter @Inject constructor(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				// Try the next way.
+				// A hash/version rejection is final: another way would skip the check that just failed.
+				if (isIntegrityRejection(e)) return false
+				// Otherwise (network etc.) try the next way.
 			}
 		}
 		return false
+	}
+
+	/** Matches the messages [JsSourceIntegrity.validate] throws; there is no separate exception type for them. */
+	private fun isIntegrityRejection(e: Exception): Boolean {
+		val message = e.message ?: return false
+		return message.startsWith("Source file SHA-256") ||
+			message.startsWith("Invalid SHA-256") ||
+			message.startsWith("Refusing extension version downgrade") ||
+			message.startsWith("Source file changed")
 	}
 
 	/**
@@ -276,7 +287,9 @@ class MangayomiImporter @Inject constructor(
 			val favourites = database.getFavouritesDao()
 			val targets = manga.categoryIds.mapNotNull { categories[it] }.ifEmpty { listOfNotNull(categories[null]) }
 			for (categoryId in targets.distinct()) {
-				if (favourites.findIncludingDeleted(mangaId, categoryId)?.deletedAt == 0L) continue
+				val current = favourites.findIncludingDeleted(mangaId, categoryId)
+				// Keep a live favourite as is, and a deletion unless the backup's add date is newer than it.
+				if (current != null && (current.deletedAt == 0L || manga.dateAdded <= current.deletedAt)) continue
 				favourites.upsert(
 					FavouriteEntity(
 						mangaId = mangaId,

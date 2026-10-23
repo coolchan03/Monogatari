@@ -94,7 +94,7 @@ class BackupRepository @Inject constructor(
     suspend fun createBackup(
         output: ZipOutputStream,
         progress: FlowCollector<Progress>?,
-        sections: Set<BackupSection> = BackupSection.entries.toSet(),
+        sections: Set<BackupSection> = BackupSection.ROUTINE_EXPORT,
     ) {
         progress?.emit(Progress.INDETERMINATE)
         var commonProgress = Progress(0, sections.size)
@@ -237,6 +237,7 @@ class BackupRepository @Inject constructor(
         var commonProgress = Progress(0, sections.size)
         var entry = input.nextEntry
         var result = CompositeResult.EMPTY
+        var categoryRemap: Map<Long, Long>? = null
         while (entry != null) {
             val section = BackupSection.of(entry)
             if (section in sections) {
@@ -255,24 +256,38 @@ class BackupRepository @Inject constructor(
                         }
                     }
 
-                    BackupSection.CATEGORIES -> input.readJsonArray<CategoryBackup>(serializer()).restoreToDb {
-                        val incoming = it.toEntity()
-                        val existing = getFavouriteCategoriesDao().findIncludingDeleted(incoming.categoryId)
-                        if (BackupMergePolicy.shouldReplace(
-                                existing?.createdAt, existing?.deletedAt ?: 0L,
-                                incoming.createdAt, incoming.deletedAt)) {
-                            getFavouriteCategoriesDao().upsert(incoming)
+                    BackupSection.CATEGORIES -> {
+                        val map = HashMap<Long, Long>()
+                        categoryRemap = map
+                        input.readJsonArray<CategoryBackup>(serializer()).restoreToDb {
+                            val incoming = it.toEntity()
+                            val dao = getFavouriteCategoriesDao()
+                            val local = dao.findAllForBackup().map { c ->
+                                BackupCategoryMergePlan.LocalCategory(c.categoryId.toLong(), c.title, c.deletedAt)
+                            }
+                            when (val action = BackupCategoryMergePlan.resolve(incoming.title, incoming.deletedAt, local)) {
+                                is BackupCategoryMergePlan.Action.Reuse -> map.put(incoming.categoryId.toLong(), action.localId)
+                                BackupCategoryMergePlan.Action.Insert -> {
+                                    val newId = dao.insert(incoming.copy(categoryId = 0, sortKey = dao.getNextSortKey()))
+                                    map.put(incoming.categoryId.toLong(), newId)
+                                }
+                                BackupCategoryMergePlan.Action.Skip -> Unit
+                            }
                         }
                     }
 
                     BackupSection.FAVOURITES -> input.readJsonArray<FavouriteBackup>(serializer()).restoreToDb {
-                        val incoming = it.toEntity()
-                        val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
-                        if (BackupMergePolicy.shouldReplace(
-                                existing?.createdAt, existing?.deletedAt ?: 0L,
-                                incoming.createdAt, incoming.deletedAt)) {
-                            upsertManga(it.manga)
-                            getFavouritesDao().upsert(incoming)
+                        val parsed = it.toEntity()
+                        val categoryId = BackupCategoryMergePlan.remap(categoryRemap, parsed.categoryId)
+                        if (categoryId != null) {
+                            val incoming = parsed.copy(categoryId = categoryId)
+                            val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
+                            if (BackupMergePolicy.shouldReplace(
+                                    existing?.createdAt, existing?.deletedAt ?: 0L,
+                                    incoming.createdAt, incoming.deletedAt)) {
+                                upsertManga(it.manga)
+                                getFavouritesDao().upsert(incoming)
+                            }
                         }
                     }
 
@@ -295,7 +310,10 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.BOOKMARKS -> input.readJsonArray<BookmarkBackup>(serializer()).restoreToDb {
-                        upsertManga(it.manga)
+                        // Local metadata is kept as is; only manga unknown to this device get theirs from the backup.
+                        if (it.bookmarks.isNotEmpty() && it.manga.id !in getMangaDao()) {
+                            upsertManga(it.manga)
+                        }
                         getBookmarksDao().insertMissing(it.bookmarks.map { b -> b.toEntity() })
                     }
 

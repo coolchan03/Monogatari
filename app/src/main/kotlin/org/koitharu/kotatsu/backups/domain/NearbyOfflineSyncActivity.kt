@@ -544,9 +544,11 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                         say("Received archive discarded. No changes were made.")
                     },
                 )
-            }.onFailure {
-                say(getString(R.string.sync_conflict_check_failed))
-                onResolved(null, HistoryConflicts.Resolution.NONE)
+            }.onFailure { error ->
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                // Never merge unreviewed: a failed comparison is not "no conflicts".
+                file.delete()
+                say(getString(R.string.sync_conflict_review_failed))
             }
         }
     }
