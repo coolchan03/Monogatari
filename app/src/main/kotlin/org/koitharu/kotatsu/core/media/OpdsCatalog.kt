@@ -5,7 +5,11 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koitharu.kotatsu.core.network.BaseHttpClient
+import org.koitharu.kotatsu.sourcerepo.domain.readBoundedString
 import javax.inject.Inject
+
+private const val MAX_CATALOG_BYTES = 8L * 1024 * 1024
+private const val MAX_DESCRIPTION_BYTES = 1L * 1024 * 1024
 
 /** OPDS 1.x (Atom) and 2.0 (JSON) catalog reader with paging, search and basic-auth catalogs. Links stay HTTP(S). */
 class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttpClient) {
@@ -26,7 +30,7 @@ class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttp
         client.newCall(request).execute().use {
             if (it.code == 401) error("This catalog needs a login: add it as https://user:password@host/path")
             if (!it.isSuccessful) error("OPDS HTTP ${it.code}")
-            val body = it.body?.string() ?: error("Empty OPDS response")
+            val body = it.body?.readBoundedString(MAX_CATALOG_BYTES) ?: error("Empty OPDS response")
             OpdsParser.parse(body, java.net.URI(clean), it.header("Content-Type"))
         }
     }
@@ -41,7 +45,7 @@ class OpdsCatalog @Inject constructor(@BaseHttpClient private val client: OkHttp
                 val request = Request.Builder().url(clean).apply { if (auth != null) header("Authorization", auth) }.build()
                 client.newCall(request).execute().use {
                     if (!it.isSuccessful) return@use null
-                    OpdsParser.searchTemplateFromDescription(it.body?.string().orEmpty(), java.net.URI(base))
+                    OpdsParser.searchTemplateFromDescription(it.body?.readBoundedString(MAX_DESCRIPTION_BYTES).orEmpty(), java.net.URI(base))
                 }
             }.getOrNull()
         }

@@ -15,7 +15,6 @@ import org.koitharu.kotatsu.parsers.util.await
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
-import org.koitharu.kotatsu.jsext.repo.JsSourceIntegrity
 import org.koitharu.kotatsu.jsext.repo.MangayomiIndexParser
 import org.koitharu.kotatsu.jsext.repo.compareVersions
 import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
@@ -54,6 +53,7 @@ data class RepoPreview(
 )
 
 private const val MAX_SOURCE_BYTES = 2L * 1024 * 1024
+private const val MAX_INDEX_BYTES = 16L * 1024 * 1024
 
 @Singleton
 class SourceRepoRepository @Inject constructor(
@@ -182,36 +182,13 @@ class SourceRepoRepository @Inject constructor(
 				throw java.io.IOException("HTTP ${response.code} from $sourceUrl")
 			}
 			val body = response.body
-			if (body.contentLength() > MAX_SOURCE_BYTES) {
-				throw java.io.IOException("Source is unexpectedly large")
-			}
-			val bounded = body.byteStream().use { stream ->
-				val output = java.io.ByteArrayOutputStream()
-				val buffer = ByteArray(8192)
-				var total = 0L
-				while (true) {
-					val read = stream.read(buffer)
-					if (read < 0) break
-					total += read
-					if (total > MAX_SOURCE_BYTES) throw java.io.IOException("Source is unexpectedly large")
-					output.write(buffer, 0, read)
-				}
-				output.toByteArray()
-			}
-			bounded.toString(Charsets.UTF_8)
+			body.readBoundedString(MAX_SOURCE_BYTES)
 		}
 		if (code.length > MAX_SOURCE_BYTES || !code.contains("DefaultExtension")) {
 			throw java.io.IOException("Not a Mangayomi JavaScript source: ${entry.name}")
 		}
-		val installed = jsStore.get(entry.id)
-		JsSourceIntegrity.validate(
-			version = entry.version,
-			contentHash = JsSourceIntegrity.sha256(code),
-			installedVersion = installed?.entry?.version,
-			installedHash = installed?.let { JsSourceIntegrity.sha256(it.code) },
-			declaredHash = entry.sha256,
-		)
-		jsStore.install(entry, code)
+		// Downgrade/hash checks run inside the store's lock, against the entry installed at commit time.
+		jsStore.installValidated(entry, code)
 	}
 
 	fun uninstallJsSource(entry: JsSourceEntry) = jsStore.uninstall(entry.id)
@@ -222,7 +199,7 @@ class SourceRepoRepository @Inject constructor(
 			if (!response.isSuccessful) {
 				throw java.io.IOException("HTTP ${response.code} from $url")
 			}
-			response.body.string()
+			response.body.readBoundedString(MAX_INDEX_BYTES)
 		}
 		return if (MangayomiIndexParser.looksLikeMangayomiIndex(text)) {
 			FetchedIndex(emptyList(), MangayomiIndexParser.parse(text, url))

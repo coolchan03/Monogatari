@@ -110,7 +110,7 @@ class WebViewRequestInterceptorExecutor @Inject constructor(
                     webView.webChromeClient = object : WebChromeClient() {
                         override fun onPermissionRequest(request: PermissionRequest?) {
                             if (request?.resources?.contains(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID) == true) {
-                                request.grant(request.resources)
+                                request.grant(arrayOf(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID))
                             } else {
                                 super.onPermissionRequest(request)
                             }
