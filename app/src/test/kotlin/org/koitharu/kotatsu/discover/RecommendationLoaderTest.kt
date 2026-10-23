@@ -58,6 +58,6 @@ class RecommendationLoaderTest {
 		val lists = List(4) { type -> (1..10).map { item(type * 100 + it) } }
 		val mixed = RecommendationLoader.mix(lists, RecommendationLoader.PER_TYPE_IN_ALL, RecommendationLoader.CAP)
 		assertEquals(16, mixed.size)
-		assertEquals(listOf("101", "201", "301", "401"), keys(mixed).take(4))
+		assertEquals(listOf("1", "101", "201", "301"), keys(mixed).take(4))
 	}
 }
