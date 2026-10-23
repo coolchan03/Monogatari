@@ -30,6 +30,7 @@ import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.settings.nav.adapter.navAddAD
 import org.koitharu.kotatsu.settings.nav.adapter.navAvailableAD
 import org.koitharu.kotatsu.settings.nav.adapter.navConfigAD
+import org.koitharu.kotatsu.settings.nav.adapter.navGroupHeaderAD
 
 @AndroidEntryPoint
 class NavConfigFragment : BaseFragment<FragmentSettingsSourcesBinding>(), RecyclerViewOwner,
@@ -98,7 +99,8 @@ class NavConfigFragment : BaseFragment<FragmentSettingsSourcesBinding>(), Recycl
 		dialog = buildAlertDialog(v.context) {
 			setTitle(R.string.add)
 			setCancelable(true)
-			setRecyclerViewList(viewModel.availableItems, navAvailableAD(listener))
+			setRecyclerViewList(viewModel.availableItems, navGroupHeaderAD(), navAvailableAD(listener))
+			setNeutralButton(R.string.nav_config_restore_default) { _, _ -> viewModel.restoreDefault() }
 			setNegativeButton(android.R.string.cancel, null)
 		}.apply { show() }
 	}

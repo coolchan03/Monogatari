@@ -3,16 +3,19 @@ package org.koitharu.kotatsu.settings.nav.adapter
 import android.annotation.SuppressLint
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.view.isVisible
 import com.hannesdorfmann.adapterdelegates4.dsl.adapterDelegateViewBinding
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.NavItem
 import org.koitharu.kotatsu.core.ui.list.OnListItemClickListener
 import org.koitharu.kotatsu.core.util.ext.setTextAndVisible
+import org.koitharu.kotatsu.databinding.ItemHeaderBinding
 import org.koitharu.kotatsu.databinding.ItemNavAvailableBinding
 import org.koitharu.kotatsu.databinding.ItemNavConfigBinding
 import org.koitharu.kotatsu.list.ui.model.ListModel
 import org.koitharu.kotatsu.settings.nav.model.NavItemAddModel
 import org.koitharu.kotatsu.settings.nav.model.NavItemConfigModel
+import org.koitharu.kotatsu.settings.nav.model.NavItemGroupHeader
 
 @SuppressLint("ClickableViewAccessibility")
 fun navConfigAD(
@@ -43,7 +46,7 @@ fun navConfigAD(
 
 fun navAvailableAD(
 	clickListener: OnListItemClickListener<NavItem>,
-) = adapterDelegateViewBinding<NavItem, NavItem, ItemNavAvailableBinding>(
+) = adapterDelegateViewBinding<NavItem, Any, ItemNavAvailableBinding>(
 	{ layoutInflater, parent -> ItemNavAvailableBinding.inflate(layoutInflater, parent, false) },
 ) {
 
@@ -56,6 +59,18 @@ fun navAvailableAD(
 			setText(item.title)
 			setCompoundDrawablesRelativeWithIntrinsicBounds(item.icon, 0, 0, 0)
 		}
+	}
+}
+
+/** A group title ("Tabs", "Shortcuts") in the list of items that can be added. */
+fun navGroupHeaderAD() = adapterDelegateViewBinding<NavItemGroupHeader, Any, ItemHeaderBinding>(
+	{ layoutInflater, parent -> ItemHeaderBinding.inflate(layoutInflater, parent, false) },
+) {
+
+	binding.buttonMore.isVisible = false
+
+	bind {
+		binding.textViewTitle.setText(item.title)
 	}
 }
 

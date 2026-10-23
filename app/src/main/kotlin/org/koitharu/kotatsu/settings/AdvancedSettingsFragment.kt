@@ -8,7 +8,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import org.koitharu.kotatsu.core.ui.BasePreferenceFragment
 
-/** Testing tools live under Advanced; normal reading and setup have no diagnostic prompts. */
+/** Rarely used and technical options: storage and network, services and testing tools. */
 @AndroidEntryPoint
 class AdvancedSettingsFragment : BasePreferenceFragment(R.string.monogatari_advanced_title) {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -16,6 +16,12 @@ class AdvancedSettingsFragment : BasePreferenceFragment(R.string.monogatari_adva
         findPreference<Preference>("monogatari_qa_entry")?.setOnPreferenceClickListener {
             startActivity(Intent(requireContext(), MonogatariTestCenterActivity::class.java))
             true
+        }
+        for ((key, target) in SettingsGroupFragment.ACTIVITY_LINKS) {
+            findPreference<Preference>(key)?.setOnPreferenceClickListener {
+                startActivity(Intent(requireContext(), target))
+                true
+            }
         }
     }
 }

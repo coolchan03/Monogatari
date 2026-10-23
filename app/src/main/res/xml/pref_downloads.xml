@@ -31,6 +31,14 @@
 		app:useSimpleSummaryProvider="true" />
 
 	<Preference
+		android:fragment="org.koitharu.kotatsu.recommend.AutoDownloadSettingsFragment"
+		android:icon="@drawable/ic_download"
+		android:key="monogatari_auto_download"
+		android:persistent="false"
+		android:summary="@string/auto_download_recommendations_summary"
+		android:title="@string/auto_download_recommendations" />
+
+	<Preference
 		android:icon="@drawable/ic_info_outline"
 		android:key="tracker_notifications_info"
 		android:persistent="false"

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/settings_group_library">
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.DownloadsSettingsFragment"
+		android:icon="@drawable/ic_download"
+		android:key="downloads"
+		android:summary="@string/manga_save_location"
+		android:title="@string/downloads" />
+
+	<Preference
+		android:icon="@drawable/ic_monogatari_nav_local"
+		android:key="monogatari_link_downloads_list"
+		android:persistent="false"
+		android:summary="@string/settings_link_downloads_list_summary"
+		android:title="@string/settings_link_downloads_list" />
+
+	<Preference
+		android:icon="@drawable/ic_monogatari_nav_books"
+		android:key="monogatari_books_entry"
+		android:persistent="false"
+		android:summary="@string/monogatari_settings_books_summary"
+		android:title="@string/monogatari_settings_books_title" />
+
+	<Preference
+		android:icon="@drawable/ic_monogatari_nav_bookmarks"
+		android:key="monogatari_link_bookmarks"
+		android:persistent="false"
+		android:summary="@string/settings_link_bookmarks_summary"
+		android:title="@string/settings_link_bookmarks" />
+
+	<Preference
+		android:icon="@drawable/ic_chart"
+		android:key="monogatari_link_stats"
+		android:persistent="false"
+		android:summary="@string/settings_link_stats_summary"
+		android:title="@string/settings_link_stats" />
+
+	<Preference
+		android:fragment="org.koitharu.kotatsu.settings.userdata.storage.DataCleanupSettingsFragment"
+		android:icon="@drawable/ic_usage"
+		android:key="monogatari_link_data_cleanup"
+		android:persistent="false"
+		android:summary="@string/settings_link_data_cleanup_summary"
+		android:title="@string/data_removal" />
+
+</PreferenceScreen>

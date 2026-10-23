@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<dimen name="library_gutter">16dp</dimen>
+	<dimen name="library_header_spacing">8dp</dimen>
+	<dimen name="library_chip_spacing">6dp</dimen>
+	<dimen name="library_card_spacing">4dp</dimen>
+	<dimen name="library_card_radius">16dp</dimen>
+	<dimen name="library_card_text_padding">8dp</dimen>
+	<dimen name="library_cover_min_width">116dp</dimen>
+	<dimen name="library_continue_card_width">108dp</dimen>
+	<dimen name="library_section_padding_top">12dp</dimen>
+	<dimen name="library_section_padding_bottom">4dp</dimen>
+	<dimen name="library_bottom_padding_tab">96dp</dimen>
+	<dimen name="library_bottom_padding">16dp</dimen>
+	<dimen name="library_empty_mascot">160dp</dimen>
+	<dimen name="library_empty_padding">24dp</dimen>
+	<dimen name="library_pane_cover_height">240dp</dimen>
+	<dimen name="library_badge_padding">4dp</dimen>
+</resources>

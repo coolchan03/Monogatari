@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:paddingStart="?dialogPreferredPadding"
+		android:paddingTop="8dp"
+		android:paddingEnd="?dialogPreferredPadding">
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			android:text="@string/auto_download_storage_limit"
+			android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+		<RadioGroup
+			android:id="@+id/group_limit"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal">
+
+			<RadioButton
+				android:id="@+id/limit_500"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/limit_1024"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/limit_2048"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/limit_5120"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+		</RadioGroup>
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:text="@string/auto_download_chapters_per_title"
+			android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+		<RadioGroup
+			android:id="@+id/group_chapters"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal">
+
+			<RadioButton
+				android:id="@+id/chapters_1"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/chapters_3"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/chapters_5"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/chapters_10"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+		</RadioGroup>
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:text="@string/auto_download_books_count"
+			android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+		<RadioGroup
+			android:id="@+id/group_books"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal">
+
+			<RadioButton
+				android:id="@+id/books_1"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/books_3"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<RadioButton
+				android:id="@+id/books_5"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1" />
+
+			<Space
+				android:layout_width="0dp"
+				android:layout_height="0dp"
+				android:layout_weight="1" />
+
+		</RadioGroup>
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:text="@string/auto_download_media_types"
+			android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+		<CheckBox
+			android:id="@+id/check_manga"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/auto_download_media_manga" />
+
+		<CheckBox
+			android:id="@+id/check_books"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/auto_download_media_books" />
+
+		<CheckBox
+			android:id="@+id/check_video"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:enabled="false"
+			android:text="@string/auto_download_media_video" />
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:text="@string/auto_download_wifi_always"
+			android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+		<CheckBox
+			android:id="@+id/check_charging"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="8dp"
+			android:text="@string/auto_download_require_charging" />
+
+	</LinearLayout>
+
+</ScrollView>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="auto_download_recommendations">Auto-download recommendations</string>
+	<string name="auto_download_recommendations_summary">Save the next chapters of favourites and suggestions, and a few free books, for offline reading</string>
+	<string name="auto_download_enable">Enable auto-download</string>
+	<string name="auto_download_enable_summary">Off by default. Runs about once a day, on Wi-Fi only</string>
+	<string name="auto_download_setup">Auto-download setup</string>
+	<string name="auto_download_setup_summary">%1$s · %2$s</string>
+	<string name="auto_download_storage_limit">Storage limit</string>
+	<string name="auto_download_chapters_per_title">Chapters per manga title</string>
+	<string name="auto_download_books_count">Books to keep ready</string>
+	<string name="auto_download_media_types">Media types</string>
+	<string name="auto_download_media_manga">Manga</string>
+	<string name="auto_download_media_books">Books (free Standard Ebooks EPUBs)</string>
+	<string name="auto_download_media_video">Videos (not available yet: no offline video download)</string>
+	<string name="auto_download_wifi_always">Only on Wi-Fi, when the battery and storage are not low (always)</string>
+	<string name="auto_download_require_charging">Only while charging</string>
+	<string name="auto_download_usage">Auto-downloaded content</string>
+	<string name="auto_download_usage_summary">%1$s of %2$s used · %3$d items</string>
+	<string name="auto_download_remove">Remove auto-downloads</string>
+	<string name="auto_download_remove_summary">Deletes only what was auto-downloaded. Your own downloads are kept</string>
+	<string name="auto_download_remove_confirm">Remove all auto-downloaded chapters and books? Your own downloads are not affected.</string>
+	<string name="auto_download_removed">Auto-downloads removed</string>
+	<string name="auto_download_info">Downloads use the regular download queue. When the limit is reached, the oldest auto-downloads you never opened are removed first. Adult content is skipped when NSFW content or NSFW suggestions are turned off.</string>
+	<string name="auto_download_channel">Auto-downloads</string>
+	<string name="auto_download_summary_chapters">Queued %s for offline reading</string>
+	<string name="auto_download_summary_books">Saved %s for offline reading</string>
+	<string name="auto_download_summary_both">Queued %1$s and saved %2$s for offline reading</string>
+	<string name="auto_download_size_mb">%d MB</string>
+	<string name="auto_download_size_gb">%d GB</string>
+	<plurals name="auto_download_chapters">
+		<item quantity="one">%d chapter</item>
+		<item quantity="other">%d chapters</item>
+	</plurals>
+	<plurals name="auto_download_books">
+		<item quantity="one">%d book</item>
+		<item quantity="other">%d books</item>
+	</plurals>
+	<plurals name="auto_download_chapters_count">
+		<item quantity="one">%d chapter per title</item>
+		<item quantity="other">%d chapters per title</item>
+	</plurals>
+</resources>

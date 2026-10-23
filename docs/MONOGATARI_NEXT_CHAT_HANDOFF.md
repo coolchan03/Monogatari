@@ -98,6 +98,10 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-21 — v1.3.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.3.0 built from `devel` `0f7cb5f` (drafts merged; build check run 39525327963 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `fb79ac670109f95fd9557831f5777cfe5175a08ef83df8f513b68c92ceae66af`.
+- Includes Add files, Add to library from Discover, 8-item navigation, Mangayomi extension/library import, shelf timeout fix. Not device-verified yet.
+
 ## 2026-10-21 — post-1.2.0 batch (drafts branch `d1d743b`, CI run 39517947734 green, unreleased)
 - Nav bar: up to 8 items (floating pill compacts/scrolls; overflow listed in More); new tabs News & RSS, Podcasts, All media, Book catalog (fragments with thin activity hosts); shortcuts Search, Downloads, Statistics, Sources, Settings.
 - Mangayomi import matched to the current format (.backup zip with .backup.db JSON v2): installs every installed JS extension (repos, else backup sourceCode with the repo checks, else sourceCodeUrl), adds https extension repos, imports manga/anime/novel library even without the extension, large backups (base64 APKs) no longer rejected, encrypted backups explained.

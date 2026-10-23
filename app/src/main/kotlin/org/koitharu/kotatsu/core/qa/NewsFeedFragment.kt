@@ -127,9 +127,9 @@ class NewsFeedFragment : Fragment() {
 			setOnClickListener { onToggle(isChecked); render() }
 			filters.addView(this)
 		}
-		filterChip("Followed topics", onlyFollowing) { onlyFollowing = it }
-		filterChip("Saved stories", savedOnly) { savedOnly = it }
-		filterChip("Oldest first", oldestFirst) { oldestFirst = it }
+		filterChip(getString(R.string.news_filter_followed), onlyFollowing) { onlyFollowing = it }
+		filterChip(getString(R.string.news_filter_saved), savedOnly) { savedOnly = it }
+		filterChip(getString(R.string.news_filter_oldest_first), oldestFirst) { oldestFirst = it }
 		sourceChip = Chip(context).apply {
 			setOnClickListener {
 				sourceFilter = NewsFilters.nextSource(sourceFilter, NewsFilters.sources(items.map { it.link }))
@@ -221,11 +221,11 @@ class NewsFeedFragment : Fragment() {
 	private inner class NewsMenuProvider : MenuProvider {
 
 		override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-			menu.add(0, MENU_ADD, 0, "Add feed URL")
-			menu.add(0, MENU_INCLUDED, 1, "Included feeds")
-			menu.add(0, MENU_REMOVE, 2, "Remove a feed")
-			menu.add(0, MENU_TOPICS, 3, "Followed topics")
-			menu.add(0, MENU_REFRESH, 4, "Refresh")
+			menu.add(0, MENU_ADD, 0, getString(R.string.news_menu_add_feed))
+			menu.add(0, MENU_INCLUDED, 1, getString(R.string.news_menu_included_feeds))
+			menu.add(0, MENU_REMOVE, 2, getString(R.string.news_menu_remove_feed))
+			menu.add(0, MENU_TOPICS, 3, getString(R.string.mono_news_followed_topics))
+			menu.add(0, MENU_REFRESH, 4, getString(R.string.news_menu_refresh))
 		}
 
 		override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -310,7 +310,7 @@ class NewsFeedFragment : Fragment() {
 				val tags = input.text.toString().split(',')
 					.map { it.trim() }.filter { it.length in 2..50 }.take(40).toSet()
 				prefs.edit().putStringSet("tags", tags).apply()
-				message.text = "Saved ${tags.size} followed topics on this device"
+				message.text = getString(R.string.news_topics_saved, tags.size)
 				render()
 			}
 			.setNegativeButton(android.R.string.cancel, null).show()

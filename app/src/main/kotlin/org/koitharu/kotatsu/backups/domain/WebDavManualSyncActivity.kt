@@ -17,7 +17,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -74,7 +74,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         // Account setup is the one filled action; the rest are outlined, full width like the Nearby screen.
         accountSection.addPrimaryButton(getString(R.string.mono_webdav_configure_secure_webdav_account)) { configure() }
         backupsSection.addSecondaryButton(getString(R.string.mono_webdav_upload_selected_backup_zip)) {
-            if (account() != null) AlertDialog.Builder(this)
+            if (account() != null) MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.mono_webdav_replace_this_device_s_remote_backup))
                 .setMessage(getString(R.string.mono_webdav_uploading_replaces_the_existing_zip_for))
                 .setNegativeButton(android.R.string.cancel, null)
@@ -84,7 +84,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
         }
         backupsSection.addSecondaryButton(getString(R.string.mono_webdav_list_and_download_backup_zip)) { listRemote() }
         accountSection.addSecondaryButton(getString(R.string.mono_webdav_remove_account_from_this_device)) {
-            AlertDialog.Builder(this).setTitle(getString(R.string.mono_webdav_remove_webdav_credentials))
+            MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_webdav_remove_webdav_credentials))
                 .setMessage(getString(R.string.mono_webdav_this_removes_the_saved_account_from))
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(getString(R.string.mono_webdav_remove)) { _, _ ->
@@ -110,7 +110,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 root.addView(this)
             }
         }
-        AlertDialog.Builder(this).setTitle(getString(R.string.mono_webdav_encrypted_webdav_credentials)).setView(root)
+        MaterialAlertDialogBuilder(this).setTitle(getString(R.string.mono_webdav_encrypted_webdav_credentials)).setView(root)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(getString(R.string.mono_webdav_save)) { _, _ ->
                 runCatching { accountStore.save(fields[0].text.toString().trim(),
@@ -154,7 +154,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
             busy = false
             result.onSuccess { ids ->
                 if (ids.isEmpty()) { status.text = getString(R.string.mono_webdav_no_device_backups_found); return@onSuccess }
-                AlertDialog.Builder(this@WebDavManualSyncActivity)
+                MaterialAlertDialogBuilder(this@WebDavManualSyncActivity)
                     .setTitle(getString(R.string.mono_webdav_select_a_device_zip_to_download))
                     .setItems(ids.toTypedArray()) { _, index ->
                         downloadId = ids[index]

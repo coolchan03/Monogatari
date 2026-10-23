@@ -8,6 +8,8 @@ data class SettingsItem(
 	val title: CharSequence,
 	val breadcrumbs: List<String>,
 	val fragmentClass: Class<out PreferenceFragmentCompat>,
+	/** Also matched by the settings search, so an entry can be found by what it does. */
+	val summary: CharSequence? = null,
 ) : ListModel {
 
 	override fun areItemsTheSame(other: ListModel): Boolean {

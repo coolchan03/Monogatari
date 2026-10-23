@@ -3,7 +3,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- Flat preference hierarchy deliberately preserves settings-search navigation. -->
+    <!--
+        A short list of groups; each one opens its own page. The groups only link to the existing screens,
+        so every preference keeps its key and its screen (settings search still finds them all).
+    -->
     <Preference
         android:key="monogatari_settings_intro"
         android:layout="@layout/preference_monogatari_settings_header"
@@ -12,83 +15,68 @@
         android:title="@string/monogatari_settings_intro_title"
         android:summary="@string/monogatari_settings_intro_summary" />
 
-    <Preference
-        android:layout="@layout/preference_monogatari_settings_section"
-        android:selectable="false"
-        app:iconSpaceReserved="false"
-        android:title="@string/monogatari_settings_customize" />
-
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.AppearanceSettingsFragment"
         android:icon="@drawable/ic_appearance"
         android:key="appearance"
-        android:title="@string/appearance" />
-
-    <Preference
-        android:layout="@layout/preference_monogatari_settings_section"
-        android:selectable="false"
-        app:iconSpaceReserved="false"
-        android:title="@string/monogatari_settings_discover" />
-
-    <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.sources.SourcesSettingsFragment"
-        android:icon="@drawable/ic_monogatari_nav_explore"
-        android:key="remote_sources"
-        android:title="@string/remote_sources" />
-
-    <Preference
-        android:key="monogatari_books_entry"
-        android:icon="@drawable/ic_monogatari_nav_books"
-        android:title="@string/monogatari_settings_books_title"
-        android:summary="@string/monogatari_settings_books_summary" />
+        android:summary="@string/settings_group_appearance_summary"
+        android:title="@string/settings_group_appearance" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.ReaderSettingsFragment"
         android:icon="@drawable/ic_book_page"
         android:key="reader"
-        android:title="@string/reader_settings" />
-
-    <Preference
-        android:layout="@layout/preference_monogatari_settings_section"
-        android:selectable="false"
-        app:iconSpaceReserved="false"
-        android:title="@string/monogatari_settings_manage" />
+        android:summary="@string/settings_group_reading_summary"
+        android:title="@string/settings_group_reading" />
 
     <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment"
-        android:icon="@drawable/ic_usage"
-        android:key="network"
-        android:title="@string/storage_and_network" />
-
-    <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.DownloadsSettingsFragment"
+        android:fragment="org.koitharu.kotatsu.settings.LibrarySettingsGroupFragment"
         android:icon="@drawable/ic_download"
-        android:key="downloads"
-        android:title="@string/downloads" />
+        android:key="monogatari_group_library"
+        android:summary="@string/settings_group_library_summary"
+        android:title="@string/settings_group_library" />
 
     <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.tracker.TrackerSettingsFragment"
+        android:fragment="org.koitharu.kotatsu.settings.SourcesSettingsGroupFragment"
+        android:icon="@drawable/ic_monogatari_nav_explore"
+        android:key="monogatari_group_sources"
+        android:summary="@string/settings_group_sources_summary"
+        android:title="@string/settings_group_sources" />
+
+    <PreferenceScreen
+        android:fragment="org.koitharu.kotatsu.settings.DiscoverSettingsGroupFragment"
+        android:icon="@drawable/ic_suggestion"
+        android:key="monogatari_group_discover"
+        android:summary="@string/settings_group_discover_summary"
+        android:title="@string/settings_group_discover" />
+
+    <PreferenceScreen
+        android:fragment="org.koitharu.kotatsu.settings.NotificationsSettingsGroupFragment"
         android:icon="@drawable/ic_monogatari_nav_updated"
-        android:key="tracker"
-        android:title="@string/check_for_new_chapters" />
+        android:key="monogatari_group_notifications"
+        android:summary="@string/settings_group_notifications_summary"
+        android:title="@string/settings_group_notifications" />
 
     <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.ServicesSettingsFragment"
-        android:icon="@drawable/ic_services"
-        android:key="services"
-        android:title="@string/services" />
-
-    <PreferenceScreen
-        android:fragment="org.koitharu.kotatsu.settings.userdata.BackupsSettingsFragment"
+        android:fragment="org.koitharu.kotatsu.settings.BackupSettingsGroupFragment"
         android:icon="@drawable/ic_backup_restore"
-        android:key="userdata"
-        android:title="@string/backup_restore" />
+        android:key="monogatari_group_backup"
+        android:summary="@string/settings_group_backup_summary"
+        android:title="@string/settings_group_backup" />
+
+    <PreferenceScreen
+        android:fragment="org.koitharu.kotatsu.settings.PrivacySettingsGroupFragment"
+        android:icon="@drawable/ic_lock"
+        android:key="monogatari_group_privacy"
+        android:summary="@string/settings_group_privacy_summary"
+        android:title="@string/settings_group_privacy" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.AdvancedSettingsFragment"
-        android:icon="@drawable/ic_monogatari_nav_explore"
+        android:icon="@drawable/ic_services"
         android:key="monogatari_advanced_entry"
-        android:title="@string/monogatari_advanced_title" />
+        android:summary="@string/settings_group_advanced_summary"
+        android:title="@string/settings_group_advanced" />
 
     <PreferenceScreen
         android:fragment="org.koitharu.kotatsu.settings.about.AboutSettingsFragment"

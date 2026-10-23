@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:title="@string/monogatari_advanced_title">
 
-    <PreferenceScreen
+    <Preference
+        android:fragment="org.koitharu.kotatsu.settings.StorageAndNetworkSettingsFragment"
+        android:icon="@drawable/ic_usage"
+        android:key="network"
+        android:summary="@string/settings_link_storage_summary"
+        android:title="@string/storage_and_network" />
+
+    <Preference
+        android:fragment="org.koitharu.kotatsu.settings.ServicesSettingsFragment"
+        android:icon="@drawable/ic_services"
+        android:key="services"
+        android:summary="@string/settings_link_services_summary"
+        android:title="@string/services" />
+
+    <Preference
         android:fragment="org.koitharu.kotatsu.sourcerepo.ui.SourceReposFragment"
         android:key="monogatari_advanced_source_diagnostics"
         android:title="@string/monogatari_source_diagnostics_title"
@@ -14,5 +29,12 @@
         android:key="monogatari_qa_entry"
         android:title="@string/monogatari_qa_title"
         android:summary="@string/monogatari_qa_settings_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="monogatari_link_licences"
+        android:persistent="false"
+        android:summary="@string/settings_link_licences_summary"
+        android:title="@string/settings_link_licences"
         app:iconSpaceReserved="false" />
 </PreferenceScreen>

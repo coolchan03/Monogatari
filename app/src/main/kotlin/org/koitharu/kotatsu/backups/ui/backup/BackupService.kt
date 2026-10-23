@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backups.ui.backup
 
+import org.koitharu.kotatsu.backups.domain.BackupSection
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.content.Context
@@ -64,7 +65,8 @@ class BackupService : BaseBackupRestoreService() {
 			}
 			try {
 				ZipOutputStream(contentResolver.openOutputStream(destination)).use { output ->
-					repository.createBackup(output, progress)
+					// A backup the user creates by hand is a complete copy, including the community identity.
+					repository.createBackup(output, progress, BackupSection.entries.toSet())
 				}
 			} catch (e: Throwable) {
 				try {

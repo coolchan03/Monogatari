@@ -1,73 +1,37 @@
 package org.koitharu.kotatsu.core.media
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import androidx.core.view.isVisible
-import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
+import androidx.fragment.app.FragmentContainerView
+import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 
-/** Monogatari's unified local book shelf, using the shared imported-book index. */
+/**
+ * The Books tab: the main Library locked to books, so imported books, saved novels and their covers, search, sort,
+ * collections and empty state look and behave exactly as they do in the Library itself.
+ */
+@AndroidEntryPoint
 class BookLibraryFragment : Fragment() {
-    private var shelfView: View? = null
-    private val shelfAdapter = BookShelfRecyclerAdapter { file ->
-        startActivity(BookShelf.readerIntent(requireContext(), file))
-    }
-    /** Books, comics, videos and audio from the device; books land on this shelf. */
-    private val fileImporter = LocalFileImportLauncher(this) { refresh() }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View = inflater.inflate(R.layout.fragment_monogatari_books, container, false).also {
-        shelfView = it
-    }
+    ): View = FragmentContainerView(requireContext()).apply { id = R.id.library_books_container }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        view.findViewById<MaterialButton>(R.id.monogatari_book_discover)
-            .setOnClickListener {
-                startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
+        if (childFragmentManager.findFragmentById(R.id.library_books_container) == null) {
+            val args = Bundle(arguments ?: Bundle.EMPTY).apply {
+                putString(UnifiedLibraryFragment.ARG_LOCKED_KIND, MediaType.BOOK.name)
             }
-        view.findViewById<MaterialButton>(R.id.monogatari_book_add_files)
-            .setOnClickListener { fileImporter.launchOrToast() }
-        view.findViewById<RecyclerView>(R.id.monogatari_book_list).apply {
-            layoutManager = LinearLayoutManager(requireContext())
-            adapter = shelfAdapter
+            childFragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.library_books_container, UnifiedLibraryFragment::class.java, args)
+                .commit()
         }
-        view.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
-            .doAfterTextChanged { refresh() }
-        refresh()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        refresh()
-    }
-
-    override fun onDestroyView() {
-        shelfView = null
-        super.onDestroyView()
-    }
-
-    private fun refresh() {
-        val root = shelfView ?: return
-        val term = root.findViewById<TextInputEditText>(R.id.monogatari_book_filter)
-            .text?.toString().orEmpty()
-        val files = BookShelf.list(requireContext(), term)
-        val empty = root.findViewById<View>(R.id.monogatari_book_empty)
-        shelfAdapter.submitFiles(files)
-        empty.isVisible = files.isEmpty()
-        root.findViewById<TextView>(R.id.monogatari_book_count).text =
-            getString(R.string.monogatari_books_count, files.size)
     }
 }

@@ -347,7 +347,11 @@ class BookCatalogFragment : Fragment() {
 						else openOpds(entry.href)
 					})
 				})
-			} catch (error: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty()))) }
+			} catch (cancel: kotlinx.coroutines.CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty())))
+			}
 		}
 	}
 

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	style="?attr/materialCardViewOutlinedStyle"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:layout_margin="@dimen/library_card_spacing"
+	android:clickable="true"
+	android:focusable="true"
+	app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+	app:cardCornerRadius="@dimen/library_card_radius"
+	app:strokeColor="?attr/colorOutlineVariant">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical">
+
+		<FrameLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+
+			<org.koitharu.kotatsu.image.ui.CoverImageView
+				android:id="@+id/library_item_cover"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:background="?attr/colorSurfaceContainer"
+				android:contentDescription="@null"
+				app:allowRgb565="true" />
+
+			<ImageView
+				android:id="@+id/library_item_kind"
+				android:layout_width="@dimen/card_indicator_size_glyph"
+				android:layout_height="@dimen/card_indicator_size_glyph"
+				android:layout_gravity="top|start"
+				android:layout_margin="@dimen/card_indicator_offset"
+				android:background="@drawable/bg_card_indicator"
+				android:backgroundTint="?attr/colorSecondaryContainer"
+				android:contentDescription="@null"
+				android:padding="@dimen/library_badge_padding"
+				app:tint="?attr/colorOnSecondaryContainer" />
+
+			<ImageView
+				android:id="@+id/library_item_badge"
+				android:layout_width="@dimen/card_indicator_size_glyph"
+				android:layout_height="@dimen/card_indicator_size_glyph"
+				android:layout_gravity="top|end"
+				android:layout_margin="@dimen/card_indicator_offset"
+				android:background="@drawable/bg_card_indicator"
+				android:backgroundTint="?attr/colorTertiaryContainer"
+				android:contentDescription="@null"
+				android:padding="@dimen/library_badge_padding"
+				android:visibility="gone"
+				app:tint="?attr/colorOnTertiaryContainer" />
+
+		</FrameLayout>
+
+		<TextView
+			android:id="@+id/library_item_title"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:ellipsize="end"
+			android:maxLines="2"
+			android:paddingHorizontal="@dimen/library_card_text_padding"
+			android:paddingTop="@dimen/library_card_text_padding"
+			android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+		<TextView
+			android:id="@+id/library_item_detail"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:ellipsize="end"
+			android:maxLines="1"
+			android:paddingHorizontal="@dimen/library_card_text_padding"
+			android:paddingBottom="@dimen/library_card_text_padding"
+			android:textAppearance="?attr/textAppearanceBodySmall"
+			android:textColor="?attr/colorOnSurfaceVariant" />
+
+	</LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

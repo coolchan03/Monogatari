@@ -10,15 +10,20 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.MangaSource
 import org.koitharu.kotatsu.core.model.getTitle
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.addHeaderCard
+import org.koitharu.kotatsu.core.ui.bodyText
+import org.koitharu.kotatsu.core.ui.dp
 import org.koitharu.kotatsu.core.ui.monogatariCard
+import org.koitharu.kotatsu.core.ui.pageColumn
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import javax.inject.Inject
 
@@ -54,19 +59,15 @@ class SourceLogActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setTitle(R.string.source_log_title)
-		val pad = (12 * resources.displayMetrics.density).toInt()
-		val root = LinearLayout(this).apply {
-			orientation = LinearLayout.VERTICAL
-			setPadding(pad, pad, pad, pad)
-		}
+		val root = pageColumn()
+		// Kitsune header with the per-source summary as its body, like the other Monogatari tool screens.
+		summary = root.addHeaderCard(MascotForm.DEFAULT, getString(R.string.source_log_title), null)
 		filter = EditText(this).apply {
 			setHint(R.string.source_log_filter)
 			setSingleLine(true)
 			doAfterTextChanged { render() }
 		}
-		root.addView(filter, LinearLayout.LayoutParams(-1, -2))
-		summary = TextView(this)
-		root.addView(summary, LinearLayout.LayoutParams(-1, -2))
+		root.addView(filter, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
 		list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 		root.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(-1, 0, 1f))
 		setMonogatariContent(root, MonogatariChrome.TEXT_MAX_WIDTH_DP)
@@ -83,6 +84,7 @@ class SourceLogActivity : AppCompatActivity() {
 		val query = filter.text?.toString()?.trim().orEmpty()
 		val entries = log.snapshot().filter { query.isBlank() || it.source.contains(query, true) || it.message?.contains(query, true) == true }
 		val summaries = SourceLogFormat.summarize(entries)
+		summary.visibility = android.view.View.VISIBLE
 		summary.text = if (summaries.isEmpty()) {
 			getString(R.string.source_log_empty)
 		} else {
@@ -92,13 +94,13 @@ class SourceLogActivity : AppCompatActivity() {
 			}
 		}
 		list.removeAllViews()
-		val pad = (10 * resources.displayMetrics.density).toInt()
+		val pad = dp(12)
 		for (entry in entries.take(150)) {
 			val card = monogatariCard().apply {
-				setContentPadding(pad, pad, pad, pad)
+				setContentPadding(pad, dp(10), pad, dp(10))
 			}
-			card.addView(TextView(this).apply { text = SourceLogFormat.line(entry, now).replace(entry.source, titleOf(entry.source)) })
-			list.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = pad / 2 })
+			card.addView(bodyText(SourceLogFormat.line(entry, now).replace(entry.source, titleOf(entry.source))))
+			list.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
 		}
 	}
 
@@ -121,7 +123,7 @@ class SourceLogActivity : AppCompatActivity() {
 			Toast.makeText(this, R.string.source_log_no_site, Toast.LENGTH_SHORT).show()
 			return
 		}
-		AlertDialog.Builder(this)
+		MaterialAlertDialogBuilder(this)
 			.setTitle(R.string.source_log_open_site)
 			.setItems(sites.map { "${it.first} (${it.second})" }.toTypedArray()) { _, which ->
 				runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://${sites[which].second}"))) }

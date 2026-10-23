@@ -80,6 +80,23 @@ class JsSourceStore(private val dir: File) {
         }
     }
 
+    /**
+     * Validates downgrade/hash rules against the entry installed right now and commits, all under
+     * the store lock, so overlapping installs cannot commit in the opposite order of their checks.
+     */
+    @Synchronized
+    fun installValidated(entry: JsSourceEntry, code: String) {
+        val installed = get(entry.id)
+        JsSourceIntegrity.validate(
+            version = entry.version,
+            contentHash = JsSourceIntegrity.sha256(code),
+            installedVersion = installed?.entry?.version,
+            installedHash = installed?.let { JsSourceIntegrity.sha256(it.code) },
+            declaredHash = entry.sha256,
+        )
+        install(entry, code)
+    }
+
     @Synchronized
     fun hasPrevious(id: Long): Boolean =
         File(dir, "$id.js.prev").isFile && File(dir, "$id.json.prev").isFile

@@ -34,14 +34,20 @@ class MoreActivity : AppCompatActivity() {
     /** A navigation bar item listed here because it did not fit on the bar. */
     private data class OverflowEntry(val item: NavItem)
 
-    /** [MoreDestinations.sections], preceded by the navigation items that did not fit on the bar. */
+    /** A group heading row. */
+    private data class Header(val text: String)
+
+    /** [MoreDestinations.sections] with resolved headings, preceded by the navigation items that did not fit on the bar. */
     private val sections: List<Any> by lazy {
         val overflow = intent.getStringArrayListExtra(EXTRA_OVERFLOW_ITEMS).orEmpty()
             .mapNotNull { name -> NavItem.entries.firstOrNull { it.name == name } }
+        val destinations = MoreDestinations.sections.map { entry ->
+            if (entry is MoreDestinations.Group) Header(getString(entry.title)) else entry
+        }
         if (overflow.isEmpty()) {
-            MoreDestinations.sections
+            destinations
         } else {
-            listOf<Any>(getString(R.string.nav_overflow_section)) + overflow.map(::OverflowEntry) + MoreDestinations.sections
+            listOf<Any>(Header(getString(R.string.nav_overflow_section))) + overflow.map(::OverflowEntry) + destinations
         }
     }
 
@@ -54,7 +60,7 @@ class MoreActivity : AppCompatActivity() {
             setPadding(margin, margin, margin, margin)
         }
         val info = TextView(this).apply {
-            text = "Library · Find something · Backup · App and tools"
+            text = MoreDestinations.groupOrder.joinToString(" · ") { getString(it.title) }
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
             setPadding(0, 0, 0, margin)
         }
@@ -78,7 +84,7 @@ class MoreActivity : AppCompatActivity() {
                 // Section titles span the whole row, like category headings in Settings.
                 spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                     override fun getSpanSize(position: Int): Int =
-                        if (sections[position] is String) columns else 1
+                        if (sections[position] is Header) columns else 1
                 }
             }
             adapter = DestinationsAdapter()
@@ -110,7 +116,7 @@ class MoreActivity : AppCompatActivity() {
     private inner class DestinationsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         override fun getItemCount(): Int = sections.size
 
-        override fun getItemViewType(position: Int): Int = if (sections[position] is String) 1 else 0
+        override fun getItemViewType(position: Int): Int = if (sections[position] is Header) 1 else 0
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             if (viewType == 1) {
@@ -131,7 +137,7 @@ class MoreActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val item = sections[position]
             if (holder is HeaderHolder) {
-                holder.title.text = item as String
+                holder.title.text = (item as Header).text
                 return
             }
             holder as Holder
@@ -140,7 +146,7 @@ class MoreActivity : AppCompatActivity() {
                 return
             }
             val page = item as MoreDestinations.Page
-            BookShelfCard.bind(holder.card, page.title, page.subtitle) {
+            BookShelfCard.bind(holder.card, getString(page.title), getString(page.subtitle)) {
                 val destination = Intent(this@MoreActivity, page.target)
                 page.viewUri?.let { uri ->
                     destination.action = Intent.ACTION_VIEW
@@ -152,13 +158,7 @@ class MoreActivity : AppCompatActivity() {
                 setImageResource(page.icon)
                 imageTintList = null
                 if (MediaAccents.enabled(this@MoreActivity)) {
-                    val kind = when {
-                        page.title.contains("Book", ignoreCase = true) -> "BOOK"
-                        page.title.contains("Video", ignoreCase = true) || page.title == "Discover" -> "VIDEO"
-                        page.title.contains("News", ignoreCase = true) -> "NEWS"
-                        page.title.contains("Audio", ignoreCase = true) -> "AUDIO"
-                        else -> "MANGA"
-                    }
+                    val kind = page.media ?: "MANGA"
                     imageTintList = ColorStateList.valueOf(MediaAccents.color(kind))
                 }
             }

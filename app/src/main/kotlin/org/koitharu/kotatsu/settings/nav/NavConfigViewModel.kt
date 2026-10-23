@@ -23,6 +23,7 @@ import org.koitharu.kotatsu.main.ui.MainNavigationDelegate
 import org.koitharu.kotatsu.parsers.util.move
 import org.koitharu.kotatsu.settings.nav.model.NavItemAddModel
 import org.koitharu.kotatsu.settings.nav.model.NavItemConfigModel
+import org.koitharu.kotatsu.settings.nav.model.NavItemGroupHeader
 import javax.inject.Inject
 
 @HiltViewModel
@@ -38,7 +39,7 @@ class NavConfigViewModel @Inject constructor(
 			snapshot.mapTo(this) {
 				NavItemConfigModel(it, getUnavailabilityHint(it))
 			}
-			if (size < NavItem.entries.size) {
+			if (OFFERED_GROUPS.any { (_, group) -> group.any { it !in snapshot } }) {
 				add(NavItemAddModel(size < MainNavigationDelegate.MAX_ITEM_COUNT))
 			}
 		}
@@ -50,9 +51,22 @@ class NavConfigViewModel @Inject constructor(
 
 	private var commitJob: Job? = null
 
-	val availableItems
+	/**
+	 * What the Add dialog offers: a short list in two groups, each preceded by its [NavItemGroupHeader]. Older
+	 * items (Local, Feed, the separate book/video Discover pages...) are no longer offered, but a bar that already
+	 * has them keeps them, since bars are saved by item name.
+	 */
+	val availableItems: List<Any>
 		get() = items.value.let { snapshot ->
-			NavItem.entries.filterNot { x -> x in snapshot }
+			buildList {
+				for ((title, group) in OFFERED_GROUPS) {
+					val free = group.filterNot { x -> x in snapshot }
+					if (free.isNotEmpty()) {
+						add(NavItemGroupHeader(title))
+						addAll(free)
+					}
+				}
+			}
 		}
 
 	fun reorder(fromPos: Int, toPos: Int) {
@@ -66,6 +80,13 @@ class NavConfigViewModel @Inject constructor(
 		items.value = items.value.plus(item).also {
 			commit(it)
 		}
+	}
+
+	/** Puts back the bar a new install starts with. */
+	fun restoreDefault() {
+		val defaults = DEFAULT_ITEMS
+		items.value = defaults
+		commit(defaults)
 	}
 
 	fun removeItem(item: NavItem) {
@@ -94,5 +115,32 @@ class NavConfigViewModel @Inject constructor(
 		NavItem.FEED -> R.string.check_for_new_chapters_disabled
 		NavItem.SUGGESTIONS -> R.string.suggestions_unavailable_text
 		else -> 0
+	}
+
+	private companion object {
+
+		/** The same items, in the same order, as [AppSettings.mainNavItems] gives when nothing was saved. */
+		val DEFAULT_ITEMS = listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
+
+		val OFFERED_GROUPS: List<Pair<Int, List<NavItem>>> = listOf(
+			R.string.nav_config_group_tabs to listOf(
+				NavItem.UNIFIED_LIBRARY,
+				NavItem.FAVORITES,
+				NavItem.HISTORY,
+				NavItem.UPDATED,
+				NavItem.DISCOVER,
+				NavItem.EXPLORE,
+				NavItem.BOOKMARKS,
+				NavItem.BOOKS,
+				NavItem.NEWS,
+				NavItem.MEDIA_FEEDS,
+			),
+			R.string.nav_config_group_shortcuts to listOf(
+				NavItem.SEARCH,
+				NavItem.DOWNLOADS,
+				NavItem.SETTINGS,
+				NavItem.MORE,
+			),
+		)
 	}
 }

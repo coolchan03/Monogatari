@@ -164,6 +164,8 @@ class SettingsActivity :
 				when (intent.data?.host) {
 					HOST_ABOUT -> AboutSettingsFragment()
 					HOST_SYNC_SETTINGS -> SyncSettingsFragment()
+					HOST_SOURCE_REPOS -> SourceReposFragment()
+					HOST_BACKUPS -> BackupsSettingsFragment()
 					else -> null
 				}
 			}
@@ -186,6 +188,8 @@ class SettingsActivity :
 	companion object {
 		private const val HOST_ABOUT = "about"
 		private const val HOST_SYNC_SETTINGS = "sync-settings"
+		private const val HOST_SOURCE_REPOS = "source-repos"
+		private const val HOST_BACKUPS = "backups"
 		const val ARG_PREF_KEY = "pref_key"
 	}
 }

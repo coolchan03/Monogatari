@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sync_conflict_review_failed">Could not compare reading progress, so nothing was merged. The received archive was discarded; send it again to retry.</string>
+</resources>

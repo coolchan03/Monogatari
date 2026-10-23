@@ -36,6 +36,13 @@ enum class BackupSection(
 
 	companion object {
 
+		/**
+		 * Everything except the community identity key: automatic backups (periodic, Android auto-backup, folder sync)
+		 * must not carry a bearer credential. The manual Create backup action passes `entries.toSet()` so a copy the
+		 * user makes by hand still lets them recover their community account; restoring it works as before.
+		 */
+		val ROUTINE_EXPORT: Set<BackupSection> by lazy { entries.filterTo(LinkedHashSet()) { it != IDENTITY } }
+
 		fun of(entry: ZipEntry): BackupSection? {
 			val name = entry.name.lowercase(Locale.ROOT)
 			return entries.find { x -> x.entryName == name }

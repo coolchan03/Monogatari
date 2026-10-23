@@ -3,63 +3,35 @@ package org.koitharu.kotatsu.settings
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
-import android.content.Intent
-import org.koitharu.kotatsu.core.media.BookLibraryActivity
 import android.view.View
-import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import androidx.preference.Preference
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
-import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.ColorScheme
 import org.koitharu.kotatsu.core.ui.BasePreferenceFragment
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
-import org.koitharu.kotatsu.core.util.ext.getQuantityStringSafe
-import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.settings.search.SettingsSearchMenuProvider
 import org.koitharu.kotatsu.settings.search.SettingsSearchViewModel
 
 @AndroidEntryPoint
 class RootSettingsFragment : BasePreferenceFragment(0) {
 
-	private val viewModel: RootSettingsViewModel by viewModels()
 	private val activityViewModel: SettingsSearchViewModel by activityViewModels()
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
 		addPreferencesFromResource(R.xml.pref_root)
-		findPreference<Preference>("monogatari_books_entry")?.setOnPreferenceClickListener {
-			startActivity(Intent(requireContext(), BookLibraryActivity::class.java))
-			true
-		}
 		addPreferencesFromResource(R.xml.pref_root_debug)
-		bindPreferenceSummary("appearance", R.string.theme, R.string.list_mode, R.string.language)
-		bindPreferenceSummary("reader", R.string.read_mode, R.string.scale_mode, R.string.switch_pages)
-		bindPreferenceSummary("network", R.string.storage_usage, R.string.proxy, R.string.prefetch_content)
-		bindPreferenceSummary("userdata", R.string.create_or_restore_backup, R.string.periodic_backups)
-		bindPreferenceSummary("downloads", R.string.manga_save_location, R.string.downloads_wifi_only)
-		bindPreferenceSummary("tracker", R.string.track_sources, R.string.notifications_settings)
-		bindPreferenceSummary("services", R.string.suggestions, R.string.sync, R.string.tracking)
-		findPreference<Preference>("about")?.summary = getString(R.string.app_version, BuildConfig.VERSION_NAME)
+		findPreference<Preference>("about")?.summary =
+			getString(R.string.settings_group_about_summary, BuildConfig.VERSION_NAME)
 		applyExpressiveIconBackgrounds()
 	}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
-		findPreference<Preference>(AppSettings.KEY_REMOTE_SOURCES)?.let { pref ->
-			val total = viewModel.totalSourcesCount
-			viewModel.enabledSourcesCount.observe(viewLifecycleOwner) {
-				pref.summary = if (it >= 0) {
-					getString(R.string.enabled_d_of_d, it, total)
-				} else {
-					resources.getQuantityStringSafe(R.plurals.items, total, total)
-				}
-			}
-		}
 		addMenuProvider(SettingsSearchMenuProvider(activityViewModel))
 	}
 
@@ -69,10 +41,6 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 		}
 	}
 
-	private fun bindPreferenceSummary(key: String, @StringRes vararg items: Int) {
-		findPreference<Preference>(key)?.summary = items.joinToString { getString(it) }
-	}
-
 	private fun applyExpressiveIconBackgrounds() {
 		if (settings.colorScheme != ColorScheme.EXPRESSIVE) {
 			return
@@ -80,15 +48,14 @@ class RootSettingsFragment : BasePreferenceFragment(0) {
 		val context = requireContext()
 		val iconColors = arrayOf(
 			"appearance" to R.color.settings_icon_appearance,
-			AppSettings.KEY_REMOTE_SOURCES to R.color.settings_icon_sources,
-			"monogatari_books_entry" to R.color.settings_icon_reader,
-			"monogatari_advanced_entry" to R.color.settings_icon_services,
 			"reader" to R.color.settings_icon_reader,
-			"network" to R.color.settings_icon_network,
-			"downloads" to R.color.settings_icon_downloads,
-			"tracker" to R.color.settings_icon_tracker,
-			"services" to R.color.settings_icon_services,
-			"userdata" to R.color.settings_icon_backup,
+			"monogatari_group_library" to R.color.settings_icon_downloads,
+			"monogatari_group_sources" to R.color.settings_icon_sources,
+			"monogatari_group_discover" to R.color.settings_icon_network,
+			"monogatari_group_notifications" to R.color.settings_icon_tracker,
+			"monogatari_group_backup" to R.color.settings_icon_backup,
+			"monogatari_group_privacy" to R.color.settings_icon_appearance,
+			"monogatari_advanced_entry" to R.color.settings_icon_services,
 			"about" to R.color.settings_icon_about,
 		)
 		val density = resources.displayMetrics.density

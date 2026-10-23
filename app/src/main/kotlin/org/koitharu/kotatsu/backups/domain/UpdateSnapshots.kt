@@ -82,20 +82,103 @@ class UpdateSnapshots(private val dataDir: File, private val filesDir: File) {
 		return target
 	}
 
+	/**
+	 * Replaces the live database and preferences with a snapshot, never leaving the user without a working copy:
+	 * the snapshot must contain the database, its files are first copied next to the live ones under temporary
+	 * names and size-checked, the old files are kept in `restore_backup` until every rename has succeeded, and any
+	 * failure (or a crash, found on the next start) puts the old files back. The pending marker is only cleared once
+	 * the swap is complete, or when the snapshot can never be used and nothing was touched.
+	 */
 	private fun applyPendingRestore() {
 		if (!pendingFile.isFile) return
+		recoverInterruptedSwap()
 		val name = pendingFile.readText().trim()
-		pendingFile.delete() // never loop on a broken snapshot
-		val snapshot = File(root, name).takeIf { SNAPSHOT_NAME.matches(name) && it.isDirectory } ?: return
-		// Remove current database files first so stale -wal/-shm files can't be replayed onto the old database.
-		File(dataDir, DB_DIR).listFiles { f -> f.name.startsWith(DB_NAME) }?.forEach { it.delete() }
-		snapshot.walkTopDown().filter { it.isFile }.forEach { file ->
-			val relative = file.relativeTo(snapshot).path
-			if (relative.startsWith(DB_DIR) || relative.startsWith(PREFS_DIR)) {
-				file.copyTo(File(dataDir, relative), overwrite = true)
-			}
+		val snapshot = File(root, name).takeIf { SNAPSHOT_NAME.matches(name) && it.isDirectory }
+		val snapshotDb = snapshot?.let { File(it, "$DB_DIR/$DB_NAME") }
+		if (snapshot == null || snapshotDb == null || !snapshotDb.isFile || snapshotDb.length() == 0L) {
+			pendingFile.delete() // unusable and nothing was changed, so don't keep retrying it
+			return
+		}
+		try {
+			swapIn(snapshot)
+			pendingFile.delete()
+		} catch (e: Exception) {
+			// Live data is back as it was (or untouched); keep the marker so a later start can retry.
 		}
 	}
+
+	private fun swapIn(snapshot: File) {
+		val incoming = snapshot.walkTopDown().filter { it.isFile }
+			.map { it.relativeTo(snapshot).path }
+			.filter { it.startsWith("$DB_DIR/") || it.startsWith("$PREFS_DIR/") }
+			.toList()
+		deleteTemps()
+		try {
+			for (relative in incoming) {
+				val source = File(snapshot, relative)
+				val temp = File(dataDir, relative + TEMP_SUFFIX)
+				source.copyTo(temp, overwrite = true)
+				if (temp.length() != source.length()) throw IOException("Incomplete copy of $relative")
+			}
+			// Keep the files about to be replaced or removed until the swap has succeeded.
+			val backupTemp = File(root, "$BACKUP_DIR.tmp")
+			backupTemp.deleteRecursively()
+			val replaced = liveDbFiles() + incoming.map { File(dataDir, it) }.filter { it.isFile }
+			for (file in replaced.distinct()) {
+				file.copyTo(File(backupTemp, file.relativeTo(dataDir).path), overwrite = true)
+			}
+			backupTemp.mkdirs()
+			if (!backupTemp.renameTo(File(root, BACKUP_DIR))) throw IOException("Could not keep the current data")
+		} catch (e: Exception) {
+			deleteTemps()
+			File(root, "$BACKUP_DIR.tmp").deleteRecursively()
+			throw e
+		}
+		try {
+			// Remove current database files first so stale -wal/-shm files can't be replayed onto the new database.
+			liveDbFiles().filter { it.relativeTo(dataDir).path !in incoming }.forEach { it.delete() }
+			for (relative in incoming) {
+				val temp = File(dataDir, relative + TEMP_SUFFIX)
+				if (!temp.renameTo(File(dataDir, relative))) throw IOException("Could not replace $relative")
+			}
+		} catch (e: Exception) {
+			rollback()
+			File(root, BACKUP_DIR).deleteRecursively()
+			throw e
+		}
+		File(root, BACKUP_DIR).deleteRecursively()
+	}
+
+	/** A complete `restore_backup` folder means an earlier swap did not finish: put its files back first. */
+	private fun recoverInterruptedSwap() {
+		val backup = File(root, BACKUP_DIR)
+		File(root, "$BACKUP_DIR.tmp").deleteRecursively()
+		deleteTemps()
+		if (backup.isDirectory) {
+			rollback()
+			backup.deleteRecursively()
+		}
+	}
+
+	private fun rollback() {
+		val backup = File(root, BACKUP_DIR)
+		deleteTemps()
+		if (!backup.isDirectory) return
+		liveDbFiles().forEach { it.delete() }
+		backup.walkTopDown().filter { it.isFile }.forEach { file ->
+			file.copyTo(File(dataDir, file.relativeTo(backup).path), overwrite = true)
+		}
+	}
+
+	private fun deleteTemps() {
+		for (dir in listOf(File(dataDir, DB_DIR), File(dataDir, PREFS_DIR))) {
+			dir.listFiles { f -> f.name.endsWith(TEMP_SUFFIX) }?.forEach { it.delete() }
+		}
+	}
+
+	private fun liveDbFiles(): List<File> = File(dataDir, DB_DIR)
+		.listFiles { f -> f.isFile && f.name.startsWith(DB_NAME) && !f.name.endsWith(TEMP_SUFFIX) }
+		.orEmpty().toList()
 
 	private fun prune() {
 		list().drop(KEEP).forEach { it.dir.deleteRecursively() }
@@ -105,7 +188,7 @@ class UpdateSnapshots(private val dataDir: File, private val filesDir: File) {
 	private fun hasData(): Boolean = File(File(dataDir, DB_DIR), DB_NAME).isFile
 
 	private fun dataFiles(): List<File> {
-		val db = File(dataDir, DB_DIR).listFiles { f -> f.isFile && f.name.startsWith(DB_NAME) }.orEmpty().toList()
+		val db = liveDbFiles()
 		val prefs = File(dataDir, PREFS_DIR).listFiles { f -> f.isFile && f.name.endsWith(".xml") }.orEmpty().toList()
 		return db + prefs
 	}
@@ -118,6 +201,8 @@ class UpdateSnapshots(private val dataDir: File, private val filesDir: File) {
 		private const val ROOT = "update_snapshots"
 		private const val STATE_FILE = "last_version"
 		private const val PENDING_FILE = "restore_pending"
+		private const val BACKUP_DIR = "restore_backup"
+		private const val TEMP_SUFFIX = ".restoring"
 		private const val KEEP = 2
 		private const val MAX_SNAPSHOT_BYTES = 400L * 1024 * 1024
 		private val SNAPSHOT_NAME = Regex("""(\d+)_(\d+)""")

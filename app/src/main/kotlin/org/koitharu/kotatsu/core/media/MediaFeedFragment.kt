@@ -32,7 +32,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.headerCard
+import org.koitharu.kotatsu.core.ui.primaryButton
+import org.koitharu.kotatsu.core.ui.statusText
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import javax.inject.Inject
 
@@ -78,11 +82,9 @@ class MediaFeedFragment : Fragment() {
 			orientation = LinearLayout.VERTICAL
 			setPadding(pad, pad / 2, pad, pad)
 		}
-		root.addView(TextView(context).apply {
-			text = getString(R.string.mono_feeds_podcasts_audio_drama_and_video_shows)
-			setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-			setPadding(0, 0, 0, pad / 2)
-		})
+		// Compact Kitsune header card, like the other Monogatari media screens.
+		root.addView(context.headerCard(MascotForm.AUDIO, null, getString(R.string.mono_feeds_podcasts_audio_drama_and_video_shows), mascotSizeDp = 40).first,
+			LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = pad / 2 })
 		installIncludedFeedsOnce()
 		// Same chip language as search filters: one chip per feed, then the playlist.
 		feedChips = ChipGroup(context).apply { isSingleSelection = true; isSingleLine = true }
@@ -101,8 +103,7 @@ class MediaFeedFragment : Fragment() {
 			})
 		}
 		root.addView(kindChips)
-		status = TextView(context).apply {
-			text = getString(R.string.mono_feeds_add_a_feed_url_to_discover)
+		status = context.statusText(getString(R.string.mono_feeds_add_a_feed_url_to_discover)).apply {
 			setPadding(0, pad / 2, 0, pad / 2)
 		}
 		root.addView(status)
@@ -112,10 +113,10 @@ class MediaFeedFragment : Fragment() {
 			contentDescription = getString(R.string.media_feed_loading)
 		}
 		root.addView(loading, LinearLayout.LayoutParams(-1, -2))
-		retryButton = MaterialButton(context).apply {
-			setText(R.string.media_feed_retry)
+		retryButton = context.primaryButton(getString(R.string.media_feed_retry)) {
+			currentUrl?.let(::load) ?: chooseFeed()
+		}.apply {
 			isVisible = false
-			setOnClickListener { currentUrl?.let(::load) ?: chooseFeed() }
 		}
 		root.addView(retryButton)
 		root.addView(RecyclerView(context).apply {
