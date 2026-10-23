@@ -149,3 +149,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Add files (books, comics, local video/audio), Add to library from Discover, 8-item navigation with new tabs and shortcuts, Mangayomi import of extensions/repos/library from the current backup format, Discover shelf timeout fix.
 - Still open: remembered Nearby pairing, multi-file transfers, Komga as a source (v2.0), conflict review for favourites/categories, CBR/image-folder import from Add files, encrypted Mangayomi backups.
+
+## Released in v1.4.0 (2026-10-23)
+
+- Settings overhaul, rebuilt Library, AniList + MyAnimeList fallback, themed screens and mascot, opt-in auto-download, backup/import/download safety fixes from the v1.4 audit (docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md).
+- Still open from that audit: child auto-downloads don't inherit the Wi-Fi/charging constraints, a hard storage cap while writing, richer backup category identity than title matching, tests for the Mihon/Mangayomi merge fixes, encrypted Mangayomi backups, auto-download of video.
