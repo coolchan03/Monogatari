@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-10-23 — v1.4.1 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.4.1 built from `devel` `54f2209` (drafts merged; build check run 39978458243 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `162e81a8fa66317518080bae57c533b07f16baec654d4fabe16a64999ccafd1f`.
+- Library covers every medium (On this device section, Recommended strip), Library replaces On device on the default bar (one-time migration, pref `nav_layout_v3`), Discover opens on All. Not device-verified yet.
+
 ## 2026-10-23 — v1.4.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.4.0 built from `devel` `7ff9186` (drafts merged; build check run 39957411594 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease; first release using the commit-recording check from the v1.4 audit R01 fix). APK SHA-256 `c5d27076350b9a90382c61bdf70e166868606b1f706d9c9e7ba772a9bdd1b673`.
 - Includes Settings groups, rebuilt Library, AniList/MyAnimeList fallback, opt-in auto-download, themed screens + mascot, and the v1.4 audit fixes (docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md). Not device-verified yet; open items are listed in docs/FUTURE_VERSION_ROADMAP.md.
