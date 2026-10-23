@@ -223,11 +223,11 @@ class MangayomiImporter @Inject constructor(
 		defaultTitle: String,
 	): Map<Long?, Long> {
 		val dao = database.getFavouriteCategoriesDao()
-		val existing = dao.findAll().associateBy { it.title.lowercase(Locale.ROOT) }.toMutableMap()
+		val existing = dao.findAllForBackup().associateBy { it.title.lowercase(Locale.ROOT) }.toMutableMap()
 		val byId = backup.categories.associateBy { it.id }
 		val result = HashMap<Long?, Long>()
-		suspend fun localId(title: String): Long {
-			existing[title.lowercase(Locale.ROOT)]?.let { return it.categoryId.toLong() }
+		suspend fun localId(title: String): Long? {
+			existing[title.lowercase(Locale.ROOT)]?.let { return it.categoryId.toLong().takeIf { _ -> it.deletedAt == 0L } }
 			val entity = FavouriteCategoryEntity(
 				categoryId = 0,
 				createdAt = System.currentTimeMillis(),
@@ -245,10 +245,10 @@ class MangayomiImporter @Inject constructor(
 		val used = titles.filter { it.favorite }
 		val usedIds = used.flatMap { it.categoryIds }.distinct()
 		for (category in usedIds.mapNotNull { byId[it] }.sortedBy { it.position }) {
-			result[category.id] = localId(category.name)
+			localId(category.name)?.let { result[category.id] = it }
 		}
-		if (used.any { m -> m.categoryIds.none { it in result } }) {
-			result[null] = localId(defaultTitle)
+		if (used.any { it.categoryIds.isEmpty() }) {
+			localId(defaultTitle)?.let { result[null] = it }
 		}
 		return result
 	}
@@ -279,7 +279,8 @@ class MangayomiImporter @Inject constructor(
 			val favourites = database.getFavouritesDao()
 			val targets = manga.categoryIds.mapNotNull { categories[it] }.ifEmpty { listOfNotNull(categories[null]) }
 			for (categoryId in targets.distinct()) {
-				if (favourites.findIncludingDeleted(mangaId, categoryId)?.deletedAt == 0L) continue
+				// Both an existing favourite and its deletion tombstone are authoritative locally.
+				if (favourites.findIncludingDeleted(mangaId, categoryId) != null) continue
 				favourites.upsert(
 					FavouriteEntity(
 						mangaId = mangaId,

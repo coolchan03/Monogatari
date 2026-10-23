@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.backups.domain
 
 import dagger.Reusable
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -131,6 +132,8 @@ class MihonImporter @Inject constructor(
 				true
 			}
 		}
+	} catch (e: TimeoutCancellationException) {
+		false // A timed-out remote source is a skipped title, not cancellation of the whole import.
 	} catch (e: CancellationException) {
 		throw e
 	} catch (_: Exception) {
@@ -141,6 +144,8 @@ class MihonImporter @Inject constructor(
 		val repository = repositories.create(MangaSource(sourceKey))
 		val results = withTimeout(20_000) { repository.getList(0, null, MangaListFilter(query = item.title)) }
 		MihonTitleMatch.pick(item.title, results.map { it.title to it }.toList())
+	} catch (e: TimeoutCancellationException) {
+		null
 	} catch (e: CancellationException) {
 		throw e
 	} catch (_: Exception) {

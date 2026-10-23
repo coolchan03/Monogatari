@@ -166,3 +166,9 @@
 - Scope: B01/B05/B06/B07/B09/C01/C02/C03/R01 candidates across 11 app/workflow/test files; full audit findings remain in docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md.
 - Source anchors dry-ran against clean branch v1.4-audit-fixes-20261021, then applied. git diff --check produced no errors. Android compile/CI/device testing NOT yet done; remaining audit findings NOT implemented in this batch.
 - The v1.4.0 release remains unpublished. Changes here are for a development-branch commit, not a certified production APK.
+
+## 2026-10-23 - audit repair batch active
+- Worktree: P:\AI Projects\Monogatari-v1.4-Fixes, branch v1.4-audit-fixes-20261021, starting deef371c.
+- Operation: implement audited defects in data preservation, imports, navigation and other scoped modules, test then push.
+- Other worktrees and recovery data remain untouched. No local disk-intensive builds planned.
+- No new release has been created yet. Existing CI requires explicit workflow dispatch on this branch.

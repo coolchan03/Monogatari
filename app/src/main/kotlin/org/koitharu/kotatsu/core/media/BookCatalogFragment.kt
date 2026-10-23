@@ -333,8 +333,9 @@ class BookCatalogFragment : Fragment() {
 			showLines(listOf(getString(R.string.monogatari_catalog_opds_full_url)))
 			return
 		}
+		catalogJob?.cancel()
 		showLines(listOf(getString(R.string.monogatari_catalog_opds_loading)))
-		viewLifecycleOwner.lifecycleScope.launch {
+		catalogJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val entries = opds.load(url)
 				if (entries.isEmpty()) showLines(listOf(getString(R.string.monogatari_catalog_opds_empty)))
@@ -347,7 +348,11 @@ class BookCatalogFragment : Fragment() {
 						else openOpds(entry.href)
 					})
 				})
-			} catch (error: Exception) { showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty()))) }
+			} catch (cancelled: kotlinx.coroutines.CancellationException) {
+				throw cancelled
+			} catch (error: Exception) {
+				if (_binding != null) showLines(listOf(getString(R.string.monogatari_catalog_opds_error, error.message.orEmpty())))
+			}
 		}
 	}
 

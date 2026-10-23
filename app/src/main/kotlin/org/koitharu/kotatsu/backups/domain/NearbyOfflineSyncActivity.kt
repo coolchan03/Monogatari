@@ -546,7 +546,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 )
             }.onFailure {
                 say(getString(R.string.sync_conflict_check_failed))
-                onResolved(null, HistoryConflicts.Resolution.NONE)
+                // The staged archive is retained so review can be retried; no unreviewed merge occurs.
             }
         }
     }

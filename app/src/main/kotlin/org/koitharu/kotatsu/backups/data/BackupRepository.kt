@@ -237,11 +237,19 @@ class BackupRepository @Inject constructor(
         var commonProgress = Progress(0, sections.size)
         var entry = input.nextEntry
         var result = CompositeResult.EMPTY
+        var incomingDeviceId: String? = null
+        val categoryIds = HashMap<Int, Long>()
+        val categoryMapPrefs = context.getSharedPreferences("monogatari_category_import_ids", Context.MODE_PRIVATE)
         while (entry != null) {
             val section = BackupSection.of(entry)
-            if (section in sections) {
+            if (section in sections || section == BackupSection.INDEX) {
                 result += when (section) {
-                    BackupSection.INDEX -> CompositeResult.EMPTY // useless in our case
+                    BackupSection.INDEX -> {
+                        // Every archive has a device identity; never treat foreign integer IDs as local IDs.
+                        incomingDeviceId = input.readJsonArray<BackupIndex>(serializer()).firstOrNull()
+                            ?.deviceId?.takeIf { it.isNotBlank() }
+                        CompositeResult.EMPTY
+                    }
                     BackupSection.HISTORY -> input.readJsonArray<HistoryBackup>(serializer()).filterNot {
                         it.mangaId in keepLocalHistoryIds
                     }.restoreToDb {
@@ -256,17 +264,35 @@ class BackupRepository @Inject constructor(
                     }
 
                     BackupSection.CATEGORIES -> input.readJsonArray<CategoryBackup>(serializer()).restoreToDb {
+                        val remoteDevice = incomingDeviceId
+                            ?: throw IOException("Category merge needs the backup's source-device identity")
                         val incoming = it.toEntity()
-                        val existing = getFavouriteCategoriesDao().findIncludingDeleted(incoming.categoryId)
-                        if (BackupMergePolicy.shouldReplace(
-                                existing?.createdAt, existing?.deletedAt ?: 0L,
-                                incoming.createdAt, incoming.deletedAt)) {
-                            getFavouriteCategoriesDao().upsert(incoming)
+                        val dao = getFavouriteCategoriesDao()
+                        if (remoteDevice == settings.backupDeviceId) {
+                            categoryIds[incoming.categoryId] = incoming.categoryId.toLong()
+                            val existing = dao.findIncludingDeleted(incoming.categoryId)
+                            if (BackupMergePolicy.shouldReplace(
+                                    existing?.createdAt, existing?.deletedAt ?: 0L,
+                                    incoming.createdAt, incoming.deletedAt)) {
+                                dao.upsert(incoming)
+                            }
+                        } else {
+                            // Category integers are allocated independently on every phone. Never replace a
+                            // local row or attach foreign favourites to a category merely because IDs match.
+                            val key = "$remoteDevice:${incoming.categoryId}"
+                            val previous = categoryMapPrefs.getLong(key, 0L)
+                            val mapped = if (previous > 0) dao.findIncludingDeleted(previous.toInt()) else null
+                            val target = if (mapped != null) previous else dao.insert(incoming.copy(categoryId = 0))
+                            categoryIds[incoming.categoryId] = target
+                            if (mapped == null) categoryMapPrefs.edit().putLong(key, target).apply()
                         }
                     }
 
                     BackupSection.FAVOURITES -> input.readJsonArray<FavouriteBackup>(serializer()).restoreToDb {
-                        val incoming = it.toEntity()
+                        val device = incomingDeviceId ?: throw IOException("Missing source-device identity")
+                        val resolvedId = if (device == settings.backupDeviceId) it.categoryId.toLong()
+                            else categoryIds[it.categoryId.toInt()] ?: throw IOException("Unmapped imported category")
+                        val incoming = it.toEntity().copy(categoryId = resolvedId)
                         val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
                         if (BackupMergePolicy.shouldReplace(
                                 existing?.createdAt, existing?.deletedAt ?: 0L,

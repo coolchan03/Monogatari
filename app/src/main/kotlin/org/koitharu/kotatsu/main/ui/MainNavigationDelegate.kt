@@ -197,7 +197,7 @@ class MainNavigationDelegate(
 
 	/** Switches to the Explore (source browsing) tab, e.g. from the Discover screen. */
 	fun openExplore() {
-		navBar.selectedItemId = R.id.nav_explore
+		openNavItem(NavItem.EXPLORE.name)
 	}
 
 	/** Switches to the Discover tab when it is on the navigation bar; returns false when it is not. */
