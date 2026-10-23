@@ -107,15 +107,38 @@ class LibraryShelfTest {
 	}
 
 	@Test
-	fun sectionsFollowOriginOrderAndSkipEmpty() {
+	fun sectionsFollowGroupOrderAndSkipEmpty() {
 		val items = listOf(
 			item("x", origin = Origin.ON_DEVICE),
 			item("y", title = "B", origin = Origin.FAVOURITE),
 			item("z", title = "A", origin = Origin.FAVOURITE),
 		)
 		val sections = LibraryShelf.sections(items, Sort.TITLE)
-		assertEquals(listOf(Origin.FAVOURITE, Origin.ON_DEVICE), sections.map { it.origin })
+		assertEquals(listOf(LibraryShelf.Group.FAVOURITES, LibraryShelf.Group.ON_THIS_DEVICE), sections.map { it.group })
 		assertEquals(listOf("z", "y"), sections[0].items.map { it.key })
+	}
+
+	@Test
+	fun importedFilesAndDownloadsShareOneOnThisDeviceSection() {
+		val items = listOf(
+			item("/books/a.epub", title = "Book", kind = MediaType.BOOK, origin = Origin.IMPORTED),
+			item("content://video/1", title = "Clip", kind = MediaType.VIDEO, origin = Origin.IMPORTED),
+			item("42", title = "Download", origin = Origin.ON_DEVICE),
+			item("content://audio/1", title = "Audio", kind = MediaType.AUDIO, origin = Origin.IMPORTED),
+		)
+		val sections = LibraryShelf.sections(items, Sort.TITLE)
+		assertEquals(listOf(LibraryShelf.Group.ON_THIS_DEVICE), sections.map { it.group })
+		assertEquals(listOf("Audio", "Book", "Clip", "Download"), sections[0].items.map { it.title })
+		// Origins are untouched, so removal still tells a book file from a downloaded title.
+		assertEquals(setOf(Origin.IMPORTED, Origin.ON_DEVICE), sections[0].items.map { it.origin }.toSet())
+	}
+
+	@Test
+	fun onThisDeviceFilterCoversImportedDownloadedAndFavouriteDownloads() {
+		assertTrue(LibraryShelf.isOnThisDevice(item("a", origin = Origin.IMPORTED)))
+		assertTrue(LibraryShelf.isOnThisDevice(item("b", origin = Origin.ON_DEVICE)))
+		assertTrue(LibraryShelf.isOnThisDevice(item("c").copy(onDevice = true)))
+		assertFalse(LibraryShelf.isOnThisDevice(item("d")))
 	}
 
 	@Test

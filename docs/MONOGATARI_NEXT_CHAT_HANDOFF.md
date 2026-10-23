@@ -98,6 +98,10 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-23 — v1.4.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.4.0 built from `devel` `7ff9186` (drafts merged; build check run 39957411594 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease; first release using the commit-recording check from the v1.4 audit R01 fix). APK SHA-256 `c5d27076350b9a90382c61bdf70e166868606b1f706d9c9e7ba772a9bdd1b673`.
+- Includes Settings groups, rebuilt Library, AniList/MyAnimeList fallback, opt-in auto-download, themed screens + mascot, and the v1.4 audit fixes (docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md). Not device-verified yet; open items are listed in docs/FUTURE_VERSION_ROADMAP.md.
+
 ## 2026-10-21 — v1.3.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.3.0 built from `devel` `0f7cb5f` (drafts merged; build check run 39525327963 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `fb79ac670109f95fd9557831f5777cfe5175a08ef83df8f513b68c92ceae66af`.
 - Includes Add files, Add to library from Discover, 8-item navigation, Mangayomi extension/library import, shelf timeout fix. Not device-verified yet.

@@ -73,6 +73,7 @@ class DiscoverFragment : Fragment() {
 
 	/** Discover finds what to enjoy; Explore remains the advanced source manager. */
 	private enum class MediaSection(val label: String, val description: String) {
+		ALL("All", "A mix of what is trending in manga, books, anime and audio, plus picks from your reading"),
 		MANGA("Manga & Comics", "Trending comics and Boys' Love titles from AniList"),
 		BOOK("Books & Novels", "Light novels, free ebooks and public catalogs with cover art"),
 		VIDEO("Anime & Video", "Anime recommendations and public video collections"),
@@ -82,6 +83,9 @@ class DiscoverFragment : Fragment() {
 
 	@Inject
 	lateinit var discover: AniListDiscover
+
+	@Inject
+	lateinit var recommendations: RecommendationLoader
 
 	@Inject
 	lateinit var publicCatalog: PublicBookCatalog
@@ -117,7 +121,9 @@ class DiscoverFragment : Fragment() {
 	private var _binding: ActivityDiscoverBinding? = null
 	private val binding: ActivityDiscoverBinding get() = checkNotNull(_binding)
 	private val adapter = ItemsAdapter()
-	private var section = MediaSection.MANGA
+	/** Media type of each card on the All page, so a tap searches the right kind of source. */
+	private val itemTypes = HashMap<String, MediaType>()
+	private var section = MediaSection.ALL
 	private var feed = AniListDiscover.Feed.TRENDING_BL
 	private var publicFeedSelected = false
 	/** Popular titles straight from built-in video, book and audio sources, so those sections open filled. */
@@ -153,7 +159,7 @@ class DiscoverFragment : Fragment() {
 				text = media.label
 				isCheckable = true
 				isChecked = media == section
-				MediaAccents.tintChip(requireContext(), media.name, this)
+				if (media != MediaSection.ALL) MediaAccents.tintChip(requireContext(), media.name, this)
 			})
 		}
 		binding.chipsMedia.setOnCheckedStateChangeListener { _, checkedIds ->
@@ -259,6 +265,7 @@ class DiscoverFragment : Fragment() {
 	private fun showSection() {
 		binding.discoverSectionDescription.text = section.description
         Mascot.bind(binding.discoverMascot, when (section) {
+            MediaSection.ALL -> MascotForm.DEFAULT
             MediaSection.MANGA -> MascotForm.MANGA
             MediaSection.BOOK -> MascotForm.BOOK
             MediaSection.VIDEO -> MascotForm.VIDEO
@@ -346,6 +353,10 @@ class DiscoverFragment : Fragment() {
 			})
 		}
 		when (section) {
+			MediaSection.ALL -> {
+				action(getString(R.string.discover_all_search)) { askSearchAll() }
+				action(getString(R.string.mono_discover_my_library)) { startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)) }
+			}
 			MediaSection.MANGA -> {
 				action(getString(R.string.mono_discover_search_manga)) { askSearch(MediaType.MANGA) }
 				action(getString(R.string.mono_discover_my_library)) { startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)) }
@@ -415,6 +426,28 @@ class DiscoverFragment : Fragment() {
 			.show()
 	}
 
+	/** Searches every enabled source, whatever its media type. */
+	private fun askSearchAll() {
+		val input = EditText(requireContext()).apply {
+			hint = getString(R.string.mono_discover_title_author_or_topic)
+			setSingleLine(true)
+		}
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(R.string.discover_all_search_title)
+			.setView(input)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(getString(R.string.mono_discover_search)) { _, _ ->
+				val term = input.text?.toString()?.trim().orEmpty()
+				if (term.isNotBlank()) {
+					startActivity(Intent(requireContext(), SearchActivity::class.java)
+						.putExtra(AppRouter.KEY_QUERY, term)
+						.putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
+						.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, "ALL"))
+				}
+			}
+			.show()
+	}
+
 	private fun searchArchiveVideos() {
 		val input = EditText(requireContext()).apply { hint = getString(R.string.mono_discover_search_public_video_archives); setSingleLine(true) }
 		MaterialAlertDialogBuilder(requireContext())
@@ -457,9 +490,12 @@ class DiscoverFragment : Fragment() {
 		adapter.items = emptyList()
 		nextPage = 1
 		shelfOffsets.clear()
+		itemTypes.clear()
 		hasNextPage = section in setOf(MediaSection.MANGA, MediaSection.BOOK, MediaSection.VIDEO) ||
 			(section == MediaSection.AUDIO && (publicFeedSelected || shelfSelected))
-		if (hasNextPage) {
+		if (section == MediaSection.ALL) {
+			loadAll()
+		} else if (hasNextPage) {
 			loadMore()
 		} else {
 			binding.progress.isVisible = false
@@ -468,6 +504,28 @@ class DiscoverFragment : Fragment() {
 				MediaSection.NEWS -> "Open RSS and followed tags above to read stories from your favorite feeds."
 				else -> ""
 			})
+		}
+	}
+
+	/** The All page: one mixed list of recommendations from every media type, loaded in a single pass. */
+	private fun loadAll() {
+		binding.progress.isVisible = true
+		binding.textMessage.isVisible = false
+		loadJob = viewLifecycleOwner.lifecycleScope.launch {
+			try {
+				val picks = recommendations.load(null, settings.isNsfwContentDisabled)
+				if (section != MediaSection.ALL) return@launch
+				picks.forEach { itemTypes[it.item.uniqueKey] = it.type }
+				adapter.items = picks.map { it.item }
+				hasNextPage = false
+				if (picks.isEmpty()) showMessage(getString(R.string.nothing_found))
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				if (adapter.itemCount == 0) showMessage(getString(R.string.discover_load_failed, e.message.orEmpty()))
+			} finally {
+				_binding?.progress?.isVisible = false
+			}
 		}
 	}
 
@@ -724,6 +782,7 @@ class DiscoverFragment : Fragment() {
 				)
 			}
 			val type = when (section) {
+				MediaSection.ALL -> itemTypes[item.uniqueKey] ?: MediaType.MANGA
 				MediaSection.BOOK -> MediaType.BOOK
 				MediaSection.VIDEO -> MediaType.VIDEO
 				else -> MediaType.MANGA

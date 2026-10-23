@@ -3,7 +3,7 @@
 	<!-- Extra navigation bar destinations (settings > main screen sections). Keep them short: they are tab labels. -->
 	<string name="nav_item_news">News</string>
 	<string name="nav_item_media_feeds">Podcasts</string>
-	<string name="nav_item_unified_library">All media</string>
+	<string name="nav_item_unified_library">Library</string>
 	<string name="nav_item_book_catalog">Book catalog</string>
 	<string name="nav_item_search">Search</string>
 	<string name="nav_item_downloads">Downloads</string>

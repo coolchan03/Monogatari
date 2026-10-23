@@ -154,3 +154,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Settings overhaul, rebuilt Library, AniList + MyAnimeList fallback, themed screens and mascot, opt-in auto-download, backup/import/download safety fixes from the v1.4 audit (docs/MONOGATARI_V1_4_AUDIT_FINDINGS_20261022.md).
 - Still open from that audit: child auto-downloads don't inherit the Wi-Fi/charging constraints, a hard storage cap while writing, richer backup category identity than title matching, tests for the Mihon/Mangayomi merge fixes, encrypted Mangayomi backups, auto-download of video.
+
+## Released in v1.4.1 (2026-10-24)
+
+- Library covers every medium (On this device section, Recommended strip), Library replaces On device on the default bar (one-time migration), Discover opens on All.
+- Still open: remember the last Discover chip; hard storage cap and constraint inheritance for auto-download; remaining audit items listed under v1.4.0.
