@@ -99,9 +99,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 
 	var mainNavItems: List<NavItem>
 		get() {
+			migrateNavLayout()
 			val raw = prefs.getString(KEY_NAV_MAIN, null)?.split(',')
 			return if (raw.isNullOrEmpty()) {
-				listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
+				DEFAULT_NAV_ITEMS
 			} else {
 				raw.mapNotNull { x -> NavItem.entries.find(x) }.ifEmpty { listOf(NavItem.EXPLORE) }
 			}
@@ -111,6 +112,26 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 				putString(KEY_NAV_MAIN, value.joinToString(",") { it.name })
 			}
 		}
+
+	/**
+	 * One-time (v1.4.1): the On device tab only listed downloaded manga, while the Library tab covers every medium
+	 * (favourites, history, your files, recommendations). A bar that was never customised moves to the new default;
+	 * a customised bar only swaps On device for Library. Nothing else about a saved bar changes.
+	 */
+	private fun migrateNavLayout() {
+		if (prefs.getBoolean(KEY_NAV_LAYOUT_V3, false)) return
+		val saved = prefs.getString(KEY_NAV_MAIN, null)?.split(',')?.mapNotNull { x -> NavItem.entries.find(x) }
+		val migrated = when {
+			saved.isNullOrEmpty() -> null
+			saved == LEGACY_DEFAULT_NAV_ITEMS -> DEFAULT_NAV_ITEMS
+			NavItem.LOCAL in saved -> saved.map { if (it == NavItem.LOCAL) NavItem.UNIFIED_LIBRARY else it }.distinct()
+			else -> null
+		}
+		prefs.edit {
+			migrated?.let { putString(KEY_NAV_MAIN, it.joinToString(",") { item -> item.name }) }
+			putBoolean(KEY_NAV_LAYOUT_V3, true)
+		}
+	}
 
 	val isNavLabelsVisible: Boolean
 		get() = prefs.getBoolean(KEY_NAV_LABELS, true)
@@ -988,6 +1009,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_HIDE_ADULT_SOURCES = "monogatari_hide_adult_sources"
 		const val KEY_RELATED_MANGA = "related_manga"
 		const val KEY_NAV_MAIN = "nav_main"
+		const val KEY_NAV_LAYOUT_V3 = "nav_layout_v3"
+
+		val DEFAULT_NAV_ITEMS = listOf(NavItem.UNIFIED_LIBRARY, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
+		private val LEGACY_DEFAULT_NAV_ITEMS = listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
 		const val KEY_NAV_LABELS = "nav_labels"
 		const val KEY_NAV_PINNED = "nav_pinned"
 		const val KEY_FLOATING_NAV = "floating_nav"

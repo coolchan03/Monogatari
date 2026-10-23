@@ -120,7 +120,7 @@ class NavConfigViewModel @Inject constructor(
 	private companion object {
 
 		/** The same items, in the same order, as [AppSettings.mainNavItems] gives when nothing was saved. */
-		val DEFAULT_ITEMS = listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
+		val DEFAULT_ITEMS = AppSettings.DEFAULT_NAV_ITEMS
 
 		val OFFERED_GROUPS: List<Pair<Int, List<NavItem>>> = listOf(
 			R.string.nav_config_group_tabs to listOf(
