@@ -66,6 +66,7 @@ internal object BookShelf {
         return "$stem.$ext"
     }
 
+    private const val NOT_STARTED = "Not started"
     private const val HEADER_BYTES = 96
     private const val COVER_DIR = "library-covers"
     private const val MAX_COVER_SOURCE = 64L * 1024 * 1024
@@ -116,21 +117,25 @@ internal object BookShelf {
         }
         return Intent(context, reader).putExtra("local_book_file", file.absolutePath)
     }
+
+    /** Whether the reader has saved a position in this book. */
+    fun hasProgress(context: Context, file: File): Boolean = progress(context, file) != NOT_STARTED
+
     fun progress(context: Context, file: File): String = when (file.extension.lowercase()) {
         "epub" -> {
             val chapter = context.getSharedPreferences("epub_progress", Context.MODE_PRIVATE)
                 .getInt(file.name, -1)
-            if (chapter >= 0) "Chapter ${chapter + 1}" else "Not started"
+            if (chapter >= 0) "Chapter ${chapter + 1}" else NOT_STARTED
         }
         "pdf" -> {
             val page = context.getSharedPreferences("pdf_progress", Context.MODE_PRIVATE)
                 .getInt(file.name, -1)
-            if (page >= 0) "Page ${page + 1}" else "Not started"
+            if (page >= 0) "Page ${page + 1}" else NOT_STARTED
         }
         else -> {
             val saved = context.getSharedPreferences("book_scroll", Context.MODE_PRIVATE)
                 .contains(file.name)
-            if (saved) "Continue reading" else "Not started"
+            if (saved) "Continue reading" else NOT_STARTED
         }
     }
 }

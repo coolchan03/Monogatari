@@ -116,9 +116,19 @@ internal object LibraryShelf {
 		}
 	}
 
-	/** Recently opened titles for the Continue strip, filtered by the selected chip. */
-	fun continueItems(history: List<Item>, kind: MediaType?, limit: Int = CONTINUE_LIMIT): List<Item> =
-		history.asSequence()
+	/**
+	 * Titles for the Continue strip, filtered by the selected chip: the opened [history] (newest first) plus
+	 * [resumable] items that have a saved position (imported books, audio, video), most recent first.
+	 */
+	fun continueItems(
+		history: List<Item>,
+		kind: MediaType?,
+		limit: Int = CONTINUE_LIMIT,
+		resumable: List<Item> = emptyList(),
+	): List<Item> =
+		(if (resumable.isEmpty()) history else (history + resumable).sortedWith(
+			compareByDescending<Item> { it.readAt }.thenByDescending { it.addedAt },
+		)).asSequence()
 			.filter { kind == null || it.kind == kind }
 			.distinctBy { it.key }
 			.take(limit)

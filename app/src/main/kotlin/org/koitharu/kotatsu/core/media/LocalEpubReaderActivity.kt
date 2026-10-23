@@ -14,6 +14,11 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.media.epub.EpubBook
 import java.io.File
 
@@ -72,16 +77,24 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         layout.addView(nav, LinearLayout.LayoutParams(-1, -2))
         setMonogatariContent(layout, MonogatariChrome.TEXT_MAX_WIDTH_DP)
-        try {
-            if (file.length() > 128L * 1024 * 1024) error("EPUB exceeds 128 MB limit")
-            book = EpubBook.open(file)
-            title = book?.title ?: file.name
-            body.textSize = preferences.getFloat("font_size", 18f)
-            index = preferences.getInt(fileKey, 0)
-            showChapter(index.coerceIn(0, (book!!.chapters.size - 1).coerceAtLeast(0)), restorePosition = true)
-        } catch (error: Exception) {
-            position.text = getString(R.string.mono_epub_unable_to_open_epub)
-            body.text = error.message
+        // Parsing a large EPUB can take seconds; keep it off the main thread.
+        lifecycleScope.launch {
+            try {
+                val parsed = withContext(Dispatchers.IO) {
+                    if (file.length() > 128L * 1024 * 1024) error("EPUB exceeds 128 MB limit")
+                    EpubBook.open(file)
+                }
+                book = parsed
+                title = parsed.title
+                body.textSize = preferences.getFloat("font_size", 18f)
+                index = preferences.getInt(fileKey, 0)
+                showChapter(index.coerceIn(0, (parsed.chapters.size - 1).coerceAtLeast(0)), restorePosition = true)
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                position.text = getString(R.string.mono_epub_unable_to_open_epub)
+                body.text = error.message
+            }
         }
     }
 
@@ -185,7 +198,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (fileKey.isNotEmpty() && ::scroll.isInitialized && body.height > 0) preferences.edit()
+        if (book != null && fileKey.isNotEmpty() && ::scroll.isInitialized && body.height > 0) preferences.edit()
             .putInt(fileKey, index).putInt("$fileKey-scroll", scroll.scrollY)
             .putFloat("$fileKey-scroll-fraction", ReadingScrollPosition.fraction(scroll.scrollY, body.height, scroll.height))
             .apply()

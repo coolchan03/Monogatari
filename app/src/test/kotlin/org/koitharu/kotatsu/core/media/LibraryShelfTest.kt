@@ -143,6 +143,32 @@ class LibraryShelfTest {
 	}
 
 	@Test
+	fun continueMixesSavedPositionsMostRecentFirst() {
+		val history = listOf(item("10", readAt = 900L), item("11", readAt = 100L))
+		val resumable = listOf(
+			item("/books/a.epub", kind = MediaType.BOOK, origin = Origin.IMPORTED, addedAt = 50L),
+			item("content://audio/1", kind = MediaType.AUDIO, origin = Origin.IMPORTED, readAt = 500L),
+		)
+		val all = LibraryShelf.continueItems(history, null, resumable = resumable)
+		assertEquals(listOf("10", "content://audio/1", "11", "/books/a.epub"), all.map { it.key })
+		assertEquals(listOf("/books/a.epub"), LibraryShelf.continueItems(history, MediaType.BOOK, resumable = resumable).map { it.key })
+		assertEquals(LibraryShelf.CONTINUE_LIMIT, LibraryShelf.continueItems(history, null, resumable = (1..30).map {
+			item("/b/$it.epub", kind = MediaType.BOOK, origin = Origin.IMPORTED)
+		}).size)
+		// Without saved positions the history order is untouched.
+		assertEquals(listOf("11", "10"), LibraryShelf.continueItems(listOf(item("11"), item("10")), null).map { it.key })
+	}
+
+	@Test
+	fun downloadsAreClassifiedByTheirOriginalSource() {
+		val groups = mapOf(MediaType.BOOK to setOf("OPDS_X"), MediaType.MANGA to setOf("LOCAL"))
+		assertEquals(MediaType.BOOK, LibraryShelf.kindOf("OPDS_X", groups))
+		// Imported comics, and downloads whose original source is unknown, stay manga.
+		assertEquals(MediaType.MANGA, LibraryShelf.kindOf("LOCAL", groups))
+		assertEquals(MediaType.MANGA, LibraryShelf.kindOf("", groups))
+	}
+
+	@Test
 	fun coverCacheNameChangesWithTheFile() {
 		val dir = createTempDir()
 		try {

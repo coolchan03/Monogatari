@@ -16,6 +16,12 @@ internal object AudioResumeStore {
         return prefs.getLong("$key:position", 0L).coerceAtLeast(0L)
     }
 
+    /** When the position was last saved, or 0 when there is none (or it has expired). */
+    fun updatedAt(context: Context, uri: String): Long {
+        val updated = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("${digest(uri)}:updated", 0L)
+        return if (System.currentTimeMillis() - updated > MAX_AGE_MS) 0L else updated
+    }
+
     fun write(context: Context, uri: String, positionMs: Long) {
         if (uri.isBlank() || positionMs < 0L) return
         val key = digest(uri)

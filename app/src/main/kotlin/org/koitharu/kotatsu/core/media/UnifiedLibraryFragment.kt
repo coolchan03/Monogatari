@@ -51,8 +51,11 @@ import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
+import org.koitharu.kotatsu.core.ui.bodyText
+import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
+import org.koitharu.kotatsu.core.util.ext.setThemeTextAppearance
 import org.koitharu.kotatsu.favourites.data.toManga
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.favourites.smart.SmartCollectionRule
@@ -65,6 +68,7 @@ import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.main.ui.NavLayoutPolicy
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.SortOrder
+import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import javax.inject.Inject
 
 private typealias Row = LibraryShelf.Item
@@ -99,6 +103,8 @@ class UnifiedLibraryFragment : Fragment() {
 	private var all = emptyList<Row>()
 	/** Most recently opened titles, newest first, for the Continue strip. */
 	private var recent = emptyList<Row>()
+	/** Imported books, audio and video with a saved position; they join the Continue strip. */
+	private var resumable = emptyList<Row>()
 	/** Sources that failed to load in the last refresh; everything else is still shown. */
 	private var loadProblems = emptyList<String>()
 	/** At 840dp and wider the library shows a details pane next to the list (#63). */
@@ -316,16 +322,16 @@ class UnifiedLibraryFragment : Fragment() {
 			contentDescription = getString(R.string.library_pane_cover)
 		}
 		paneTitle = TextView(requireContext()).apply {
-			setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall)
+			setThemeTextAppearance(
+				com.google.android.material.R.attr.textAppearanceHeadlineSmall,
+				com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall,
+			)
 			// TalkBack announces the newly selected title when the details pane changes.
 			accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
 		}
-		paneMeta = TextView(requireContext())
-		paneDescription = TextView(requireContext())
-		paneOpen = MaterialButton(requireContext()).apply {
-			setText(R.string.library_pane_open)
-			setOnClickListener { paneRow?.let(::openRow) }
-		}
+		paneMeta = requireContext().bodyText(null)
+		paneDescription = requireContext().bodyText(null)
+		paneOpen = requireContext().primaryButton(getString(R.string.library_pane_open)) { paneRow?.let(::openRow) }
 		column.addView(paneCover, LinearLayout.LayoutParams(-1, resources.getDimensionPixelSize(R.dimen.library_pane_cover_height)))
 		column.addView(paneTitle, LinearLayout.LayoutParams(-1, -2))
 		column.addView(paneMeta, LinearLayout.LayoutParams(-1, -2))
@@ -639,7 +645,7 @@ class UnifiedLibraryFragment : Fragment() {
 
 	override fun onResume() { super.onResume(); if (view != null && ::search.isInitialized) refresh() }
 
-	private class Loaded(val items: List<Row>, val recent: List<Row>, val problems: List<String>, val recovered: Int)
+	private class Loaded(val items: List<Row>, val recent: List<Row>, val resumable: List<Row>, val problems: List<String>, val recovered: Int)
 
 	/** Runs one part of the library load; a failure is reported but never hides the other parts. */
 	private inline fun <T> part(problems: MutableList<String>, default: T, block: () -> T): T = try {
@@ -650,6 +656,13 @@ class UnifiedLibraryFragment : Fragment() {
 		problems += error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
 		default
 	}
+
+	/**
+	 * Downloads are opened through the local placeholder source, so the original source (if the app has ever
+	 * saved this title) tells whether a download is a comic, a novel, a video or audio.
+	 */
+	private suspend fun originalSourceName(mangaId: Long): String =
+		runCatchingCancellable { db.getMangaDao().find(mangaId)?.manga?.source }.getOrNull().orEmpty()
 
 	/** Everything the user added, from every place it can live; call off the main thread. */
 	private suspend fun load(context: Context): Loaded {
@@ -677,7 +690,7 @@ class UnifiedLibraryFragment : Fragment() {
 					key = LibraryShelf.mangaKey(manga.id),
 					title = manga.title,
 					detail = onDeviceLabel,
-					kind = MediaType.MANGA,
+					kind = LibraryShelf.kindOf(originalSourceName(manga.id), groups),
 					origin = LibraryShelf.Origin.ON_DEVICE,
 					addedAt = runCatching { LocalManga(manga).createdAt }.getOrDefault(0L),
 					manga = manga,
@@ -707,6 +720,7 @@ class UnifiedLibraryFragment : Fragment() {
 			LocalMediaShelf.list(context).map { entry ->
 				val readable = LocalMediaShelf.isReadable(context, entry)
 				Row(
+					readAt = if (readable) AudioResumeStore.updatedAt(context, entry.uri) else 0L,
 					key = entry.uri,
 					title = LocalMediaShelf.title(entry),
 					detail = LocalMediaShelf.detail(context, entry, readable),
@@ -741,7 +755,12 @@ class UnifiedLibraryFragment : Fragment() {
 		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows).map { row ->
 			if (row.favourite && row.onDevice) row.copy(detail = context.getString(R.string.library_ov_detail_join, row.detail, onDeviceLabel)) else row
 		}
-		return Loaded(LibraryShelf.withReadTimes(merged, readTimes), historyRows, problems, recovered)
+		val items = LibraryShelf.withReadTimes(merged, readTimes)
+		// Imported files keep their position outside history; those with one can be continued.
+		val resumable = items.filter { row ->
+			(row.file != null && BookShelf.hasProgress(context, row.file)) || (row.media != null && !row.missing && row.readAt > 0L)
+		}
+		return Loaded(items, historyRows, resumable, problems, recovered)
 	}
 
 	private fun refresh() {
@@ -754,6 +773,7 @@ class UnifiedLibraryFragment : Fragment() {
 				val loaded = withContext(Dispatchers.IO) { load(context) }
 				all = loaded.items
 				recent = loaded.recent
+				resumable = loaded.resumable
 				loadProblems = loaded.problems
 				render()
 				if (loaded.recovered > 0) {
@@ -801,7 +821,7 @@ class UnifiedLibraryFragment : Fragment() {
 		val filtered = inScope.filter { LibraryShelf.matches(it, selected, "") }
 		val sections = LibraryShelf.sections(filtered, sort)
 		val continueRows = if (selectedCollection == null && selectedSmart == null && q.isEmpty()) {
-			LibraryShelf.continueItems(recent, selected)
+			LibraryShelf.continueItems(recent, selected, resumable = resumable)
 		} else {
 			emptyList()
 		}

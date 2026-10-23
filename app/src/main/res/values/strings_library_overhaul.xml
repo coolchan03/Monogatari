@@ -17,7 +17,6 @@
 	<string name="library_ov_section_on_device">Downloaded / On device</string>
 	<string name="library_ov_categories">Categories</string>
 	<string name="library_ov_find_books">Find books</string>
-	<string name="library_ov_detail_favourite">Favourite</string>
 	<string name="library_ov_detail_on_device">On device</string>
 	<string name="library_ov_detail_local_book">Local %1$s · %2$s</string>
 	<string name="library_ov_detail_join">%1$s · %2$s</string>
