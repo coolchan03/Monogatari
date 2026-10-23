@@ -71,6 +71,8 @@ class AiringReminderWorker @AssistedInject constructor(
 	@RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
 	private fun showNotification(episode: AniListDiscover.AiredEpisode, title: String) {
 		val id = episode.mediaId * 31 + episode.episode
+		// (show, episode) pairs can share [id]; the tag and the intent action keep every notification distinct.
+		val identity = AniListDiscover.airingKey(episode.mediaId, episode.episode)
 		val text = if (episode.episode > 0) {
 			applicationContext.getString(R.string.airing_reminder_episode_out, title, episode.episode)
 		} else {
@@ -89,13 +91,13 @@ class AiringReminderWorker @AssistedInject constructor(
 				PendingIntentCompat.getActivity(
 					applicationContext,
 					id,
-					searchIntent(applicationContext, title),
+					searchIntent(applicationContext, title).setAction("$TAG:$identity"),
 					PendingIntent.FLAG_UPDATE_CURRENT,
 					false,
 				),
 			)
 			.build()
-		NotificationManagerCompat.from(applicationContext).notify(TAG, id, notification)
+		NotificationManagerCompat.from(applicationContext).notify("$TAG:$identity", id, notification)
 	}
 
 	@Reusable

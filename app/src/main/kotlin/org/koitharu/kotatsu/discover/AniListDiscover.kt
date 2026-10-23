@@ -66,6 +66,8 @@ class AniListDiscover @Inject constructor(
 		val manga: org.koitharu.kotatsu.parsers.model.Manga? = null,
 		/** AniList media id of an "Airing this week" card ([id] is per episode there); `null` for other cards. */
 		val aniListMediaId: Int? = null,
+		/** Stable identity for de-duplication; [id] alone collides for airing cards (one per show and episode). */
+		val uniqueKey: String = id.toString(),
 	)
 
 	class Page(val items: List<Item>, val hasNextPage: Boolean)
@@ -80,7 +82,7 @@ class AniListDiscover @Inject constructor(
 	 * pages stay with the provider that served page 1 so paging never mixes the two catalogs.
 	 */
 	suspend fun load(feed: Feed, page: Int): Page = withContext(Dispatchers.IO) {
-		val key = "${feed.name}:$page"
+		val key = cacheKey(feed, if (feed in fallbackFeeds) Provider.JIKAN else Provider.ANILIST, page)
 		pageCache[key]?.takeIf { it.expiresAt > System.currentTimeMillis() }?.let { return@withContext it.page }
 		val result = if (page > 1 && feed in fallbackFeeds) {
 			jikan.load(feed, page)
@@ -104,8 +106,10 @@ class AniListDiscover @Inject constructor(
 				fallback
 			}
 		}
-		val ttl = if (feed in fallbackFeeds) FALLBACK_CACHE_TTL_MS else CACHE_TTL_MS
-		pageCache[key] = CachedPage(result, System.currentTimeMillis() + ttl)
+		// The provider may have changed while loading (fallback), so the entry is stored under the one that served it.
+		val provider = if (feed in fallbackFeeds) Provider.JIKAN else Provider.ANILIST
+		val ttl = if (provider == Provider.JIKAN) FALLBACK_CACHE_TTL_MS else CACHE_TTL_MS
+		pageCache[cacheKey(feed, provider, page)] = CachedPage(result, System.currentTimeMillis() + ttl)
 		result
 	}
 
@@ -173,6 +177,9 @@ class AniListDiscover @Inject constructor(
 		else -> describe(e)
 	}
 
+	/** Which catalog served a page; cached pages are kept per provider so the two are never mixed while paging. */
+	internal enum class Provider { ANILIST, JIKAN }
+
 	private class CachedPage(val page: Page, val expiresAt: Long)
 
 	companion object {
@@ -192,6 +199,8 @@ class AniListDiscover @Inject constructor(
 		/** Shared by every injected instance (Discover tab, media shelves) so screens reuse pages for a while. */
 		private val pageCache = ConcurrentHashMap<String, CachedPage>()
 		private val fallbackFeeds: MutableSet<Feed> = ConcurrentHashMap.newKeySet()
+
+		internal fun cacheKey(feed: Feed, provider: Provider, page: Int): String = "${feed.name}:${provider.name}:$page"
 
 		/** AniList's `errors[0].message` (or a plain `message`) from an error body; `null` when it isn't JSON. */
 		internal fun errorMessage(body: String): String? = runCatching {
@@ -276,6 +285,13 @@ query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
 			.put("query", AIRING_QUERY.trim())
 			.put("variables", JSONObject().put("page", page).put("from", from).put("to", to))
 
+		/** Drops adult titles when the user chose to hide adult content; otherwise returns [items] unchanged. */
+		fun visibleItems(items: List<Item>, hideAdult: Boolean): List<Item> =
+			if (hideAdult) items.filterNot { it.isAdult } else items
+
+		/** Collision-free identity of one airing card: `(100, 32)` and `(101, 1)` differ although `id * 31 + episode` matches. */
+		fun airingKey(mediaId: Int, episode: Int): String = "$mediaId:$episode"
+
 		/** Parses an `airingSchedules` page; each episode is its own card, badge from [label]. */
 		fun parseAiring(body: String, label: (episode: Int, airingAt: Long) -> String): Page {
 			val root = JSONObject(body)
@@ -296,6 +312,7 @@ query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
 				Item(
 					// Episode-level id: the same show appears once per episode in the week.
 					id = media.optInt("id") * 31 + episode,
+					uniqueKey = airingKey(media.optInt("id"), episode),
 					title = title,
 					alternativeTitle = romaji?.takeIf { it != title },
 					coverUrl = media.optJSONObject("coverImage")?.optString("large")?.takeIf { it.startsWith("https://") },

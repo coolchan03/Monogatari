@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- More hub groups -->
+	<string name="more_group_settings">Settings</string>
+	<string name="more_group_library">Library tools</string>
+	<string name="more_group_sources">Sources</string>
+	<string name="more_group_feeds">Feeds</string>
+	<string name="more_group_backup">Backup &amp; sync</string>
+	<string name="more_group_help">Help &amp; about</string>
+
+	<!-- More hub destinations -->
+	<string name="more_page_settings">Settings</string>
+	<string name="more_page_settings_summary">Appearance, reading, library, sources, backups and privacy</string>
+	<string name="more_page_library">Library</string>
+	<string name="more_page_library_summary">Manga, books, video and audio; add your own files from its menu</string>
+	<string name="more_page_books_catalog">Books catalog</string>
+	<string name="more_page_books_catalog_summary">Browse fiction and locally imported ebooks</string>
+	<string name="more_page_downloads">Downloads</string>
+	<string name="more_page_downloads_summary">Saved chapters and offline reading</string>
+	<string name="more_page_bookmarks">Bookmarks</string>
+	<string name="more_page_bookmarks_summary">Saved pages and reading positions</string>
+	<string name="more_page_stats">Reading statistics</string>
+	<string name="more_page_stats_summary">Activity, progress and exports</string>
+	<string name="more_page_discover">Discover</string>
+	<string name="more_page_discover_summary">Manga, novels, anime, films, audio and news across sources</string>
+	<string name="more_page_discover_books_summary">Light novels, free ebooks and public catalogs with cover art</string>
+	<string name="more_page_discover_video_summary">Anime recommendations and public video collections</string>
+	<string name="more_page_sources">Sources</string>
+	<string name="more_page_sources_summary">Installed websites and extension catalog</string>
+	<string name="more_page_repos">Extension repositories</string>
+	<string name="more_page_repos_summary">Add repositories and check extension health</string>
+	<string name="more_page_source_log">Source activity log</string>
+	<string name="more_page_source_log_summary">See which sources worked or failed, and open a site in the browser</string>
+	<string name="more_page_api_keys">API keys &amp; accounts</string>
+	<string name="more_page_api_keys_summary">Your own keys for Jellyfin, Plex, Twitch and Vimeo, with sign-up links</string>
+	<string name="more_page_news">News &amp; followed tags</string>
+	<string name="more_page_news_summary">RSS feeds and saved interests</string>
+	<string name="more_page_media_feeds">Podcasts &amp; video RSS</string>
+	<string name="more_page_media_feeds_summary">Your fiction, film, drama and entertainment subscriptions</string>
+	<string name="more_page_backup">Backup &amp; restore</string>
+	<string name="more_page_backup_summary">Create, restore and schedule backups</string>
+	<string name="more_page_nearby_sync">Nearby offline sync</string>
+	<string name="more_page_nearby_sync_summary">Pair by code; transfer and merge library or send files</string>
+	<string name="more_page_webdav">Manual WebDAV backups</string>
+	<string name="more_page_webdav_summary">Explicit ZIP transfers; no auto-restore</string>
+	<string name="more_page_import">Import from Kotatsu / Mangayomi</string>
+	<string name="more_page_import_summary">Bring over your library, categories and reading progress</string>
+	<string name="more_page_test_center">Source test center</string>
+	<string name="more_page_test_center_summary">Run diagnostics and copy reports</string>
+	<string name="more_page_licences">Open-source licences</string>
+	<string name="more_page_licences_summary">Offline credits, full GPL and upstream notices</string>
+	<string name="more_page_about">About</string>
+	<string name="more_page_about_summary">Version, credits and app information</string>
+
+	<!-- News screen -->
+	<string name="news_filter_followed">Followed topics</string>
+	<string name="news_filter_saved">Saved stories</string>
+	<string name="news_filter_oldest_first">Oldest first</string>
+	<string name="news_menu_add_feed">Add feed URL</string>
+	<string name="news_menu_included_feeds">Included feeds</string>
+	<string name="news_menu_remove_feed">Remove a feed</string>
+	<string name="news_menu_refresh">Refresh</string>
+	<string name="news_topics_saved">Saved %1$d followed topics on this device</string>
+
+	<!-- Discover -->
+	<string name="discover_see_more_books">See more books</string>
+	<string name="discover_see_more_videos">See more videos</string>
+</resources>

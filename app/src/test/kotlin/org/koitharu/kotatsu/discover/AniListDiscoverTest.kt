@@ -141,4 +141,44 @@ class AniListDiscoverTest {
 		assertEquals("Unknown error", AniListDiscover.describe(IOException("Unknown error")))
 		assertEquals("IOException", AniListDiscover.describe(IOException()))
 	}
+
+	@Test
+	fun airingCardsOfDifferentShowsNeverShareAUniqueKey() {
+		// 100 * 31 + 32 == 101 * 31 + 1, so the numeric id alone cannot tell these episodes apart.
+		assertEquals(100 * 31 + 32, 101 * 31 + 1)
+		assertTrue(AniListDiscover.airingKey(100, 32) != AniListDiscover.airingKey(101, 1))
+		val body = """
+			{"data":{"Page":{"pageInfo":{"hasNextPage":false},"airingSchedules":[
+				{"episode":32,"airingAt":1000,"media":{"id":100,"title":{"english":"A"}}},
+				{"episode":1,"airingAt":2000,"media":{"id":101,"title":{"english":"B"}}}
+			]}}}
+		""".trimIndent()
+		val items = AniListDiscover.parseAiring(body) { episode, _ -> "Ep $episode" }.items
+		assertEquals(1, items.map { it.id }.distinct().size)
+		assertEquals(2, items.map { it.uniqueKey }.distinct().size)
+	}
+
+	@Test
+	fun nonAiringItemsKeepTheirIdAsUniqueKey() {
+		val item = AniListDiscover.Item(id = 5, title = "T", alternativeTitle = null, coverUrl = null, score = null)
+		assertEquals("5", item.uniqueKey)
+	}
+
+	@Test
+	fun cacheKeysDifferPerProviderAndPage() {
+		val feed = AniListDiscover.Feed.TRENDING_MANGA
+		val aniList = AniListDiscover.Provider.ANILIST
+		val jikan = AniListDiscover.Provider.JIKAN
+		assertTrue(AniListDiscover.cacheKey(feed, aniList, 1) != AniListDiscover.cacheKey(feed, jikan, 1))
+		assertTrue(AniListDiscover.cacheKey(feed, jikan, 1) != AniListDiscover.cacheKey(feed, jikan, 2))
+		assertTrue(AniListDiscover.cacheKey(feed, aniList, 2) != AniListDiscover.cacheKey(AniListDiscover.Feed.TRENDING_BL, aniList, 2))
+	}
+
+	@Test
+	fun adultTitlesAreHiddenOnlyWhenTheSettingIsOn() {
+		val safe = AniListDiscover.Item(id = 1, title = "A", alternativeTitle = null, coverUrl = null, score = null)
+		val adult = safe.copy(id = 2, title = "B", isAdult = true)
+		assertEquals(listOf(safe, adult), AniListDiscover.visibleItems(listOf(safe, adult), hideAdult = false))
+		assertEquals(listOf(safe), AniListDiscover.visibleItems(listOf(safe, adult), hideAdult = true))
+	}
 }

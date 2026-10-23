@@ -1,8 +1,11 @@
 package org.koitharu.kotatsu.main.ui
 
 import org.koitharu.kotatsu.discover.DiscoverActivity
+import org.koitharu.kotatsu.discover.media.MediaDiscoverActivity
 import android.app.Activity
 import android.content.Intent
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity
 import org.koitharu.kotatsu.backups.domain.NearbyOfflineSyncActivity
@@ -22,65 +25,71 @@ import org.koitharu.kotatsu.stats.ui.StatsActivity
 
 /** One destination catalogue for the full-screen More hub, in clear groups with Settings first and no duplicates. */
 internal object MoreDestinations {
-    data class Page(val title: String, val subtitle: String,
-        val icon: Int, val target: Class<out Activity>, val viewUri: String? = null,
-        val group: String = GROUP_HELP)
+    /** Hub groups in display order; [id] is stable, the heading text is a string resource. */
+    enum class Group(val id: String, @StringRes val title: Int) {
+        SETTINGS("settings", R.string.more_group_settings),
+        LIBRARY("library", R.string.more_group_library),
+        SOURCES("sources", R.string.more_group_sources),
+        FEEDS("feeds", R.string.more_group_feeds),
+        BACKUP("backup", R.string.more_group_backup),
+        HELP("help", R.string.more_group_help),
+    }
 
-    private const val GROUP_SETTINGS = "Settings"
-    private const val GROUP_LIBRARY = "Library tools"
-    private const val GROUP_SOURCES = "Sources"
-    private const val GROUP_FEEDS = "Feeds"
-    private const val GROUP_BACKUP = "Backup & sync"
-    private const val GROUP_HELP = "Help & about"
+    /** [id] is stable; [media] is the accent kind name (BOOK, VIDEO, NEWS, AUDIO) or null for the default. */
+    data class Page(val id: String, @StringRes val title: Int, @StringRes val subtitle: Int,
+        @DrawableRes val icon: Int, val target: Class<out Activity>, val group: Group,
+        val viewUri: String? = null, val media: String? = null)
 
-    val groupOrder = listOf(GROUP_SETTINGS, GROUP_LIBRARY, GROUP_SOURCES, GROUP_FEEDS, GROUP_BACKUP, GROUP_HELP)
+    val groupOrder = Group.entries
 
     val pages = listOf(
-        Page("Settings", "Appearance, reading, library, sources, backups and privacy",
-            R.drawable.ic_settings, SettingsActivity::class.java, group = GROUP_SETTINGS),
-        Page("Library", "Manga, books, video and audio; add your own files from its menu",
-            R.drawable.ic_monogatari_nav_favorites, UnifiedLibraryActivity::class.java, group = GROUP_LIBRARY),
-        Page("Books catalog", "Browse fiction and locally imported ebooks",
-            R.drawable.ic_monogatari_nav_books, BookLibraryActivity::class.java, group = GROUP_LIBRARY),
-        Page("Downloads", "Saved chapters and offline reading",
-            R.drawable.ic_monogatari_nav_local, DownloadsActivity::class.java, group = GROUP_LIBRARY),
-        Page("Bookmarks", "Saved pages and reading positions",
-            R.drawable.ic_monogatari_nav_bookmarks, AllBookmarksActivity::class.java, group = GROUP_LIBRARY),
-        Page("Reading statistics", "Activity, progress and exports",
-            R.drawable.ic_monogatari_nav_history, StatsActivity::class.java, group = GROUP_LIBRARY),
-        Page("Discover", "Manga, novels, anime, films, audio and news across sources",
-            R.drawable.ic_monogatari_nav_explore, DiscoverActivity::class.java, group = GROUP_SOURCES),
-        Page("Sources", "Installed websites and extension catalog",
-            R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java, group = GROUP_SOURCES),
-        Page("Extension repositories", "Add repositories and check extension health",
-            R.drawable.ic_monogatari_nav_explore, SettingsActivity::class.java,
-            "monogatari://source-repos", group = GROUP_SOURCES),
-        Page("Source activity log", "See which sources worked or failed, and open a site in the browser",
-            R.drawable.ic_monogatari_nav_explore, SourceLogActivity::class.java, group = GROUP_SOURCES),
-        Page("API keys & accounts", "Your own keys for Jellyfin, Plex, Twitch and Vimeo, with sign-up links",
-            R.drawable.ic_monogatari_nav_local, ApiKeysActivity::class.java, group = GROUP_SOURCES),
-        Page("News & followed tags", "RSS feeds and saved interests",
-            R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java, group = GROUP_FEEDS),
-        Page("Podcasts & video RSS", "Your fiction, film, drama and entertainment subscriptions",
-            R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java, group = GROUP_FEEDS),
-        Page("Backup & restore", "Create, restore and schedule backups",
-            R.drawable.ic_monogatari_nav_local, SettingsActivity::class.java,
-            "monogatari://backups", group = GROUP_BACKUP),
-        Page("Nearby offline sync", "Pair by code; transfer and merge library or send files",
-            R.drawable.ic_monogatari_nav_local, NearbyOfflineSyncActivity::class.java, group = GROUP_BACKUP),
-        Page("Manual WebDAV backups", "Explicit ZIP transfers; no auto-restore",
-            R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java, group = GROUP_BACKUP),
-        Page("Import from Kotatsu / Mangayomi", "Bring over your library, categories and reading progress",
-            R.drawable.ic_monogatari_nav_local, ForeignBackupReviewActivity::class.java, group = GROUP_BACKUP),
-        Page("Source test center", "Run diagnostics and copy reports",
-            R.drawable.ic_monogatari_nav_explore, MonogatariTestCenterActivity::class.java),
-        Page("Open-source licences", "Offline credits, full GPL and upstream notices",
-            R.drawable.ic_monogatari_nav_books, OpenSourceLicensesActivity::class.java),
-        Page("About", "Version, credits and app information",
-            R.drawable.ic_monogatari_nav_books, SettingsActivity::class.java, "monogatari://about"),
+        Page("settings", R.string.more_page_settings, R.string.more_page_settings_summary,
+            R.drawable.ic_settings, SettingsActivity::class.java, Group.SETTINGS),
+        Page("library", R.string.more_page_library, R.string.more_page_library_summary,
+            R.drawable.ic_monogatari_nav_favorites, UnifiedLibraryActivity::class.java, Group.LIBRARY),
+        Page("books_catalog", R.string.more_page_books_catalog, R.string.more_page_books_catalog_summary,
+            R.drawable.ic_monogatari_nav_books, BookLibraryActivity::class.java, Group.LIBRARY, media = "BOOK"),
+        Page("downloads", R.string.more_page_downloads, R.string.more_page_downloads_summary,
+            R.drawable.ic_monogatari_nav_local, DownloadsActivity::class.java, Group.LIBRARY),
+        Page("bookmarks", R.string.more_page_bookmarks, R.string.more_page_bookmarks_summary,
+            R.drawable.ic_monogatari_nav_bookmarks, AllBookmarksActivity::class.java, Group.LIBRARY, media = "BOOK"),
+        Page("stats", R.string.more_page_stats, R.string.more_page_stats_summary,
+            R.drawable.ic_monogatari_nav_history, StatsActivity::class.java, Group.LIBRARY),
+        Page("discover", R.string.more_page_discover, R.string.more_page_discover_summary,
+            R.drawable.ic_monogatari_nav_explore, DiscoverActivity::class.java, Group.SOURCES, media = "VIDEO"),
+        Page("discover_books", R.string.more_page_discover_books, R.string.more_page_discover_books_summary,
+            R.drawable.ic_monogatari_nav_books, MediaDiscoverActivity::class.java, Group.SOURCES, viewUri = "monogatari://discover/books", media = "BOOK"),
+        Page("discover_video", R.string.more_page_discover_video, R.string.more_page_discover_video_summary,
+            R.drawable.ic_play, MediaDiscoverActivity::class.java, Group.SOURCES, viewUri = "monogatari://discover/video", media = "VIDEO"),
+        Page("sources", R.string.more_page_sources, R.string.more_page_sources_summary,
+            R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java, Group.SOURCES),
+        Page("repos", R.string.more_page_repos, R.string.more_page_repos_summary,
+            R.drawable.ic_monogatari_nav_explore, SettingsActivity::class.java, Group.SOURCES, viewUri = "monogatari://source-repos"),
+        Page("source_log", R.string.more_page_source_log, R.string.more_page_source_log_summary,
+            R.drawable.ic_monogatari_nav_explore, SourceLogActivity::class.java, Group.SOURCES),
+        Page("api_keys", R.string.more_page_api_keys, R.string.more_page_api_keys_summary,
+            R.drawable.ic_monogatari_nav_local, ApiKeysActivity::class.java, Group.SOURCES),
+        Page("news", R.string.more_page_news, R.string.more_page_news_summary,
+            R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java, Group.FEEDS, media = "NEWS"),
+        Page("media_feeds", R.string.more_page_media_feeds, R.string.more_page_media_feeds_summary,
+            R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java, Group.FEEDS, media = "VIDEO"),
+        Page("backup", R.string.more_page_backup, R.string.more_page_backup_summary,
+            R.drawable.ic_monogatari_nav_local, SettingsActivity::class.java, Group.BACKUP, viewUri = "monogatari://backups"),
+        Page("nearby_sync", R.string.more_page_nearby_sync, R.string.more_page_nearby_sync_summary,
+            R.drawable.ic_monogatari_nav_local, NearbyOfflineSyncActivity::class.java, Group.BACKUP),
+        Page("webdav", R.string.more_page_webdav, R.string.more_page_webdav_summary,
+            R.drawable.ic_monogatari_nav_local, WebDavManualSyncActivity::class.java, Group.BACKUP),
+        Page("import", R.string.more_page_import, R.string.more_page_import_summary,
+            R.drawable.ic_monogatari_nav_local, ForeignBackupReviewActivity::class.java, Group.BACKUP),
+        Page("test_center", R.string.more_page_test_center, R.string.more_page_test_center_summary,
+            R.drawable.ic_monogatari_nav_explore, MonogatariTestCenterActivity::class.java, Group.HELP),
+        Page("licences", R.string.more_page_licences, R.string.more_page_licences_summary,
+            R.drawable.ic_monogatari_nav_books, OpenSourceLicensesActivity::class.java, Group.HELP),
+        Page("about", R.string.more_page_about, R.string.more_page_about_summary,
+            R.drawable.ic_monogatari_nav_books, SettingsActivity::class.java, Group.HELP, viewUri = "monogatari://about"),
     )
 
-    /** Section titles (String) interleaved with their destinations (Page). */
+    /** Group headings (Group) interleaved with their destinations (Page). */
     val sections: List<Any> = buildList {
         for (group in groupOrder) {
             val members = pages.filter { it.group == group }

@@ -49,6 +49,8 @@ import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.discover.media.MediaDiscoverActivity
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.parsers.model.ContentRating
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
@@ -86,6 +88,9 @@ class DiscoverFragment : Fragment() {
 
 	@Inject
 	lateinit var coil: ImageLoader
+
+	@Inject
+	lateinit var settings: AppSettings
 
 	@Inject
 	lateinit var history: HistoryRepository
@@ -140,6 +145,7 @@ class DiscoverFragment : Fragment() {
 		publicFeedSelected = savedInstanceState?.getBoolean(KEY_PUBLIC_FEED) ?: false
 		shelfSelected = savedInstanceState?.getBoolean(KEY_SHELF_FEED) ?: shelfSources(section).isNotEmpty()
 		airingSelected = savedInstanceState?.getBoolean(KEY_AIRING_FEED) ?: false
+		forYouSelected = savedInstanceState?.getBoolean(KEY_FOR_YOU_FEED) ?: false
 
 		MediaSection.entries.forEach { media ->
 			binding.chipsMedia.addView(Chip(requireContext()).apply {
@@ -239,6 +245,7 @@ class DiscoverFragment : Fragment() {
 		outState.putBoolean(KEY_PUBLIC_FEED, publicFeedSelected)
 		outState.putBoolean(KEY_SHELF_FEED, shelfSelected)
 		outState.putBoolean(KEY_AIRING_FEED, airingSelected)
+		outState.putBoolean(KEY_FOR_YOU_FEED, forYouSelected)
 	}
 
 	override fun onDestroyView() {
@@ -346,12 +353,18 @@ class DiscoverFragment : Fragment() {
 			MediaSection.BOOK -> {
 				action(getString(R.string.mono_discover_books_catalog_opds)) { startActivity(Intent(requireContext(), BookLibraryActivity::class.java)) }
 				action(getString(R.string.mono_discover_search_novel_sources)) { askSearch(MediaType.BOOK) }
+				action(getString(R.string.discover_see_more_books)) {
+					startActivity(MediaDiscoverActivity.intent(requireContext(), MediaType.BOOK))
+				}
 			}
 			MediaSection.VIDEO -> {
 				action(getString(R.string.mono_discover_search_video_websites)) { askSearch(MediaType.VIDEO) }
 				action(getString(R.string.mono_discover_archive_public_videos)) { searchArchiveVideos() }
 				action(getString(R.string.mono_discover_video_rss_feeds)) { openMediaFeeds(MediaType.VIDEO) }
 				action(getString(R.string.mono_discover_my_saved_videos)) { openLibrary(MediaType.VIDEO) }
+				action(getString(R.string.discover_see_more_videos)) {
+					startActivity(MediaDiscoverActivity.intent(requireContext(), MediaType.VIDEO))
+				}
 			}
 			MediaSection.AUDIO -> {
 				action(getString(R.string.mono_discover_find_audiobooks_dramas)) { askSearch(MediaType.AUDIO) }
@@ -465,6 +478,7 @@ class DiscoverFragment : Fragment() {
 		val requestedPublic = publicFeedSelected
 		val requestedShelf = shelfSelected
 		val requestedAiring = airingSelected
+		val requestedForYou = forYouSelected
 		val page = nextPage
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
@@ -474,15 +488,18 @@ class DiscoverFragment : Fragment() {
 					requestedAiring -> discover.loadAiring(page, 7, ::airingLabel)
 					requestedShelf -> loadShelf(requestedSection)
 					requestedPublic -> loadPublicFeed(requestedSection, page)
-					forYouSelected -> loadForYou(requestedFeed, page)
+					requestedForYou -> loadForYou(requestedFeed, page)
 					else -> discover.load(requestedFeed, page)
 				}
 				if (requestedFeed != feed || requestedSection != section ||
 					requestedPublic != publicFeedSelected || requestedShelf != shelfSelected ||
-					requestedAiring != airingSelected) return@launch
-				val additions = result.items.filter { new -> adapter.items.none { it.id == new.id } }
+					requestedAiring != airingSelected || requestedForYou != forYouSelected) return@launch
+				// Same switch as the media Discover pages: hide adult titles when the user asked for that.
+				val known = adapter.items.mapTo(HashSet()) { it.uniqueKey }
+				val unseen = result.items.filter { it.uniqueKey !in known }
+				val additions = AniListDiscover.visibleItems(unseen, settings.isNsfwContentDisabled)
 				adapter.items = adapter.items + additions
-				hasNextPage = result.hasNextPage && additions.isNotEmpty()
+				hasNextPage = result.hasNextPage && unseen.isNotEmpty()
 				nextPage = page + 1
 				if (adapter.itemCount == 0) {
 					showMessage(getString(R.string.nothing_found))
@@ -503,9 +520,9 @@ class DiscoverFragment : Fragment() {
 	/** Two pages of the section's popular feed, re-ranked by the user's history tags; falls back to popular order. */
 	private suspend fun loadForYou(base: AniListDiscover.Feed, page: Int): AniListDiscover.Page {
 		if (page > 1) return AniListDiscover.Page(emptyList(), false)
-		val candidates = (discover.load(base, 1).items + runCatching { discover.load(base, 2).items }.getOrDefault(emptyList()))
-			.distinctBy { it.id }
-		val read = runCatching { history.getList(0, 150) }.getOrDefault(emptyList())
+		val candidates = (discover.load(base, 1).items + runCatchingCancellable { discover.load(base, 2).items }.getOrDefault(emptyList()))
+			.distinctBy { it.uniqueKey }
+		val read = runCatchingCancellable { history.getList(0, 150) }.getOrDefault(emptyList())
 		val profile = TasteProfile.build(read.mapIndexed { index, manga ->
 			TasteProfile.Signal(manga.tags.map { it.title }, favourite = false, readChapters = 5, dropped = false, ageDays = index)
 		})
@@ -744,5 +761,6 @@ class DiscoverFragment : Fragment() {
 		const val KEY_SHELF_FEED = "shelf_feed"
 		const val AIRING_FEED_ID = 11003
 		const val KEY_AIRING_FEED = "airing_feed"
+		const val KEY_FOR_YOU_FEED = "for_you_feed"
 	}
 }
