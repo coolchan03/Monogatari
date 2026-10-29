@@ -80,6 +80,9 @@ import org.koitharu.kotatsu.sourcerepo.ui.FirstRunHealthChecks
 import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
 import org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl
 import org.koitharu.kotatsu.remotelist.ui.MangaSearchMenuProvider
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
+import org.koitharu.kotatsu.search.ui.suggestion.SearchHint
+import org.koitharu.kotatsu.search.ui.suggestion.SearchScopeRules
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionItemCallback
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionListenerImpl
 import org.koitharu.kotatsu.search.ui.suggestion.SearchSuggestionMenuProvider
@@ -109,6 +112,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 		/** A [NavItem] name, set by the More page for a navigation item that had no room on the bar. */
 		const val EXTRA_OPEN_NAV_ITEM = "open_nav_item"
+
+		/** Set by AppRouter.openMainSearch: open the main search bar (without changing the tab). */
+		const val EXTRA_OPEN_SEARCH = "open_search"
+
+		/** Optional "ALL" or MediaType name that becomes the shared search type. */
+		const val EXTRA_SEARCH_SCOPE = "search_scope"
+
+		/** Optional text to prefill into the search bar. */
+		const val EXTRA_SEARCH_QUERY = "search_query"
 	}
 
 	@Inject
@@ -241,6 +253,52 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.searchView.addTransitionListener(exitCallback)
 		initSearch()
 		if (savedInstanceState == null) handleRepositorySetupLink(intent)
+		if (savedInstanceState == null) handleOpenSearchIntent(intent)
+	}
+
+	/** Handles [EXTRA_OPEN_SEARCH]; the tab stays as it is, only the search bar opens. */
+	private fun handleOpenSearchIntent(incoming: Intent?) {
+		if (incoming == null || !incoming.getBooleanExtra(EXTRA_OPEN_SEARCH, false)) return
+		val scope = SearchScopeRules.normalize(incoming.getStringExtra(EXTRA_SEARCH_SCOPE))
+		val query = incoming.getStringExtra(EXTRA_SEARCH_QUERY)
+		// Consumed, so recreating the activity does not open the search again.
+		incoming.removeExtra(EXTRA_OPEN_SEARCH)
+		if (scope != null) MainSearchScope.set(this, scope)
+		// This entry point is for searching sources, so leave screen-filter mode (History/Favourites).
+		searchSuggestionViewModel.setScoped(false)
+		updateSearchHint()
+		viewBinding.searchView.post {
+			if (!viewBinding.searchView.isShowing) {
+				viewBinding.searchView.show()
+			}
+			if (!query.isNullOrEmpty()) {
+				viewBinding.searchView.setText(query)
+				viewBinding.searchView.editText.setSelection(viewBinding.searchView.editText.length())
+			}
+		}
+	}
+
+	/** The hint says what the bar does now: filter this screen, or search the chosen media type. */
+	private fun updateSearchHint() {
+		val hint = getString(
+			when (
+				SearchScopeRules.hintFor(
+					screen = searchSuggestionViewModel.currentScope,
+					isFiltering = searchSuggestionViewModel.isScopedSearch.value,
+					scope = MainSearchScope.current(this),
+				)
+			) {
+				SearchHint.FILTER_HISTORY -> R.string.search_hint_filter_history
+				SearchHint.FILTER_FAVOURITES -> R.string.search_hint_filter_favourites
+				SearchHint.SEARCH_ALL -> R.string.search_hint_all
+				SearchHint.SEARCH_MANGA -> R.string.search_hint_manga
+				SearchHint.SEARCH_BOOKS -> R.string.search_hint_books
+				SearchHint.SEARCH_VIDEO -> R.string.search_hint_video
+				SearchHint.SEARCH_AUDIO -> R.string.search_hint_audio
+			},
+		)
+		viewBinding.searchBar.setHint(hint)
+		viewBinding.searchView.setHint(hint)
 	}
 
 	/** Keyboards (tablets, ChromeOS, laptops): Ctrl+F or "/" opens search. */
@@ -262,6 +320,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			navigationDelegate.openExplore()
 		}
 		intent.getStringExtra(EXTRA_OPEN_NAV_ITEM)?.let(navigationDelegate::openNavItem)
+		handleOpenSearchIntent(intent)
 	}
 
 	/** Shows Discover as a main tab when it is on the navigation bar; returns false when it is not. */
@@ -345,6 +404,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 				else -> SearchSuggestionScope.ALL
 			},
 		)
+		updateSearchHint()
 		if (fromUser) {
 			actionModeDelegate.finishActionMode()
 			viewBinding.appbar.setExpanded(true)
@@ -593,8 +653,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 		val adapter = SearchSuggestionAdapter(listener)
 		viewBinding.searchView.toolbar.addMenuProvider(
-			SearchSuggestionMenuProvider(this, voiceInputLauncher, searchSuggestionViewModel),
+			SearchSuggestionMenuProvider(this, voiceInputLauncher, searchSuggestionViewModel, ::updateSearchHint),
 		)
+		searchSuggestionViewModel.isScopedSearch.observe(this) { updateSearchHint() }
 		viewBinding.searchView.editText.addTextChangedListener(listener)
 		viewBinding.recyclerViewSearch.adapter = adapter
 		viewBinding.searchView.editText.setOnEditorActionListener(listener)

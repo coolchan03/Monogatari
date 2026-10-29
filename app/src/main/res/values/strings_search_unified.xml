@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="search_hint_filter_history">Filter history</string>
+	<string name="search_hint_filter_favourites">Filter favourites</string>
+	<string name="search_hint_all">Search all media</string>
+	<string name="search_hint_manga">Search manga</string>
+	<string name="search_hint_books">Search books</string>
+	<string name="search_hint_video">Search video</string>
+	<string name="search_hint_audio">Search audio</string>
+	<string name="search_all_sources_instead">Search all sources instead</string>
+</resources>

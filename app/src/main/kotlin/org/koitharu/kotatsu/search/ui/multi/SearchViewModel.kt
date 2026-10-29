@@ -30,6 +30,8 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
+import org.koitharu.kotatsu.search.ui.suggestion.SearchScopeRules
 import org.koitharu.kotatsu.core.media.PublicBookCatalog
 import org.koitharu.kotatsu.core.media.PublicCatalogProvider
 import org.koitharu.kotatsu.core.media.OfficialMediaSites
@@ -108,14 +110,34 @@ class SearchViewModel @Inject constructor(
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
 	val kind = savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE
-	val searchMediaScope: String? = savedStateHandle.get(SearchActivity.EXTRA_MEDIA_TYPE)
-	val mediaTypeOverride: MediaType? = searchMediaScope
-		?.let { raw -> MediaType.entries.firstOrNull { it.name == raw } }
+	/**
+	 * The media type of this search: an explicit EXTRA_MEDIA_TYPE (or the one the user last picked here,
+	 * which survives process death), else the shared main search type. Explore's own filter is not used.
+	 */
+	private val mediaScopeState = MutableStateFlow(
+		SearchScopeRules.normalize(savedStateHandle.get<String>(SearchActivity.EXTRA_MEDIA_TYPE))
+			?: MainSearchScope.current(applicationContext),
+	)
+	val mediaScope: StateFlow<String> = mediaScopeState
 	val selectedMediaScope: String
-		get() = searchMediaScope ?: settings.mediaTypeFilter?.name ?: "ALL"
+		get() = mediaScopeState.value
+	val searchMediaScope: String
+		get() = mediaScopeState.value
+	val mediaTypeOverride: MediaType?
+		get() = MediaType.entries.firstOrNull { it.name == mediaScopeState.value }
 
 	private val effectiveMediaType: MediaType?
-		get() = if (searchMediaScope == "ALL") null else mediaTypeOverride ?: settings.mediaTypeFilter
+		get() = mediaTypeOverride
+
+	/** Switches the type in place: the running search is cancelled and restarted with the same query and filters. */
+	fun setMediaScope(scope: String) {
+		val value = SearchScopeRules.normalize(scope) ?: return
+		if (value == mediaScopeState.value) return
+		mediaScopeState.value = value
+		savedStateHandle[SearchActivity.EXTRA_MEDIA_TYPE] = value
+		MainSearchScope.set(applicationContext, value)
+		retry()
+	}
 
 	private var includeDisabledSources = MutableStateFlow(savedStateHandle.get<Boolean>("include_disabled_sources") ?: false)
 	private var pinnedOnly = MutableStateFlow(savedStateHandle.get<Boolean>("pinned_only") ?: false)

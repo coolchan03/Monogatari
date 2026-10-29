@@ -62,6 +62,8 @@ import org.koitharu.kotatsu.list.ui.size.DynamicItemSizeResolver
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.search.domain.SearchKind
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
+import org.koitharu.kotatsu.search.ui.suggestion.SearchScopeRules
 import org.koitharu.kotatsu.search.ui.multi.adapter.SearchAdapter
 import javax.inject.Inject
 
@@ -71,21 +73,14 @@ class SearchActivity :
 	MangaListListener,
 	ListSelectionController.Callback {
 
-	/** One tap narrows the search to Manga, Books, Video or Audio sources; the sources are filtered before querying. */
+	/** One tap narrows the search to Manga, Books, Video or Audio sources. The switch happens in place. */
 	private fun bindMediaTypeChips() {
 		val group = viewBinding.chipsMediaType
-		val scopes = listOf("ALL") + MediaType.entries.map { it.name }
-		for (scope in scopes) {
+		for (scope in SearchScopeRules.scopes) {
 			group.addView(Chip(this).apply {
 				id = View.generateViewId()
 				tag = scope
-				text = when (scope) {
-					MediaType.MANGA.name -> getString(R.string.search_media_manga)
-					MediaType.BOOK.name -> getString(R.string.search_media_books)
-					MediaType.VIDEO.name -> getString(R.string.search_media_video)
-					MediaType.AUDIO.name -> getString(R.string.search_media_audio)
-					else -> getString(R.string.search_media_all)
-				}
+				text = MainSearchScope.label(this@SearchActivity, scope)
 				isCheckable = true
 				isChecked = scope == viewModel.selectedMediaScope
 				if (scope != "ALL") MediaAccents.tintChip(this@SearchActivity, scope, this)
@@ -93,14 +88,35 @@ class SearchActivity :
 		}
 		group.setOnCheckedStateChangeListener { chipGroup, checkedIds ->
 			val selection = checkedIds.firstOrNull()?.let { chipGroup.findViewById<Chip>(it)?.tag as? String }
-			if (selection == null || selection == viewModel.selectedMediaScope) return@setOnCheckedStateChangeListener
-			startActivity(Intent(this, SearchActivity::class.java)
-				.putExtra(AppRouter.KEY_QUERY, viewModel.query)
-				.putExtra(AppRouter.KEY_KIND, viewModel.kind)
-				.putExtra(EXTRA_MEDIA_TYPE, selection))
-			finish()
-			@Suppress("DEPRECATION")
-			overridePendingTransition(0, 0)
+			if (selection != null) viewModel.setMediaScope(selection)
+		}
+		// Keeps the chips, the title and the menu in step with the view model (also after rotation).
+		viewModel.mediaScope.observe(this) { scope ->
+			for (i in 0 until group.childCount) {
+				val chip = group.getChildAt(i) as? Chip ?: continue
+				if (chip.tag == scope && !chip.isChecked) chip.isChecked = true
+			}
+			updateTitle()
+			invalidateOptionsMenu()
+		}
+	}
+
+	private fun updateTitle() {
+		title = if (viewModel.mediaTypeOverride == MediaType.BOOK) {
+			getString(R.string.monogatari_catalog_online_search_title, viewModel.query)
+		} else {
+			when (viewModel.kind) {
+				SearchKind.SIMPLE,
+				SearchKind.TITLE -> viewModel.query
+
+				SearchKind.AUTHOR -> getString(
+					R.string.inline_preference_pattern,
+					getString(R.string.author),
+					viewModel.query,
+				)
+
+				SearchKind.TAG -> getString(R.string.inline_preference_pattern, getString(R.string.genre), viewModel.query)
+			}
 		}
 	}
 
@@ -136,22 +152,7 @@ class SearchActivity :
 			onRead = { openMangaWithSourceChoice(it, true) },
 			onBookOpen = { openCatalogResult(it) },
 		)
-		title = when (viewModel.kind) {
-			SearchKind.SIMPLE,
-			SearchKind.TITLE -> viewModel.query
-
-			SearchKind.AUTHOR -> getString(
-				R.string.inline_preference_pattern,
-				getString(R.string.author),
-				viewModel.query,
-			)
-
-			SearchKind.TAG -> getString(R.string.inline_preference_pattern, getString(R.string.genre), viewModel.query)
-		}
-
-		if (viewModel.mediaTypeOverride == MediaType.BOOK) {
-			title = getString(R.string.monogatari_catalog_online_search_title, viewModel.query)
-		}
+		updateTitle()
 		bindMediaTypeChips()
 
 		val itemClickListener = OnListItemClickListener<SearchResultsListModel> { item, view ->

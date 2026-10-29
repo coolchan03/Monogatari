@@ -141,13 +141,28 @@ class AppRouter private constructor(
         )
     }
 
-    /** [mediaScope] is "ALL" or a MediaType name limiting which sources are searched; null follows Explore's setting. */
+    /** [mediaScope] is "ALL" or a MediaType name limiting which sources are searched; null uses the shared search type. */
     fun openSearch(query: String, kind: SearchKind, mediaScope: String?) {
         startActivity(
             Intent(contextOrNull() ?: return, SearchActivity::class.java)
                 .putExtra(KEY_QUERY, query)
                 .putExtra(KEY_KIND, kind)
                 .apply { mediaScope?.let { putExtra(SearchActivity.EXTRA_MEDIA_TYPE, it) } },
+        )
+    }
+
+    /**
+     * Brings the main screen to the front and opens its search bar with the keyboard, without switching tabs.
+     * [mediaScope] ("ALL" or a MediaType name; invalid values are ignored) becomes the shared search type,
+     * [query] prefills the bar. The search itself runs from the bar as usual.
+     */
+    fun openMainSearch(mediaScope: String? = null, query: String? = null) {
+        startActivity(
+            Intent(contextOrNull() ?: return, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(MainActivity.EXTRA_OPEN_SEARCH, true)
+                .putExtra(MainActivity.EXTRA_SEARCH_SCOPE, mediaScope)
+                .putExtra(MainActivity.EXTRA_SEARCH_QUERY, query),
         )
     }
 
