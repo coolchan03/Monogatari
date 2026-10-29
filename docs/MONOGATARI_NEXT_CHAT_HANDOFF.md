@@ -98,6 +98,10 @@ Branch `finish-83-20261015`, draft PR #13. Shared `PublicCatalogProvider` regist
 ### 2026-10-19 batch 2
 Bubble-shape text fitting (#21), vertical CJK punctuation (#23), source content-type format filter (#32), reflow-safe reading position (#66), EPUB download retries (#14), TalkBack labels (#63/#69). Details: `CODE_FINISHING_14.md`. Tracker rows still PARTIAL until final verification.
 
+## 2026-10-29 — v1.4.2 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.4.2 built from `devel` `3973ce8` (drafts merged; build check run 40967994160 green; release run 40970548070 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `84a54c6c614bcf409a8fa5564da2e8d400fcc55e40563f1b809c0a4cc1a51e20`.
+- Search clean-up: shared MainSearchScope, in-place results chips, honest search-bar hint, AppRouter.openMainSearch entry point used by Discover/Library/Books catalog, Discover remembers its last chip. Not device-verified yet.
+
 ## 2026-10-23 — v1.4.1 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.4.1 built from `devel` `54f2209` (drafts merged; build check run 39978458243 green; release started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `162e81a8fa66317518080bae57c533b07f16baec654d4fabe16a64999ccafd1f`.
 - Library covers every medium (On this device section, Recommended strip), Library replaces On device on the default bar (one-time migration, pref `nav_layout_v3`), Discover opens on All. Not device-verified yet.
