@@ -15,6 +15,8 @@ class SearchSuggestionMenuProvider(
 	private val context: Context,
 	private val voiceInputLauncher: ActivityResultLauncher<String?>,
 	private val viewModel: SearchSuggestionViewModel,
+	/** Called after the shared search type was changed here, so the bar's hint can follow. */
+	private val onSearchScopeChanged: () -> Unit = {},
 ) : MenuProvider {
 
 	override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
@@ -50,13 +52,14 @@ class SearchSuggestionMenuProvider(
 	/** Manga, books, video or audio only: the main search bar then queries just those sources. */
 	private fun chooseSearchType(menuItem: MenuItem) {
 		val scopes = MainSearchScope.scopes
-		val current = scopes.indexOf(MainSearchScope.get(context) ?: "ALL").coerceAtLeast(0)
+		val current = scopes.indexOf(MainSearchScope.current(context)).coerceAtLeast(0)
 		buildAlertDialog(context, isCentered = true) {
 			setTitle(R.string.search_media_type)
 			setIcon(R.drawable.ic_filter_menu)
 			setSingleChoiceItems(scopes.map { MainSearchScope.label(context, it) }.toTypedArray(), current) { dialog, which ->
 				MainSearchScope.set(context, scopes[which])
 				updateSearchTypeTitle(menuItem)
+				onSearchScopeChanged()
 				dialog.dismiss()
 			}
 			setNegativeButton(android.R.string.cancel, null)
@@ -66,7 +69,7 @@ class SearchSuggestionMenuProvider(
 	private fun updateSearchTypeTitle(menuItem: MenuItem) {
 		menuItem.title = context.getString(
 			R.string.main_search_type_title,
-			MainSearchScope.label(context, MainSearchScope.get(context)),
+			MainSearchScope.label(context, MainSearchScope.current(context)),
 		)
 	}
 

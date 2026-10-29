@@ -26,6 +26,12 @@ class SearchSuggestionListenerImpl(
 		viewModel.setScoped(isScoped)
 	}
 
+	override fun onSearchAllSources(query: String) {
+		val typed = searchView.editText.text?.toString()?.trim().orEmpty().ifEmpty { query }
+		viewModel.setScoped(false)
+		onQueryClick(typed, SearchKind.SIMPLE, true)
+	}
+
 	override fun onMangaClick(manga: Manga) {
 		router.openDetails(manga)
 	}
@@ -46,7 +52,7 @@ class SearchSuggestionListenerImpl(
 			if (kind == SearchKind.SIMPLE && MangaLinkResolver.isValidLink(query)) {
 				router.openDetails(query.toUri())
 			} else {
-				router.openSearch(query, kind, MainSearchScope.get(searchView.context))
+				router.openSearch(query, kind, MainSearchScope.current(searchView.context))
 				if (kind != SearchKind.TAG) {
 					viewModel.saveQuery(query)
 				}

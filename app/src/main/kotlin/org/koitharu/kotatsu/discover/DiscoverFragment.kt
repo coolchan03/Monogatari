@@ -11,6 +11,7 @@ import org.koitharu.kotatsu.core.util.ext.checkNotificationPermission
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import android.os.Bundle
+import android.content.Context
 import android.content.Intent
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -118,6 +119,8 @@ class DiscoverFragment : Fragment() {
 	/** v1.3 draft: popular titles re-ranked by tags from the user's own reading history (on device only). */
 	private var forYouSelected = false
 
+	private val uiPrefs by lazy { requireContext().getSharedPreferences("monogatari_discover_ui", Context.MODE_PRIVATE) }
+
 	private var _binding: ActivityDiscoverBinding? = null
 	private val binding: ActivityDiscoverBinding get() = checkNotNull(_binding)
 	private val adapter = ItemsAdapter()
@@ -142,9 +145,10 @@ class DiscoverFragment : Fragment() {
 		super.onViewCreated(view, savedInstanceState)
 		binding.discoverIntro.setText(R.string.discover_intro_explained)
 
-		savedInstanceState?.getString(KEY_SECTION)?.let { name ->
-			MediaSection.entries.find { it.name == name }?.let { section = it }
-		}
+		// A rotation restores the instance state; a fresh start reopens the chip used last (All on a fresh install).
+		val restoredSection = savedInstanceState?.getString(KEY_SECTION)
+			?: uiPrefs.getString(PREF_LAST_SECTION, null)
+		MediaSection.entries.find { it.name == restoredSection }?.let { section = it }
 		savedInstanceState?.getString(KEY_FEED)?.let { name ->
 			AniListDiscover.Feed.entries.find { it.name == name }?.let { feed = it }
 		}
@@ -166,6 +170,7 @@ class DiscoverFragment : Fragment() {
 			val chosen = checkedIds.firstOrNull()?.let { MediaSection.entries.getOrNull(it - 100) }
 			if (chosen != null && chosen != section) {
 				section = chosen
+				uiPrefs.edit().putString(PREF_LAST_SECTION, chosen.name).apply()
 				shelfSelected = shelfSources(section).isNotEmpty()
 				publicFeedSelected = false
 				forYouSelected = false
@@ -354,22 +359,22 @@ class DiscoverFragment : Fragment() {
 		}
 		when (section) {
 			MediaSection.ALL -> {
-				action(getString(R.string.discover_all_search)) { askSearchAll() }
+				action(getString(R.string.discover_all_search)) { router.openMainSearch("ALL") }
 				action(getString(R.string.mono_discover_my_library)) { startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)) }
 			}
 			MediaSection.MANGA -> {
-				action(getString(R.string.mono_discover_search_manga)) { askSearch(MediaType.MANGA) }
+				action(getString(R.string.mono_discover_search_manga)) { router.openMainSearch(MediaType.MANGA.name) }
 				action(getString(R.string.mono_discover_my_library)) { startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)) }
 			}
 			MediaSection.BOOK -> {
 				action(getString(R.string.mono_discover_books_catalog_opds)) { startActivity(Intent(requireContext(), BookLibraryActivity::class.java)) }
-				action(getString(R.string.mono_discover_search_novel_sources)) { askSearch(MediaType.BOOK) }
+				action(getString(R.string.mono_discover_search_novel_sources)) { router.openMainSearch(MediaType.BOOK.name) }
 				action(getString(R.string.discover_see_more_books)) {
 					startActivity(MediaDiscoverActivity.intent(requireContext(), MediaType.BOOK))
 				}
 			}
 			MediaSection.VIDEO -> {
-				action(getString(R.string.mono_discover_search_video_websites)) { askSearch(MediaType.VIDEO) }
+				action(getString(R.string.mono_discover_search_video_websites)) { router.openMainSearch(MediaType.VIDEO.name) }
 				action(getString(R.string.mono_discover_archive_public_videos)) { searchArchiveVideos() }
 				action(getString(R.string.mono_discover_video_rss_feeds)) { openMediaFeeds(MediaType.VIDEO) }
 				action(getString(R.string.mono_discover_my_saved_videos)) { openLibrary(MediaType.VIDEO) }
@@ -378,7 +383,7 @@ class DiscoverFragment : Fragment() {
 				}
 			}
 			MediaSection.AUDIO -> {
-				action(getString(R.string.mono_discover_find_audiobooks_dramas)) { askSearch(MediaType.AUDIO) }
+				action(getString(R.string.mono_discover_find_audiobooks_dramas)) { router.openMainSearch(MediaType.AUDIO.name) }
 				action(getString(R.string.mono_discover_fiction_podcasts_audio_drama)) { openMediaFeeds(MediaType.AUDIO) }
 				action(getString(R.string.mono_discover_my_audiobooks)) { openLibrary(MediaType.AUDIO) }
 			}
@@ -408,44 +413,6 @@ class DiscoverFragment : Fragment() {
 	private fun openLibrary(type: MediaType) {
 		startActivity(Intent(requireContext(), UnifiedLibraryActivity::class.java)
 			.putExtra(UnifiedLibraryActivity.EXTRA_MEDIA_KIND, type.name))
-	}
-
-	private fun askSearch(type: MediaType) {
-		val input = EditText(requireContext()).apply {
-			hint = getString(R.string.mono_discover_title_author_or_topic)
-			setSingleLine(true)
-		}
-		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Search ${type.name.lowercase().replaceFirstChar { it.uppercaseChar() }} sources")
-			.setView(input)
-			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton(getString(R.string.mono_discover_search)) { _, _ ->
-				val term = input.text?.toString()?.trim().orEmpty()
-				if (term.isNotBlank()) openTypedSearch(term, type)
-			}
-			.show()
-	}
-
-	/** Searches every enabled source, whatever its media type. */
-	private fun askSearchAll() {
-		val input = EditText(requireContext()).apply {
-			hint = getString(R.string.mono_discover_title_author_or_topic)
-			setSingleLine(true)
-		}
-		MaterialAlertDialogBuilder(requireContext())
-			.setTitle(R.string.discover_all_search_title)
-			.setView(input)
-			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton(getString(R.string.mono_discover_search)) { _, _ ->
-				val term = input.text?.toString()?.trim().orEmpty()
-				if (term.isNotBlank()) {
-					startActivity(Intent(requireContext(), SearchActivity::class.java)
-						.putExtra(AppRouter.KEY_QUERY, term)
-						.putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
-						.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, "ALL"))
-				}
-			}
-			.show()
 	}
 
 	private fun searchArchiveVideos() {
@@ -811,6 +778,7 @@ class DiscoverFragment : Fragment() {
 
 	private companion object {
 
+		const val PREF_LAST_SECTION = "last_section"
 		const val KEY_FEED = "feed"
 		const val KEY_SECTION = "media_section"
 		const val KEY_PUBLIC_FEED = "public_catalog_feed"

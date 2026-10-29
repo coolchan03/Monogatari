@@ -22,6 +22,9 @@ interface SearchSuggestionListener : TextWatcher, TextView.OnEditorActionListene
 
 	fun onScopeChanged(isScoped: Boolean)
 
+	/** Leaves screen-filter mode and searches the typed text across sources with the current media type. */
+	fun onSearchAllSources(query: String)
+
 	fun onFavouriteCategoryClick(category: FavouriteCategory)
 
 	/** Expands the single "favourites" entry into every list. */

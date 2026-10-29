@@ -193,6 +193,9 @@ class SearchSuggestionViewModel @Inject constructor(
 			val isFavouritesKeyword = searchQuery.isNotEmpty() && repository.matchesFavouritesKeyword(searchQuery)
 			return@coroutineScope buildList {
 				add(SearchSuggestionItem.Scope(scopeChips(input)))
+				if (searchQuery.isNotEmpty()) {
+					add(SearchSuggestionItem.SearchAll(searchQuery))
+				}
 				if (isFavouritesKeyword && !input.areListsExpanded) {
 					val all = repository.getAllCategories()
 					if (all.isNotEmpty()) {

@@ -126,6 +126,16 @@ sealed interface SearchSuggestionItem : ListModel {
 		}
 	}
 
+	/** Shown in screen-filter mode: a way out that searches the typed text across all sources instead. */
+	data class SearchAll(
+		val query: String,
+	) : SearchSuggestionItem {
+
+		override fun areItemsTheSame(other: ListModel): Boolean {
+			return other is SearchAll
+		}
+	}
+
 	data class Tags(
 		val tags: List<ChipsView.ChipModel>,
 	) : SearchSuggestionItem {

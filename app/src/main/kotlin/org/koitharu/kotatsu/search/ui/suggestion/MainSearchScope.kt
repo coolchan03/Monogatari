@@ -6,18 +6,21 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
 
 /**
- * The media type the main search bar searches: "ALL" or a [MediaType] name, or null when the user never picked one
- * (then search follows Explore's media type setting, as before).
+ * The single media type every search uses: "ALL" or a [MediaType] name. The main search bar, the results
+ * screen chips and deep calls all read and write this value; Explore's own media filter is not involved.
  */
 object MainSearchScope {
 
 	private const val PREFS = "monogatari_search"
 	private const val KEY_SCOPE = "main_search_media_type"
 
-	val scopes: List<String> = listOf("ALL") + MediaType.entries.map { it.name }
+	val scopes: List<String> = SearchScopeRules.scopes
 
 	fun get(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 		.getString(KEY_SCOPE, null)?.takeIf { it in scopes }
+
+	/** Never null: the saved value, else "ALL". */
+	fun current(context: Context): String = get(context) ?: SearchScopeRules.ALL
 
 	fun set(context: Context, scope: String) {
 		context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString(KEY_SCOPE, scope) }

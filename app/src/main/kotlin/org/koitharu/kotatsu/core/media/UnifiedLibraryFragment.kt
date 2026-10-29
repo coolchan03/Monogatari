@@ -874,7 +874,7 @@ class UnifiedLibraryFragment : Fragment() {
 			showPane(ordered.firstOrNull { keyOf(it) == previousKey } ?: ordered.firstOrNull())
 			restoredPaneKey = null
 		}
-		adapter.submit(continueRows, sections, listVisible = filtered.isNotEmpty())
+		adapter.submit(continueRows, sections, listVisible = filtered.isNotEmpty(), searchQuery = q)
 		renderCollections()
 		renderEmpty(filtered.isEmpty(), q, continueRows.isNotEmpty())
 		val summary = resources.getQuantityString(R.plurals.library_ov_items, filtered.size, filtered.size)
@@ -892,6 +892,11 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 		// Local content is on screen first; Recommended loads afterwards and ignores the search field.
 		loadRecommended()
+	}
+
+	/** The Library box only filters local items; this hands the same text to the one main search. */
+	private fun searchAllSources(text: String) {
+		router.openMainSearch(selected?.name ?: "ALL", text)
 	}
 
 	private fun openTypedSearch(title: String, type: MediaType) {
@@ -948,6 +953,11 @@ class UnifiedLibraryFragment : Fragment() {
 			emptyView.layoutParams = it
 		}
 		Mascot.bind(emptyMascot, if (query.isNotEmpty()) MascotForm.SAD else Mascot.formFor(selected))
+		emptyView.findViewById<MaterialButton>(R.id.library_empty_search_all).apply {
+			isVisible = query.isNotEmpty()
+			text = getString(R.string.library_search_all_sources, query)
+			setOnClickListener { searchAllSources(query) }
+		}
 		emptyText.text = when {
 			query.isNotEmpty() -> getString(R.string.library_ov_no_match, query)
 			selectedCollection != null || selectedSmart != null -> getString(R.string.library_ov_empty_collection)
@@ -1022,6 +1032,7 @@ class UnifiedLibraryFragment : Fragment() {
 		class Continue(val rows: List<Row>) : Entry()
 		class Header(val title: String) : Entry()
 		class Card(val row: Row) : Entry()
+		class SearchAll(val query: String) : Entry()
 		data object Recommended : Entry()
 	}
 
@@ -1046,7 +1057,7 @@ class UnifiedLibraryFragment : Fragment() {
 			}
 		}
 
-		fun submit(continueRows: List<Row>, sections: List<LibraryShelf.Section>, listVisible: Boolean) {
+		fun submit(continueRows: List<Row>, sections: List<LibraryShelf.Section>, listVisible: Boolean, searchQuery: String) {
 			this.listVisible = listVisible
 			entries = buildList {
 				if (continueRows.isNotEmpty()) add(Entry.Continue(continueRows))
@@ -1054,6 +1065,7 @@ class UnifiedLibraryFragment : Fragment() {
 					add(Entry.Header(getString(R.string.library_ov_section_count, sectionTitle(section.group), section.items.size)))
 					section.items.mapTo(this) { Entry.Card(it) }
 				}
+				if (listVisible && searchQuery.isNotEmpty()) add(Entry.SearchAll(searchQuery))
 				if (wantRecommended()) add(Entry.Recommended)
 			}
 			continueAdapter.submit(continueRows)
@@ -1068,6 +1080,7 @@ class UnifiedLibraryFragment : Fragment() {
 			is Entry.Continue -> R.layout.item_library_continue
 			is Entry.Header -> R.layout.item_library_section
 			is Entry.Card -> R.layout.item_library_cover
+			is Entry.SearchAll -> R.layout.item_library_search_all
 			is Entry.Recommended -> R.layout.item_library_recommended
 		}
 
@@ -1083,6 +1096,9 @@ class UnifiedLibraryFragment : Fragment() {
 			R.layout.item_library_recommended -> RecommendedHolder(
 				RecommendedStrip(LayoutInflater.from(parent.context).inflate(viewType, parent, false)),
 			).also { listStrip = it.strip }
+			R.layout.item_library_search_all -> object : RecyclerView.ViewHolder(
+				LayoutInflater.from(parent.context).inflate(viewType, parent, false),
+			) {}
 			R.layout.item_library_section -> object : RecyclerView.ViewHolder(
 				LayoutInflater.from(parent.context).inflate(viewType, parent, false),
 			) {}
@@ -1094,6 +1110,10 @@ class UnifiedLibraryFragment : Fragment() {
 				is Entry.Continue -> Unit
 				is Entry.Recommended -> (holder as RecommendedHolder).strip.bind()
 				is Entry.Header -> (holder.itemView as TextView).text = entry.title
+				is Entry.SearchAll -> holder.itemView.findViewById<MaterialButton>(R.id.library_search_all).apply {
+					text = getString(R.string.library_search_all_sources, entry.query)
+					setOnClickListener { searchAllSources(entry.query) }
+				}
 				is Entry.Card -> bindCard(holder as CardHolder, entry.row, fromContinue = false) {
 					if (twoPane) {
 						showPane(entry.row)
