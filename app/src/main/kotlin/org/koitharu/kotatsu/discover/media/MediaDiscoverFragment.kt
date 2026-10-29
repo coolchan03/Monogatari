@@ -138,7 +138,7 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 	private fun focusSearch(binding: ItemMediaDiscoverHeaderBinding) {
 		val query = binding.editSearch.text?.toString()?.trim().orEmpty()
 		if (query.isNotEmpty()) {
-			openTypedSearch(query)
+			router.openMainSearch(mediaType.name, query)
 			return
 		}
 		binding.editSearch.requestFocus()
@@ -228,7 +228,7 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 			binding.editSearch.setOnEditorActionListener { view, actionId, _ ->
 				if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
 					val query = view.text?.toString()?.trim().orEmpty()
-					if (query.isNotEmpty()) openTypedSearch(query)
+					if (query.isNotEmpty()) router.openMainSearch(mediaType.name, query)
 					true
 				} else {
 					false

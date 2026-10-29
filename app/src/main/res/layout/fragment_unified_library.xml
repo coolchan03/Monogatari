@@ -147,6 +147,14 @@
 				android:textAppearance="?attr/textAppearanceBodyLarge" />
 
 			<com.google.android.material.button.MaterialButton
+				android:id="@+id/library_empty_search_all"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="@dimen/library_header_spacing"
+				android:visibility="gone" />
+
+			<com.google.android.material.button.MaterialButton
 				android:id="@+id/library_empty_add"
 				style="@style/Widget.Material3.Button.TonalButton"
 				android:layout_width="wrap_content"

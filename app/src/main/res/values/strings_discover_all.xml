@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="discover_all_search">Search everything</string>
-	<string name="discover_all_search_title">Search all media</string>
 </resources>

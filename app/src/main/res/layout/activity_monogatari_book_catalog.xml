@@ -50,6 +50,14 @@
         android:layout_marginTop="8dp"
         android:minHeight="48dp"
         android:text="@string/monogatari_catalog_search_all" />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/monogatari_catalog_search_all_sources"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:minHeight="48dp"
+        android:text="@string/book_catalog_search_all_sources" />
     <TextView android:id="@+id/monogatari_catalog_status"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:accessibilityLiveRegion="polite"

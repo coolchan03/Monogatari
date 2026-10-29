@@ -40,6 +40,7 @@ import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.qa.CsvExportFormatter
 import org.koitharu.kotatsu.core.ui.Mascot
@@ -47,8 +48,6 @@ import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
-import org.koitharu.kotatsu.search.domain.SearchKind
-import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import java.io.File
 import javax.inject.Inject
 
@@ -216,6 +215,9 @@ class BookCatalogFragment : Fragment() {
 		}
 		findViewById<View>(R.id.monogatari_catalog_search_sources)
 			.setOnClickListener { searchInstalledBookSources() }
+		findViewById<View>(R.id.monogatari_catalog_search_all_sources).setOnClickListener {
+			router.openMainSearch(MediaType.BOOK.name, query.text?.toString()?.trim()?.takeIf { it.isNotEmpty() })
+		}
 		query.setOnEditorActionListener { _, actionId, _ ->
 			if (actionId == EditorInfo.IME_ACTION_SEARCH) {
 				searchInstalledBookSources()
@@ -285,10 +287,7 @@ class BookCatalogFragment : Fragment() {
 			query.requestFocus()
 			return
 		}
-		startActivity(Intent(requireContext(), SearchActivity::class.java)
-			.putExtra(AppRouter.KEY_QUERY, term)
-			.putExtra(AppRouter.KEY_KIND, SearchKind.SIMPLE)
-			.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, MediaType.BOOK.name))
+		router.openMainSearch(MediaType.BOOK.name, term)
 	}
 
 	private fun saveOpds(url: String) {
