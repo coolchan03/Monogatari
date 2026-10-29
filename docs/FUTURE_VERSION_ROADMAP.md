@@ -159,3 +159,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Library covers every medium (On this device section, Recommended strip), Library replaces On device on the default bar (one-time migration), Discover opens on All.
 - Still open: remember the last Discover chip; hard storage cap and constraint inheritance for auto-download; remaining audit items listed under v1.4.0.
+
+## Released in v1.4.2 (2026-10-29)
+
+- Search clean-up: shared media type, in-place chips, honest hint, entry points routed to the main search, Discover remembers its last chip.
+- Still open: rename Explore to Sources/Browse, pull-to-refresh on Discover/Recommended, a Continue button in the Library header, aligned card sizes between Discover and Library grids, NewPipe extras (downloads, comments, subscription import).
