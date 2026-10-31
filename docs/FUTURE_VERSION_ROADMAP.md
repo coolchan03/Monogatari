@@ -164,3 +164,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Search clean-up: shared media type, in-place chips, honest hint, entry points routed to the main search, Discover remembers its last chip.
 - Still open: rename Explore to Sources/Browse, pull-to-refresh on Discover/Recommended, a Continue button in the Library header, aligned card sizes between Discover and Library grids, NewPipe extras (downloads, comments, subscription import).
+
+## Released in v1.4.3 (2026-10-31)
+
+- Nearby sync: Wi-Fi permissions no longer capped at Android 11, prerequisite check (Play services, Bluetooth, Wi-Fi, location, airplane mode, permissions), status-code messages, state fixes, Troubleshooting card.
+- Still open: verify Nearby sync end to end on the Razr and the tablet; more book/video sources; vetted Mangayomi anime/novel repository defaults (13 JavaScript-capable links checked on 2026-10-30: 183 runnable extensions); a source picker in search; rename Explore; pull-to-refresh; Library Continue button.
