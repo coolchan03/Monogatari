@@ -6,7 +6,8 @@ import org.koitharu.kotatsu.sync.conflict.HistoryConflicts
 import org.koitharu.kotatsu.sync.profile.SettingsGroupsDialog
 import org.koitharu.kotatsu.sync.profile.SettingsTransferProfile
 import org.koitharu.kotatsu.R
-import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -19,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -59,6 +61,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     private val deviceLabel by lazy { "Monogatari - " + Build.MODEL.take(35) }
     private lateinit var status: TextView
     private lateinit var peers: LinearLayout
+    private lateinit var fixes: LinearLayout
     private val discovered = LinkedHashMap<String, String>()
     private val headers = HashMap<Long, NearbySyncProtocol.Header>()
     private val received = HashMap<Long, Payload>()
@@ -75,8 +78,17 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     ) {
         val action = pendingAction
         pendingAction = null
-        if (requiredPermissions().all(::hasPermission)) action?.invoke()
-        else say("Nearby permissions were denied. Discovery is unavailable.")
+        val missing = missingPermissions()
+        if (missing.isEmpty()) action?.invoke()
+        else {
+            // No rationale after a request means Android will not show the dialog again.
+            val permanent = missing.any { !shouldShowRequestPermissionRationale(it) }
+            val names = NearbyPreflight.permissionNames(missing)
+            say(getString(
+                if (permanent) R.string.nearby_diag_permissions_denied_permanent
+                else R.string.nearby_diag_permissions_denied, names))
+            showFixes(listOf(NearbyPreflight.Requirement.PERMISSIONS))
+        }
     }
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -113,6 +125,8 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             getString(R.string.mono_nearby_no_cloud_or_internet_needed_turn) +
                 "Confirm the same code on both devices before transferring.",
         ).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        fixes = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        body.addView(fixes)
         // Receive / Send are the two main choices (filled); later steps are outlined, like Settings dialogs.
         val connect = body.addSectionCard(getString(R.string.mono_section_nearby_connect))
         connect.addPrimaryButton(getString(R.string.mono_nearby_receive_make_this_device_visible)) { withPermissions(::advertise) }
@@ -126,6 +140,9 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             else filePicker.launch(arrayOf("*/*"))
         }
         transfer.addSecondaryButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
+        val help = body.addSectionCard(getString(R.string.nearby_diag_section))
+        help.addBodyText(getString(R.string.nearby_diag_checklist))
+        help.addSecondaryButton(getString(R.string.nearby_diag_check_button)) { checkThisDevice() }
         body.addSectionCard(getString(R.string.mono_section_nearby_shared)).addBodyText(
             getString(R.string.mono_nearby_library_transfer_includes_reading_history_favourites) +
                 "source subscriptions, and preferences. Files are sent separately. " +
@@ -139,25 +156,25 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         runOnUiThread { status.text = message }
     }
 
-    private fun requiredPermissions(): Array<String> = buildList {
-        if (Build.VERSION.SDK_INT >= 31) {
-            add(Manifest.permission.BLUETOOTH_SCAN)
-            add(Manifest.permission.BLUETOOTH_CONNECT)
-            add(Manifest.permission.BLUETOOTH_ADVERTISE)
-        }
-        if (Build.VERSION.SDK_INT >= 33) {
-            add(Manifest.permission.NEARBY_WIFI_DEVICES)
-        }
-        if (Build.VERSION.SDK_INT in 29..32) add(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (Build.VERSION.SDK_INT < 29) add(Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
-    }.toTypedArray()
-
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
+    private fun missingPermissions(): List<String> =
+        NearbyPreflight.requiredPermissions(Build.VERSION.SDK_INT).filterNot(::hasPermission)
+
+    /** Preflight, then permissions, then [action]. A missing radio or service is reported by name. */
     private fun withPermissions(action: () -> Unit) {
-        val missing = requiredPermissions().filterNot(::hasPermission)
+        fixes.removeAllViews()
+        val snapshot = NearbyPreflight.snapshot(this)
+        val problems = NearbyPreflight.missingRequirements(snapshot)
+            .filter { it != NearbyPreflight.Requirement.PERMISSIONS }
+        if (problems.isNotEmpty()) {
+            say(getString(R.string.nearby_diag_blocked) + "\n" +
+                problems.joinToString("\n") { "- " + problemText(it, snapshot) })
+            showFixes(problems)
+            return
+        }
+        val missing = missingPermissions()
         if (missing.isEmpty()) action()
         else {
             pendingAction = action
@@ -165,33 +182,100 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         }
     }
 
+    private fun problemText(requirement: NearbyPreflight.Requirement, snapshot: NearbyPreflight.Snapshot): String =
+        when (requirement) {
+            NearbyPreflight.Requirement.PLAY_SERVICES -> NearbyPreflight.withCode(
+                getString(NearbyPreflight.problemRes(requirement)), snapshot.playServicesStatus)
+            NearbyPreflight.Requirement.PERMISSIONS -> getString(
+                NearbyPreflight.problemRes(requirement),
+                NearbyPreflight.permissionNames(
+                    NearbyPreflight.missingPermissions(snapshot.sdk, snapshot.grantedPermissions)))
+            else -> getString(NearbyPreflight.problemRes(requirement))
+        }
+
+    /** The "Check this device" button: lists every prerequisite as OK or PROBLEM. */
+    private fun checkThisDevice() {
+        fixes.removeAllViews()
+        val snapshot = NearbyPreflight.snapshot(this)
+        val problems = NearbyPreflight.missingRequirements(snapshot)
+        val lines = NearbyPreflight.Requirement.entries.map {
+            if (it in problems) getString(R.string.nearby_diag_line_problem, problemText(it, snapshot))
+            else getString(R.string.nearby_diag_line_ok, getString(NearbyPreflight.okRes(it)))
+        }
+        say(getString(R.string.nearby_diag_check_title) + "\n" + lines.joinToString("\n") + "\n" +
+            getString(if (problems.isEmpty()) R.string.nearby_diag_all_ok else R.string.nearby_diag_some_problems))
+        showFixes(problems)
+    }
+
+    /** One button per problem that opens the screen where the user can fix it. */
+    private fun showFixes(problems: List<NearbyPreflight.Requirement>) {
+        fixes.removeAllViews()
+        problems.forEach { requirement ->
+            fixes.addView(secondaryButton(getString(NearbyPreflight.actionRes(requirement))) {
+                openFix(requirement)
+            }, buttonParams())
+        }
+    }
+
+    private fun openFix(requirement: NearbyPreflight.Requirement) {
+        if (requirement == NearbyPreflight.Requirement.PLAY_SERVICES) {
+            val availability = GoogleApiAvailability.getInstance()
+            val code = availability.isGooglePlayServicesAvailable(this)
+            if (code != 0 && availability.isUserResolvableError(code)) {
+                val dialog = availability.getErrorDialog(this, code, 9001)
+                if (dialog != null) {
+                    dialog.show()
+                    return
+                }
+            }
+        }
+        val intent = NearbyPreflight.fixIntent(requirement, packageName)
+        try {
+            startActivity(intent)
+        } catch (error: ActivityNotFoundException) {
+            runCatching { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+        }
+    }
+
+    /** Fresh session: no leftover advertising, discovery, endpoints or half-finished transfer. */
+    private fun resetTransfer() {
+        outgoingId?.let(client::cancelPayload)
+        outgoing?.delete()
+        outgoing = null
+        outgoingId = null
+        busy = false
+        headers.clear()
+        received.clear()
+        finished.clear()
+    }
+
     private fun advertise() {
-        client.stopDiscovery()
+        stop()
         discovered.clear()
         peers.removeAllViews()
         client.startAdvertising(
             deviceLabel, serviceId, connectionEvents,
             AdvertisingOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build()
         ).addOnSuccessListener {
-            say("Visible to nearby Monogatari devices. Wait for a connection request.")
+            say(getString(R.string.nearby_diag_step_visible))
             keepAwake(true)
         }.addOnFailureListener {
-            say("Cannot receive: " + it.localizedMessage + ". Enable Bluetooth and Wi-Fi.")
+            say(getString(R.string.nearby_diag_cannot_receive, NearbyPreflight.errorMessage(this, it)))
         }
     }
 
     private fun discover() {
-        client.stopAdvertising()
+        stop()
         discovered.clear()
         peers.removeAllViews()
         client.startDiscovery(
             serviceId, discoveryEvents,
             DiscoveryOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build()
         ).addOnSuccessListener {
-            say("Searching nearby. Tap the other device when it appears.")
+            say(getString(R.string.nearby_diag_step_searching))
             keepAwake(true)
         }.addOnFailureListener {
-            say("Cannot search: " + it.localizedMessage + ". Enable Bluetooth and Wi-Fi.")
+            say(getString(R.string.nearby_diag_cannot_search, NearbyPreflight.errorMessage(this, it)))
         }
     }
 
@@ -200,6 +284,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             runOnUiThread {
                 discovered[id] = info.endpointName
                 refreshPeers()
+                say(getString(R.string.nearby_diag_step_found, info.endpointName))
             }
         }
         override fun onEndpointLost(id: String) {
@@ -216,7 +301,9 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
             peers.addView(secondaryButton(getString(R.string.mono_nearby_connect) + name) {
                 client.stopDiscovery()
                 client.requestConnection(deviceLabel, id, connectionEvents)
-                    .addOnFailureListener { say("Connection failed: " + it.localizedMessage) }
+                    .addOnFailureListener {
+                        say(getString(R.string.nearby_diag_connect_failed, NearbyPreflight.errorMessage(this, it)))
+                    }
             }, buttonParams())
         }
     }
@@ -224,6 +311,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     private val connectionEvents = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(id: String, info: ConnectionInfo) {
             runOnUiThread {
+                say(getString(R.string.nearby_diag_step_confirm))
                 MaterialAlertDialogBuilder(this@NearbyOfflineSyncActivity)
                     .setTitle(getString(R.string.mono_nearby_verify_nearby_device))
                     .setMessage(getString(R.string.mono_nearby_device) + info.endpointName +
@@ -233,7 +321,8 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                     .setPositiveButton(getString(R.string.mono_nearby_codes_match)) { _, _ ->
                         client.acceptConnection(id, payloadEvents)
                             .addOnFailureListener {
-                                say("Pairing failed: " + it.localizedMessage)
+                                say(getString(R.string.nearby_diag_pairing_failed,
+                                    NearbyPreflight.errorMessage(this@NearbyOfflineSyncActivity, it)))
                             }
                     }
                     .setNegativeButton(getString(R.string.mono_nearby_reject)) { _, _ -> client.rejectConnection(id) }
@@ -244,22 +333,33 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         override fun onConnectionResult(id: String, resolution: ConnectionResolution) {
             runOnUiThread {
                 if (resolution.status.isSuccess) {
+                    resetTransfer()
                     connected = id
                     client.stopDiscovery()
                     client.stopAdvertising()
                     discovered.clear()
                     refreshPeers()
-                    say("Paired securely. Either device may send a library or file.")
+                    say(getString(R.string.nearby_diag_step_paired))
                     keepAwake(true)
-                } else say("Connection declined or failed. Try again.")
+                } else {
+                    resetTransfer()
+                    if (connected == id) connected = null
+                    say(getString(R.string.nearby_diag_connection_failed,
+                        NearbyPreflight.statusMessage(this@NearbyOfflineSyncActivity, resolution.status.statusCode)))
+                }
             }
         }
 
         override fun onDisconnected(id: String) {
             runOnUiThread {
-                if (connected == id) connected = null
+                val wasTransferring = busy || outgoingId != null || headers.isNotEmpty() || received.isNotEmpty()
+                if (connected == id) {
+                    connected = null
+                    resetTransfer()
+                }
                 keepAwake(false)
-                say("The nearby device disconnected.")
+                say(if (wasTransferring) getString(R.string.nearby_diag_dropped)
+                    else "The nearby device disconnected.")
             }
         }
     }
@@ -360,8 +460,8 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 client.sendPayload(endpoint, Payload.fromBytes(NearbySyncProtocol.encode(header)))
                     .addOnSuccessListener {
                         client.sendPayload(endpoint, payload)
-                            .addOnFailureListener { sendError(it.localizedMessage) }
-                    }.addOnFailureListener { sendError(it.localizedMessage) }
+                            .addOnFailureListener { sendError(NearbyPreflight.errorMessage(this@NearbyOfflineSyncActivity, it)) }
+                    }.addOnFailureListener { sendError(NearbyPreflight.errorMessage(this@NearbyOfflineSyncActivity, it)) }
             }.onFailure {
                 busy = false
                 file.delete()
@@ -370,13 +470,13 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendError(message: String?) {
+    private fun sendError(message: String) {
         outgoingId?.let(client::cancelPayload)
         outgoing?.delete()
         outgoing = null
         outgoingId = null
         busy = false
-        say("Transfer failed: " + message)
+        say(getString(R.string.nearby_diag_transfer_failed, message))
     }
 
     private val payloadEvents = object : PayloadCallback() {
@@ -419,12 +519,24 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                     }
                 } else if (update.status == PayloadTransferUpdate.Status.FAILURE ||
                     update.status == PayloadTransferUpdate.Status.CANCELED) {
-                    if (outgoingId == id) sendError("Transfer interrupted")
-                    else {
+                    val canceled = update.status == PayloadTransferUpdate.Status.CANCELED
+                    val reason = if (canceled) getString(R.string.nearby_diag_transfer_canceled)
+                        else NearbyPreflight.statusMessage(this@NearbyOfflineSyncActivity,
+                            ConnectionsStatusCodes.STATUS_PAYLOAD_IO_ERROR)
+                    if (outgoingId == id) {
+                        if (canceled) {
+                            outgoingId = null
+                            outgoing?.delete()
+                            outgoing = null
+                            busy = false
+                            say(reason)
+                        } else sendError(reason)
+                    } else {
                         headers.remove(id)
                         received.remove(id)
                         finished.remove(id)
-                        say("Incoming transfer interrupted.")
+                        say(if (canceled) reason
+                            else getString(R.string.nearby_diag_incoming_failed, reason))
                     }
                 } else if (update.status == PayloadTransferUpdate.Status.IN_PROGRESS &&
                     update.totalBytes > NearbySyncProtocol.MAX_BYTES && outgoingId != id) {
@@ -665,13 +777,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         discovered.clear()
         if (::peers.isInitialized) refreshPeers()
         keepAwake(false)
-        outgoing?.delete()
-        outgoing = null
-        outgoingId = null
-        busy = false
-        headers.clear()
-        received.clear()
-        finished.clear()
+        resetTransfer()
     }
 
     override fun onStop() {

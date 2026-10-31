@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Troubleshooting card -->
+	<string name="nearby_diag_section">Troubleshooting</string>
+	<string name="nearby_diag_checklist">On BOTH devices:\n- Bluetooth is on\n- Wi-Fi is on (it does not need to be connected to a network)\n- Location is on (Android 12 or older only)\n- Google Play services is installed and up to date\n- Monogatari is open in the foreground\n\nThen tap Receive on one device first, wait until it says it is visible, and tap Send on the other device.</string>
+	<string name="nearby_diag_check_button">Check this device</string>
+	<string name="nearby_diag_check_title">Device check</string>
+	<string name="nearby_diag_all_ok">Everything this device needs for Nearby sync looks fine.</string>
+	<string name="nearby_diag_some_problems">Fix the items marked PROBLEM, then try again.</string>
+	<string name="nearby_diag_blocked">Cannot start yet. Fix this first:</string>
+	<string name="nearby_diag_line_ok">OK: %1$s</string>
+	<string name="nearby_diag_line_problem">PROBLEM: %1$s</string>
+
+	<!-- Requirement problems -->
+	<string name="nearby_diag_play_services">Google Play services is missing, disabled or out of date on this device. Nearby sync needs it.</string>
+	<string name="nearby_diag_airplane">Airplane mode is on and Bluetooth or Wi-Fi is off. Turn off Airplane mode, or turn Bluetooth and Wi-Fi back on.</string>
+	<string name="nearby_diag_bluetooth_off">Bluetooth is off. Turn it on (on both devices).</string>
+	<string name="nearby_diag_wifi_off">Wi-Fi is off. Turn it on (on both devices). It does not need to be connected to a network.</string>
+	<string name="nearby_diag_location_off">Location services are off. Android 12 or older needs Location turned on for Nearby.</string>
+	<string name="nearby_diag_permissions_missing">These permissions are still needed: %1$s.</string>
+
+	<!-- Requirement checks that passed -->
+	<string name="nearby_diag_ok_play_services">Google Play services is available</string>
+	<string name="nearby_diag_ok_airplane">Airplane mode does not block the radios</string>
+	<string name="nearby_diag_ok_bluetooth">Bluetooth is on</string>
+	<string name="nearby_diag_ok_wifi">Wi-Fi is on</string>
+	<string name="nearby_diag_ok_location">Location services are on (or not needed on this Android version)</string>
+	<string name="nearby_diag_ok_permissions">All Nearby permissions are granted</string>
+
+	<!-- Fix buttons -->
+	<string name="nearby_diag_action_play_services">Fix Google Play services</string>
+	<string name="nearby_diag_action_airplane">Open Airplane mode settings</string>
+	<string name="nearby_diag_action_bluetooth">Open Bluetooth settings</string>
+	<string name="nearby_diag_action_wifi">Open Wi-Fi settings</string>
+	<string name="nearby_diag_action_location">Open Location settings</string>
+	<string name="nearby_diag_action_app_settings">Open app permission settings</string>
+
+	<!-- Permission results -->
+	<string name="nearby_diag_permissions_denied">Nearby permissions were denied: %1$s. Discovery is unavailable until they are allowed.</string>
+	<string name="nearby_diag_permissions_denied_permanent">Nearby permissions were denied and Android will not ask again: %1$s. Open the app permission settings and allow them.</string>
+
+	<!-- Failure paths: %1$s is a plain-language reason followed by the numeric code -->
+	<string name="nearby_diag_cannot_receive">Cannot receive: %1$s</string>
+	<string name="nearby_diag_cannot_search">Cannot search: %1$s</string>
+	<string name="nearby_diag_connect_failed">Connection request failed: %1$s</string>
+	<string name="nearby_diag_connection_failed">Connection failed: %1$s</string>
+	<string name="nearby_diag_pairing_failed">Pairing failed: %1$s</string>
+	<string name="nearby_diag_transfer_failed">Transfer failed: %1$s</string>
+	<string name="nearby_diag_transfer_canceled">Transfer canceled by the other device or by a disconnect. [canceled]</string>
+	<string name="nearby_diag_incoming_failed">Incoming transfer failed: %1$s</string>
+	<string name="nearby_diag_dropped">The connection was lost during the transfer. Nothing was changed. Start again: Receive on one device, then Send on the other.</string>
+
+	<!-- Step indicator -->
+	<string name="nearby_diag_step_visible">Step 1 of 4: visible to nearby Monogatari devices. Now tap Send on the other device.</string>
+	<string name="nearby_diag_step_searching">Step 1 of 4: searching nearby. Make sure the other device has tapped Receive.</string>
+	<string name="nearby_diag_step_found">Step 2 of 4: found %1$s. Tap it to connect.</string>
+	<string name="nearby_diag_step_confirm">Step 3 of 4: compare the pairing code on both screens.</string>
+	<string name="nearby_diag_step_paired">Step 4 of 4: paired securely. Either device may send a library or file.</string>
+
+	<!-- Nearby status codes -->
+	<string name="nearby_diag_status_network_not_connected">Bluetooth or Wi-Fi is not available to Nearby. Turn both on and try again.</string>
+	<string name="nearby_diag_status_already_advertising">This device is already visible. Tap Stop and disconnect, then try again.</string>
+	<string name="nearby_diag_status_already_discovering">This device is already searching. Tap Stop and disconnect, then try again.</string>
+	<string name="nearby_diag_status_already_connected">Already connected to that device. Tap Stop and disconnect to start over.</string>
+	<string name="nearby_diag_status_rejected">The connection was rejected. One device declined the pairing code, or the other device is not ready. Try again.</string>
+	<string name="nearby_diag_status_not_connected">Not connected to the other device. Pair again.</string>
+	<string name="nearby_diag_status_bluetooth_error">Bluetooth or the radio reported an error. Turn Bluetooth off and on, then try again.</string>
+	<string name="nearby_diag_status_active_strategy">Another Nearby session is still active. Tap Stop and disconnect, then try again.</string>
+	<string name="nearby_diag_status_out_of_order">Steps happened in the wrong order. Tap Stop and disconnect, then tap Receive on one device first and Send on the other.</string>
+	<string name="nearby_diag_status_endpoint_unknown">The other device is no longer available. Search again.</string>
+	<string name="nearby_diag_status_endpoint_io">Lost contact with the other device. Move the devices closer together and try again.</string>
+	<string name="nearby_diag_status_payload_io">The transfer data could not be read or written. Check free storage and try again.</string>
+	<string name="nearby_diag_status_error">Nearby reported a general error. Check Bluetooth, Wi-Fi and Location on both devices.</string>
+	<string name="nearby_diag_status_location_off">Location services must be on. Turn Location on and try again.</string>
+	<string name="nearby_diag_status_permission">A required permission is missing. Open the app permission settings and allow all Nearby permissions.</string>
+	<string name="nearby_diag_status_in_use">Nearby is busy with another request. Tap Stop and disconnect, then try again.</string>
+	<string name="nearby_diag_status_play_services">Google Play services is missing, disabled or needs an update.</string>
+	<string name="nearby_diag_status_not_connected_api">Google Play services could not start Nearby. Update Google Play services and try again.</string>
+	<string name="nearby_diag_status_timeout">Nearby timed out. Try again with both devices close together.</string>
+	<string name="nearby_diag_status_unknown">Nearby reported an unexpected problem.</string>
+</resources>
