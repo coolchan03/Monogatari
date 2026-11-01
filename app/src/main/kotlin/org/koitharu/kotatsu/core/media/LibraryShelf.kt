@@ -145,6 +145,21 @@ internal object LibraryShelf {
 			.take(limit)
 			.toList()
 
+	/**
+	 * The single item the Library's Continue button resumes: the most recently read of the opened [history] and the
+	 * [resumable] items (imported books, audio, video) of [kind] (null is every media type). Items without a read time
+	 * (started books) lose to dated ones and then go by the newest [Item.addedAt]; items whose file is [Item.missing]
+	 * are skipped. On a full tie the history entry comes first.
+	 */
+	fun mostRecentResumable(
+		history: List<Item>,
+		resumable: List<Item>,
+		kind: MediaType? = null,
+	): Item? = (history + resumable)
+		.filter { (kind == null || it.kind == kind) && !it.missing }
+		.sortedWith(compareByDescending<Item> { it.readAt }.thenByDescending { it.addedAt })
+		.firstOrNull()
+
 	/** Stable cache name for an imported book's cover; changes whenever the file is replaced. */
 	fun coverCacheName(file: File): String =
 		"cover-" + Integer.toHexString(file.absolutePath.hashCode()) + "-" + file.length() + "-" + file.lastModified()

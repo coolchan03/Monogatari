@@ -27,6 +27,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.discover.media.applyThemeColors
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.db.entity.toMangaTags
@@ -153,6 +155,10 @@ class UnifiedLibraryFragment : Fragment() {
 	private lateinit var status: TextView
 	private lateinit var loading: LinearProgressIndicator
 	private lateinit var list: RecyclerView
+	private lateinit var swipeRefresh: SwipeRefreshLayout
+	private lateinit var continueLatest: MaterialButton
+	/** The item the Continue button resumes, or null while it is hidden. */
+	private var continueLatestRow: Row? = null
 	private lateinit var layoutManager: GridLayoutManager
 	private lateinit var emptyView: LinearLayout
 	private lateinit var emptyMascot: ImageView
@@ -213,6 +219,9 @@ class UnifiedLibraryFragment : Fragment() {
 		root.findViewById<MaterialButton>(R.id.library_add_files).setOnClickListener { fileImporter.launchOrToast() }
 		root.findViewById<MaterialButton>(R.id.library_empty_add).setOnClickListener { fileImporter.launchOrToast() }
 		root.findViewById<MaterialButton>(R.id.library_sort).setOnClickListener { chooseSort() }
+		continueLatest = root.findViewById(R.id.library_continue_latest)
+		// Same action as tapping the item in the Continue strip.
+		continueLatest.setOnClickListener { continueLatestRow?.let(::openRow) }
 		root.findViewById<MaterialButton>(R.id.library_empty_find_books).apply {
 			isVisible = lockedKind == MediaType.BOOK
 			setOnClickListener { openBookCatalog() }
@@ -252,6 +261,16 @@ class UnifiedLibraryFragment : Fragment() {
 
 	private fun bindList(root: View) {
 		list = root.findViewById(R.id.monogatari_library_results_list)
+		swipeRefresh = root.findViewById(R.id.library_swipe_refresh)
+		swipeRefresh.applyThemeColors()
+		swipeRefresh.setOnRefreshListener {
+			// Reload the local list and fetch Recommended again for the selected chip; the top bar shows progress.
+			recJob?.cancel()
+			recLoading = false
+			recommended.remove(selected)
+			refresh()
+			swipeRefresh.isRefreshing = false
+		}
 		layoutManager = GridLayoutManager(root.context, initialColumns())
 		layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
 			override fun getSpanSize(position: Int): Int =
@@ -884,6 +903,10 @@ class UnifiedLibraryFragment : Fragment() {
 			showPane(ordered.firstOrNull { keyOf(it) == previousKey } ?: ordered.firstOrNull())
 			restoredPaneKey = null
 		}
+		// The button resumes the newest item of any media (only this tab's kind on the locked Books tab).
+		continueLatestRow = LibraryShelf.mostRecentResumable(recent, resumable, lockedKind)
+		continueLatest.isVisible = continueLatestRow != null
+		continueLatestRow?.let { continueLatest.text = getString(R.string.library_continue_latest, it.title) }
 		adapter.submit(continueRows, sections, listVisible = filtered.isNotEmpty(), searchQuery = q)
 		renderCollections()
 		renderEmpty(filtered.isEmpty(), q, continueRows.isNotEmpty())

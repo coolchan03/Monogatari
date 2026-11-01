@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-11-01 — v1.4.4 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.4.4 built from `devel` `0266d99` (drafts merged; build check run 41308312739 green; release run 41309913167 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `77fa5d77822de1fd2bd7e6a5de0193371d7508042f3471ec2d3d68f42b610f0d`.
+- 12 recommended extension repositories seeded once (about 183 runnable extensions); Source repositories > Get more sources bulk install (anime / books / manga, adult and other languages optional; torrent/debrid excluded); main search type follows the Discover/Library chip (MainSearchScope.followSection). Not device-verified yet.
+
 ## 2026-10-31 — v1.4.3 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.4.3 built from `devel` `801d826` (drafts merged; build check run 41152453504 green; release run 41153844733 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `19a4f9262986babbe5a74d62e431128f3a8b45042c05754c0d1b3abc580131f7`.
 - Nearby offline sync: ACCESS_WIFI_STATE / CHANGE_WIFI_STATE no longer capped at Android 11 (likely cause, unconfirmed), prerequisite check (Play services, Bluetooth, Wi-Fi, location, airplane mode, permissions), status-code messages, state fixes, Troubleshooting card with Check this device. Owner to retest on the Razr and the tablet and report the status line and bracketed code if it still fails.

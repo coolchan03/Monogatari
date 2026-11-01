@@ -174,3 +174,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - 12 recommended extension repositories seeded once (about 183 runnable extensions), Get more sources bulk install, search type follows the Discover/Library chip.
 - Still open: more built-in book/video sources, a source picker in search, verify Nearby sync on the Razr and tablet, rename Explore, pull-to-refresh, Library Continue button.
+
+## Released in v1.5.0 (2026-11-02)
+
+- Sources tab rename, pull-to-refresh, Library Continue button, first-run setup, shared mascot empty states.
+- Next batches the owner approved: reading and media (one Continue shelf across media already started; download queue screen, NewPipe downloads/background audio/subscription import, reading stats), sync and safety (Nearby remembered pairing/multi-file/favourites conflicts, backup reminders, restore preview), content (more built-in book/video sources, Komga/Kavita).

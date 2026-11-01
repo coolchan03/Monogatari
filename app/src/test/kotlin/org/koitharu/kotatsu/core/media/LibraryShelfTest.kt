@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.core.media
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.koitharu.kotatsu.core.media.LibraryShelf.Item
@@ -206,4 +207,46 @@ class LibraryShelfTest {
 	}
 
 	private fun createTempDir(): File = kotlin.io.path.createTempDirectory("library-shelf").toFile()
+
+	@Test
+	fun continueLatestPicksNewestAcrossHistoryAndResumable() {
+		val history = listOf(
+			item("1", readAt = 100L),
+			item("2", kind = MediaType.BOOK, readAt = 300L),
+		)
+		val resumable = listOf(
+			item("content://video/1", kind = MediaType.VIDEO, origin = Origin.IMPORTED, readAt = 200L),
+			item("content://audio/1", kind = MediaType.AUDIO, origin = Origin.IMPORTED, readAt = 400L),
+		)
+		assertEquals("content://audio/1", LibraryShelf.mostRecentResumable(history, resumable)?.key)
+		assertEquals("2", LibraryShelf.mostRecentResumable(history, emptyList())?.key)
+	}
+
+	@Test
+	fun continueLatestStartedBookWithoutTimeLosesToDatedItems() {
+		val book = item("/books/a.epub", kind = MediaType.BOOK, origin = Origin.IMPORTED, addedAt = 900L)
+		val dated = item("1", readAt = 5L)
+		assertEquals("1", LibraryShelf.mostRecentResumable(listOf(dated), listOf(book))?.key)
+		// With nothing dated, the started book is still resumable.
+		assertEquals("/books/a.epub", LibraryShelf.mostRecentResumable(emptyList(), listOf(book))?.key)
+	}
+
+	@Test
+	fun continueLatestSkipsMissingFilesAndHonoursKind() {
+		val missing = item("content://video/gone", kind = MediaType.VIDEO, origin = Origin.IMPORTED, readAt = 999L)
+			.copy(missing = true)
+		val manga = item("1", readAt = 10L)
+		val book = item("/books/a.epub", kind = MediaType.BOOK, origin = Origin.IMPORTED, readAt = 5L)
+		assertEquals("1", LibraryShelf.mostRecentResumable(listOf(manga), listOf(missing, book))?.key)
+		assertEquals("/books/a.epub", LibraryShelf.mostRecentResumable(listOf(manga), listOf(missing, book), MediaType.BOOK)?.key)
+		assertNull(LibraryShelf.mostRecentResumable(listOf(manga), listOf(missing), MediaType.VIDEO))
+		assertNull(LibraryShelf.mostRecentResumable(emptyList(), emptyList()))
+	}
+
+	@Test
+	fun continueLatestPrefersHistoryOnFullTie() {
+		val history = listOf(item("h", readAt = 50L, addedAt = 1L))
+		val resumable = listOf(item("r", kind = MediaType.VIDEO, origin = Origin.IMPORTED, readAt = 50L, addedAt = 1L))
+		assertEquals("h", LibraryShelf.mostRecentResumable(history, resumable)?.key)
+	}
 }

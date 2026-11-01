@@ -94,6 +94,12 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		shelvesAdapter = shelves
 		binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
 		binding.recyclerView.adapter = ConcatAdapter(header, shelves)
+		binding.swipeRefresh.applyThemeColors()
+		binding.swipeRefresh.setOnRefreshListener {
+			// Every shelf shows its own loading state, so the pull indicator only confirms the gesture.
+			viewModel.reload()
+			binding.swipeRefresh.isRefreshing = false
+		}
 		viewModel.start(mediaType)
 		viewModel.shelves.observe(viewLifecycleOwner) { models ->
 			val visible = models.filter { it.state !is MediaDiscoverShelfState.Hidden }
