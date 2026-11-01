@@ -22,6 +22,7 @@ import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.addHeaderCard
 import org.koitharu.kotatsu.core.ui.bodyText
 import org.koitharu.kotatsu.core.ui.dp
+import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.ui.monogatariCard
 import org.koitharu.kotatsu.core.ui.pageColumn
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
@@ -86,7 +87,7 @@ class SourceLogActivity : AppCompatActivity() {
 		val summaries = SourceLogFormat.summarize(entries)
 		summary.visibility = android.view.View.VISIBLE
 		summary.text = if (summaries.isEmpty()) {
-			getString(R.string.source_log_empty)
+			""
 		} else {
 			summaries.joinToString("\n") { s ->
 				val lastOk = s.lastOkMs?.let { SourceLogFormat.ago(now, it) } ?: "never"
@@ -94,6 +95,14 @@ class SourceLogActivity : AppCompatActivity() {
 			}
 		}
 		list.removeAllViews()
+		if (entries.isEmpty()) {
+			val noLog = query.isBlank()
+			list.addView(emptyState(
+				if (noLog) MascotForm.DEFAULT else MascotForm.SAD,
+				getString(if (noLog) R.string.first_run_log_empty_title else R.string.first_run_log_no_match_title),
+				getString(if (noLog) R.string.first_run_log_empty_message else R.string.first_run_log_no_match_message),
+			))
+		}
 		val pad = dp(12)
 		for (entry in entries.take(150)) {
 			val card = monogatariCard().apply {

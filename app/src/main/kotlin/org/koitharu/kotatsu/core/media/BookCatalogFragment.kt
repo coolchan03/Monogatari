@@ -14,11 +14,13 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import androidx.core.view.MenuProvider
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -46,6 +48,8 @@ import org.koitharu.kotatsu.core.qa.CsvExportFormatter
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.emptyState
+import org.koitharu.kotatsu.core.ui.scrollable
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import java.io.File
@@ -64,6 +68,13 @@ class BookCatalogFragment : Fragment() {
 	private val resultsAdapter = CatalogResultsAdapter()
 	private lateinit var query: EditText
 	private lateinit var catalogStatus: TextView
+	private var emptyView: View? = null
+	// Any rows put into the list (loading, results, saved catalogs) replace the empty state.
+	private val emptyStateObserver = object : RecyclerView.AdapterDataObserver() {
+		override fun onChanged() {
+			if (emptyView != null && resultsAdapter.itemCount > 0) showCatalogEmpty(null)
+		}
+	}
 	private var currentBooks = emptyList<PublicBookCatalog.Book>()
 	private var currentProviderErrors = emptyList<String>()
 	private var catalogJob: Job? = null
@@ -184,6 +195,7 @@ class BookCatalogFragment : Fragment() {
 			?: catalogPrefs.getString("last_query", "").orEmpty())
 		catalogStatus = findViewById(R.id.monogatari_catalog_status)
 		resultsAdapter.imageLoader = imageLoader
+		resultsAdapter.registerAdapterDataObserver(emptyStateObserver)
 		catalogOrder = runCatching {
 			BookCatalogSorter.Order.valueOf(
 				catalogPrefs
@@ -241,6 +253,26 @@ class BookCatalogFragment : Fragment() {
 			val lastProvider = catalogPrefs.getString("last_provider", null)
 			if (!lastProvider.isNullOrBlank() && query.text?.isNotBlank() == true) search(lastProvider)
 			else search("Standard Ebooks")
+		}
+	}
+
+	override fun onDestroyView() {
+		resultsAdapter.unregisterAdapterDataObserver(emptyStateObserver)
+		emptyView = null
+		super.onDestroyView()
+	}
+
+	/** Shows [state] in place of the results list, or restores the list when [state] is null. */
+	private fun showCatalogEmpty(state: View?) {
+		val results = requireView().findViewById<RecyclerView>(R.id.monogatari_catalog_results)
+		val parent = results.parent as? LinearLayout ?: return
+		emptyView?.let(parent::removeView)
+		emptyView = null
+		results.isVisible = state == null
+		if (state != null) {
+			val holder = state.scrollable()
+			parent.addView(holder, parent.indexOfChild(results) + 1, LinearLayout.LayoutParams(-1, 0, 1f))
+			emptyView = holder
 		}
 	}
 
@@ -401,6 +433,11 @@ class BookCatalogFragment : Fragment() {
 			} catch (e: Exception) {
 				catalogStatus.text = "Catalog search failed: ${e.message.orEmpty().take(120)}"
 				resultsAdapter.show(emptyList())
+				showCatalogEmpty(requireContext().emptyState(
+					MascotForm.SAD, getString(R.string.first_run_catalog_failed_title),
+					e.message.orEmpty().take(120).ifBlank { getString(R.string.first_run_catalog_failed_message) },
+					getString(R.string.retry),
+				) { lastCatalogProvider?.let(::search) })
 			}
 		}
 	}
@@ -412,11 +449,14 @@ class BookCatalogFragment : Fragment() {
 		catalogStatus.text = "${groups.size} titles · ${currentBooks.size} provider results · ${catalogOrder.label}" +
 			errorSuffix
 		if (groups.isEmpty()) {
-			resultsAdapter.show(listOf(CatalogRow(
-				"No catalog titles matched.",
-				if (currentProviderErrors.isEmpty()) "Try a different title or provider."
-				else "Some providers could not be reached; try again or choose one."
-			)))
+			resultsAdapter.show(emptyList())
+			val unreachable = currentProviderErrors.isNotEmpty()
+			showCatalogEmpty(requireContext().emptyState(
+				MascotForm.SAD,
+				getString(if (unreachable) R.string.first_run_catalog_unreachable_title else R.string.first_run_catalog_empty_title),
+				getString(if (unreachable) R.string.first_run_catalog_unreachable_message else R.string.first_run_catalog_empty_message),
+				getString(if (unreachable) R.string.retry else R.string.first_run_catalog_search_all),
+			) { if (unreachable) lastCatalogProvider?.let(::search) else search("All") })
 			return
 		}
 		resultsAdapter.show(groups.map { group ->

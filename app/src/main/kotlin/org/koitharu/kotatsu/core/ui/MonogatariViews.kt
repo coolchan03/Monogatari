@@ -178,8 +178,17 @@ fun Context.statusText(text: CharSequence? = null): TextView = bodyText(text).ap
 	accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
 }
 
-/** Kitsune in [form] above a centred [message], for empty lists. */
-fun Context.emptyState(form: MascotForm, message: CharSequence): LinearLayout = LinearLayout(this).apply {
+/**
+ * The shared "nothing here" / "something went wrong" state: Kitsune in [form], a [title], a [message] that says what
+ * to do next and, when [actionLabel] is given, a filled button running [onAction]. Child 0 is the mascot.
+ */
+fun Context.emptyState(
+	form: MascotForm,
+	title: CharSequence?,
+	message: CharSequence,
+	actionLabel: String? = null,
+	onAction: () -> Unit = {},
+): LinearLayout = LinearLayout(this).apply {
 	orientation = LinearLayout.VERTICAL
 	gravity = Gravity.CENTER_HORIZONTAL
 	val pad = dp(24)
@@ -189,9 +198,27 @@ fun Context.emptyState(form: MascotForm, message: CharSequence): LinearLayout = 
 		scaleType = ImageView.ScaleType.FIT_CENTER
 		Mascot.bind(this, form)
 	}, LinearLayout.LayoutParams(dp(120), dp(120)))
+	if (!title.isNullOrEmpty()) {
+		addView(TextView(context).apply {
+			text = title
+			gravity = Gravity.CENTER_HORIZONTAL
+			setThemeTextAppearance(materialR.attr.textAppearanceTitleMedium, materialR.style.TextAppearance_Material3_TitleMedium)
+			ViewCompat.setAccessibilityHeading(this, true)
+			setPadding(0, dp(12), 0, 0)
+		}, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+	}
 	addView(bodyText(message).apply {
 		gravity = Gravity.CENTER_HORIZONTAL
 		setTextColor(getThemeColor(materialR.attr.colorOnSurfaceVariant))
-		setPadding(0, dp(12), 0, 0)
+		setPadding(0, dp(if (title.isNullOrEmpty()) 12 else 4), 0, 0)
 	}, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+	if (actionLabel != null) {
+		addView(primaryButton(actionLabel, onAction), LinearLayout.LayoutParams(
+			ViewGroup.LayoutParams.WRAP_CONTENT,
+			ViewGroup.LayoutParams.WRAP_CONTENT,
+		).apply { topMargin = dp(16) })
+	}
 }
+
+/** Kitsune in [form] above a centred [message], for empty lists. */
+fun Context.emptyState(form: MascotForm, message: CharSequence): LinearLayout = emptyState(form, null, message)

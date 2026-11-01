@@ -34,6 +34,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
+import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.ui.headerCard
 import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.statusText
@@ -61,6 +62,8 @@ class MediaFeedFragment : Fragment() {
 	private var filter: MediaFeedParser.Kind? = null
 	private var loadJob: Job? = null
 	private var playlistOnly = false
+	private lateinit var emptyHost: LinearLayout
+	private var loadError: String? = null
 	private val isBottomTab: Boolean
 		get() = arguments?.getBoolean(AppRouter.KEY_IS_BOTTOMTAB, false) == true
 
@@ -119,6 +122,8 @@ class MediaFeedFragment : Fragment() {
 			isVisible = false
 		}
 		root.addView(retryButton)
+		emptyHost = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+		root.addView(emptyHost, LinearLayout.LayoutParams(-1, -2))
 		root.addView(RecyclerView(context).apply {
 			layoutManager = GridLayoutManager(context,
 				MonogatariChrome.columns(context))
@@ -276,6 +281,7 @@ class MediaFeedFragment : Fragment() {
 		playlistOnly = false
 		loadJob?.cancel()
 		retryButton.isVisible = false
+		loadError = null
 		loading.isVisible = true
 		// Show the episodes from the last successful load at once; the refresh below replaces them.
 		val cached = MediaFeedPlaylist.decode(saved.getString(cacheKey(url), null))
@@ -302,6 +308,7 @@ class MediaFeedFragment : Fragment() {
 				retryButton.isVisible = true
 				if (cached.isEmpty()) {
 					entries = emptyList()
+					loadError = error.message.orEmpty().take(140).ifBlank { getString(R.string.first_run_feed_error_message) }
 					render()
 				}
 				val reason = error.message.orEmpty().take(140)
@@ -318,6 +325,7 @@ class MediaFeedFragment : Fragment() {
 		status.text = if (playlistOnly) "${visible.size} saved episodes · select an episode to manage it"
 			else if (currentUrl == null) "Pick a feed above, or add your own from the menu."
 			else "${visible.size} episodes · ${subscribed().size} subscriptions"
+		renderEmptyState(visible.isEmpty())
 		results.show(visible.map { episode ->
 			CatalogRow(
 				title = episode.title,
@@ -336,6 +344,31 @@ class MediaFeedFragment : Fragment() {
 				onAction = if (MediaFeedPlaybackSpec.validStream(episode.mediaUrl))
 					({ playEpisode(episode) }) else null,
 			)
+		})
+	}
+	/** One shared empty state for "no feeds", "empty playlist", "filtered out" and "feed failed". */
+	private fun renderEmptyState(isEmpty: Boolean) {
+		emptyHost.removeAllViews()
+		if (!isEmpty) return
+		val ctx = requireContext()
+		val error = loadError
+		val url = currentUrl
+		val retry = getString(R.string.retry)
+		emptyHost.addView(when {
+			playlistOnly ->
+				ctx.emptyState(MascotForm.AUDIO, getString(R.string.first_run_playlist_empty_title),
+					getString(R.string.first_run_playlist_empty_message))
+			error != null && url != null ->
+				ctx.emptyState(MascotForm.SAD, getString(R.string.first_run_feed_error_title), error, retry) { load(url) }
+			url == null ->
+				ctx.emptyState(MascotForm.AUDIO, getString(R.string.first_run_feeds_none_title),
+					getString(R.string.first_run_feeds_none_message), getString(R.string.first_run_add_feed)) { addFeed() }
+			entries.isNotEmpty() ->
+				ctx.emptyState(MascotForm.SAD, getString(R.string.first_run_feed_filtered_title),
+					getString(R.string.first_run_feed_filtered_message))
+			else ->
+				ctx.emptyState(MascotForm.AUDIO, getString(R.string.first_run_feed_empty_title),
+					getString(R.string.first_run_feed_empty_message), retry) { load(url) }
 		})
 	}
 	private fun playEpisode(entry: MediaFeedParser.Episode) {

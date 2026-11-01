@@ -32,6 +32,13 @@
         app:iconSpaceReserved="false" />
 
     <Preference
+        android:key="monogatari_run_setup_again"
+        android:persistent="false"
+        android:summary="@string/first_run_run_again_summary"
+        android:title="@string/first_run_run_again_title"
+        app:iconSpaceReserved="false" />
+
+    <Preference
         android:key="monogatari_link_licences"
         android:persistent="false"
         android:summary="@string/settings_link_licences_summary"

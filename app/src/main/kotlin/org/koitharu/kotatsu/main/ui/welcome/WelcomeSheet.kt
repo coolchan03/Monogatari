@@ -88,12 +88,25 @@ class WelcomeSheet : BaseAdaptiveSheet<SheetWelcomeBinding>(), ChipsView.OnChipC
             .setMessage(R.string.welcome_source_setup_message)
             .setPositiveButton(R.string.welcome_source_setup_yes) { _, _ ->
                 bootstrapScheduler.start(allowAdult)
-                dismiss()
+                finishWelcome()
             }
-            .setNegativeButton(R.string.welcome_source_setup_skip) { _, _ -> dismiss() }
+            .setNegativeButton(R.string.welcome_source_setup_skip) { _, _ -> finishWelcome() }
             .setCancelable(false)
             .show()
     }
+
+	/** Closes the welcome and, on a fresh install, follows it with the short "Set up Monogatari" flow. */
+	private fun finishWelcome() {
+		val fm = parentFragmentManager
+		val showSetup = SetupFlow.shouldShow(
+			setupDone = SetupFlow.isDone(requireContext()),
+			welcomeJustCompleted = true,
+		)
+		dismiss()
+		if (showSetup) {
+			fm.beginTransaction().add(SetupSheet(), SetupSheet.TAG).commitAllowingStateLoss()
+		}
+	}
 
 	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
 		val typeMask = WindowInsetsCompat.Type.systemBars()

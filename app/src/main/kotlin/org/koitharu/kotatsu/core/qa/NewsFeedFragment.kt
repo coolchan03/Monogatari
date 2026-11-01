@@ -42,6 +42,7 @@ import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
+import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import org.koitharu.kotatsu.core.util.FeedXml
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
@@ -75,8 +76,6 @@ class NewsFeedFragment : Fragment() {
 	private var sourceChip: Chip? = null
 	private var feedJob: Job? = null
 	private lateinit var emptyState: LinearLayout
-	private lateinit var mascot: ImageView
-	private lateinit var retryButton: MaterialButton
 	private val eggTaps = TapCounter()
 	/** Shown instead of the counts when nothing could be loaded or cached. */
 	private var errorText: String? = null
@@ -163,17 +162,6 @@ class NewsFeedFragment : Fragment() {
 			gravity = Gravity.CENTER_HORIZONTAL
 			isVisible = false
 		}
-		mascot = ImageView(context).apply {
-			adjustViewBounds = true
-			setOnClickListener { if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(requireActivity()) }
-		}
-		emptyState.addView(mascot, LinearLayout.LayoutParams((160 * density).toInt(), -2))
-		retryButton = MaterialButton(context).apply {
-			setText(R.string.retry)
-			isVisible = false
-			setOnClickListener { load(currentFeed) }
-		}
-		emptyState.addView(retryButton, LinearLayout.LayoutParams(-2, -2))
 		root.addView(emptyState, LinearLayout.LayoutParams(-1, -2).apply { gravity = Gravity.CENTER_HORIZONTAL })
 		listScroll = ScrollView(context)
 		if (isBottomTab) {
@@ -555,10 +543,31 @@ class NewsFeedFragment : Fragment() {
 			notice != null -> "$notice\n$counts"
 			else -> counts
 		}
+		emptyState.removeAllViews()
 		emptyState.isVisible = visible.isEmpty()
-		retryButton.isVisible = items.isEmpty() && error != null
 		if (emptyState.isVisible) {
-			Mascot.bind(mascot, if (error != null || items.isNotEmpty()) MascotForm.SAD else MascotForm.NEWS)
+			val ctx = requireContext()
+			val retry = getString(R.string.retry)
+			val state = when {
+				items.isEmpty() && error != null ->
+					ctx.emptyState(MascotForm.SAD, getString(R.string.first_run_news_error_title), error, retry) { load(currentFeed) }
+				items.isEmpty() && loading.isVisible ->
+					ctx.emptyState(MascotForm.NEWS, null, getString(R.string.mono_news_loading_feed))
+				currentFeed == ALL_FEEDS && subscribedFeeds().isEmpty() ->
+					ctx.emptyState(MascotForm.NEWS, getString(R.string.first_run_news_no_feeds_title),
+						getString(R.string.first_run_news_no_feeds_message), getString(R.string.mono_news_add)) { askForFeed() }
+				items.isNotEmpty() ->
+					ctx.emptyState(MascotForm.SAD, getString(R.string.first_run_news_no_match_title),
+						getString(R.string.first_run_news_no_match_message))
+				else ->
+					ctx.emptyState(MascotForm.NEWS, getString(R.string.first_run_news_empty_title),
+						getString(R.string.first_run_news_empty_message), retry) { load(currentFeed) }
+			}
+			// Tap Kitsune quickly for a surprise.
+			state.getChildAt(0).setOnClickListener {
+				if (eggTaps.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(requireActivity())
+			}
+			emptyState.addView(state)
 		}
 		val showSite = currentFeed == ALL_FEEDS
 		val pad = (12 * resources.displayMetrics.density).toInt()
