@@ -6,6 +6,6 @@ import com.google.android.material.R as materialR
 
 /** Colours the pull-to-refresh indicator from the current theme: primary spinner on a surface-coloured disc. */
 fun SwipeRefreshLayout.applyThemeColors() {
-	setColorSchemeColors(MaterialColors.getColor(this, materialR.attr.colorPrimary))
+	setColorSchemeColors(MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary))
 	setProgressBackgroundColorSchemeColor(MaterialColors.getColor(this, materialR.attr.colorSurface))
 }
