@@ -55,6 +55,19 @@
 
 	</LinearLayout>
 
+	<!-- Resumes the single most recent item across all media; hidden when nothing can be resumed. -->
+	<com.google.android.material.button.MaterialButton
+		android:id="@+id/library_continue_latest"
+		style="@style/Widget.Material3.Button"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="@dimen/library_gutter"
+		android:layout_marginTop="@dimen/library_header_spacing"
+		android:ellipsize="end"
+		android:maxLines="1"
+		android:visibility="gone"
+		app:icon="@drawable/ic_play" />
+
 	<!-- Type chips: All · Manga · Books · Video · Audio, each with its count. -->
 	<HorizontalScrollView
 		android:id="@+id/library_tabs_scroll"
@@ -115,12 +128,19 @@
 		android:layout_height="0dp"
 		android:layout_weight="1">
 
-		<androidx.recyclerview.widget.RecyclerView
-			android:id="@id/monogatari_library_results_list"
+		<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+			android:id="@+id/library_swipe_refresh"
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:clipToPadding="false"
-			android:paddingHorizontal="@dimen/library_card_spacing" />
+			android:layout_height="match_parent">
+
+			<androidx.recyclerview.widget.RecyclerView
+				android:id="@id/monogatari_library_results_list"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:clipToPadding="false"
+				android:paddingHorizontal="@dimen/library_card_spacing" />
+
+		</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 		<LinearLayout
 			android:id="@+id/library_empty"

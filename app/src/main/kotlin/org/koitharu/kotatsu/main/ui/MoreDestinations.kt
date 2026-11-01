@@ -61,7 +61,7 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_books, MediaDiscoverActivity::class.java, Group.SOURCES, viewUri = "monogatari://discover/books", media = "BOOK"),
         Page("discover_video", R.string.more_page_discover_video, R.string.more_page_discover_video_summary,
             R.drawable.ic_play, MediaDiscoverActivity::class.java, Group.SOURCES, viewUri = "monogatari://discover/video", media = "VIDEO"),
-        Page("sources", R.string.more_page_sources, R.string.more_page_sources_summary,
+        Page("sources", R.string.more_page_source_catalog, R.string.more_page_sources_summary,
             R.drawable.ic_monogatari_nav_explore, SourcesCatalogActivity::class.java, Group.SOURCES),
         Page("repos", R.string.more_page_repos, R.string.more_page_repos_summary,
             R.drawable.ic_monogatari_nav_explore, SettingsActivity::class.java, Group.SOURCES, viewUri = "monogatari://source-repos"),

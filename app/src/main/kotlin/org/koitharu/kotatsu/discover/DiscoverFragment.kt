@@ -63,6 +63,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
+import org.koitharu.kotatsu.discover.media.applyThemeColors
 import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
 import javax.inject.Inject
 
@@ -247,6 +248,12 @@ class DiscoverFragment : Fragment() {
 			}
 		})
 		binding.textMessage.setOnClickListener { if (adapter.itemCount == 0) reload() }
+		binding.swipeRefresh.applyThemeColors()
+		binding.swipeRefresh.setOnRefreshListener {
+			// The grid shows its own progress indicator while reloading, so the pull indicator only confirms the gesture.
+			reload()
+			binding.swipeRefresh.isRefreshing = false
+		}
 		refreshBadges()
 		if (adapter.itemCount == 0) reload()
 	}
@@ -460,6 +467,8 @@ class DiscoverFragment : Fragment() {
 	}
 
 	private fun reload() {
+		// News is not a list of covers, so there is nothing to pull down for.
+		binding.swipeRefresh.isEnabled = section != MediaSection.NEWS
 		loadJob?.cancel()
 		loadJob = null
 		adapter.items = emptyList()

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- The main tab that browses source websites (NavItem.EXPLORE); the id and preference value stay "explore". -->
+	<string name="nav_item_sources_tab">Sources</string>
+	<!-- The shortcut and More page that open the installed-sources and extension catalog. -->
+	<string name="nav_item_source_catalog">Source catalog</string>
+	<string name="more_page_source_catalog">Source catalog</string>
+	<!-- Library button that resumes the most recent item of any media type. -->
+	<string name="library_continue_latest">Continue: %1$s</string>
+</resources>
