@@ -169,3 +169,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Nearby sync: Wi-Fi permissions no longer capped at Android 11, prerequisite check (Play services, Bluetooth, Wi-Fi, location, airplane mode, permissions), status-code messages, state fixes, Troubleshooting card.
 - Still open: verify Nearby sync end to end on the Razr and the tablet; more book/video sources; vetted Mangayomi anime/novel repository defaults (13 JavaScript-capable links checked on 2026-10-30: 183 runnable extensions); a source picker in search; rename Explore; pull-to-refresh; Library Continue button.
+
+## Released in v1.4.4 (2026-11-01)
+
+- 12 recommended extension repositories seeded once (about 183 runnable extensions), Get more sources bulk install, search type follows the Discover/Library chip.
+- Still open: more built-in book/video sources, a source picker in search, verify Nearby sync on the Razr and tablet, rename Explore, pull-to-refresh, Library Continue button.

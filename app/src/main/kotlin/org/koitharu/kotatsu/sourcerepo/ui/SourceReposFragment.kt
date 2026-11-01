@@ -25,6 +25,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import androidx.preference.PreferenceCategory
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,6 +57,8 @@ import org.koitharu.kotatsu.sourcerepo.domain.JsSourceItem
 import org.koitharu.kotatsu.sourcerepo.domain.PluginEntry
 import org.koitharu.kotatsu.sourcerepo.domain.PluginState
 import org.koitharu.kotatsu.sourcerepo.work.SourceUpdateWorker
+import org.koitharu.kotatsu.sourcehealth.SourceLogActivity
+import org.koitharu.kotatsu.sourcerepo.work.SourceBootstrapPlanner
 import org.koitharu.kotatsu.sourcerepo.work.SourceBootstrapWorker
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.sourcerepo.domain.RepoPreview
@@ -88,6 +92,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 
 	private var scanProgressDialog: AlertDialog? = null
+	private var lastBootstrapInfo: WorkInfo? = null
 	private var screenAwakeForScan = false
 	private var scanScreenResumed = false
 
@@ -116,6 +121,12 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				)
 			}
 		}
+		WorkManager.getInstance(requireContext())
+			.getWorkInfosForUniqueWorkLiveData(SourceBootstrapWorker.NAME)
+			.observe(viewLifecycleOwner) { works ->
+				lastBootstrapInfo = works.orEmpty().maxByOrNull { it.runAttemptCount }
+				render(viewModel.state.value)
+			}
 		viewModel.onInstall.observeEvent(viewLifecycleOwner) { startActivity(it) }
 		viewModel.onMessage.observeEvent(viewLifecycleOwner) {
 			Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
@@ -296,26 +307,36 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
         val currentDay = System.currentTimeMillis() / 86_400_000L
         val count = if (sourceUpdatePrefs.getLong("last_updated_day", -1) == currentDay)
             sourceUpdatePrefs.getInt("updates_today", 0) else 0
-        pluginsCategory.addPreference(Preference(context).apply {
-            key = "monogatari_bootstrap_sources"
-            title = getString(R.string.welcome_source_setup_title)
-            summary = "Install available English and multilingual JavaScript manga, book and video sources. Duplicates and installed sources are skipped; progress appears in Explore."
-            isPersistent = false
-            setOnPreferenceClickListener {
-                MaterialAlertDialogBuilder(context)
-                    .setTitle(R.string.welcome_source_setup_title)
-                    .setMessage(R.string.welcome_source_setup_message)
-                    .setNegativeButton(R.string.welcome_source_setup_skip, null)
-                    .setPositiveButton(R.string.welcome_source_setup_yes) { _, _ ->
-                        bootstrapScheduler.start(
-                            !appSettings.isNsfwContentDisabled && !appSettings.hideAdultOnlySources,
-                        )
-                        Toast.makeText(context, R.string.source_setup_waiting, Toast.LENGTH_SHORT).show()
-                    }
-                    .show()
-                true
-            }
-        })
+		pluginsCategory.addPreference(Preference(context).apply {
+			key = "monogatari_bootstrap_sources"
+			title = getString(R.string.get_more_sources_title)
+			summary = getString(R.string.get_more_sources_summary)
+			isPersistent = false
+			setIcon(R.drawable.ic_monogatari_nav_explore)
+			setOnPreferenceClickListener {
+				showGetMoreSources(state)
+				true
+			}
+		})
+		bootstrapResultText()?.let { text ->
+			pluginsCategory.addPreference(Preference(context).apply {
+				key = "monogatari_bootstrap_result"
+				title = getString(R.string.get_more_sources_result_title)
+				summary = text
+				isPersistent = false
+				setOnPreferenceClickListener {
+					MaterialAlertDialogBuilder(context)
+						.setTitle(R.string.get_more_sources_result_title)
+						.setMessage(getString(R.string.get_more_sources_result_details, text))
+						.setPositiveButton(R.string.get_more_sources_open_log) { _, _ ->
+							startActivity(Intent(context, SourceLogActivity::class.java))
+						}
+						.setNegativeButton(android.R.string.ok, null)
+						.show()
+					true
+				}
+			})
+		}
         pluginsCategory.addPreference(Preference(context).apply {
             key = "monogatari_source_update_status"
             title = "Check installed source updates"
@@ -458,6 +479,86 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				},
 			)
 		}
+	}
+
+	/** Summary of the last "Get more sources" run, or null if there is none to show. */
+	private fun bootstrapResultText(): String? {
+		val info = lastBootstrapInfo ?: return null
+		return when (info.state) {
+			WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> {
+				val progress = info.progress
+				getString(
+					R.string.get_more_sources_result_running,
+					progress.getInt(SourceBootstrapWorker.KEY_DONE, 0),
+					progress.getInt(SourceBootstrapWorker.KEY_TOTAL, 0),
+				)
+			}
+
+			WorkInfo.State.SUCCEEDED -> {
+				val out = info.outputData
+				getString(
+					R.string.get_more_sources_result_summary,
+					out.getInt(SourceBootstrapWorker.KEY_INSTALLED_ANIME, 0),
+					out.getInt(SourceBootstrapWorker.KEY_INSTALLED_NOVEL, 0),
+					out.getInt(SourceBootstrapWorker.KEY_INSTALLED_MANGA, 0),
+					out.getInt(SourceBootstrapWorker.KEY_FAILED, 0),
+				)
+			}
+
+			else -> null
+		}
+	}
+
+	private fun showGetMoreSources(state: SourceReposViewModel.State) {
+		val context = requireContext()
+		val catalog = state.jsSources.map { it.entry }
+		val installed = state.jsSources.filter { it.state != PluginState.NOT_INSTALLED }.map { it.entry }
+		val adultAllowed = !appSettings.isNsfwContentDisabled && !appSettings.hideAdultOnlySources
+		val padding = (16 * resources.displayMetrics.density).toInt()
+		val box = LinearLayout(context).apply {
+			orientation = LinearLayout.VERTICAL
+			setPadding(padding, padding / 2, padding, 0)
+		}
+		fun check(text: String, checked: Boolean) = CheckBox(context).apply {
+			this.text = text
+			isChecked = checked
+			box.addView(this)
+		}
+		val anime = check("", true)
+		val novel = check("", true)
+		val manga = check("", true)
+		val adult = check(getString(R.string.get_more_sources_adult), false).apply { isEnabled = adultAllowed }
+		val languages = check(getString(R.string.get_more_sources_languages), false)
+		fun count(type: JsItemType) = SourceBootstrapPlanner.plan(
+			catalog, installed, emptySet(), adult.isChecked, setOf(type), languages.isChecked,
+		).size
+		fun refresh() {
+			anime.text = getString(R.string.get_more_sources_anime, count(JsItemType.ANIME))
+			novel.text = getString(R.string.get_more_sources_novel, count(JsItemType.NOVEL))
+			manga.text = getString(R.string.get_more_sources_manga, count(JsItemType.MANGA))
+		}
+		adult.setOnCheckedChangeListener { _, _ -> refresh() }
+		languages.setOnCheckedChangeListener { _, _ -> refresh() }
+		refresh()
+		MaterialAlertDialogBuilder(context)
+			.setTitle(R.string.get_more_sources_title)
+			.setMessage(R.string.get_more_sources_message)
+			.setView(box)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(R.string.get_more_sources_install) { _, _ ->
+				val types = buildSet {
+					if (anime.isChecked) add(JsItemType.ANIME)
+					if (novel.isChecked) add(JsItemType.NOVEL)
+					if (manga.isChecked) add(JsItemType.MANGA)
+				}
+				if (types.isEmpty()) {
+					Toast.makeText(context, R.string.get_more_sources_nothing, Toast.LENGTH_SHORT).show()
+				} else {
+					bootstrapScheduler.start(adultAllowed && adult.isChecked, types, languages.isChecked)
+					Toast.makeText(context, R.string.source_setup_waiting, Toast.LENGTH_SHORT).show()
+				}
+			}
+			.show()
 	}
 
 	private fun showDartAlternatives(

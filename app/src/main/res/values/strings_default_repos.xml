@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="get_more_sources_title">Get more sources</string>
+	<string name="get_more_sources_summary">Install anime and video, book and novel, and manga sources from the included repositories in one step.</string>
+	<string name="get_more_sources_message">Choose what to install. Sources already installed or duplicating a built-in site are skipped. Installation continues in the background.</string>
+	<string name="get_more_sources_anime">Anime &amp; video sources (%1$d available)</string>
+	<string name="get_more_sources_novel">Book &amp; novel sources (%1$d available)</string>
+	<string name="get_more_sources_manga">Manga sources (%1$d available)</string>
+	<string name="get_more_sources_adult">Include adult sources</string>
+	<string name="get_more_sources_languages">Include other languages</string>
+	<string name="get_more_sources_install">Install</string>
+	<string name="get_more_sources_nothing">Pick at least one type of source.</string>
+	<string name="get_more_sources_result_title">Last source installation</string>
+	<string name="get_more_sources_result_running">Installing sources… %1$d of %2$d done</string>
+	<string name="get_more_sources_result_summary">Installed %1$d anime, %2$d novel, %3$d manga. %4$d failed.</string>
+	<string name="get_more_sources_result_details">%1$s\n\nSources already installed, duplicated by a built-in site, or needing a torrent or debrid account were skipped. Failed installs are listed in the Source log.</string>
+	<string name="get_more_sources_open_log">Open Source log</string>
+</resources>

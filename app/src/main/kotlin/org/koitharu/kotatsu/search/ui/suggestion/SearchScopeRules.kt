@@ -27,6 +27,15 @@ object SearchScopeRules {
 	fun orAll(raw: String?): String = normalize(raw) ?: ALL
 
 	/**
+	 * The search scope a Discover/Library chip implies: its name when it is a media type, otherwise "ALL"
+	 * (the "ALL" chip, News, which is not a source type, and anything unknown).
+	 */
+	fun scopeForSection(sectionName: String?): String = when (sectionName) {
+		MediaType.MANGA.name, MediaType.BOOK.name, MediaType.VIDEO.name, MediaType.AUDIO.name -> sectionName.orEmpty()
+		else -> ALL
+	}
+
+	/**
 	 * @param isFiltering true only when the bar filters the History/Favourites screen instead of searching sources
 	 */
 	fun hintFor(screen: SearchSuggestionScope, isFiltering: Boolean, scope: String?): SearchHint = when {

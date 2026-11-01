@@ -44,3 +44,25 @@ Settings -> Source repositories also accepts **Mangayomi-format indexes** (`inde
 Their **JavaScript** sources can be installed and updated from the same screen; see
 [JS_EXTENSIONS.md](JS_EXTENSIONS.md). **Dart** sources cannot run here and are counted but not listed.
 Each index file is a separate URL. Mangayomi's official repository currently publishes active manga and novel links while its anime link is commented out, so the app does not hard-code that inactive feed. Compatible third-party Mangayomi-format anime indexes can still be added normally.
+
+## Recommended default repositories
+
+Monogatari ships a built-in list of Mangayomi-format repositories (`sourcerepo/data/RecommendedRepos.kt`,
+merged with the build-time `DEFAULT_REPOS`). Each default is offered to an install **once**: the
+`seeded` set in the `source_repos` prefs records what was offered, so a repository you remove is never
+re-added, while new defaults reach existing installs on the next release.
+
+- Manga: kodjodevf, m2k3a (GitHub Pages mirror), Swakshan, Schnitzel5 `index.json`
+- Anime: m2k3a, Swakshan, Schnitzel5, gato404 (kegareta-sauces) `anime_index.json`
+- Novel: Schnitzel5, m2k3a, kodjodevf, Swakshan `novel_index.json`
+
+The m2k3a.github.io novel index is byte-identical to the raw m2k3a one, so only one copy is listed.
+Keiyoushi and Secozzi are **not** included: their Mihon/Aniyomi indexes are Android APK extensions
+(only "Outdated app" stubs here) that Monogatari cannot run.
+
+**Get more sources** (Source repositories screen) installs runnable JavaScript sources in one step for
+the chosen types (anime and video, book and novel, manga), English and multilingual (`all`) by
+default, with optional "Include other languages" and "Include adult sources". Sources that need an
+external torrent or debrid account (name contains Torrent or Debrid) are left out of the bulk install
+and can still be installed one by one. A result summary (installed per type, failures) stays on the
+screen, and failures are written to the Source log.

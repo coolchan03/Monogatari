@@ -61,4 +61,30 @@ class SourceBootstrapPlannerTest {
         assertEquals(2, selected.size)
         assertTrue(selected.map { it.id }.containsAll(listOf(10L, 11L)))
     }
+
+    @Test fun typesAndOtherLanguagesFiltersApply() {
+        val candidates = listOf(
+            source(20, "https://m.test", type = JsItemType.MANGA),
+            source(21, "https://a.test", type = JsItemType.ANIME),
+            source(22, "https://n.test", type = JsItemType.NOVEL),
+            source(23, "https://fr.test", lang = "fr", type = JsItemType.ANIME),
+        )
+        val anime = SourceBootstrapPlanner.plan(candidates, emptyList(), emptySet(), false, setOf(JsItemType.ANIME))
+        assertEquals(listOf(21L), anime.map { it.id })
+        val animeAny = SourceBootstrapPlanner.plan(
+            candidates, emptyList(), emptySet(), false, setOf(JsItemType.ANIME), includeOtherLanguages = true,
+        )
+        assertEquals(setOf(21L, 23L), animeAny.map { it.id }.toSet())
+        assertEquals(3, SourceBootstrapPlanner.plan(candidates, emptyList(), emptySet(), false).size)
+    }
+
+    @Test fun accountGatedSourcesAreExcludedFromBulkInstall() {
+        fun named(id: Long, name: String) = source(id, "https://s$id.test").copy(name = name)
+        val candidates = listOf(
+            named(30, "Torrentio"), named(31, "Real-Debrid Player"), named(32, "Nyaa Torrent"),
+            named(33, "Anna's Archive"),
+        )
+        val selected = SourceBootstrapPlanner.plan(candidates, emptyList(), emptySet(), false)
+        assertEquals(listOf(33L), selected.map { it.id })
+    }
 }

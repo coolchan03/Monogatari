@@ -58,4 +58,21 @@ class SearchScopeRulesTest {
 		// Other tabs can never be in filter mode, even if the flag were stale.
 		assertEquals(SearchHint.SEARCH_BOOKS, SearchScopeRules.hintFor(SearchSuggestionScope.ALL, true, "BOOK"))
 	}
+
+	@Test
+	fun sectionChipsMapToTheirSearchScope() {
+		assertEquals("ALL", SearchScopeRules.scopeForSection("ALL"))
+		assertEquals("MANGA", SearchScopeRules.scopeForSection("MANGA"))
+		assertEquals("BOOK", SearchScopeRules.scopeForSection("BOOK"))
+		assertEquals("VIDEO", SearchScopeRules.scopeForSection("VIDEO"))
+		assertEquals("AUDIO", SearchScopeRules.scopeForSection("AUDIO"))
+	}
+
+	@Test
+	fun newsAndUnknownSectionsSearchEverything() {
+		assertEquals("ALL", SearchScopeRules.scopeForSection("NEWS"))
+		assertEquals("ALL", SearchScopeRules.scopeForSection("bogus"))
+		assertEquals("ALL", SearchScopeRules.scopeForSection(""))
+		assertEquals("ALL", SearchScopeRules.scopeForSection(null))
+	}
 }

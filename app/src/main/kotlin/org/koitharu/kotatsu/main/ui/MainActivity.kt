@@ -656,6 +656,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			SearchSuggestionMenuProvider(this, voiceInputLauncher, searchSuggestionViewModel, ::updateSearchHint),
 		)
 		searchSuggestionViewModel.isScopedSearch.observe(this) { updateSearchHint() }
+		// Discover/Library chips change the shared search type from outside the activity.
+		MainSearchScope.changed.onEach { updateSearchHint() }.launchIn(lifecycleScope)
 		viewBinding.searchView.editText.addTextChangedListener(listener)
 		viewBinding.recyclerViewSearch.adapter = adapter
 		viewBinding.searchView.editText.setOnEditorActionListener(listener)
