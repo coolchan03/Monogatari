@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.sourcerepo.work
 
+import org.koitharu.kotatsu.jsext.JsItemType
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
 import org.koitharu.kotatsu.jsext.repo.compareVersions
 import org.koitharu.kotatsu.sourcehealth.SourceWebsiteGroups
@@ -17,20 +18,31 @@ object SourceBootstrapPlanner {
     private fun websiteKey(entry: JsSourceEntry): String =
         (normalizedHost(entry.baseUrl) ?: "id:${entry.id}") + "|" + entry.itemType.name
 
+    private val accountGatedWords = listOf("torrent", "debrid")
+
+    /** Sources that do nothing without an external debrid/torrent account; install them one by one. */
+    fun needsExternalAccount(entry: JsSourceEntry): Boolean {
+        val name = entry.name.lowercase(Locale.ROOT)
+        return accountGatedWords.any { it in name }
+    }
+
     fun plan(
         catalog: List<JsSourceEntry>,
         installed: List<JsSourceEntry>,
         enabledParserNames: Set<String>,
         includeAdult: Boolean,
+        types: Set<JsItemType> = JsItemType.entries.toSet(),
+        includeOtherLanguages: Boolean = false,
     ): List<JsSourceEntry> {
         val installedIds = installed.mapTo(HashSet()) { it.id }
         val installedSites = installed.mapTo(HashSet()) { websiteKey(it) }
         val parserAliases = enabledParserNames.mapTo(HashSet()) { shortAlias(it) }
         return catalog.asSequence()
             .filter { it.isRunnable && it.id !in installedIds }
+            .filter { it.itemType in types && !needsExternalAccount(it) }
             .filter {
                 val language = it.lang.lowercase(Locale.ROOT)
-                language == "en" || language == "all" || language.startsWith("en-")
+                includeOtherLanguages || language == "en" || language == "all" || language.startsWith("en-")
             }
             .filter { includeAdult || !it.isNsfw }
             .filter { websiteKey(it) !in installedSites }
