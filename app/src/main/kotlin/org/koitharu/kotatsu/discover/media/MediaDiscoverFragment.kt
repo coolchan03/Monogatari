@@ -46,6 +46,7 @@ import org.koitharu.kotatsu.discover.addDiscoverItemToLibrary
 import org.koitharu.kotatsu.main.ui.MainActivity
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
 import javax.inject.Inject
 import com.google.android.material.R as materialR
 
@@ -78,6 +79,12 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
 		FragmentMediaDiscoverBinding.inflate(inflater, container, false).also { _binding = it }.root
+
+	override fun onResume() {
+		super.onResume()
+		// This page is about one media type, so the main search bar searches just that type.
+		MainSearchScope.followSection(requireContext(), mediaType.name)
+	}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)

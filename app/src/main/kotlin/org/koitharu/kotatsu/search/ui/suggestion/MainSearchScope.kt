@@ -2,6 +2,8 @@ package org.koitharu.kotatsu.search.ui.suggestion
 
 import android.content.Context
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.media.MediaType
 
@@ -16,6 +18,11 @@ object MainSearchScope {
 
 	val scopes: List<String> = SearchScopeRules.scopes
 
+	private val changes = MutableSharedFlow<String>(extraBufferCapacity = 8)
+
+	/** Emits the new scope whenever [set] is called (in-process only; the saved value stays the source of truth). */
+	val changed: SharedFlow<String> = changes
+
 	fun get(context: Context): String? = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 		.getString(KEY_SCOPE, null)?.takeIf { it in scopes }
 
@@ -24,6 +31,12 @@ object MainSearchScope {
 
 	fun set(context: Context, scope: String) {
 		context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString(KEY_SCOPE, scope) }
+		changes.tryEmit(scope)
+	}
+
+	/** Makes the search follow a Discover/Library chip, see [SearchScopeRules.scopeForSection]. */
+	fun followSection(context: Context, sectionName: String?) {
+		set(context, SearchScopeRules.scopeForSection(sectionName))
 	}
 
 	fun label(context: Context, scope: String?): String = context.getString(

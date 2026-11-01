@@ -27,6 +27,7 @@ import org.koitharu.kotatsu.core.qa.NewsFeedActivity
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
@@ -171,6 +172,7 @@ class DiscoverFragment : Fragment() {
 			if (chosen != null && chosen != section) {
 				section = chosen
 				uiPrefs.edit().putString(PREF_LAST_SECTION, chosen.name).apply()
+				MainSearchScope.followSection(requireContext(), chosen.name)
 				shelfSelected = shelfSources(section).isNotEmpty()
 				publicFeedSelected = false
 				forYouSelected = false
@@ -247,6 +249,12 @@ class DiscoverFragment : Fragment() {
 		binding.textMessage.setOnClickListener { if (adapter.itemCount == 0) reload() }
 		refreshBadges()
 		if (adapter.itemCount == 0) reload()
+	}
+
+	override fun onResume() {
+		super.onResume()
+		// The main search bar searches what this chip shows (News is not a source type, so it maps to All).
+		MainSearchScope.followSection(requireContext(), section.name)
 	}
 
 	override fun onSaveInstanceState(outState: Bundle) {

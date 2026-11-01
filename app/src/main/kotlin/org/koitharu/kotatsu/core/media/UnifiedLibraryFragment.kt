@@ -75,6 +75,7 @@ import org.koitharu.kotatsu.parsers.model.SortOrder
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
+import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
 import javax.inject.Inject
 
 private typealias Row = LibraryShelf.Item
@@ -225,7 +226,7 @@ class UnifiedLibraryFragment : Fragment() {
 					text = kindLabel(type)
 					isCheckable = true
 					if (type != null) MediaAccents.tintChip(context, type.name, this)
-					setOnClickListener { selected = type; render() }
+					setOnClickListener { selected = type; followSearchScope(); render() }
 				}
 				buttons += type to chip
 				tabs.addView(chip)
@@ -685,7 +686,16 @@ class UnifiedLibraryFragment : Fragment() {
 		super.onDestroyView()
 	}
 
-	override fun onResume() { super.onResume(); if (view != null && ::search.isInitialized) refresh() }
+	override fun onResume() {
+		super.onResume()
+		followSearchScope()
+		if (view != null && ::search.isInitialized) refresh()
+	}
+
+	/** The main search bar searches the type chip shown here (All -> every type; the Books tab -> books). */
+	private fun followSearchScope() {
+		MainSearchScope.followSection(requireContext(), selected?.name)
+	}
 
 	private class Loaded(val items: List<Row>, val recent: List<Row>, val resumable: List<Row>, val problems: List<String>, val recovered: Int)
 
