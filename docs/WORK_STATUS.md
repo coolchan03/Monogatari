@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-02 — v1.5.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.5.0 built from `devel` `0a57cd2` (drafts merged; build check run 41328945579 green; release run 41330493378 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `ce06d970173efb050eaba4ca24a3c92455ab2b8bba4493e3623b2ce290a8a7d5`.
+- Look and navigation: Explore tab renamed Sources (source catalog shortcut renamed Source catalog), pull-to-refresh on Discover / Discover books and videos / Library, Library Continue button, first-run Set up Monogatari flow (new installs only; Run setup again in Settings > Advanced), shared mascot empty states. Not device-verified yet.
+- Next approved batches: reading and media, sync and safety, content (see docs/FUTURE_VERSION_ROADMAP.md).
+
 ## 2026-11-01 — v1.4.4 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.4.4 built from `devel` `0266d99` (drafts merged; build check run 41308312739 green; release run 41309913167 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `77fa5d77822de1fd2bd7e6a5de0193371d7508042f3471ec2d3d68f42b610f0d`.
 - 12 recommended extension repositories seeded once (about 183 runnable extensions); Source repositories > Get more sources bulk install (anime / books / manga, adult and other languages optional; torrent/debrid excluded); main search type follows the Discover/Library chip (MainSearchScope.followSection). Not device-verified yet.
