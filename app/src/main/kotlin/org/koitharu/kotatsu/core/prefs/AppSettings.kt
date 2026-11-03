@@ -133,6 +133,15 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		}
 	}
 
+	/** Which tab opens on a fresh start: "FIRST", "LAST" or a [NavItem] name. */
+	val startPage: String
+		get() = prefs.getString(KEY_START_PAGE, null) ?: "FIRST"
+
+	/** [NavItem] name of the tab the user was last on. */
+	var lastTab: String?
+		get() = prefs.getString(KEY_LAST_TAB, null)
+		set(value) = prefs.edit { putString(KEY_LAST_TAB, value) }
+
 	val isNavLabelsVisible: Boolean
 		get() = prefs.getBoolean(KEY_NAV_LABELS, true)
 
@@ -1010,6 +1019,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_RELATED_MANGA = "related_manga"
 		const val KEY_NAV_MAIN = "nav_main"
 		const val KEY_NAV_LAYOUT_V3 = "nav_layout_v3"
+		const val KEY_START_PAGE = "start_page"
+		const val KEY_LAST_TAB = "last_tab"
 
 		val DEFAULT_NAV_ITEMS = listOf(NavItem.UNIFIED_LIBRARY, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
 		private val LEGACY_DEFAULT_NAV_ITEMS = listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)

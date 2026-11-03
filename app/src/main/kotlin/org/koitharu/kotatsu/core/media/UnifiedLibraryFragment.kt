@@ -59,6 +59,7 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
+import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
 import org.koitharu.kotatsu.core.ui.bodyText
 import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
@@ -99,17 +100,21 @@ private typealias Row = LibraryShelf.Item
  * extras arrive as arguments).
  */
 @AndroidEntryPoint
-class UnifiedLibraryFragment : Fragment() {
+class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 
 	companion object {
 		private const val MENU_NEW_SMART = 7501
 		private const val MENU_SELECT = 7502
+		private const val MENU_COMPACT = 7503
 		private const val HISTORY_LIMIT = 300
 		private const val KEY_SORT = "sort"
 
 		/** Shows only this [MediaType] (by name) and hides the type chips; used by the Books tab. */
 		const val ARG_LOCKED_KIND = "monogatari_library_locked_kind"
 	}
+
+	override val recyclerView: RecyclerView?
+		get() = if (view != null && ::list.isInitialized) list else null
 
 	@Inject lateinit var db: MangaDatabase
 	@Inject lateinit var favorites: FavouritesRepository
@@ -170,6 +175,8 @@ class UnifiedLibraryFragment : Fragment() {
 	/** The item the Continue button resumes, or null while it is hidden. */
 	private var continueLatestRow: Row? = null
 	private lateinit var layoutManager: GridLayoutManager
+	/** The shared Compact view setting: more, smaller covers per row. */
+	private var compact = false
 	private lateinit var emptyView: LinearLayout
 	private lateinit var emptyMascot: ImageView
 	private lateinit var emptyText: TextView
@@ -303,7 +310,9 @@ class UnifiedLibraryFragment : Fragment() {
 		list = root.findViewById(R.id.monogatari_library_results_list)
 		swipeRefresh = root.findViewById(R.id.library_swipe_refresh)
 		swipeRefresh.applyThemeColors()
+		compact = CompactView.isEnabled(root.context)
 		swipeRefresh.setOnRefreshListener {
+			UiHaptics.tick(view)
 			// Reload the local list and fetch Recommended again for the selected chip; the top bar shows progress.
 			recJob?.cancel()
 			recLoading = false
@@ -338,7 +347,20 @@ class UnifiedLibraryFragment : Fragment() {
 	private fun columnsFor(widthPx: Int): Int {
 		val min = resources.getDimensionPixelSize(R.dimen.library_cover_min_width) +
 			2 * resources.getDimensionPixelSize(R.dimen.library_card_spacing)
-		return (widthPx / min.coerceAtLeast(1)).coerceIn(2, 8)
+		val density = resources.displayMetrics.density
+		return CompactView.columnsFor(widthPx / density, compact, min.coerceAtLeast(1) / density, 2, 8)
+	}
+
+	/** Switches Compact view on or off at once: new span count, then every card is rebound smaller or larger. */
+	private fun setCompact(value: Boolean) {
+		compact = value
+		CompactView.setEnabled(requireContext(), value)
+		if (::list.isInitialized) {
+			val columns = columnsFor(list.width - list.paddingLeft - list.paddingRight)
+				.takeIf { list.width > 0 } ?: initialColumns()
+			layoutManager.spanCount = columns
+			adapter.notifyDataSetChanged()
+		}
 	}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -467,12 +489,20 @@ class UnifiedLibraryFragment : Fragment() {
 		override fun onCreateMenu(menu: android.view.Menu, menuInflater: MenuInflater) {
 			menu.add(0, MENU_NEW_SMART, 0, R.string.library_smart_new)
 			menu.add(0, MENU_SELECT, 1, R.string.library_undo_select)
+			menu.add(0, MENU_COMPACT, 2, R.string.compact_view).apply {
+				isCheckable = true
+				isChecked = compact
+			}
 		}
 
 		override fun onMenuItemSelected(menuItem: android.view.MenuItem): Boolean {
 			when (menuItem.itemId) {
 				MENU_NEW_SMART -> newSmartCollection()
 				MENU_SELECT -> startSelection(null)
+				MENU_COMPACT -> {
+					setCompact(!menuItem.isChecked)
+					menuItem.isChecked = compact
+				}
 				else -> return false
 			}
 			return true
@@ -702,6 +732,7 @@ class UnifiedLibraryFragment : Fragment() {
 	// ---- Multi-select ----
 
 	private fun startSelection(first: Row?) {
+		UiHaptics.longPress(view)
 		selecting = true
 		selectedKeys = if (first != null) setOf(keyOf(first)) else emptySet()
 		onSelectionChanged()
@@ -714,6 +745,7 @@ class UnifiedLibraryFragment : Fragment() {
 	}
 
 	private fun toggleSelected(row: Row) {
+		UiHaptics.tick(view)
 		selectedKeys = LibrarySelection.toggle(selectedKeys, keyOf(row))
 		onSelectionChanged()
 	}
@@ -946,6 +978,7 @@ class UnifiedLibraryFragment : Fragment() {
 	}
 
 	private fun undoRemoval(record: PendingUndo) {
+		UiHaptics.confirm(view)
 		if (pendingUndo === record) pendingUndo = null
 		undoSnackbar = null
 		hiddenKeys = hiddenKeys - record.mediaUris.toSet()
@@ -1379,6 +1412,8 @@ class UnifiedLibraryFragment : Fragment() {
 		val badge: ImageView = card.findViewById(R.id.library_item_badge)
 		val title: TextView = card.findViewById(R.id.library_item_title)
 		val detail: TextView = card.findViewById(R.id.library_item_detail)
+		val titleSize = title.textSize
+		val detailSize = detail.textSize
 	}
 
 	private fun createCard(parent: ViewGroup): CardHolder = CardHolder(
@@ -1471,13 +1506,22 @@ class UnifiedLibraryFragment : Fragment() {
 					text = getString(R.string.library_search_all_sources, entry.query)
 					setOnClickListener { searchAllSources(entry.query) }
 				}
-				is Entry.Card -> bindCard(holder as CardHolder, entry.row, fromContinue = false) {
-					if (twoPane) {
-						showPane(entry.row)
-						notifyDataSetChanged()
-					} else {
-						openRow(entry.row)
+				is Entry.Card -> {
+					bindCard(holder as CardHolder, entry.row, fromContinue = false) {
+						if (twoPane) {
+							showPane(entry.row)
+							notifyDataSetChanged()
+						} else {
+							openRow(entry.row)
+						}
 					}
+					CompactView.scaleText(holder.title, holder.titleSize, compact)
+					CompactView.scaleText(holder.detail, holder.detailSize, compact)
+					CompactView.scaleMargins(
+						holder.card,
+						resources.getDimensionPixelSize(R.dimen.library_card_spacing),
+						compact,
+					)
 				}
 			}
 		}

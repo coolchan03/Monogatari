@@ -133,6 +133,12 @@
             android:key="nav_main"
             android:title="@string/main_screen_sections" />
 
+        <ListPreference
+            android:defaultValue="FIRST"
+            android:icon="@drawable/ic_drawer_menu"
+            android:key="start_page"
+            android:title="@string/start_page" />
+
         <SwitchPreferenceCompat
             android:defaultValue="true"
             android:icon="@drawable/ic_add"

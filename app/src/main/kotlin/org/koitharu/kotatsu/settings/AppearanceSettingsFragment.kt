@@ -36,6 +36,7 @@ import org.koitharu.kotatsu.core.util.ext.toList
 import org.koitharu.kotatsu.parsers.util.mapToSet
 import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.parsers.util.toTitleCase
+import org.koitharu.kotatsu.main.ui.StartPageResolver
 import org.koitharu.kotatsu.settings.protect.ProtectSetupActivity
 import org.koitharu.kotatsu.settings.utils.ActivityListPreference
 import org.koitharu.kotatsu.settings.utils.MultiSummaryProvider
@@ -97,6 +98,7 @@ class AppearanceSettingsFragment :
             pref.values = settings.searchSuggestionTypes.mapToSet { it.name }
         }
         bindNavSummary()
+        bindStartPage()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -129,6 +131,7 @@ class AppearanceSettingsFragment :
 
             AppSettings.KEY_NAV_MAIN -> {
                 bindNavSummary()
+                bindStartPage()
             }
 
             AppSettings.KEY_APP_PASSWORD -> {
@@ -211,6 +214,23 @@ class AppearanceSettingsFragment :
             } else {
                 locales[i - 1].toLanguageTag()
             }
+        }
+    }
+
+    /** Start page choices: first/last tab plus every real tab currently on the navigation bar. */
+    private fun bindStartPage() {
+        val pref = findPreference<ListPreference>(AppSettings.KEY_START_PAGE) ?: return
+        val tabs = StartPageResolver.tabsOf(settings.mainNavItems)
+        pref.entries = (
+            listOf(getString(R.string.start_page_first), getString(R.string.start_page_last)) +
+                tabs.map { getString(it.title) }
+            ).toTypedArray()
+        pref.entryValues = (listOf(StartPageResolver.FIRST, StartPageResolver.LAST) + tabs.map { it.name })
+            .toTypedArray()
+        pref.summaryProvider = Preference.SummaryProvider<ListPreference> {
+            // A tab removed from the bar no longer matches an entry: it behaves like the first tab.
+            val index = it.findIndexOfValue(it.value).takeIf { i -> i >= 0 } ?: 0
+            it.entries[index]
         }
     }
 

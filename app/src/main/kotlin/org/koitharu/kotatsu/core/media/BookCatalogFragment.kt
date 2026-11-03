@@ -51,6 +51,7 @@ import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.ui.scrollable
+import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import java.io.File
@@ -61,7 +62,11 @@ import javax.inject.Inject
  * Shown as a main navigation tab, or inside [BookLibraryActivity] when opened from elsewhere.
  */
 @AndroidEntryPoint
-class BookCatalogFragment : Fragment() {
+class BookCatalogFragment : Fragment(), RecyclerViewOwner {
+
+	override val recyclerView: RecyclerView?
+		get() = view?.findViewById(R.id.monogatari_catalog_results)
+
 	@Inject lateinit var catalog: PublicBookCatalog
 	@Inject lateinit var imageLoader: ImageLoader
 	@Inject lateinit var opds: OpdsCatalog

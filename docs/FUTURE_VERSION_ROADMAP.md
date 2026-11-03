@@ -189,3 +189,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Audiobookshelf + Subsonic/Navidrome servers, media.ccc.de + Bandcamp via NewPipe, podcast directory search, OPDS catalog presets, Nearby trusted devices + multi-file + favourites conflicts, backup reminders + restore preview.
 - Still open: Komga/Kavita/Emby integrations; covers and progress for the audio servers; more verified OPDS catalogs (Feedbooks, Internet Archive, Open Library, Standard Ebooks needs login); a source picker in search; vetted Mangayomi extension defaults; books-finished tracking.
+
+## Released in v1.8.0 (2026-11-05)
+
+- Start page setting (first / last used / any tab), Compact view toggle, tap-active-tab-to-top on every tab, haptics.
+- Still open: Komga/Kavita/Emby integrations, source picker in search, long-press tab quick actions, in-app text size, Back to go to the start page, more verified OPDS catalogs.

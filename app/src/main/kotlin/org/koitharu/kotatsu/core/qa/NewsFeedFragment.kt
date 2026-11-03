@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.qa
 
+import org.koitharu.kotatsu.core.ui.util.ScrollToTopOwner
 import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
@@ -42,6 +43,8 @@ import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.Mascot
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.TapCounter
+import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
+import androidx.recyclerview.widget.RecyclerView
 import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.util.ExternalLinks
 import org.koitharu.kotatsu.core.util.FeedXml
@@ -55,7 +58,15 @@ import javax.inject.Inject
  * Shown as a main navigation tab, or inside [NewsFeedActivity] when opened from elsewhere.
  */
 @AndroidEntryPoint
-class NewsFeedFragment : Fragment() {
+class NewsFeedFragment : Fragment(), RecyclerViewOwner, ScrollToTopOwner {
+
+	/** The news list is a ScrollView, not a RecyclerView, so there is no list to hand to the tab-reselect scroll. */
+	override val recyclerView: RecyclerView? = null
+
+	override fun scrollToTop() {
+		if (view != null && ::listScroll.isInitialized) listScroll.smoothScrollTo(0, 0)
+	}
+
 	@Inject lateinit var repository: MediaFeedRepository
 	private var currentFeed: String = ""
 	private lateinit var feedChips: ChipGroup

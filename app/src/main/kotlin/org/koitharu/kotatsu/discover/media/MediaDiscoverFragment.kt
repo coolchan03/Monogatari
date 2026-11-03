@@ -26,7 +26,14 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.color.MaterialColors
 import org.koitharu.kotatsu.R
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import androidx.core.view.MenuProvider
 import org.koitharu.kotatsu.core.media.BookLibraryActivity
+import org.koitharu.kotatsu.core.media.CompactView
+import org.koitharu.kotatsu.core.media.UiHaptics
+import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import org.koitharu.kotatsu.core.media.MediaAccents
 import org.koitharu.kotatsu.core.media.MediaFeedActivity
 import org.koitharu.kotatsu.core.media.MediaType
@@ -74,6 +81,9 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 	private var shelvesAdapter: ShelvesAdapter? = null
 	private val carouselPool = RecyclerView.RecycledViewPool()
 
+	/** The shared Compact view setting: smaller covers, so more of them fit in a row. */
+	private var compact = false
+
 	override val recyclerView: RecyclerView?
 		get() = _binding?.recyclerView
 
@@ -96,10 +106,13 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		binding.recyclerView.adapter = ConcatAdapter(header, shelves)
 		binding.swipeRefresh.applyThemeColors()
 		binding.swipeRefresh.setOnRefreshListener {
+			UiHaptics.tick(view)
 			// Every shelf shows its own loading state, so the pull indicator only confirms the gesture.
 			viewModel.reload()
 			binding.swipeRefresh.isRefreshing = false
 		}
+		compact = CompactView.isEnabled(requireContext())
+		addMenuProvider(CompactMenuProvider())
 		viewModel.start(mediaType)
 		viewModel.shelves.observe(viewLifecycleOwner) { models ->
 			val visible = models.filter { it.state !is MediaDiscoverShelfState.Hidden }
@@ -114,6 +127,29 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		shelvesAdapter = null
 		_binding = null
 		super.onDestroyView()
+	}
+
+	private fun setCompact(value: Boolean) {
+		compact = value
+		CompactView.setEnabled(requireContext(), value)
+		shelvesAdapter?.notifyDataSetChanged()
+	}
+
+	private inner class CompactMenuProvider : MenuProvider {
+
+		override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+			menu.add(0, MENU_COMPACT, 100, R.string.compact_view).apply {
+				isCheckable = true
+				isChecked = compact
+			}
+		}
+
+		override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+			if (menuItem.itemId != MENU_COMPACT) return false
+			setCompact(!menuItem.isChecked)
+			menuItem.isChecked = compact
+			return true
+		}
 	}
 
 	private fun bindActions(binding: ItemMediaDiscoverHeaderBinding) {
@@ -286,6 +322,7 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 			binding.buttonSeeAll.setOnClickListener {
 				if (source != null) router.openList(source, null, null)
 			}
+			holder.covers.syncCompact()
 			holder.covers.setItems(loaded?.items)
 			if (holder.boundKey != model.shelf.key) {
 				holder.boundKey = model.shelf.key
@@ -294,12 +331,24 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		}
 	}
 
-	private class CoverHolder(val binding: ItemDiscoverBinding) : RecyclerView.ViewHolder(binding.root)
+	private class CoverHolder(val binding: ItemDiscoverBinding) : RecyclerView.ViewHolder(binding.root) {
+		val titleSize = binding.textTitle.textSize
+	}
 
 	/** Covers of one shelf; with no items yet it shows blank placeholder cards while the shelf loads. */
 	private inner class CoversAdapter : RecyclerView.Adapter<CoverHolder>() {
 
 		private var items: List<AniListDiscover.Item>? = null
+		private var appliedCompact = compact
+
+		/** Rebinds the covers when Compact view was switched while this shelf was off screen. */
+		fun syncCompact() {
+			if (appliedCompact != compact) {
+				appliedCompact = compact
+				@Suppress("NotifyDataSetChanged")
+				notifyDataSetChanged()
+			}
+		}
 
 		fun setItems(value: List<AniListDiscover.Item>?) {
 			if (value == items) return
@@ -312,9 +361,6 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 
 		override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CoverHolder {
 			val binding = ItemDiscoverBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-			binding.root.updateLayoutParams<ViewGroup.LayoutParams> {
-				width = parent.resources.getDimensionPixelSize(R.dimen.media_discover_card_width)
-			}
 			binding.imageCover.setBackgroundColor(
 				MaterialColors.getColor(binding.imageCover, materialR.attr.colorSurfaceContainerHighest),
 			)
@@ -324,6 +370,11 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 		override fun onBindViewHolder(holder: CoverHolder, position: Int) {
 			val binding = holder.binding
 			val item = items?.getOrNull(position)
+			val cardWidth = CompactView.cardWidth(resources.getDimensionPixelSize(R.dimen.media_discover_card_width), compact)
+			if (binding.root.layoutParams.width != cardWidth) {
+				binding.root.updateLayoutParams<ViewGroup.LayoutParams> { width = cardWidth }
+			}
+			CompactView.scaleText(binding.textTitle, holder.titleSize, compact)
 			binding.imageCover.setImageDrawable(null)
 			if (item == null) {
 				binding.textTitle.text = null
@@ -354,6 +405,11 @@ abstract class MediaDiscoverFragment : Fragment(), RecyclerViewOwner {
 			binding.root.setOnClickListener { onItemClick(item) }
 			binding.root.setOnLongClickListener { onItemLongClick(item) }
 		}
+	}
+
+	private companion object {
+
+		const val MENU_COMPACT = 7602
 	}
 
 	private object ShelfDiff : DiffUtil.ItemCallback<MediaDiscoverShelfModel>() {
