@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.view.ActionMode
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import coil3.ImageLoader
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,14 +22,17 @@ import org.koitharu.kotatsu.core.ui.util.MenuInvalidator
 import org.koitharu.kotatsu.core.ui.util.ReversibleActionObserver
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
+import org.koitharu.kotatsu.core.util.ext.textAndVisible
 import org.koitharu.kotatsu.databinding.ActivityDownloadsBinding
 import org.koitharu.kotatsu.download.ui.worker.DownloadWorker
+import org.koitharu.kotatsu.list.ui.adapter.ListStateHolderListener
 import org.koitharu.kotatsu.list.ui.adapter.TypedListSpacingDecoration
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 	DownloadItemListener,
+	ListStateHolderListener,
 	ListSelectionController.Callback {
 
 	@Inject
@@ -44,7 +48,7 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 		super.onCreate(savedInstanceState)
 		setContentView(ActivityDownloadsBinding.inflate(layoutInflater))
 		setDisplayHomeAsUp(isEnabled = true, showUpAsClose = false)
-		val downloadsAdapter = DownloadsAdapter(this, this)
+		val downloadsAdapter = DownloadsAdapter(this, this, this)
 		val decoration = TypedListSpacingDecoration(this, false)
 		selectionController = ListSelectionController(
 			appCompatDelegate = delegate,
@@ -66,6 +70,9 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 		viewModel.hasActiveWorks.observe(this, menuInvalidator)
 		viewModel.hasPausedWorks.observe(this, menuInvalidator)
 		viewModel.hasCancellableWorks.observe(this, menuInvalidator)
+		viewModel.hasFailedWorks.observe(this, menuInvalidator)
+		viewBinding.buttonNetwork.setOnClickListener { router.openDownloadsSetting() }
+		viewModel.summary.observe(this) { bindSummary(it) }
 	}
 
 	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
@@ -83,6 +90,40 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 		return WindowInsetsCompat.Builder(insets)
 			.setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE)
 			.build()
+	}
+
+	private fun bindSummary(summary: DownloadsSummary) {
+		viewBinding.cardSummary.isVisible = summary.isVisible
+		if (!summary.isVisible) {
+			return
+		}
+		val parts = ArrayList<String>(4)
+		if (summary.downloading > 0) parts += getString(R.string.dlq_summary_downloading, summary.downloading)
+		if (summary.queued > 0) parts += getString(R.string.dlq_summary_queued, summary.queued)
+		if (summary.paused > 0) parts += getString(R.string.dlq_summary_paused, summary.paused)
+		if (summary.failed > 0) parts += getString(R.string.dlq_summary_failed, summary.failed)
+		viewBinding.textViewSummary.text = parts.joinToString(" \u00b7 ")
+		viewBinding.textViewSummaryEta.textAndVisible = summary.eta?.let { formatEta(it) }
+	}
+
+	private fun formatEta(eta: DownloadEta): String = when (eta.unit) {
+		DownloadEta.Scale.LESS_THAN_MINUTE -> getString(R.string.dlq_eta_less_than_minute)
+		DownloadEta.Scale.MINUTES -> getString(
+			R.string.dlq_eta_left,
+			resources.getQuantityString(R.plurals.dlq_eta_minutes, eta.amount, eta.amount),
+		)
+
+		DownloadEta.Scale.HOURS -> getString(
+			R.string.dlq_eta_left,
+			resources.getQuantityString(R.plurals.dlq_eta_hours, eta.amount, eta.amount),
+		)
+	}
+
+	override fun onRetryClick(error: Throwable) = Unit
+
+	override fun onEmptyActionClick() {
+		// Auto-download lives one tap inside the Downloads settings screen
+		router.openDownloadsSetting()
 	}
 
 	override fun onItemClick(item: DownloadItemModel, view: View) {
