@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-04 — v1.7.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.7.0 built from `devel` `1868824` (drafts merged; build check run 41646355333 green; release run 41649543431 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `54fbaa39aa06c73a81a9515b14a27b8713da6fe6cbea6060716229972f742324`.
+- Sources and integrations: Audiobookshelf and Subsonic/Navidrome (API keys & accounts, Test connection; built from docs, never tested against a real server), media.ccc.de + Bandcamp via NewPipe, podcast directory search, OPDS presets (Gutenberg, Unglue.it). Sync and safety: Nearby trusted devices (HMAC challenge), multi-file transfers, favourites conflict sheet, backup reminders + Last backup line, restore preview. Not device-verified yet.
+- Open: Komga/Kavita/Emby integrations, covers/progress for the audio servers, more verified OPDS catalogs, source picker in search (see docs/FUTURE_VERSION_ROADMAP.md).
+
 ## 2026-11-03 — v1.6.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.6.0 built from `devel` `3da5eed` (drafts merged; build check run 41555117883 green; release run 41557489593 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `bb5bc5fb7bdd1121445e9ee850be4f0b08129d03bb526ba45a5ff135497f1364`.
 - Reading and media: offline video downloads + Listen in background (videodl/), activity stats across media (stats/activity/), YouTube/NewPipe subscription import, download queue summary and Retry failed, Library undo and multi-select, launcher shortcuts and Share to Monogatari, storage overview, offline videos listed in the Library and Storage screen. Not device-verified yet.
