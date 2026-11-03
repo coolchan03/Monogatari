@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.core.ui.util.ScrollToTopOwner
 import android.os.Bundle
 import android.content.Intent
 import android.view.Gravity
@@ -341,6 +342,10 @@ class MainNavigationDelegate(
 	}
 
 	private fun onNavigationItemReselected() {
+		(primaryFragment as? ScrollToTopOwner)?.let {
+			it.scrollToTop()
+			return
+		}
 		val recyclerView = (primaryFragment as? RecyclerViewOwner)?.recyclerView ?: return
 		recyclerView.smoothScrollToTop()
 	}

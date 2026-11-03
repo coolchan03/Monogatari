@@ -40,6 +40,7 @@ import org.koitharu.kotatsu.core.ui.emptyState
 import org.koitharu.kotatsu.core.ui.headerCard
 import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.statusText
+import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
 import javax.inject.Inject
 
@@ -49,7 +50,12 @@ import javax.inject.Inject
  * (its [MediaFeedActivity.EXTRA_MEDIA_TYPE] extra arrives here as an argument).
  */
 @AndroidEntryPoint
-class MediaFeedFragment : Fragment() {
+class MediaFeedFragment : Fragment(), RecyclerViewOwner {
+	private var resultsList: RecyclerView? = null
+
+	override val recyclerView: RecyclerView?
+		get() = resultsList
+
 	@Inject lateinit var repository: MediaFeedRepository
 	@Inject lateinit var imageLoader: ImageLoader
 	@Inject lateinit var podcastDirectory: PodcastDirectory
@@ -128,6 +134,7 @@ class MediaFeedFragment : Fragment() {
 		emptyHost = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
 		root.addView(emptyHost, LinearLayout.LayoutParams(-1, -2))
 		root.addView(RecyclerView(context).apply {
+			resultsList = this
 			layoutManager = GridLayoutManager(context,
 				MonogatariChrome.columns(context))
 			adapter = results
@@ -148,6 +155,11 @@ class MediaFeedFragment : Fragment() {
 		if (currentUrl == null) currentUrl = INCLUDED_FEEDS.map { it.second }.firstOrNull { it in choices } ?: choices.minOrNull()
 		if (playlistOnly) { entries = playlist(); render() }
 		else currentUrl?.let(::load) ?: render()
+	}
+
+	override fun onDestroyView() {
+		resultsList = null
+		super.onDestroyView()
 	}
 
 	private inner class MediaFeedMenuProvider : MenuProvider {

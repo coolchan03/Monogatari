@@ -65,6 +65,14 @@ import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.databinding.ActivityDiscoverBinding
 import org.koitharu.kotatsu.discover.media.applyThemeColors
 import org.koitharu.kotatsu.databinding.ItemDiscoverBinding
+import org.koitharu.kotatsu.core.media.CompactView
+import org.koitharu.kotatsu.core.media.UiHaptics
+import org.koitharu.kotatsu.core.ui.util.RecyclerViewOwner
+import org.koitharu.kotatsu.core.util.ext.addMenuProvider
+import androidx.core.view.MenuProvider
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import javax.inject.Inject
 
 /**
@@ -72,7 +80,10 @@ import javax.inject.Inject
  * Shown as a main navigation tab (like Library or Explore), or inside [DiscoverActivity] when opened from elsewhere.
  */
 @AndroidEntryPoint
-class DiscoverFragment : Fragment() {
+class DiscoverFragment : Fragment(), RecyclerViewOwner {
+
+	override val recyclerView: RecyclerView?
+		get() = _binding?.recyclerView
 
 	/** Discover finds what to enjoy; Explore remains the advanced source manager. */
 	private enum class MediaSection(val label: String, val description: String) {
@@ -236,8 +247,8 @@ class DiscoverFragment : Fragment() {
 		showSection()
 
 		// Reflow covers from phone portrait to 13-inch tablets and resizable windows.
-		val columns = (resources.configuration.screenWidthDp / 176).coerceIn(2, 7)
-		val layoutManager = GridLayoutManager(requireContext(), columns)
+		compact = CompactView.isEnabled(requireContext())
+		val layoutManager = GridLayoutManager(requireContext(), discoverColumns())
 		binding.recyclerView.layoutManager = layoutManager
 		binding.recyclerView.adapter = adapter
 		binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -249,13 +260,46 @@ class DiscoverFragment : Fragment() {
 		})
 		binding.textMessage.setOnClickListener { if (adapter.itemCount == 0) reload() }
 		binding.swipeRefresh.applyThemeColors()
+		addMenuProvider(CompactMenuProvider())
 		binding.swipeRefresh.setOnRefreshListener {
+			UiHaptics.tick(view)
 			// The grid shows its own progress indicator while reloading, so the pull indicator only confirms the gesture.
 			reload()
 			binding.swipeRefresh.isRefreshing = false
 		}
 		refreshBadges()
 		if (adapter.itemCount == 0) reload()
+	}
+
+	/** The shared Compact view setting: more, smaller covers per row. */
+	private var compact = false
+
+	private fun discoverColumns() = CompactView.columnsFor(resources.configuration.screenWidthDp.toFloat(), compact)
+
+	private fun setCompact(value: Boolean) {
+		compact = value
+		CompactView.setEnabled(requireContext(), value)
+		val manager = _binding?.recyclerView?.layoutManager as? GridLayoutManager ?: return
+		manager.spanCount = discoverColumns()
+		@Suppress("NotifyDataSetChanged")
+		adapter.notifyDataSetChanged()
+	}
+
+	private inner class CompactMenuProvider : MenuProvider {
+
+		override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+			menu.add(0, MENU_COMPACT, 100, R.string.compact_view).apply {
+				isCheckable = true
+				isChecked = compact
+			}
+		}
+
+		override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+			if (menuItem.itemId != MENU_COMPACT) return false
+			setCompact(!menuItem.isChecked)
+			menuItem.isChecked = compact
+			return true
+		}
 	}
 
 	override fun onResume() {
@@ -723,7 +767,10 @@ class DiscoverFragment : Fragment() {
 		view.isVisible = true
 	}
 
-	private class Holder(val binding: ItemDiscoverBinding) : RecyclerView.ViewHolder(binding.root)
+	private class Holder(val binding: ItemDiscoverBinding) : RecyclerView.ViewHolder(binding.root) {
+		val titleSize = binding.textTitle.textSize
+		val margin = (binding.root.layoutParams as? ViewGroup.MarginLayoutParams)?.leftMargin ?: 0
+	}
 
 	private inner class ItemsAdapter : RecyclerView.Adapter<Holder>() {
 
@@ -749,6 +796,8 @@ class DiscoverFragment : Fragment() {
 
 		override fun onBindViewHolder(holder: Holder, position: Int) {
 			val item = items[position]
+			CompactView.scaleText(holder.binding.textTitle, holder.titleSize, compact)
+			CompactView.scaleMargins(holder.binding.root, holder.margin, compact)
 			holder.binding.textTitle.text = item.title
 			val bell = item.aniListMediaId?.takeIf { it in followedIds }?.let { getString(R.string.airing_reminder_marker) }
 			val label = item.providerLabel?.let { if (bell != null) "$bell $it" else it } ?: bell
@@ -795,6 +844,7 @@ class DiscoverFragment : Fragment() {
 
 	private companion object {
 
+		const val MENU_COMPACT = 7601
 		const val PREF_LAST_SECTION = "last_section"
 		const val KEY_FEED = "feed"
 		const val KEY_SECTION = "media_section"
