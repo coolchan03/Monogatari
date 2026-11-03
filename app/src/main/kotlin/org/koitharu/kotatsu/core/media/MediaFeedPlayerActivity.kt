@@ -18,6 +18,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.ui.PlayerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,6 +29,12 @@ import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.headerCard
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
+import org.koitharu.kotatsu.videodl.BackgroundAudioHandoff
+import org.koitharu.kotatsu.videodl.OfflineVideoDownloads
+import org.koitharu.kotatsu.videodl.OfflineVideoPlayback
+import org.koitharu.kotatsu.videodl.OfflineVideoRequest
+import org.koitharu.kotatsu.videodl.OfflineVideoStore
+import org.koitharu.kotatsu.videodl.PlaybackTimeReporter
 import javax.inject.Inject
 
 /**
@@ -46,13 +53,20 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
     private var chaptersUrl: String? = null
     private var transcriptUrl: String? = null
     private var pageUrl: String? = null
+    private var mimeType: String? = null
+    private var isAudioEpisode = true
+    private var offline: OfflineVideoStore.Entry? = null
+    private var timeReporter: PlaybackTimeReporter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // The user's own file from the library (Add files); only content:// documents the app holds access to.
         val localUri = intent.getStringExtra(EXTRA_LOCAL_URI)
             ?.takeIf { it.startsWith("content://") }
-        val stream = localUri ?: intent.getStringExtra(EXTRA_MEDIA_URL)
+        // A video saved for offline (opened from the Library): already vetted when it was saved.
+        val savedEntry = intent.getStringExtra(EXTRA_OFFLINE_ID)
+            ?.let { OfflineVideoStore.get(this, it) }?.takeIf { it.completed }
+        val stream = savedEntry?.streamUrl ?: localUri ?: intent.getStringExtra(EXTRA_MEDIA_URL)
             ?.takeIf(MediaFeedPlaybackSpec::validStream) ?: run {
             finish()
             return
@@ -68,6 +82,10 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         pageUrl = intent.getStringExtra(EXTRA_PAGE_URL)
             ?.takeIf(MediaFeedPlaybackSpec::validStream)
         val isAudio = intent.getStringExtra(EXTRA_KIND) != MediaFeedParser.Kind.VIDEO.name
+        isAudioEpisode = isAudio
+        mimeType = intent.getStringExtra(EXTRA_MIME_TYPE)
+        // A copy saved for offline plays from the offline cache (web streams only, not the user's own files).
+        offline = savedEntry ?: if (localUri == null) OfflineVideoStore.findCompleted(this, stream) else null
 
         val dp = resources.displayMetrics.density
         val pad = (12 * dp).toInt()
@@ -101,6 +119,10 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         if (chaptersUrl != null) addAction(getString(R.string.mono_player_chapters)) { showChapters() }
         if (transcriptUrl != null) addAction(getString(R.string.mono_player_transcript)) { openOfficialUrl(transcriptUrl) }
         if (pageUrl != null) addAction(getString(R.string.mono_player_website)) { openOfficialUrl(pageUrl) }
+        if (localUri == null) {
+            addAction(getString(R.string.offline_video_download)) { downloadForOffline() }
+            addAction(getString(R.string.offline_video_listen_background)) { listenInBackground() }
+        }
         if (buttons.childCount > 0) root.addView(HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             addView(buttons)
@@ -127,9 +149,19 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         val start = savedInstanceState?.getLong(KEY_POSITION)
             ?: AudioResumeStore.read(this, stream)
         val play = savedInstanceState?.getBoolean(KEY_PLAYING) ?: true
-        val exo = ExoPlayer.Builder(this).build()
+        val saved = offline
+        val savedFactory = saved?.let { OfflineVideoPlayback.cacheOnlyMediaSourceFactory(this) }
+        val exo = ExoPlayer.Builder(this).apply {
+            if (savedFactory != null) setMediaSourceFactory(savedFactory)
+        }.build()
         player = exo
         playerView.player = exo
+        if (saved != null) OfflineVideoPlayback.attachChip(playerView).visibility = View.VISIBLE
+        val reporter = PlaybackTimeReporter(
+            this,
+            if (isAudio) PlaybackTimeReporter.AUDIO else PlaybackTimeReporter.VIDEO,
+        )
+        timeReporter = reporter
         val subtitle = transcriptUrl?.let { sidecar ->
             MediaFeedPlaybackSpec.subtitleMimeType(sidecar)?.let { mime ->
                 MediaItem.SubtitleConfiguration.Builder(Uri.parse(sidecar))
@@ -140,21 +172,35 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
             }
         }
         val item = MediaItem.Builder()
-            .setUri(stream)
-            .setMimeType(intent.getStringExtra(EXTRA_MIME_TYPE))
+            .setUri(saved?.let { it.cacheUrl ?: it.streamUrl } ?: stream)
+            .setMimeType(if (saved != null) saved.mimeType else mimeType)
+            .setStreamKeys(saved?.let(OfflineVideoPlayback::streamKeys).orEmpty())
             .setMediaMetadata(MediaMetadata.Builder().setTitle(episodeTitle).build())
             .setSubtitleConfigurations(listOfNotNull(subtitle))
             .build()
         exo.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 playerView.keepScreenOn = !isAudio && isPlaying
+                reporter.setPlaying(isPlaying)
             }
             override fun onPlayerError(error: PlaybackException) {
                 status.text = getString(R.string.mono_player_playback_unavailable) +
                     (error.message ?: "Try the official website").take(140)
             }
         })
-        exo.setMediaItem(item, start.coerceAtLeast(0L))
+        val savedAudio = saved?.audioUrl
+        if (savedFactory != null && savedAudio != null) {
+            // Video and audio were saved as two files; play them together.
+            exo.setMediaSource(
+                MergingMediaSource(
+                    savedFactory.createMediaSource(item),
+                    savedFactory.createMediaSource(MediaItem.fromUri(savedAudio)),
+                ),
+                start.coerceAtLeast(0L),
+            )
+        } else {
+            exo.setMediaItem(item, start.coerceAtLeast(0L))
+        }
         exo.prepare()
         exo.playWhenReady = play
     }
@@ -193,6 +239,48 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun downloadForOffline() {
+        val link = url ?: return
+        val episodeTitle = title?.toString().orEmpty()
+        val request = OfflineVideoRequest(
+            title = episodeTitle,
+            sourceName = Uri.parse(link).host ?: "feed",
+            chapterId = link.hashCode().toLong(),
+            chapterUrl = pageUrl ?: link,
+            mediaType = (if (isAudioEpisode) MediaType.AUDIO else MediaType.VIDEO).name,
+            streamUrl = link,
+            mimeType = mimeType,
+        )
+        lifecycleScope.launch {
+            val outcome = OfflineVideoDownloads.enqueue(applicationContext, request)
+            status.text = OfflineVideoDownloads.message(this@MediaFeedPlayerActivity, outcome, episodeTitle)
+        }
+    }
+
+    /** Hands the episode to the background audio service at the current position and closes this screen. */
+    private fun listenInBackground() {
+        val link = url ?: return
+        val local = player ?: return
+        val saved = offline
+        local.pause()
+        BackgroundAudioHandoff.start(
+            context = this,
+            url = saved?.let { it.cacheUrl ?: it.streamUrl } ?: link,
+            mimeType = if (saved != null) saved.mimeType else mimeType,
+            title = title?.toString(),
+            artist = null,
+            positionMs = local.currentPosition,
+            streamKeys = saved?.let(OfflineVideoPlayback::streamKeys).orEmpty(),
+        ) { started ->
+            if (started) {
+                if (!isDestroyed) finish()
+            } else if (!isDestroyed && player === local) {
+                local.play()
+                status.text = getString(R.string.offline_video_background_unavailable)
+            }
+        }
+    }
+
     private fun openOfficialUrl(candidate: String?) {
         val safeUrl = candidate?.takeIf(MediaFeedPlaybackSpec::validStream) ?: return
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))) }
@@ -212,11 +300,13 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
             }
         }
         player?.pause()
+        timeReporter?.stop()
         super.onStop()
     }
 
     override fun onDestroy() {
         playerView.player = null
+        timeReporter?.stop()
         player?.release()
         player = null
         super.onDestroy()
@@ -232,6 +322,8 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         const val EXTRA_PAGE_URL = "media_feed.page"
         /** content:// uri of a local video or audio file kept in [LocalMediaShelf]. */
         const val EXTRA_LOCAL_URI = "media_feed.local_uri"
+        /** Id of a video saved for offline (see OfflineVideoStore); plays it from the offline cache. */
+        const val EXTRA_OFFLINE_ID = "media_feed.offline_id"
         private const val KEY_POSITION = "playback_position"
         private const val KEY_PLAYING = "playback_started"
     }
