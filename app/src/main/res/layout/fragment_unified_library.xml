@@ -7,6 +7,70 @@
 	android:orientation="vertical"
 	android:paddingTop="@dimen/library_header_spacing">
 
+	<!-- Selection mode: N selected, Select all, Add to collection, Remove, Cancel; hidden until Select is chosen. -->
+	<LinearLayout
+		android:id="@+id/library_selection_bar"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginHorizontal="@dimen/library_gutter"
+		android:layout_marginBottom="@dimen/library_header_spacing"
+		android:background="?attr/colorSecondaryContainer"
+		android:gravity="center_vertical"
+		android:orientation="horizontal"
+		android:paddingHorizontal="@dimen/library_header_spacing"
+		android:visibility="gone">
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_selection_cancel"
+			style="@style/Widget.Material3.Button.TextButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@android:string/cancel"
+			android:textColor="?attr/colorOnSecondaryContainer" />
+
+		<TextView
+			android:id="@+id/library_selection_count"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:accessibilityLiveRegion="polite"
+			android:ellipsize="end"
+			android:maxLines="1"
+			android:textAppearance="?attr/textAppearanceTitleSmall"
+			android:textColor="?attr/colorOnSecondaryContainer" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_selection_all"
+			style="@style/Widget.Material3.Button.IconButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:contentDescription="@string/library_undo_select_all"
+			android:tooltipText="@string/library_undo_select_all"
+			app:icon="@drawable/ic_select_group"
+			app:iconTint="?attr/colorOnSecondaryContainer" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_selection_collection"
+			style="@style/Widget.Material3.Button.IconButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:contentDescription="@string/library_ov_action_collections"
+			android:tooltipText="@string/library_ov_action_collections"
+			app:icon="@drawable/ic_folder_file"
+			app:iconTint="?attr/colorOnSecondaryContainer" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/library_selection_remove"
+			style="@style/Widget.Material3.Button.IconButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:contentDescription="@string/add_files_remove"
+			android:tooltipText="@string/add_files_remove"
+			app:icon="@drawable/ic_delete"
+			app:iconTint="?attr/colorOnSecondaryContainer" />
+
+	</LinearLayout>
+
 	<!-- Header: search, Add files, sort. -->
 	<LinearLayout
 		android:layout_width="match_parent"

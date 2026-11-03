@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="library_undo_removed_one">Removed “%1$s”</string>
+	<plurals name="library_undo_removed_many">
+		<item quantity="one">Removed %d item</item>
+		<item quantity="other">Removed %d items</item>
+	</plurals>
+	<string name="library_undo_restore_failed">Could not restore everything. Some items are gone.</string>
+	<string name="library_undo_select">Select…</string>
+	<string name="library_undo_select_all">Select all</string>
+	<plurals name="library_undo_selected">
+		<item quantity="one">%d selected</item>
+		<item quantity="other">%d selected</item>
+	</plurals>
+	<plurals name="library_undo_collection_title">
+		<item quantity="one">Add %d item to collection</item>
+		<item quantity="other">Add %d items to collection</item>
+	</plurals>
+	<string name="library_undo_delete_title_one">Delete “%1$s”?</string>
+	<plurals name="library_undo_delete_title_many">
+		<item quantity="one">Delete %d downloaded title?</item>
+		<item quantity="other">Delete %d downloaded titles?</item>
+	</plurals>
+	<string name="library_undo_delete_message_one">The downloaded copy is permanently deleted from this device. This cannot be undone.</string>
+	<plurals name="library_undo_delete_message_many">
+		<item quantity="one">The downloaded copy is permanently deleted from this device. This cannot be undone.</item>
+		<item quantity="other">%d downloaded copies are permanently deleted from this device. This cannot be undone.</item>
+	</plurals>
+	<string name="library_undo_delete_mixed_note">The other selected items are removed too, and those can be restored with Undo.</string>
+	<string name="library_undo_delete_confirm">Delete</string>
+	<plurals name="library_undo_deleted">
+		<item quantity="one">Deleted %d downloaded title</item>
+		<item quantity="other">Deleted %d downloaded titles</item>
+	</plurals>
+</resources>
