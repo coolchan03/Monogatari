@@ -184,3 +184,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Offline video downloads + Listen in background, activity stats across media, YouTube/NewPipe subscription import, download queue summary and retry, Library undo and multi-select, launcher shortcuts and Share to Monogatari, storage overview.
 - Still open: sync and safety batch (Nearby remembered pairing, multi-file, favourites conflicts, backup reminders, restore preview), content batch (more built-in book/video sources, Komga/Kavita), books-finished tracking, offline subtitles, subscription import for SoundCloud/PeerTube/@handles, source picker in search.
+
+## Released in v1.7.0 (2026-11-04)
+
+- Audiobookshelf + Subsonic/Navidrome servers, media.ccc.de + Bandcamp via NewPipe, podcast directory search, OPDS catalog presets, Nearby trusted devices + multi-file + favourites conflicts, backup reminders + restore preview.
+- Still open: Komga/Kavita/Emby integrations; covers and progress for the audio servers; more verified OPDS catalogs (Feedbooks, Internet Archive, Open Library, Standard Ebooks needs login); a source picker in search; vetted Mangayomi extension defaults; books-finished tracking.
