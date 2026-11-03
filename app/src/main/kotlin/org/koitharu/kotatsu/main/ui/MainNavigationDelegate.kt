@@ -154,7 +154,7 @@ class MainNavigationDelegate(
 			}
 		} else {
 			val itemId = if (savedInstanceState == null) {
-				firstItem()?.itemId ?: navBar.selectedItemId
+				startItemId() ?: firstItem()?.itemId ?: navBar.selectedItemId
 			} else {
 				navBar.selectedItemId
 			}
@@ -347,6 +347,10 @@ class MainNavigationDelegate(
 
 	private fun onFragmentChanged(fragment: Fragment, fromUser: Boolean) {
 		isEnabled = getItemId(fragment) != firstItem()?.itemId
+		if (fromUser) {
+			val itemId = getItemId(fragment)
+			NavItem.entries.firstOrNull { it.id == itemId && !it.isShortcut }?.let { settings.lastTab = it.name }
+		}
 		listeners.forEach { it.onFragmentChanged(fragment, fromUser) }
 	}
 
@@ -392,6 +396,14 @@ class MainNavigationDelegate(
 				)
 			}.launchIn(lifecycleOwner.lifecycleScope)
 	}
+
+	/** The tab chosen by the Start page setting, or null to use the first tab. */
+	private fun startItemId(): Int? = StartPageResolver.resolve(
+		startPage = settings.startPage,
+		lastTab = settings.lastTab,
+		barItems = shownItems,
+		isAvailable = { it.isAvailable(settings) },
+	)?.id?.takeIf { navBar.menu.findItem(it) != null }
 
 	private fun firstItem(): MenuItem? {
 		val menu = navBar.menu
