@@ -7,6 +7,7 @@ import androidx.core.app.PendingIntentCompat
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.data.BackupRepository
+import org.koitharu.kotatsu.backups.domain.BackupStatus
 import org.koitharu.kotatsu.backups.domain.BackupUtils
 import org.koitharu.kotatsu.backups.domain.ExternalBackupStorage
 import org.koitharu.kotatsu.backups.ui.BaseBackupRestoreService
@@ -51,6 +52,7 @@ class PeriodicalBackupService : CoroutineIntentService() {
 				repository.createBackup(it, null)
 			}
 			externalBackupStorage.put(output)
+			BackupStatus.markBackedUp(applicationContext)
 			externalBackupStorage.trim(settings.periodicalBackupMaxCount)
 			if (settings.isBackupTelegramUploadEnabled && telegramBackupUploader.isAvailable) {
 				telegramBackupUploader.uploadBackup(output)

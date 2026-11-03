@@ -57,10 +57,13 @@ class BuiltinRepositoryFactory @Inject constructor(
             BuiltinSource.ODYSEE -> OdyseeRepository(cache, client)
             BuiltinSource.DIRECT_STREAMS -> DirectStreamRepository(cache, client)
             BuiltinSource.PLEX -> PlexRepository(cache, client, apiKeys)
+            BuiltinSource.AUDIOBOOKSHELF -> org.koitharu.kotatsu.builtin.audiobookshelf.AudiobookshelfRepository(cache, client, apiKeys)
+            BuiltinSource.SUBSONIC -> org.koitharu.kotatsu.builtin.subsonic.SubsonicRepository(cache, client, apiKeys)
             BuiltinSource.TWITCH -> TwitchRepository(cache, client, apiKeys)
             BuiltinSource.VIMEO -> VimeoRepository(cache, client, apiKeys)
             BuiltinSource.JELLYFIN -> JellyfinRepository(cache, client, jellyfinConfig)
-            BuiltinSource.YOUTUBE, BuiltinSource.PEERTUBE, BuiltinSource.SOUNDCLOUD -> NewPipeVideoRepository(cache, source, client)
+            BuiltinSource.YOUTUBE, BuiltinSource.PEERTUBE, BuiltinSource.SOUNDCLOUD,
+            BuiltinSource.MEDIA_CCC, BuiltinSource.BANDCAMP -> NewPipeVideoRepository(cache, source, client)
             BuiltinSource.IA_BOOKS, BuiltinSource.IA_VIDEO, BuiltinSource.IA_AUDIO, BuiltinSource.IA_COMICS ->
                 ArchiveRepository(source, cache, client, context)
         }

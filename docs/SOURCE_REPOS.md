@@ -66,3 +66,17 @@ default, with optional "Include other languages" and "Include adult sources". So
 external torrent or debrid account (name contains Torrent or Debrid) are left out of the bulk install
 and can still be installed one by one. A result summary (installed per type, failures) stays on the
 screen, and failures are written to the Source log.
+
+## More non-manga sources and integrations
+
+- **media.ccc.de** (`builtin:mediaccc`, video) and **Bandcamp** (`builtin:bandcamp`, audio) run on the
+  bundled NewPipeExtractor (`ServiceList.MediaCCC` / `ServiceList.Bandcamp`). The popular list uses the
+  "recent" kiosk (media.ccc.de) and the "Radio" kiosk (Bandcamp); search and playback use the same code
+  as YouTube, PeerTube and SoundCloud.
+- **Popular free catalogs** (Books catalog, overflow menu): one-tap OPDS presets from
+  `builtin/opds/OpdsPresets.kt` (Project Gutenberg, Gutenberg latest, Unglue.it). Standard Ebooks is not
+  listed because its OPDS feed now requires a Patrons Circle login; add it manually as
+  `https://email:@standardebooks.org/feeds/opds` if you are a patron.
+- **Find podcasts** (Podcasts screen, overflow menu): searches the free Apple iTunes Search API
+  (`itunes.apple.com/search`) and the top-podcasts chart, and subscribes through the normal feed
+  loader. Only https feeds are offered.

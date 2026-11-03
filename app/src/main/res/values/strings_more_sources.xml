@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="more_sources_opds_presets_menu">Popular free catalogs</string>
+	<string name="more_sources_opds_preset_add">Tap to add</string>
+	<string name="more_sources_opds_preset_added">Added</string>
+	<string name="more_sources_podcasts_find">Find podcasts</string>
+	<string name="more_sources_podcasts_hint">Search the podcast directory</string>
+	<string name="more_sources_podcasts_search">Search</string>
+	<string name="more_sources_podcasts_top">Top podcasts</string>
+	<string name="more_sources_podcasts_subscribe">Subscribe</string>
+	<string name="more_sources_podcasts_subscribed">Subscribed</string>
+	<string name="more_sources_podcasts_empty">No podcasts found</string>
+	<string name="more_sources_podcasts_error">Could not reach the podcast directory: %1$s</string>
+	<string name="more_sources_podcasts_unavailable">This podcast has no secure (https) feed</string>
+</resources>

@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koitharu.kotatsu.backups.data.BackupRepository
+import org.koitharu.kotatsu.backups.domain.BackupStatus
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
@@ -32,6 +33,7 @@ class BackupViewModel @Inject constructor(
 
 	private val destination = savedStateHandle.require<Uri>(AppRouter.KEY_DATA)
 	private val contentResolver: ContentResolver = context.contentResolver
+	private val appContext = context
 
 	init {
 		launchLoadingJob(Dispatchers.Default) {
@@ -40,6 +42,7 @@ class BackupViewModel @Inject constructor(
 				// A backup the user creates by hand is a complete copy, including the community identity.
 				repository.createBackup(it, progress, BackupSection.entries.toSet())
 			}
+			BackupStatus.markBackedUp(appContext)
 			onBackupDone.call(destination)
 		}
 	}

@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-03 — v1.6.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.6.0 built from `devel` `3da5eed` (drafts merged; build check run 41555117883 green; release run 41557489593 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `bb5bc5fb7bdd1121445e9ee850be4f0b08129d03bb526ba45a5ff135497f1364`.
+- Reading and media: offline video downloads + Listen in background (videodl/), activity stats across media (stats/activity/), YouTube/NewPipe subscription import, download queue summary and Retry failed, Library undo and multi-select, launcher shortcuts and Share to Monogatari, storage overview, offline videos listed in the Library and Storage screen. Not device-verified yet.
+- Next approved batches: sync and safety, content (see docs/FUTURE_VERSION_ROADMAP.md).
+
 ## 2026-11-02 — v1.5.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.5.0 built from `devel` `0a57cd2` (drafts merged; build check run 41328945579 green; release run 41330493378 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `ce06d970173efb050eaba4ca24a3c92455ab2b8bba4493e3623b2ce290a8a7d5`.
 - Look and navigation: Explore tab renamed Sources (source catalog shortcut renamed Source catalog), pull-to-refresh on Discover / Discover books and videos / Library, Library Continue button, first-run Set up Monogatari flow (new installs only; Run setup again in Settings > Advanced), shared mascot empty states. Not device-verified yet.

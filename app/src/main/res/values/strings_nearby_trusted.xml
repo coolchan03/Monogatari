@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Remembered (trusted) devices -->
+	<string name="nearby_trust_section">Trusted devices</string>
+	<string name="nearby_trust_empty">No remembered devices yet. After you pair with a code you can choose to remember the other device.</string>
+	<string name="nearby_trust_last_seen">Last seen %1$s</string>
+	<string name="nearby_trust_forget">Forget</string>
+	<string name="nearby_trust_forget_title">Forget this device?</string>
+	<string name="nearby_trust_forget_message">%1$s will need the pairing code again the next time you connect.</string>
+	<string name="nearby_trust_remembered_status">Remembered — connected without a code</string>
+	<string name="nearby_trust_verifying">Verifying %1$s…</string>
+	<string name="nearby_trust_wait">Verifying the other device. Please wait a moment.</string>
+	<string name="nearby_trust_failed">Could not verify this device — pair again with the code</string>
+	<string name="nearby_trust_offer_title">Remember this device?</string>
+	<string name="nearby_trust_offer_message">Next time %1$s connects you will not need to compare a code. A secret key is stored privately on this device and is never included in backups.</string>
+	<string name="nearby_trust_remember">Remember</string>
+	<string name="nearby_trust_not_now">Not now</string>
+	<string name="nearby_trust_paired">Remembered %1$s. Next time no code is needed.</string>
+	<string name="nearby_trust_declined">The other device did not remember this pairing.</string>
+
+	<!-- Sending and receiving several files -->
+	<string name="nearby_multi_preparing">Preparing %1$d of %2$d: %3$s…</string>
+	<string name="nearby_multi_sending">Sending %1$d of %2$d: %3$s (%4$d%%)</string>
+	<string name="nearby_multi_receiving">Receiving %1$d of %2$d: %3$s (%4$d%%)</string>
+	<string name="nearby_multi_skip">Skip this file</string>
+	<string name="nearby_multi_cancel_rest">Cancel remaining files</string>
+	<string name="nearby_multi_sent_count">%1$d sent</string>
+	<string name="nearby_multi_failed_count">%1$d failed</string>
+	<string name="nearby_multi_skipped_count">%1$d skipped</string>
+	<string name="nearby_multi_saved_count">%1$d saved</string>
+	<string name="nearby_multi_done">Finished: %1$s. The other device must still review the files.</string>
+	<string name="nearby_multi_received_done">Received files: %1$s.</string>
+	<string name="nearby_multi_too_many">Select at most %1$d files at once.</string>
+	<string name="nearby_multi_over_total">Those files add up to more than 2 GB. Send fewer files at a time.</string>
+	<string name="nearby_multi_over_limit">%1$d file(s) were left out because each file must be under 256 MB.</string>
+	<string name="nearby_multi_nothing_to_send">None of the selected files can be sent.</string>
+	<string name="nearby_multi_folder_title">Where should the received files go?</string>
+	<string name="nearby_multi_folder_message">%1$d files are coming. Choose one folder for all of them; Monogatari remembers it for next time.</string>
+	<string name="nearby_multi_choose_folder">Choose folder</string>
+	<string name="nearby_multi_one_by_one">Save one by one</string>
+	<string name="nearby_multi_saving_to">Saving received files to your chosen folder.</string>
+	<string name="nearby_multi_forget_folder">Forget the remembered save folder</string>
+	<string name="nearby_multi_folder_forgotten">Save folder forgotten. You will be asked again.</string>
+
+	<!-- Favourites and categories conflicts -->
+	<string name="nearby_fav_conflict_title">Favourites differ</string>
+	<plurals name="nearby_fav_conflict_summary">
+		<item quantity="one">%d title was changed in favourites on both devices since they last synced. Choose which categories to keep; the newest is selected.</item>
+		<item quantity="other">%d titles were changed in favourites on both devices since they last synced. Choose which categories to keep; the newest is selected.</item>
+	</plurals>
+	<string name="nearby_fav_keep_both">Keep both</string>
+	<string name="nearby_fav_keep_both_for_all">Keep both for all</string>
+	<string name="nearby_fav_none">Not in favourites</string>
+</resources>

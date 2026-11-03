@@ -9,14 +9,21 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.builtin.audiobookshelf.AudiobookshelfApi
+import org.koitharu.kotatsu.builtin.subsonic.SubsonicApi
+import org.koitharu.kotatsu.core.network.MangaHttpClient
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.addBodyText
 import org.koitharu.kotatsu.core.ui.addHeaderCard
 import org.koitharu.kotatsu.core.ui.addSectionCard
 import org.koitharu.kotatsu.core.ui.bodyText
+import org.koitharu.kotatsu.core.ui.buttonParams
 import org.koitharu.kotatsu.core.ui.dp
 import org.koitharu.kotatsu.core.ui.pageColumn
 import org.koitharu.kotatsu.core.ui.primaryButton
@@ -25,6 +32,7 @@ import org.koitharu.kotatsu.core.ui.secondaryButton
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import org.koitharu.kotatsu.core.ui.statusText
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * One place for the user's own API keys and accounts: what each service is for, a link to sign up or find the key,
@@ -35,6 +43,10 @@ class ApiKeysActivity : AppCompatActivity() {
 
 	@Inject
 	lateinit var keys: ApiKeys
+
+	@Inject
+	@MangaHttpClient
+	lateinit var client: OkHttpClient
 
 	private lateinit var list: LinearLayout
 
@@ -69,7 +81,9 @@ class ApiKeysActivity : AppCompatActivity() {
 					setSingleLine(true)
 					inputType = if (field.secret) {
 						InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-					} else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+					} else if (field.kind == "server") {
+						InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+					} else InputType.TYPE_CLASS_TEXT
 					// A saved secret is shown masked; typing replaces it.
 					val saved = keys.get(service.id, field.key)
 					if (saved != null && !field.secret) setText(saved)
@@ -89,7 +103,42 @@ class ApiKeysActivity : AppCompatActivity() {
 				render()
 			}, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dp(8) })
 			column.addView(buttons, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+			if (service.id in TESTABLE) {
+				column.addView(secondaryButton(getString(R.string.api_keys_test_connection)) {
+					testConnection(service, inputs, status)
+				}, buttonParams())
+			}
 			column.addView(status)
+		}
+	}
+
+	/** Checks the typed (or already saved) address and login against the server without saving anything. */
+	private fun testConnection(service: ApiService, inputs: Map<String, EditText>, status: TextView) {
+		val typed = inputs.mapValues { (field, box) ->
+			box.text.toString().ifBlank { keys.get(service.id, field).orEmpty() }
+		}
+		val values = when (val check = ApiServices.validate(service, typed)) {
+			is ApiServices.Check.Problem -> {
+				status.text = check.reason
+				return
+			}
+			is ApiServices.Check.Ok -> check.values
+		}
+		status.setText(R.string.api_keys_testing)
+		lifecycleScope.launch {
+			status.text = try {
+				when (service.id) {
+					ApiServices.AUDIOBOOKSHELF ->
+						AudiobookshelfApi.testConnection(client, values.getValue("server"), values.getValue("token"))
+					else -> SubsonicApi.testConnection(
+						client, values.getValue("server"), values.getValue("username"), values.getValue("password"),
+					)
+				}
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				getString(R.string.api_keys_test_failed, e.message ?: e.javaClass.simpleName)
+			}
 		}
 	}
 
@@ -105,5 +154,10 @@ class ApiKeysActivity : AppCompatActivity() {
 				render()
 			}
 		}
+	}
+
+	private companion object {
+
+		val TESTABLE = setOf(ApiServices.AUDIOBOOKSHELF, ApiServices.SUBSONIC)
 	}
 }

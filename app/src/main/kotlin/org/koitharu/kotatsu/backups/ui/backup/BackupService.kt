@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.data.BackupRepository
+import org.koitharu.kotatsu.backups.domain.BackupStatus
 import org.koitharu.kotatsu.backups.ui.BaseBackupRestoreService
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.util.CompositeResult
@@ -77,6 +78,7 @@ class BackupService : BaseBackupRestoreService() {
 				throw e
 			}
 			progressUpdateJob?.cancelAndJoin()
+			BackupStatus.markBackedUp(applicationContext)
 			contentResolver.notifyChange(destination, null)
 			showResultNotification(destination, CompositeResult.success())
 			withContext(Dispatchers.Main) {

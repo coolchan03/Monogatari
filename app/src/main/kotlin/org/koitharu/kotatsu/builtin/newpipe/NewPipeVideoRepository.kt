@@ -40,6 +40,8 @@ class NewPipeVideoRepository(
     private val service = when (source) {
         BuiltinSource.PEERTUBE -> ServiceList.PeerTube
         BuiltinSource.SOUNDCLOUD -> ServiceList.SoundCloud
+        BuiltinSource.MEDIA_CCC -> ServiceList.MediaCCC
+        BuiltinSource.BANDCAMP -> ServiceList.Bandcamp
         else -> ServiceList.YouTube
     }
     private val nextPage = ConcurrentHashMap<String, Page>()
@@ -205,7 +207,7 @@ class NewPipeVideoRepository(
                 }
             return@withContext manga.copy(chapters = chapters)
         }
-        if (manga.url.contains("list=") || manga.url.contains("/playlist")) {
+        if (manga.url.contains("list=") || manga.url.contains("/playlist") || manga.tags.any { it.title == "playlist" }) {
             val info = PlaylistInfo.getInfo(service, manga.url)
             val videoItems = NewPipePageCollector.collect(
                 first = info.relatedItems.filterIsInstance<StreamInfoItem>(),
@@ -270,7 +272,7 @@ class NewPipeVideoRepository(
                 MediaStream(url, stream.resolution.orEmpty(), subtitles = subtitles, audioUrl = audioUrl)
             }
         buildList {
-            if (source == BuiltinSource.SOUNDCLOUD) {
+            if (source == BuiltinSource.SOUNDCLOUD || source == BuiltinSource.BANDCAMP) {
                 info.audioStreams.mapNotNull { audio ->
                     audio.url?.takeIf(String::isNotBlank)?.let { MediaStream(it, "Audio") }
                 }.also(::addAll)

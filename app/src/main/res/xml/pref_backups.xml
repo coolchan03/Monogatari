@@ -12,6 +12,12 @@
         android:title="@string/create_backup" />
 
     <Preference
+        android:icon="@drawable/ic_timer"
+        android:key="monogatari_backup_reminder"
+        android:persistent="false"
+        android:title="@string/backup_reminder_setting" />
+
+    <Preference
         android:icon="@drawable/ic_backup_restore"
         android:key="restore"
         android:persistent="false"

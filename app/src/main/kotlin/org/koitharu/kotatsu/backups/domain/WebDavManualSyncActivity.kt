@@ -139,7 +139,10 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 } finally { file.delete() }
             } }
             busy = false
-            result.onSuccess { status.text = getString(R.string.mono_webdav_backup_zip_uploaded_for_this_device) }
+            result.onSuccess {
+                BackupStatus.markBackedUp(this@WebDavManualSyncActivity)
+                status.text = getString(R.string.mono_webdav_backup_zip_uploaded_for_this_device)
+            }
                 .onFailure { status.text = "Upload failed: ${it.message}" }
         }
     }

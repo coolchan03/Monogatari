@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backups.domain.BackupReminderText
 import org.koitharu.kotatsu.core.ui.AlertDialogFragment
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.core.util.ext.observe
@@ -29,7 +30,7 @@ class BackupDialogFragment : AlertDialogFragment<DialogProgressBinding>() {
 
 	override fun onViewBindingCreated(binding: DialogProgressBinding, savedInstanceState: Bundle?) {
 		super.onViewBindingCreated(binding, savedInstanceState)
-		binding.textViewTitle.setText(R.string.create_backup)
+		binding.textViewTitle.text = getString(R.string.create_backup) + "\n" + BackupReminderText.lastBackupLine(binding.root.context)
 		binding.textViewSubtitle.setText(R.string.processing_)
 
 		viewModel.progress.observe(viewLifecycleOwner, this::onProgressChanged)

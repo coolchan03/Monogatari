@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="backup_last_line">Last backup: %1$s</string>
+	<string name="backup_last_never">Never</string>
+	<string name="backup_last_today">Today</string>
+	<plurals name="backup_last_days">
+		<item quantity="one">%d day ago</item>
+		<item quantity="other">%d days ago</item>
+	</plurals>
+	<plurals name="backup_last_weeks">
+		<item quantity="one">%d week ago</item>
+		<item quantity="other">%d weeks ago</item>
+	</plurals>
+	<plurals name="backup_last_months">
+		<item quantity="one">%d month ago</item>
+		<item quantity="other">%d months ago</item>
+	</plurals>
+
+	<string name="backup_reminder_setting">Backup reminder</string>
+	<string name="backup_reminder_off">Off</string>
+	<string name="backup_reminder_weekly">Weekly</string>
+	<string name="backup_reminder_monthly">Monthly</string>
+	<string name="backup_reminder_channel">Backup reminders</string>
+	<string name="backup_reminder_title">Back up your library</string>
+	<plurals name="backup_reminder_text">
+		<item quantity="one">It\'s been %d day since your last backup</item>
+		<item quantity="other">It\'s been %d days since your last backup</item>
+	</plurals>
+	<string name="backup_reminder_text_never">You haven\'t backed up your library yet</string>
+
+	<string name="restore_preview_checking">Checking…</string>
+	<string name="restore_preview_empty">nothing to restore</string>
+	<string name="restore_preview_history">%1$d history entries: %2$s</string>
+	<string name="restore_preview_favourites">%1$d favourites: %2$s</string>
+	<string name="restore_preview_categories">%1$d categories: %2$s</string>
+	<string name="restore_preview_bookmarks">bookmarks: %1$s</string>
+	<string name="restore_preview_settings">settings: %1$d values</string>
+	<string name="restore_preview_new">%d new</string>
+	<string name="restore_preview_newer">%d newer than yours</string>
+	<string name="restore_preview_older">%d older (kept yours)</string>
+	<string name="restore_preview_same">%d already here</string>
+	<string name="restore_preview_removed">%d removed</string>
+</resources>

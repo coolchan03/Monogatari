@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="api_keys_test_connection">Test connection</string>
+	<string name="api_keys_testing">Testing the connection…</string>
+	<string name="api_keys_test_failed">Connection failed. %1$s</string>
+</resources>

@@ -6,11 +6,16 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.SharedPreferences
 import androidx.fragment.app.viewModels
 import androidx.preference.Preference
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backups.domain.BackupReminderInterval
+import org.koitharu.kotatsu.backups.domain.BackupReminderText
+import org.koitharu.kotatsu.backups.domain.BackupReminderWorker
+import org.koitharu.kotatsu.backups.domain.BackupStatus
 import org.koitharu.kotatsu.backups.domain.BackupUtils
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import android.text.format.DateUtils
@@ -26,12 +31,21 @@ import org.koitharu.kotatsu.core.ui.BasePreferenceFragment
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.core.util.ext.tryLaunch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
     ActivityResultCallback<Uri?> {
 
+    @Inject
+    lateinit var backupReminderScheduler: BackupReminderWorker.Scheduler
+
     private val viewModel: BackupsSettingsViewModel by viewModels()
+
+    // Kept as a field: SharedPreferences only holds listeners weakly.
+    private val backupStatusListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == BackupStatus.KEY_LAST_BACKUP_AT) bindBackupStatus()
+    }
 
     private val backupSelectCall = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -57,7 +71,15 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bindPeriodicalBackupSummary()
+        bindBackupStatus()
+        backupReminderScheduler.schedule()
+        BackupStatus.prefs(requireContext()).registerOnSharedPreferenceChangeListener(backupStatusListener)
         viewModel.onError.observeEvent(viewLifecycleOwner, SnackbarErrorObserver(listView, this))
+    }
+
+    override fun onDestroyView() {
+        context?.let { BackupStatus.prefs(it).unregisterOnSharedPreferenceChangeListener(backupStatusListener) }
+        super.onDestroyView()
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
@@ -80,6 +102,11 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
                 true
             }
 
+            KEY_BACKUP_REMINDER -> {
+                showReminderChooser()
+                true
+            }
+
             "monogatari_update_snapshots" -> {
                 showUpdateSnapshots()
                 true
@@ -98,6 +125,32 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
         if (result != null) {
             router.showBackupRestoreDialog(result)
         }
+    }
+
+    private fun bindBackupStatus() {
+        val context = context ?: return
+        findPreference<Preference>(AppSettings.KEY_BACKUP)?.summary =
+            getString(R.string.backup_information) + "\n" + BackupReminderText.lastBackupLine(context)
+        findPreference<Preference>(KEY_BACKUP_REMINDER)?.summary =
+            BackupReminderText.intervalLabel(context, BackupStatus.reminderInterval(context))
+    }
+
+    private fun showReminderChooser() {
+        val context = requireContext()
+        val options = BackupReminderInterval.entries
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.backup_reminder_setting)
+            .setSingleChoiceItems(
+                options.map { BackupReminderText.intervalLabel(context, it) }.toTypedArray(),
+                options.indexOf(BackupStatus.reminderInterval(context)),
+            ) { dialog, which ->
+                BackupStatus.setReminderInterval(context, options[which])
+                backupReminderScheduler.schedule()
+                bindBackupStatus()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showUpdateSnapshots() {
@@ -153,5 +206,10 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
                 entries.getOrNull(index)
             }
         }
+    }
+
+    private companion object {
+
+        const val KEY_BACKUP_REMINDER = "monogatari_backup_reminder"
     }
 }

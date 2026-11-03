@@ -45,6 +45,7 @@ import org.koitharu.kotatsu.filter.data.SavedFiltersRepository
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.reader.data.TapGridSettings
 import org.koitharu.kotatsu.sourcescore.data.CommunitySettings
+import org.koitharu.kotatsu.sync.conflict.FavouriteConflicts
 import org.koitharu.kotatsu.sourcerepo.data.SourceRepoStore
 import org.koitharu.kotatsu.sourcerepo.domain.SourceRepoRepository
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
@@ -224,6 +225,12 @@ class BackupRepository @Inject constructor(
      * entries are skipped (sync conflict review). Empty keeps the usual newest-wins merge.
      * @param takeIncomingHistoryIds manga whose incoming history the user chose over this device's, applied even
      * when it is older. Empty keeps the usual newest-wins merge.
+     * @param keepLocalFavouriteIds manga whose favourites on this device the user chose to keep: their incoming
+     * favourites rows are skipped. Empty keeps the usual newest-wins merge.
+     * @param takeIncomingFavouriteIds manga whose incoming categories replace this device's: incoming rows are applied
+     * even when older, and local categories the other device does not have are removed.
+     * @param unionFavouriteIds manga that end up in the union of both devices' categories: incoming categories are
+     * added, nothing is removed.
      */
     suspend fun restoreBackup(
         input: ZipInputStream,
@@ -232,6 +239,9 @@ class BackupRepository @Inject constructor(
         settingsGroups: Set<SettingsTransferProfile.Group>? = null,
         keepLocalHistoryIds: Set<Long> = emptySet(),
         takeIncomingHistoryIds: Set<Long> = emptySet(),
+        keepLocalFavouriteIds: Set<Long> = emptySet(),
+        takeIncomingFavouriteIds: Set<Long> = emptySet(),
+        unionFavouriteIds: Set<Long> = emptySet(),
     ): CompositeResult {
         progress?.emit(Progress.INDETERMINATE)
         var commonProgress = Progress(0, sections.size)
@@ -276,19 +286,48 @@ class BackupRepository @Inject constructor(
                         }
                     }
 
-                    BackupSection.FAVOURITES -> input.readJsonArray<FavouriteBackup>(serializer()).restoreToDb {
-                        val parsed = it.toEntity()
-                        val categoryId = BackupCategoryMergePlan.remap(categoryRemap, parsed.categoryId)
-                        if (categoryId != null) {
-                            val incoming = parsed.copy(categoryId = categoryId)
-                            val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
-                            if (BackupMergePolicy.shouldReplace(
-                                    existing?.createdAt, existing?.deletedAt ?: 0L,
-                                    incoming.createdAt, incoming.deletedAt)) {
-                                upsertManga(it.manga)
-                                getFavouritesDao().upsert(incoming)
+                    BackupSection.FAVOURITES -> {
+                        val takenCategories = HashMap<Long, MutableSet<Long>>()
+                        var favourites = input.readJsonArray<FavouriteBackup>(serializer()).filterNot {
+                            it.mangaId in keepLocalFavouriteIds
+                        }.restoreToDb {
+                            val parsed = it.toEntity()
+                            val categoryId = BackupCategoryMergePlan.remap(categoryRemap, parsed.categoryId)
+                            if (categoryId != null) {
+                                val incoming = parsed.copy(categoryId = categoryId)
+                                val existing = getFavouritesDao().findIncludingDeleted(incoming.mangaId, incoming.categoryId)
+                                val forced = incoming.mangaId in takeIncomingFavouriteIds
+                                val union = incoming.mangaId in unionFavouriteIds
+                                if (union) {
+                                    if (FavouriteConflicts.unionAddsRow(existing?.deletedAt, incoming.deletedAt)) {
+                                        upsertManga(it.manga)
+                                        getFavouritesDao().upsert(incoming)
+                                    }
+                                } else if (forced || BackupMergePolicy.shouldReplace(
+                                        existing?.createdAt, existing?.deletedAt ?: 0L,
+                                        incoming.createdAt, incoming.deletedAt)) {
+                                    upsertManga(it.manga)
+                                    getFavouritesDao().upsert(incoming)
+                                    if (forced && incoming.deletedAt == 0L) {
+                                        takenCategories.getOrPut(incoming.mangaId) { HashSet() }.add(incoming.categoryId)
+                                    }
+                                }
                             }
                         }
+                        if (takeIncomingFavouriteIds.isNotEmpty()) {
+                            // "Take other": categories the other device does not have are removed from this one.
+                            favourites += runCatchingCancellable {
+                                database.withTransaction {
+                                    for (mangaId in takeIncomingFavouriteIds) {
+                                        val keep = takenCategories[mangaId].orEmpty()
+                                        database.getFavouritesDao().findAllRaw(mangaId)
+                                            .filter { row -> row.categoryId !in keep }
+                                            .forEach { row -> database.getFavouritesDao().delete(mangaId, row.categoryId) }
+                                    }
+                                }
+                            }
+                        }
+                        favourites
                     }
 
                     BackupSection.SETTINGS -> input.readMap().let {

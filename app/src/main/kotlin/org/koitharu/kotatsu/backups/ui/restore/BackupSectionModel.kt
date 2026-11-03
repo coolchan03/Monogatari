@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.backups.ui.restore
 import androidx.annotation.StringRes
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.BackupSection
+import org.koitharu.kotatsu.backups.domain.RestorePreviewCounts
 import org.koitharu.kotatsu.list.ui.ListModelDiffCallback
 import org.koitharu.kotatsu.list.ui.model.ListModel
 
@@ -10,6 +11,10 @@ data class BackupSectionModel(
 	val section: BackupSection,
 	val isChecked: Boolean,
 	val isEnabled: Boolean,
+	/** True while the dry-run preview of this section is being computed. */
+	val isPreviewLoading: Boolean = false,
+	/** Null when there is no preview (not computed yet, or the section could not be read). */
+	val preview: RestorePreviewCounts? = null,
 ) : ListModel {
 
 	@get:StringRes
@@ -42,7 +47,10 @@ data class BackupSectionModel(
 		if (previousState !is BackupSectionModel) {
 			return null
 		}
-		return if (previousState.isEnabled != isEnabled) {
+		return if (previousState.isEnabled != isEnabled ||
+			previousState.isPreviewLoading != isPreviewLoading ||
+			previousState.preview != preview
+		) {
 			ListModelDiffCallback.PAYLOAD_ANYTHING_CHANGED
 		} else if (previousState.isChecked != isChecked) {
 			ListModelDiffCallback.PAYLOAD_CHECKED_CHANGED
