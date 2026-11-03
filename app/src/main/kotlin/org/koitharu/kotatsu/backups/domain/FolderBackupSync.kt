@@ -81,6 +81,7 @@ class FolderBackupSync @Inject constructor(
         val now = System.currentTimeMillis()
         if (merged > 0 || now - journal.getLong("published_at", 0L) >= SYNC_INTERVAL_MS) {
             publishOwnBackup()
+            BackupStatus.markBackedUp(context)
             journal.edit().putLong("published_at", System.currentTimeMillis()).commit()
             trimOwnBackups(ownId)
         }

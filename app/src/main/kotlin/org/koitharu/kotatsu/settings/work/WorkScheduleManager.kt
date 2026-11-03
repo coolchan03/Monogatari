@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.settings.work
 
+import org.koitharu.kotatsu.backups.domain.BackupReminderWorker
 import org.koitharu.kotatsu.sourcehealth.BrokenLibrarySourcesWorker
 import android.content.SharedPreferences
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class WorkScheduleManager @Inject constructor(
     private val sourceUpdateScheduler: SourceUpdateWorker.Scheduler,
     private val folderSyncScheduler: FolderSyncWorker.Scheduler,
     private val brokenLibrarySourcesScheduler: BrokenLibrarySourcesWorker.Scheduler,
+    private val backupReminderScheduler: BackupReminderWorker.Scheduler,
 ) : SharedPreferences.OnSharedPreferenceChangeListener {
 
 	override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -62,6 +64,7 @@ class WorkScheduleManager @Inject constructor(
             sourceUpdateScheduler.schedule()
             folderSyncScheduler.schedule()
             brokenLibrarySourcesScheduler.schedule()
+            backupReminderScheduler.schedule()
 			// Periodic syncs are registered with the system rather than WorkManager, so they have to be
 			// re-asserted here for accounts added before this setting existed.
 			syncController.updateSyncSchedule()
