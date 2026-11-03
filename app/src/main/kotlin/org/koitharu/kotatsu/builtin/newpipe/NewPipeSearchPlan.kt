@@ -10,6 +10,8 @@ internal object NewPipeSearchPlan {
         val defaultQuery = when (source) {
             BuiltinSource.SOUNDCLOUD -> "audio drama"
             BuiltinSource.PEERTUBE -> "animation"
+            BuiltinSource.MEDIA_CCC -> "security"
+            BuiltinSource.BANDCAMP -> "ambient"
             else -> "BL drama"
         }
         val requested = raw.ifBlank { defaultQuery }

@@ -33,4 +33,23 @@ class ApiServicesTest {
 		val bad = ApiServices.validate(jellyfin, mapOf("server" to "ftp://nope", "api_key" to "k")) as ApiServices.Check.Problem
 		assertEquals("server", bad.field)
 	}
+
+	@Test
+	fun selfHostedAudioServersAreValidatedLikeJellyfin() {
+		val abs = ApiServices.byId(ApiServices.AUDIOBOOKSHELF)!!
+		val ok = ApiServices.validate(abs, mapOf("server" to "abs.example.com/", "token" to " t ")) as ApiServices.Check.Ok
+		assertEquals("https://abs.example.com", ok.values["server"])
+		assertEquals("t", ok.values["token"])
+		val subsonic = ApiServices.byId(ApiServices.SUBSONIC)!!
+		val good = ApiServices.validate(
+			subsonic, mapOf("server" to "192.168.1.5:4533", "username" to "joe", "password" to "sesame"),
+		) as ApiServices.Check.Ok
+		assertEquals("http://192.168.1.5:4533", good.values["server"])
+		assertEquals(listOf("server", "username", "password"), good.values.keys.toList())
+		val missing = ApiServices.validate(
+			subsonic, mapOf("server" to "192.168.1.5:4533", "username" to "joe", "password" to ""),
+		) as ApiServices.Check.Problem
+		assertEquals("password", missing.field)
+		assertTrue(subsonic.fields.single { it.key == "password" }.secret)
+	}
 }

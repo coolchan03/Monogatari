@@ -36,6 +36,8 @@ internal object NewPipeKioskPlan {
         val ordered = buildList {
             lastWorking?.let(::add)
             if (source == BuiltinSource.YOUTUBE) addAll(YOUTUBE_PREFERENCE)
+            // Bandcamp "Featured" lists albums only; the repository shows streams, so "Radio" goes first.
+            if (source == BuiltinSource.BANDCAMP) add("Radio")
             defaultId?.let(::add)
             addAll(available.sorted())
         }

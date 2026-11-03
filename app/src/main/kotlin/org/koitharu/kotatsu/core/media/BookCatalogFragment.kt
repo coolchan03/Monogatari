@@ -40,6 +40,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.builtin.opds.OpdsPresets
 import org.koitharu.kotatsu.builtin.opds.OpdsSourceRegistry
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
@@ -158,6 +159,7 @@ class BookCatalogFragment : Fragment() {
 			menu.add(0, MENU_OPDS_SAVE, 4, R.string.monogatari_catalog_opds_save)
 			menu.add(0, MENU_OPDS_SAVED, 5, R.string.monogatari_catalog_opds_saved)
 			menu.add(0, 7203, 6, R.string.monogatari_catalog_menu_export)
+			menu.add(0, MENU_OPDS_PRESETS, 7, R.string.more_sources_opds_presets_menu)
 		}
 
 		override fun onMenuItemSelected(menuItem: MenuItem): Boolean = onCatalogMenuItemSelected(menuItem)
@@ -172,6 +174,7 @@ class BookCatalogFragment : Fragment() {
 			MENU_OPDS_OPEN -> openOpds(query.text.toString().trim())
 			MENU_OPDS_SAVE -> saveOpds(query.text.toString().trim())
 			MENU_OPDS_SAVED -> showSavedOpds()
+			MENU_OPDS_PRESETS -> showOpdsPresets()
 			else -> return false
 		}
 		return true
@@ -334,6 +337,22 @@ class BookCatalogFragment : Fragment() {
 		OpdsSourceRegistry.register(url)
 		prefs.edit().putStringSet("urls", saved).apply()
 		showSavedOpds()
+	}
+
+	private fun showOpdsPresets() {
+		resultsAdapter.show(OpdsPresets.all.filter(OpdsPresets::isValid).map { preset ->
+			val added = OpdsPresets.isAdded(preset)
+			CatalogRow(
+				preset.name,
+				preset.note + " - " + getString(
+					if (added) R.string.more_sources_opds_preset_added else R.string.more_sources_opds_preset_add,
+				),
+				onOpen = {
+					if (!added) saveOpds(preset.url)
+					showOpdsPresets()
+				},
+			)
+		})
 	}
 
 	private fun showSavedOpds() {
@@ -669,5 +688,6 @@ class BookCatalogFragment : Fragment() {
 		const val MENU_OPDS_OPEN = 7207
 		const val MENU_OPDS_SAVE = 7208
 		const val MENU_OPDS_SAVED = 7209
+		const val MENU_OPDS_PRESETS = 7210
 	}
 }

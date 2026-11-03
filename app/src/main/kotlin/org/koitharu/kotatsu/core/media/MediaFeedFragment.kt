@@ -31,6 +31,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.builtin.podcasts.PodcastDirectory
+import org.koitharu.kotatsu.builtin.podcasts.PodcastSearchDialog
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.MascotForm
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
@@ -50,6 +52,7 @@ import javax.inject.Inject
 class MediaFeedFragment : Fragment() {
 	@Inject lateinit var repository: MediaFeedRepository
 	@Inject lateinit var imageLoader: ImageLoader
+	@Inject lateinit var podcastDirectory: PodcastDirectory
 	private val results = CatalogResultsAdapter()
 	private val saved by lazy { requireContext().getSharedPreferences("monogatari_entertainment_feeds", Context.MODE_PRIVATE) }
 	private lateinit var status: TextView
@@ -154,6 +157,7 @@ class MediaFeedFragment : Fragment() {
 			menu.add(0, MENU_INCLUDED, 1, "Included feeds")
 			menu.add(0, MENU_REFRESH, 2, "Refresh")
 			menu.add(0, MENU_REMOVE, 3, "Remove a feed")
+			menu.add(0, MENU_FIND_PODCASTS, 4, R.string.more_sources_podcasts_find)
 		}
 
 		override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -162,6 +166,7 @@ class MediaFeedFragment : Fragment() {
 				MENU_INCLUDED -> chooseSuggestedFeed()
 				MENU_REFRESH -> currentUrl?.let(::load) ?: chooseFeed()
 				MENU_REMOVE -> chooseFeed()
+				MENU_FIND_PODCASTS -> findPodcasts()
 				else -> return false
 			}
 			return true
@@ -248,6 +253,16 @@ class MediaFeedFragment : Fragment() {
 					status.text = getString(R.string.mono_feeds_enter_an_https_rss_or_atom)
 				} else load(url, subscribe = true)
 			}.show()
+	}
+	private fun findPodcasts() {
+		PodcastSearchDialog(
+			requireContext(), podcastDirectory, imageLoader, viewLifecycleOwner.lifecycleScope,
+			isSubscribed = { it in subscribed() },
+			onSubscribe = { url ->
+				if (MediaFeedRepository.validUrl(url)) load(url, subscribe = true)
+				else status.text = getString(R.string.more_sources_podcasts_unavailable)
+			},
+		).show()
 	}
 	private fun chooseSuggestedFeed() {
 		val presets = INCLUDED_FEEDS
@@ -450,6 +465,7 @@ class MediaFeedFragment : Fragment() {
 		const val MENU_INCLUDED = 8102
 		const val MENU_REFRESH = 8103
 		const val MENU_REMOVE = 8104
+		const val MENU_FIND_PODCASTS = 8105
 		const val MAX_CACHED_EPISODES = 40
 		val INCLUDED_FEEDS get() = MediaFeedActivity.INCLUDED_FEEDS
 	}

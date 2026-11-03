@@ -28,6 +28,8 @@ sealed class BuiltinSource(
     data object JELLYFIN : BuiltinSource("builtin:jellyfin", "Jellyfin (my server)", MediaType.VIDEO)
     data object DIRECT_STREAMS : BuiltinSource("builtin:directstreams", "Direct links (HLS, DASH, M3U)", MediaType.VIDEO)
     data object PLEX : BuiltinSource("builtin:plex", "Plex (my server)", MediaType.VIDEO)
+    data object AUDIOBOOKSHELF : BuiltinSource("builtin:audiobookshelf", "Audiobookshelf (my server)", MediaType.AUDIO)
+    data object SUBSONIC : BuiltinSource("builtin:subsonic", "Subsonic / Navidrome (my server)", MediaType.AUDIO)
     data object TWITCH : BuiltinSource("builtin:twitch", "Twitch", MediaType.VIDEO)
     data object VIMEO : BuiltinSource("builtin:vimeo", "Vimeo", MediaType.VIDEO)
     data object ODYSEE : BuiltinSource("builtin:odysee", "Odysee", MediaType.VIDEO)
@@ -35,13 +37,15 @@ sealed class BuiltinSource(
     data object IA_VIDEO : BuiltinSource("builtin:ia_video", "Internet Archive Video", MediaType.VIDEO)
     data object IA_AUDIO : BuiltinSource("builtin:ia_audio", "Internet Archive Audio", MediaType.AUDIO)
     data object IA_COMICS : BuiltinSource("builtin:ia_comics", "Internet Archive Comics", MediaType.MANGA)
+    data object MEDIA_CCC : BuiltinSource("builtin:mediaccc", "media.ccc.de", MediaType.VIDEO)
+    data object BANDCAMP : BuiltinSource("builtin:bandcamp", "Bandcamp", MediaType.AUDIO)
 
     companion object {
         // Delay member construction until the superclass is fully initialized; eager construction
         // can expose partially initialized data-object singletons in JVM tests.
         val entries: List<BuiltinSource> by lazy {
             listOf(GUTENBERG, OPEN_LIBRARY, FADED_PAGE, GUTENBERG_AU, GLOBAL_GREY, BAEN_FREE, AO3, ROYAL_ROAD, SCRIBBLE_HUB, LIBRIVOX,
-                YOUTUBE, PEERTUBE, SOUNDCLOUD, DAILYMOTION, BILIBILI, WIKISOURCE, ODYSEE, JELLYFIN, PLEX, TWITCH, VIMEO, DIRECT_STREAMS, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS)
+                YOUTUBE, PEERTUBE, SOUNDCLOUD, DAILYMOTION, BILIBILI, WIKISOURCE, ODYSEE, JELLYFIN, PLEX, AUDIOBOOKSHELF, SUBSONIC, TWITCH, VIMEO, DIRECT_STREAMS, IA_BOOKS, IA_VIDEO, IA_AUDIO, IA_COMICS, MEDIA_CCC, BANDCAMP)
         }
         fun fromName(name: String): BuiltinSource? = entries.firstOrNull { it.name == name }
     }

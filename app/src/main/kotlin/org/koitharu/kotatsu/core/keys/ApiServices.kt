@@ -21,6 +21,8 @@ internal object ApiServices {
 	const val PLEX = "plex"
 	const val TWITCH = "twitch"
 	const val VIMEO = "vimeo"
+	const val AUDIOBOOKSHELF = "audiobookshelf"
+	const val SUBSONIC = "subsonic"
 
 	val all = listOf(
 		ApiService(
@@ -39,6 +41,25 @@ internal object ApiServices {
 			listOf(
 				ApiField("server", "Server address", false, "server", "192.168.1.5:32400"),
 				ApiField("token", "Plex token", true),
+			),
+		),
+		ApiService(
+			AUDIOBOOKSHELF, "Audiobookshelf (your own server)",
+			"Your audiobook and podcast server. In its web app open Settings > Users, pick your user and copy the API token.",
+			"https://www.audiobookshelf.org/",
+			listOf(
+				ApiField("server", "Server address", false, "server", "192.168.1.5:13378"),
+				ApiField("token", "API token", true),
+			),
+		),
+		ApiService(
+			SUBSONIC, "Subsonic / Navidrome (your own server)",
+			"Your music server (Navidrome, Gonic, Airsonic or Subsonic). Use the username and password you sign in with there; the password is never sent as it is, only a salted hash.",
+			"https://www.navidrome.org/",
+			listOf(
+				ApiField("server", "Server address", false, "server", "192.168.1.5:4533"),
+				ApiField("username", "Username", false, "text"),
+				ApiField("password", "Password", true),
 			),
 		),
 		ApiService(
