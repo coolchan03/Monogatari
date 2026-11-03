@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-11-05 — v1.8.0 released (public)
+- https://github.com/coolchan03/Monogatari/releases/tag/v1.8.0 built from `devel` `7738836` (drafts merged; build check run 41658245736 green; release run 41661867324 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `af4df55353f131b9c01fbd56449fe3df296acee239fec218cb5de05a500cac2b`.
+- Start page setting (pref `start_page`, `last_tab`), Compact view toggle (prefs `monogatari_ui` / `compact_view`), tap-active-tab-to-top on every tab (new ScrollToTopOwner for the News tab), light haptics. Not device-verified yet.
+
 ## 2026-11-04 — v1.7.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.7.0 built from `devel` `1868824` (drafts merged; build check run 41646355333 green; release run 41649543431 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `54fbaa39aa06c73a81a9515b14a27b8713da6fe6cbea6060716229972f742324`.
 - Sources and integrations: Audiobookshelf and Subsonic/Navidrome (API keys & accounts, Test connection; built from docs, never tested against a real server), media.ccc.de + Bandcamp via NewPipe, podcast directory search, OPDS presets (Gutenberg, Unglue.it). Sync and safety: Nearby trusted devices (HMAC challenge), multi-file transfers, favourites conflict sheet, backup reminders + Last backup line, restore preview. Not device-verified yet.
