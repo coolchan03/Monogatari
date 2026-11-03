@@ -82,11 +82,22 @@ internal object LibraryUndo {
 		/** The user's own video or audio: only forgotten, can be undone. */
 		MEDIA,
 
+		/** A video or audio saved for offline: its cached data is deleted, cannot be undone. */
+		OFFLINE,
+
 		NONE,
 	}
 
 	/** Same precedence as the Library's remove: media, then book file, then favourite, then download. */
-	fun kindOf(favourite: Boolean, onDevice: Boolean, hasManga: Boolean, hasFile: Boolean, hasMedia: Boolean): Kind = when {
+	fun kindOf(
+		favourite: Boolean,
+		onDevice: Boolean,
+		hasManga: Boolean,
+		hasFile: Boolean,
+		hasMedia: Boolean,
+		hasOffline: Boolean = false,
+	): Kind = when {
+		hasOffline -> Kind.OFFLINE
 		hasMedia -> Kind.MEDIA
 		hasFile -> Kind.BOOK
 		hasManga && favourite -> Kind.FAVOURITE
@@ -100,6 +111,7 @@ internal object LibraryUndo {
 		hasManga = item.manga != null,
 		hasFile = item.file != null,
 		hasMedia = item.media != null,
+		hasOffline = item.offline != null,
 	)
 
 	/** A batch of items split by how each is removed. Items with the same key are counted once. */
@@ -109,9 +121,14 @@ internal object LibraryUndo {
 		val media: List<LibraryShelf.Item>,
 		/** Need the "cannot be undone" confirmation. */
 		val downloads: List<LibraryShelf.Item>,
+		/** Saved offline videos: deleted for good, so they need the same confirmation as [downloads]. */
+		val offline: List<LibraryShelf.Item> = emptyList(),
 	) {
 		val undoableCount: Int get() = favourites.size + books.size + media.size
-		val isEmpty: Boolean get() = undoableCount == 0 && downloads.isEmpty()
+
+		/** Everything that is deleted without Undo and therefore asks first. */
+		val permanent: List<LibraryShelf.Item> get() = downloads + offline
+		val isEmpty: Boolean get() = undoableCount == 0 && permanent.isEmpty()
 	}
 
 	fun plan(items: List<LibraryShelf.Item>): Plan {
@@ -119,16 +136,18 @@ internal object LibraryUndo {
 		val books = ArrayList<LibraryShelf.Item>()
 		val media = ArrayList<LibraryShelf.Item>()
 		val downloads = ArrayList<LibraryShelf.Item>()
+		val offline = ArrayList<LibraryShelf.Item>()
 		for (item in items.distinctBy { it.key }) {
 			when (kindOf(item)) {
 				Kind.FAVOURITE -> favourites += item
 				Kind.BOOK -> books += item
 				Kind.MEDIA -> media += item
 				Kind.DOWNLOAD -> downloads += item
+				Kind.OFFLINE -> offline += item
 				Kind.NONE -> Unit
 			}
 		}
-		return Plan(favourites, books, media, downloads)
+		return Plan(favourites, books, media, downloads, offline)
 	}
 
 	/** What the snackbar says: one title, or a count when several items were removed. */

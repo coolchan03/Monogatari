@@ -52,7 +52,7 @@ data class StorageEntry(
 }
 
 /**
- * EXTENSION POINT: anything else that occupies space (for example offline videos, once that store exists)
+ * EXTENSION POINT: anything else that occupies space (for example offline videos, see [OfflineVideoStorage])
  * implements this and registers itself in [StorageEntryProviders.extra]. Nothing here depends on such features.
  */
 fun interface StorageEntryProvider {
@@ -62,7 +62,7 @@ fun interface StorageEntryProvider {
 
 object StorageEntryProviders {
 
-	/** Add a provider here to get extra rows on the Storage screen. Empty by default. */
+	/** Add a provider here to get extra rows on the Storage screen. Offline videos register themselves from the Storage screen. */
 	val extra: MutableList<StorageEntryProvider> = CopyOnWriteArrayList()
 }
 

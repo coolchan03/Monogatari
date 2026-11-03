@@ -30,6 +30,7 @@ import org.koitharu.kotatsu.recommend.AutoDownloadEntry
 import org.koitharu.kotatsu.recommend.AutoDownloadStore
 import org.koitharu.kotatsu.settings.userdata.storage.StorageUsage
 import org.koitharu.kotatsu.storage.FeedCaches
+import org.koitharu.kotatsu.storage.OfflineVideoStorage
 import org.koitharu.kotatsu.storage.StorageAction
 import org.koitharu.kotatsu.storage.StorageBreakdown
 import org.koitharu.kotatsu.storage.StorageEntry
@@ -61,6 +62,10 @@ class StorageAndNetworkSettingsViewModel @Inject constructor(
 
     private var overviewJob: Job? = null
     private var overviewLoadedAt = -OVERVIEW_TTL_MS
+
+    init {
+        OfflineVideoStorage.register(context)
+    }
 
     /** Measures off the main thread. Without [force], a fresh result (or a running pass) is reused. */
     fun refreshOverview(force: Boolean = false) {

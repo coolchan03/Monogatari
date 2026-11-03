@@ -125,3 +125,52 @@ class LibraryUndoTest {
 		assertTrue(fresh.exists())
 	}
 }
+
+class LibraryUndoOfflineTest {
+
+	private fun offline(id: String) = Item(
+		key = LibraryShelf.offlineKey(id), title = id, detail = "", kind = MediaType.VIDEO, origin = Origin.ON_DEVICE,
+		offline = org.koitharu.kotatsu.videodl.OfflineVideoStore.Entry(
+			id = id, title = id, sourceName = "s", chapterId = 1L, chapterUrl = "u", mediaType = "VIDEO", streamUrl = "https://x/$id",
+		),
+	)
+
+	@Test
+	fun offlineKeyIsPrefixedAndRecognised() {
+		assertEquals("offline:abc", LibraryShelf.offlineKey("abc"))
+		assertTrue(LibraryShelf.isOfflineKey("offline:abc"))
+		assertFalse(LibraryShelf.isOfflineKey("123"))
+		assertFalse(LibraryShelf.isOfflineKey("content://v/1"))
+	}
+
+	@Test
+	fun readAtIsNeverNegative() {
+		assertEquals(0L, LibraryShelf.offlineReadAt(-5L))
+		assertEquals(42L, LibraryShelf.offlineReadAt(42L))
+	}
+
+	@Test
+	fun offlineItemsAreNotUndoableAndNeedConfirmation() {
+		assertEquals(Kind.OFFLINE, LibraryUndo.kindOf(offline("a")))
+		val plan = LibraryUndo.plan(listOf(offline("a"), offline("b"), offline("a")))
+		assertEquals(0, plan.undoableCount)
+		assertEquals(listOf("offline:a", "offline:b"), plan.offline.map { it.key })
+		assertEquals(2, plan.permanent.size)
+		assertFalse(plan.isEmpty)
+	}
+
+	@Test
+	fun mixedBatchKeepsUndoableAndPermanentApart() {
+		val book = Item(
+			key = "/b/a.epub", title = "a", detail = "", kind = MediaType.BOOK, origin = Origin.IMPORTED, file = File("/b/a.epub"),
+		)
+		val plan = LibraryUndo.plan(listOf(book, offline("a")))
+		assertEquals(1, plan.undoableCount)
+		assertEquals(1, plan.permanent.size)
+	}
+
+	@Test
+	fun storageTotalIgnoresUnknownSizes() {
+		assertEquals(30L, org.koitharu.kotatsu.storage.OfflineVideoStorage.totalBytes(listOf(10L, -1L, 20L)))
+	}
+}

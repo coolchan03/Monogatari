@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.discover.media.applyThemeColors
+import org.koitharu.kotatsu.videodl.OfflineVideoShelf
+import org.koitharu.kotatsu.videodl.OfflineVideoStore
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.db.entity.toMangaTags
@@ -661,6 +663,10 @@ class UnifiedLibraryFragment : Fragment() {
 	}
 
 	private fun openRow(row: Row) {
+		if (row.offline != null) {
+			startActivity(OfflineVideoShelf.playerIntent(requireContext(), row.offline))
+			return
+		}
 		if (row.media != null) {
 			if (row.missing) confirmForgetMissing(row) else startActivity(LocalMediaShelf.playerIntent(requireContext(), row.media))
 			return
@@ -774,16 +780,16 @@ class UnifiedLibraryFragment : Fragment() {
 	private fun requestRemove(rows: List<Row>) {
 		val plan = LibraryUndo.plan(rows)
 		if (plan.isEmpty) return
-		if (plan.downloads.isEmpty()) {
+		if (plan.permanent.isEmpty()) {
 			removeRows(plan)
 			return
 		}
-		val count = plan.downloads.size
+		val count = plan.permanent.size
 		val note = if (plan.undoableCount > 0) "\n\n" + getString(R.string.library_undo_delete_mixed_note) else ""
 		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(
 				if (count == 1) {
-					getString(R.string.library_undo_delete_title_one, plan.downloads[0].title)
+					getString(R.string.library_undo_delete_title_one, plan.permanent[0].title)
 				} else {
 					resources.getQuantityString(R.plurals.library_undo_delete_title_many, count, count)
 				},
@@ -870,6 +876,18 @@ class UnifiedLibraryFragment : Fragment() {
 			val manga = row.manga ?: continue
 			try {
 				deleteLocalManga(manga)
+				result.deleted++
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				fail(row.title, error)
+			}
+		}
+		// Saved offline videos: confirmed by the user, the cached data is deleted for good (not undoable).
+		for (row in plan.offline) {
+			val entry = row.offline ?: continue
+			try {
+				OfflineVideoStore.remove(context, entry)
 				result.deleted++
 			} catch (cancel: CancellationException) {
 				throw cancel
@@ -1088,6 +1106,21 @@ class UnifiedLibraryFragment : Fragment() {
 				)
 			}
 		}
+		val offlineRows = part(problems, emptyList()) {
+			val offlineLabel = context.getString(R.string.library_offline_detail)
+			OfflineVideoStore.list(context).map { entry ->
+				Row(
+					key = LibraryShelf.offlineKey(entry.id),
+					title = entry.title,
+					detail = context.getString(R.string.library_ov_detail_join, OfflineVideoShelf.detail(context, entry), offlineLabel),
+					kind = OfflineVideoShelf.mediaType(entry),
+					origin = LibraryShelf.Origin.ON_DEVICE,
+					addedAt = entry.createdAt,
+					readAt = LibraryShelf.offlineReadAt(AudioResumeStore.updatedAt(context, entry.streamUrl)),
+					offline = entry,
+				)
+			}
+		}
 		val favouriteKeys = favouriteRows.mapTo(HashSet()) { it.key }
 		val historyRows = part(problems, emptyList()) {
 			db.getHistoryDao().findAll(0, HISTORY_LIMIT).map { entry ->
@@ -1108,13 +1141,14 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 		val readTimes = HashMap<String, Long>()
 		for (row in historyRows) readTimes[row.key] = maxOf(readTimes[row.key] ?: 0L, row.readAt)
-		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows).map { row ->
+		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows + offlineRows).map { row ->
 			if (row.favourite && row.onDevice) row.copy(detail = context.getString(R.string.library_ov_detail_join, row.detail, onDeviceLabel)) else row
 		}
 		val items = LibraryShelf.withReadTimes(merged, readTimes)
 		// Imported files keep their position outside history; those with one can be continued.
 		val resumable = items.filter { row ->
-			(row.file != null && BookShelf.hasProgress(context, row.file)) || (row.media != null && !row.missing && row.readAt > 0L)
+			(row.file != null && BookShelf.hasProgress(context, row.file)) || (row.media != null && !row.missing && row.readAt > 0L) ||
+				(row.offline != null && row.readAt > 0L)
 		}
 		return Loaded(items, historyRows, resumable, problems, recovered)
 	}
