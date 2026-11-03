@@ -7,6 +7,7 @@
     <exclude domain="sharedpref" path="monogatari_webdav_device.xml" />
     <exclude domain="sharedpref" path="monogatari_js_source_updates.xml" />
     <exclude domain="sharedpref" path="monogatari_default_presets.xml" />
+    <exclude domain="sharedpref" path="monogatari_nearby_trust.xml" />
     <exclude domain="database" />
     <exclude domain="device_database" />
     <exclude domain="external" />
