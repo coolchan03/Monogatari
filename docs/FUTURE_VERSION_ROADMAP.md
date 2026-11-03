@@ -179,3 +179,8 @@ transfers (v1.2), release calendar (v1.3), Komga as a source (v2.0).
 
 - Sources tab rename, pull-to-refresh, Library Continue button, first-run setup, shared mascot empty states.
 - Next batches the owner approved: reading and media (one Continue shelf across media already started; download queue screen, NewPipe downloads/background audio/subscription import, reading stats), sync and safety (Nearby remembered pairing/multi-file/favourites conflicts, backup reminders, restore preview), content (more built-in book/video sources, Komga/Kavita).
+
+## Released in v1.6.0 (2026-11-03)
+
+- Offline video downloads + Listen in background, activity stats across media, YouTube/NewPipe subscription import, download queue summary and retry, Library undo and multi-select, launcher shortcuts and Share to Monogatari, storage overview.
+- Still open: sync and safety batch (Nearby remembered pairing, multi-file, favourites conflicts, backup reminders, restore preview), content batch (more built-in book/video sources, Komga/Kavita), books-finished tracking, offline subtitles, subscription import for SoundCloud/PeerTube/@handles, source picker in search.
