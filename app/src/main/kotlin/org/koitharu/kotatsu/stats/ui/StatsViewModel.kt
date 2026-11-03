@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.stats.ui
 
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -21,6 +23,11 @@ import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.stats.data.StatsRepository
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsRecord
+import org.koitharu.kotatsu.stats.activity.ActivityLog
+import org.koitharu.kotatsu.stats.activity.ActivityStats
+import org.koitharu.kotatsu.stats.activity.ActivitySummary
+import java.util.Calendar
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,6 +35,7 @@ class StatsViewModel @Inject constructor(
 	private val repository: StatsRepository,
 	private val settings: AppSettings,
 	favouritesRepository: FavouritesRepository,
+	@ApplicationContext private val appContext: Context,
 ) : BaseViewModel() {
 
 	val period = MutableStateFlow(StatsPeriod.WEEK)
@@ -39,8 +47,10 @@ class StatsViewModel @Inject constructor(
 	val readingStats = MutableStateFlow<List<StatsRecord>>(emptyList())
 	val dailyTotals = MutableEventFlow<String>()
 	internal val insights = MutableEventFlow<StatsScreenInsights>()
+	val activitySummary = MutableStateFlow<ActivitySummary?>(null)
 
 	init {
+		refreshActivitySummary()
 		launchJob(Dispatchers.Default) {
 			combine<StatsPeriod, Set<Long>, Pair<StatsPeriod, Set<Long>>>(
 				period,
@@ -51,6 +61,19 @@ class StatsViewModel @Inject constructor(
 					repository.getReadingStats(p.first, p.second)
 				}
 			}
+		}
+	}
+
+	/** Merges the activity log (all media) with manga time from the stats table; see [ActivityStats.merge]. */
+	fun refreshActivitySummary() {
+		launchJob(Dispatchers.Default) {
+			val timezone = TimeZone.getDefault()
+			val today = ActivityStats.epochDayOf(System.currentTimeMillis(), timezone)
+			val database = runCatching { repository.getDailyMediaSeconds(ActivityStats.KEEP_DAYS, timezone) }
+				.getOrDefault(emptyMap())
+			val days = ActivityStats.merge(ActivityLog.load(appContext), database)
+			val firstDay = (Calendar.getInstance().firstDayOfWeek - Calendar.MONDAY + 7) % 7
+			activitySummary.value = ActivitySummary.build(days, today, firstDay)
 		}
 	}
 

@@ -13,6 +13,7 @@ import java.util.Locale
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import org.koitharu.kotatsu.stats.activity.ReadingTimer
 import java.io.File
 
 /** Offline text and HTML reader with saved scroll position. */
@@ -26,6 +27,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
     private var ttsReady = false
     private var speechGeneration = 0
     private var sleepEndAt = Long.MAX_VALUE
+    private val readingTimer by lazy { ReadingTimer(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -126,8 +128,19 @@ class LocalTextReaderActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    override fun onResume() {
+        super.onResume()
+        readingTimer.resume()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        readingTimer.interaction()
+    }
+
     override fun onPause() {
         super.onPause()
+        readingTimer.pause()
         // Before the first layout there is no real position yet; keep the saved one.
         if (::scroll.isInitialized && (scroll.getChildAt(0)?.height ?: 0) == 0) return
         book?.let { file ->

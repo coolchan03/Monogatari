@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.media.epub.EpubBook
+import org.koitharu.kotatsu.stats.activity.ReadingTimer
 import java.io.File
 
 /** Reuses Monogatari's existing Mangayomi-compatible EPUB spine/TOC parser. */
@@ -29,6 +30,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
     private var fileKey = ""
     private var chapterScrollY = 0
     private val preferences by lazy { getSharedPreferences("epub_progress", MODE_PRIVATE) }
+    private val readingTimer by lazy { ReadingTimer(this) }
     private lateinit var body: TextView
     private lateinit var position: TextView
     private lateinit var scroll: ScrollView
@@ -196,8 +198,19 @@ class LocalEpubReaderActivity : AppCompatActivity() {
             .putFloat("$fileKey-scroll-fraction", 0f).apply()
     }
 
+    override fun onResume() {
+        super.onResume()
+        readingTimer.resume()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        readingTimer.interaction()
+    }
+
     override fun onPause() {
         super.onPause()
+        readingTimer.pause()
         if (book != null && fileKey.isNotEmpty() && ::scroll.isInitialized && body.height > 0) preferences.edit()
             .putInt(fileKey, index).putInt("$fileKey-scroll", scroll.scrollY)
             .putFloat("$fileKey-scroll-fraction", ReadingScrollPosition.fraction(scroll.scrollY, body.height, scroll.height))

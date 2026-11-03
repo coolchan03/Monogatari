@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
+import org.koitharu.kotatsu.stats.activity.ActivityStats
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsInsights
 import org.koitharu.kotatsu.stats.domain.TagShare
@@ -107,6 +108,32 @@ class StatsRepository @Inject constructor(
 		require(days in 1..366)
 		val fromDate = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong())
 		return StatsRollup.byDay(db.getStatsDao().findSince(fromDate), timezone)
+	}
+
+	/**
+	 * Recorded seconds per local day and medium (MANGA and BOOK only) from the stats table, for the activity
+	 * summary. Video and audio sessions are left out: they are counted by the activity log instead.
+	 */
+	internal suspend fun getDailyMediaSeconds(
+		days: Int,
+		timezone: TimeZone = TimeZone.getDefault(),
+	): Map<Int, Map<String, Int>> {
+		val fromDate = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong())
+		val sessions = db.getStatsDao().findSessionsSince(fromDate)
+		if (sessions.isEmpty()) return emptyMap()
+		val book = MediaType.BOOK.persistedSourceNames()
+		val other = MediaType.VIDEO.persistedSourceNames() + MediaType.AUDIO.persistedSourceNames()
+		val millis = HashMap<Int, MutableMap<String, Long>>()
+		for (session in sessions) {
+			val medium = when (session.source) {
+				in book -> ActivityStats.BOOK
+				in other -> continue
+				else -> ActivityStats.MANGA
+			}
+			val day = millis.getOrPut(ActivityStats.epochDayOf(session.startedAt, timezone)) { HashMap() }
+			day[medium] = (day[medium] ?: 0L) + session.duration
+		}
+		return millis.mapValues { (_, byMedium) -> byMedium.mapValues { (it.value / 1000L).toInt() } }
 	}
 
 	/** Last 90 days include the prior month for accurate current-month and streak figures. */

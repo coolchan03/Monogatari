@@ -25,6 +25,14 @@ abstract class StatsDao {
 	@Query("SELECT * FROM stats WHERE started_at >= :fromDate ORDER BY started_at")
 	abstract suspend fun findSince(fromDate: Long): List<StatsEntity>
 
+	@Query("""
+		SELECT s.started_at AS startedAt, s.duration AS duration, m.source AS source
+		FROM stats s INNER JOIN manga m ON m.manga_id = s.manga_id
+		WHERE s.started_at >= :fromDate AND s.duration > 0
+		ORDER BY s.started_at
+	""")
+	abstract suspend fun findSessionsSince(fromDate: Long): List<StatsSessionRow>
+
     @Query("SELECT IFNULL(SUM(duration), 0) FROM stats WHERE started_at BETWEEN :fromDate AND :through AND duration > 0")
     abstract suspend fun getPositiveDurationTotal(fromDate: Long, through: Long): Long
 

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="stats_activity_title">Activity</string>
+	<string name="stats_activity_this_week">This week</string>
+	<string name="stats_activity_this_month">This month</string>
+	<string name="stats_activity_last_30_days">Last 30 days</string>
+	<string name="stats_activity_manga">Manga</string>
+	<string name="stats_activity_books">Books</string>
+	<string name="stats_activity_video">Video</string>
+	<string name="stats_activity_audio">Audio</string>
+	<string name="stats_activity_minutes">%d min</string>
+	<string name="stats_activity_hours_minutes">%1$d h %2$d min</string>
+	<string name="stats_activity_no_streak">No streak yet. Read, watch or listen today to start one.</string>
+	<string name="stats_activity_show_details">Show details</string>
+	<string name="stats_activity_hide_details">Hide details</string>
+	<string name="stats_activity_empty_title">No activity yet</string>
+	<string name="stats_activity_empty_message">Read, watch or listen to something and your week, month and streaks will show up here.</string>
+	<string name="stats_activity_chart_description">Daily activity for the last %1$d days, %2$s in total</string>
+	<plurals name="stats_activity_days_in_a_row">
+		<item quantity="one">%d day in a row</item>
+		<item quantity="other">%d days in a row</item>
+	</plurals>
+	<plurals name="stats_activity_longest_streak">
+		<item quantity="one">Longest streak: %d day</item>
+		<item quantity="other">Longest streak: %d days</item>
+	</plurals>
+</resources>
