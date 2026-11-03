@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sub_import_pref_title">Import YouTube / NewPipe subscriptions</string>
+	<string name="sub_import_pref_summary">Add followed channels from Google Takeout or a NewPipe export to your Library</string>
+	<string name="sub_import_title">Import subscriptions</string>
+	<string name="sub_import_action">Import</string>
+	<string name="sub_import_reading">Reading file…</string>
+	<string name="sub_import_importing">Adding channels to your Library…</string>
+	<string name="sub_import_read_failed">Could not read the file: %1$s</string>
+	<string name="sub_import_none_found">No YouTube channels were found in this file. Supported files: Google Takeout subscriptions.csv, NewPipe newpipe.json or newpipe.zip, or a list of youtube.com/channel/UC… links, one per line.</string>
+	<string name="sub_import_preview_found">YouTube channels found: %1$d</string>
+	<string name="sub_import_preview_skipped">Will be skipped (SoundCloud, PeerTube, other services or unsupported links): %1$d</string>
+	<string name="sub_import_preview_duplicates">Duplicates ignored: %1$d</string>
+	<string name="sub_import_preview_truncated">Only the first %1$d channels will be imported.</string>
+	<string name="sub_import_preview_category">They will be added to the %1$s category and checked for new videos.</string>
+	<string name="sub_import_done_imported">Imported: %1$d</string>
+	<string name="sub_import_done_present">Already in the category: %1$d</string>
+	<string name="sub_import_done_skipped">Skipped: %1$d</string>
+	<string name="sub_import_open_library">Open Library</string>
+	<string name="sub_import_close">Close</string>
+</resources>
