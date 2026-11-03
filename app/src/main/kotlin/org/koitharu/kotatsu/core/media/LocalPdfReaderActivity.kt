@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import org.koitharu.kotatsu.stats.activity.ReadingTimer
 import java.io.File
 
 /** Native offline PDF renderer. Saves last page for each imported file. */
@@ -23,6 +24,7 @@ class LocalPdfReaderActivity : AppCompatActivity() {
     private lateinit var image: ImageView
     private lateinit var counter: TextView
     private var fileKey = ""
+    private val readingTimer by lazy { ReadingTimer(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,8 +95,19 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         image.contentDescription = "PDF page ${index + 1} of ${pdf.pageCount}"
     }
 
+    override fun onResume() {
+        super.onResume()
+        readingTimer.resume()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        readingTimer.interaction()
+    }
+
     override fun onPause() {
         super.onPause()
+        readingTimer.pause()
         if (fileKey.isNotEmpty()) getSharedPreferences("pdf_progress", MODE_PRIVATE)
             .edit().putInt(fileKey, pageIndex).apply()
     }

@@ -46,4 +46,11 @@
 		android:summary="@string/settings_link_foreign_import_summary"
 		android:title="@string/settings_link_foreign_import" />
 
+	<Preference
+		android:icon="@drawable/ic_web"
+		android:key="monogatari_link_subscription_import"
+		android:persistent="false"
+		android:summary="@string/sub_import_pref_summary"
+		android:title="@string/sub_import_pref_title" />
+
 </PreferenceScreen>

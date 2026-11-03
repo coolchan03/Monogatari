@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.annotation.XmlRes
 import androidx.fragment.app.viewModels
@@ -12,6 +13,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backups.domain.ForeignBackupReviewActivity
 import org.koitharu.kotatsu.backups.domain.NearbyOfflineSyncActivity
+import org.koitharu.kotatsu.backups.domain.SubscriptionImportFlow
+import org.koitharu.kotatsu.backups.domain.SubscriptionImporter
 import org.koitharu.kotatsu.backups.domain.WebDavManualSyncActivity
 import org.koitharu.kotatsu.bookmarks.ui.AllBookmarksActivity
 import org.koitharu.kotatsu.core.keys.ApiKeysActivity
@@ -27,6 +30,7 @@ import org.koitharu.kotatsu.download.ui.list.DownloadsActivity
 import org.koitharu.kotatsu.main.ui.OpenSourceLicensesActivity
 import org.koitharu.kotatsu.sourcehealth.SourceLogActivity
 import org.koitharu.kotatsu.stats.ui.StatsActivity
+import javax.inject.Inject
 
 /**
  * A page of the settings root's groups. It only links to existing settings screens (android:fragment, optionally
@@ -104,7 +108,23 @@ class NotificationsSettingsGroupFragment :
 
 @AndroidEntryPoint
 class BackupSettingsGroupFragment :
-	SettingsGroupFragment(R.string.settings_group_backup, R.xml.pref_group_backup)
+	SettingsGroupFragment(R.string.settings_group_backup, R.xml.pref_group_backup) {
+
+	@Inject
+	lateinit var subscriptionImporter: SubscriptionImporter
+
+	private val subscriptionPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+		if (uri != null) SubscriptionImportFlow(this, subscriptionImporter).start(uri)
+	}
+
+	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+		super.onCreatePreferences(savedInstanceState, rootKey)
+		findPreference<Preference>("monogatari_link_subscription_import")?.setOnPreferenceClickListener {
+			subscriptionPicker.launch(arrayOf("text/csv", "application/json", "application/zip", "*/*"))
+			true
+		}
+	}
+}
 
 @AndroidEntryPoint
 class PrivacySettingsGroupFragment :

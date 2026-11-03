@@ -24,6 +24,8 @@ import kotlinx.coroutines.sync.withLock
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.TriStateOption
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.ui.model.DateTimeAgo
 import org.koitharu.kotatsu.core.ui.util.ReversibleAction
@@ -33,6 +35,7 @@ import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.core.util.ext.isEmpty
 import org.koitharu.kotatsu.download.domain.DownloadState
 import org.koitharu.kotatsu.download.ui.list.chapters.DownloadChapter
+import org.koitharu.kotatsu.download.ui.worker.DownloadTask
 import org.koitharu.kotatsu.download.ui.worker.DownloadWorker
 import org.koitharu.kotatsu.list.ui.model.EmptyState
 import org.koitharu.kotatsu.list.ui.model.ListHeader
@@ -46,6 +49,7 @@ import org.koitharu.kotatsu.parsers.util.mapToSet
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import java.util.LinkedList
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @HiltViewModel
@@ -55,12 +59,14 @@ class DownloadsViewModel @Inject constructor(
 	private val mangaRepositoryFactory: MangaRepository.Factory,
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
 	private val localMangaRepository: LocalMangaRepository,
+	private val settings: AppSettings,
 ) : BaseViewModel() {
 
 	private val mangaCache = LongSparseArray<Manga>()
 	private val cacheMutex = Mutex()
 	private val expanded = MutableStateFlow(emptySet<UUID>())
 	private val chaptersCache = ArrayMap<UUID, StateFlow<List<DownloadChapter>?>>()
+	private val autoCache = ConcurrentHashMap<UUID, Boolean>()
 
 	private val works = combine(
 		workScheduler.observeWorks(),
@@ -87,6 +93,14 @@ class DownloadsViewModel @Inject constructor(
 	val hasCancellableWorks = works.map {
 		it?.any { x -> !x.workState.isFinished } == true
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), false)
+
+	val hasFailedWorks = works.map {
+		it?.any { x -> x.workState == WorkInfo.State.FAILED } == true
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), false)
+
+	val summary = works.map {
+		DownloadsSummary.of(it.orEmpty().map { x -> x.bucket to x.eta }, System.currentTimeMillis())
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), DownloadsSummary())
 
 	fun cancel(id: UUID) {
 		launchJob(Dispatchers.Default) {
@@ -179,6 +193,36 @@ class DownloadsViewModel @Inject constructor(
 		launchJob(Dispatchers.Default) {
 			workScheduler.removeCompleted()
 			onActionDone.call(ReversibleAction(R.string.downloads_removed, null))
+		}
+	}
+
+	/** Re-queues every failed download as a new work (same manga, chapters, destination and format). */
+	fun retryFailed() {
+		launchJob(Dispatchers.Default) {
+			val snapshot = works.value ?: return@launchJob
+			val tasks = ArrayList<Pair<Manga, DownloadTask>>()
+			val oldIds = ArrayList<UUID>()
+			for (item in snapshot) {
+				if (item.workState != WorkInfo.State.FAILED) continue
+				val manga = item.manga ?: continue
+				val old = workScheduler.getTask(item.id) ?: continue
+				// the network constraint is not stored in the task data, so rebuild it the same way new downloads do
+				val allowMetered = !old.isSilent && settings.allowDownloadOnMeteredNetwork != TriStateOption.DISABLED
+				tasks += manga to DownloadTask(
+					mangaId = old.mangaId,
+					isPaused = false,
+					isSilent = old.isSilent,
+					chaptersIds = old.chaptersIds,
+					destination = old.destination,
+					format = old.format,
+					allowMeteredNetwork = allowMetered,
+				)
+				oldIds += item.id
+			}
+			if (tasks.isEmpty()) return@launchJob
+			workScheduler.schedule(tasks)
+			workScheduler.delete(oldIds)
+			onActionDone.call(ReversibleAction(R.string.dlq_retry_started, null))
 		}
 	}
 
@@ -276,15 +320,23 @@ class DownloadsViewModel @Inject constructor(
 			chaptersDownloaded = DownloadState.getDownloadedChapters(workData),
 			isExpanded = isExpanded,
 			chapters = chapters,
+			isAuto = isAutoDownload(id),
 		)
+	}
+
+	/** Only the auto-download worker creates silent tasks. */
+	private suspend fun isAutoDownload(workId: UUID): Boolean {
+		autoCache[workId]?.let { return it }
+		val task = workScheduler.getTask(workId) ?: return false
+		return task.isSilent.also { autoCache[workId] = it }
 	}
 
 	private fun emptyStateList() = listOf(
 		EmptyState(
 			icon = R.drawable.kitsune_sticker_reading,
-			textPrimary = R.string.text_downloads_list_holder,
-			textSecondary = 0,
-			actionStringRes = 0,
+			textPrimary = R.string.dlq_empty_title,
+			textSecondary = R.string.dlq_empty_hint,
+			actionStringRes = R.string.dlq_empty_action,
 		),
 	)
 

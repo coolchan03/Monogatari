@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="dlq_summary_downloading">%d downloading</string>
+	<string name="dlq_summary_queued">%d queued</string>
+	<string name="dlq_summary_paused">%d paused</string>
+	<string name="dlq_summary_failed">%d failed</string>
+	<string name="dlq_eta_left">About %s left</string>
+	<string name="dlq_eta_less_than_minute">Less than a minute left</string>
+	<plurals name="dlq_eta_minutes">
+		<item quantity="one">%d minute</item>
+		<item quantity="other">%d minutes</item>
+	</plurals>
+	<plurals name="dlq_eta_hours">
+		<item quantity="one">%d hour</item>
+		<item quantity="other">%d hours</item>
+	</plurals>
+	<string name="dlq_network_options">Network options</string>
+	<string name="dlq_retry_failed">Retry failed</string>
+	<string name="dlq_retry_started">Failed downloads queued again</string>
+	<string name="dlq_auto_chip">Auto</string>
+	<string name="dlq_empty_title">Nothing downloading</string>
+	<string name="dlq_empty_hint">Auto-download can keep your reading list stocked</string>
+	<string name="dlq_empty_action">Auto-download settings</string>
+</resources>

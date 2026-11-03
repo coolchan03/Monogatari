@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="offline_video_download">Download for offline</string>
+	<string name="offline_video_listen_background">Listen in background</string>
+	<string name="offline_video_chip">Offline</string>
+	<string name="offline_video_started">Downloading for offline: %1$s</string>
+	<string name="offline_video_saved">Saved for offline: %1$s</string>
+	<string name="offline_video_failed">Offline download failed: %1$s</string>
+	<string name="offline_video_already_saved">Already saved for offline.</string>
+	<string name="offline_video_storage_full">The offline video storage is full. Remove saved videos to make room.</string>
+	<string name="offline_video_refused_drm">This stream is DRM-protected. Monogatari does not bypass DRM, so it cannot be saved for offline.</string>
+	<string name="offline_video_refused_live">This is a live stream and cannot be saved for offline.</string>
+	<string name="offline_video_refused_not_http">Only streams from the web (http or https) can be saved for offline.</string>
+	<string name="offline_video_refused_unsupported">This stream format cannot be saved for offline yet.</string>
+	<string name="offline_video_channel_name">Offline video downloads</string>
+	<string name="offline_video_channel_description">Progress of videos and audio saved for offline playback</string>
+	<string name="offline_video_downloading">Downloading for offline</string>
+	<string name="offline_video_paused">Paused</string>
+	<string name="offline_video_waiting_network">Waiting for a network connection</string>
+	<string name="offline_video_background_unavailable">This stream cannot be played in the background.</string>
+	<string name="offline_video_fallback_online">The offline copy could not be played. Trying online.</string>
+	<string name="offline_video_detail_video">Downloaded video</string>
+	<string name="offline_video_detail_audio">Downloaded audio</string>
+</resources>

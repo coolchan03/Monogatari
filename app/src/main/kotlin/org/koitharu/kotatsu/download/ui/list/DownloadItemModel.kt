@@ -32,6 +32,7 @@ data class DownloadItemModel(
 	val chaptersDownloaded: Int,
 	val isExpanded: Boolean,
 	val chapters: StateFlow<List<DownloadChapter>?>,
+	val isAuto: Boolean = false,
 ) : ListModel, Comparable<DownloadItemModel> {
 
 	val percent: Float
@@ -45,6 +46,16 @@ data class DownloadItemModel(
 
 	val canResume: Boolean
 		get() = workState == WorkInfo.State.RUNNING && isPaused
+
+	val bucket: DownloadBucket
+		get() = when (workState) {
+			WorkInfo.State.RUNNING -> if (isPaused) DownloadBucket.PAUSED else DownloadBucket.DOWNLOADING
+			WorkInfo.State.ENQUEUED,
+			WorkInfo.State.BLOCKED -> DownloadBucket.QUEUED
+
+			WorkInfo.State.FAILED -> DownloadBucket.FAILED
+			else -> DownloadBucket.FINISHED
+		}
 
 	fun getEtaString(): CharSequence? = if (hasEta) {
 		DateUtils.getRelativeTimeSpanString(

@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.core.media
 
 import org.koitharu.kotatsu.core.util.AlphanumComparator
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.videodl.OfflineVideoStore
 import java.io.File
 import java.util.Locale
 
@@ -33,6 +34,8 @@ internal object LibraryShelf {
 		/** The user's own video or audio file; [missing] when it can no longer be opened. */
 		val media: LocalMediaShelf.Entry? = null,
 		val missing: Boolean = false,
+		/** A video or audio episode saved for offline playback (app-private cache); removing it deletes the data. */
+		val offline: OfflineVideoStore.Entry? = null,
 		/** Local cover image (an EPUB's own cover, extracted once) for items without a [Manga.coverUrl]. */
 		val coverFile: File? = null,
 	)
@@ -51,6 +54,14 @@ internal object LibraryShelf {
 	fun isOnThisDevice(item: Item): Boolean = item.onDevice || item.origin == Origin.IMPORTED
 
 	fun mangaKey(id: Long): String = id.toString()
+
+	/** Collection key of a saved offline video; stable because the entry id is a hash of the stream. */
+	fun offlineKey(entryId: String): String = OFFLINE_KEY_PREFIX + entryId
+
+	fun isOfflineKey(key: String): Boolean = key.startsWith(OFFLINE_KEY_PREFIX)
+
+	/** Last-read time of an offline item: the saved playback position time, or 0 when it was never played. */
+	fun offlineReadAt(resumeUpdatedAt: Long): Long = resumeUpdatedAt.coerceAtLeast(0L)
 
 	/** Media kind of a saved title from its persisted source name; unknown and older sources count as manga. */
 	fun kindOf(sourceName: String, groups: Map<MediaType, Set<String>>): MediaType = when {
@@ -165,6 +176,8 @@ internal object LibraryShelf {
 		"cover-" + Integer.toHexString(file.absolutePath.hashCode()) + "-" + file.length() + "-" + file.lastModified()
 
 	const val CONTINUE_LIMIT = 12
+
+	const val OFFLINE_KEY_PREFIX = "offline:"
 
 	private val ALPHANUM = AlphanumComparator()
 

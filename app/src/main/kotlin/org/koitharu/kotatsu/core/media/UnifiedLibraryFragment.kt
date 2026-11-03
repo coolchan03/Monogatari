@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.core.net.toUri
 import androidx.core.text.HtmlCompat
 import androidx.core.view.MenuProvider
@@ -34,6 +35,8 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.google.android.material.snackbar.BaseTransientBottomBar
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +46,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.discover.media.applyThemeColors
+import org.koitharu.kotatsu.videodl.OfflineVideoShelf
+import org.koitharu.kotatsu.videodl.OfflineVideoStore
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.db.entity.toMangaTags
@@ -58,6 +63,8 @@ import org.koitharu.kotatsu.core.ui.bodyText
 import org.koitharu.kotatsu.core.ui.primaryButton
 import org.koitharu.kotatsu.core.ui.image.GeneratedCoverDrawable
 import org.koitharu.kotatsu.core.util.ext.addMenuProvider
+import org.koitharu.kotatsu.core.util.ext.findActivity
+import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
 import org.koitharu.kotatsu.core.util.ext.setThemeTextAppearance
 import org.koitharu.kotatsu.discover.DiscoverLibraryFinder
 import org.koitharu.kotatsu.discover.RecommendationLoader
@@ -72,12 +79,14 @@ import org.koitharu.kotatsu.local.data.LocalStorageChanges
 import org.koitharu.kotatsu.local.domain.DeleteLocalMangaUseCase
 import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.main.ui.NavLayoutPolicy
+import org.koitharu.kotatsu.main.ui.owners.BottomNavOwner
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.SortOrder
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.search.domain.SearchKind
 import org.koitharu.kotatsu.search.ui.multi.SearchActivity
 import org.koitharu.kotatsu.search.ui.suggestion.MainSearchScope
+import java.io.File
 import javax.inject.Inject
 
 private typealias Row = LibraryShelf.Item
@@ -94,6 +103,7 @@ class UnifiedLibraryFragment : Fragment() {
 
 	companion object {
 		private const val MENU_NEW_SMART = 7501
+		private const val MENU_SELECT = 7502
 		private const val HISTORY_LIMIT = 300
 		private const val KEY_SORT = "sort"
 
@@ -164,6 +174,22 @@ class UnifiedLibraryFragment : Fragment() {
 	private lateinit var emptyMascot: ImageView
 	private lateinit var emptyText: TextView
 	private lateinit var collectionRow: ChipGroup
+	/** Multi-select: the keys of the ticked cards (kept across rotation), and the keys on screen for Select all. */
+	private var selecting = false
+	private var selectedKeys: Set<String> = emptySet()
+	private var visibleKeys: List<String> = emptyList()
+	private lateinit var selectionBar: View
+	private lateinit var selectionCount: TextView
+	private lateinit var selectionCollection: MaterialButton
+	private lateinit var selectionRemove: MaterialButton
+	private val selectionBack = object : OnBackPressedCallback(false) {
+		override fun handleOnBackPressed() = endSelection()
+	}
+	/** The last removal that can still be undone, and the snackbar offering it. */
+	private var pendingUndo: PendingUndo? = null
+	private var undoSnackbar: Snackbar? = null
+	/** Forgotten videos and audio stay in the shelf until the removal is final, so Undo only has to show them again. */
+	private var hiddenKeys: Set<String> = emptySet()
 	private val adapter = Entries()
 	private val buttons = mutableListOf<Pair<MediaType?, Chip>>()
 	private val isBottomTab: Boolean
@@ -187,6 +213,8 @@ class UnifiedLibraryFragment : Fragment() {
 			.getOrDefault(LibraryShelf.Sort.RECENTLY_ADDED)
 		restoredPaneKey = savedInstanceState?.getString("pane_row_key")
 		onDeviceOnly = savedInstanceState?.getBoolean("on_device_only", false) ?: false
+		selecting = savedInstanceState?.getBoolean("selecting", false) ?: false
+		selectedKeys = savedInstanceState?.getStringArrayList("selected_keys")?.toSet().orEmpty()
 		twoPane = NavLayoutPolicy.useTwoPane(resources.configuration.screenWidthDp)
 		val root = inflater.inflate(R.layout.fragment_unified_library, container, false)
 		bindHeader(root, savedInstanceState)
@@ -241,6 +269,18 @@ class UnifiedLibraryFragment : Fragment() {
 				tabs.addView(chip)
 			}
 		}
+		selectionBar = root.findViewById(R.id.library_selection_bar)
+		selectionCount = root.findViewById(R.id.library_selection_count)
+		selectionCollection = root.findViewById(R.id.library_selection_collection)
+		selectionRemove = root.findViewById(R.id.library_selection_remove)
+		root.findViewById<MaterialButton>(R.id.library_selection_cancel).setOnClickListener { endSelection() }
+		root.findViewById<MaterialButton>(R.id.library_selection_all).setOnClickListener {
+			selectedKeys = LibrarySelection.toggleAll(selectedKeys, visibleKeys)
+			onSelectionChanged()
+		}
+		selectionCollection.setOnClickListener { chooseCollections(selectedRows(), selectionTitle(), fromSelection = true) }
+		selectionRemove.setOnClickListener { requestRemove(selectedRows()) }
+		updateSelectionUi()
 		collectionRow = root.findViewById(R.id.library_collections)
 		status = root.findViewById(R.id.library_status)
 		loading = root.findViewById(R.id.library_loading)
@@ -305,6 +345,14 @@ class UnifiedLibraryFragment : Fragment() {
 		super.onViewCreated(view, savedInstanceState)
 		addMenuProvider(LibraryMenuProvider())
 		addMenuProvider(fileImporter.menuProvider())
+		// Back leaves selection mode first.
+		requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, selectionBack)
+		selectionBack.isEnabled = selecting
+		// Removed books wait in a cache folder; whatever an earlier run left there is final now.
+		val trashRoot = trashRoot(requireContext().applicationContext)
+		viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+			runCatching { LibraryUndo.purgeStale(trashRoot, System.currentTimeMillis()) }
+		}
 		// Comics from Add files are copied in the background; show them as soon as each one lands.
 		viewLifecycleOwner.lifecycleScope.launch {
 			viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -418,11 +466,15 @@ class UnifiedLibraryFragment : Fragment() {
 
 		override fun onCreateMenu(menu: android.view.Menu, menuInflater: MenuInflater) {
 			menu.add(0, MENU_NEW_SMART, 0, R.string.library_smart_new)
+			menu.add(0, MENU_SELECT, 1, R.string.library_undo_select)
 		}
 
 		override fun onMenuItemSelected(menuItem: android.view.MenuItem): Boolean {
-			if (menuItem.itemId != MENU_NEW_SMART) return false
-			newSmartCollection()
+			when (menuItem.itemId) {
+				MENU_NEW_SMART -> newSmartCollection()
+				MENU_SELECT -> startSelection(null)
+				else -> return false
+			}
 			return true
 		}
 	}
@@ -565,22 +617,31 @@ class UnifiedLibraryFragment : Fragment() {
 
 	/** Long-press a title: tick the collections it belongs to, or start a new one. */
 	private fun chooseCollections(row: Row) {
-		val key = keyOf(row)
-		if (key.isBlank()) return
+		chooseCollections(listOf(row), getString(R.string.library_collection_title, row.title), fromSelection = false)
+	}
+
+	/**
+	 * The same dialog for one or many titles. A collection starts ticked only when every title is in it, and only the
+	 * collections the user touches change.
+	 */
+	private fun chooseCollections(rows: List<Row>, title: String, fromSelection: Boolean) {
+		val keys = rows.map(::keyOf).filter { it.isNotBlank() }.distinct()
+		if (keys.isEmpty()) return
 		val names = LibraryCollections.names(collections)
-		val checked = BooleanArray(names.size) { key in collections[names[it]].orEmpty() }
+		val checked = BooleanArray(names.size) { LibrarySelection.isChecked(collections, names[it], keys) }
+		val touched = HashSet<Int>()
 		val builder = MaterialAlertDialogBuilder(requireContext())
-			.setTitle(getString(R.string.library_collection_title, row.title))
+			.setTitle(title)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setNeutralButton(R.string.library_collection_new) { _, _ -> newCollection(row) }
+			.setNeutralButton(R.string.library_collection_new) { _, _ -> newCollection(keys, fromSelection) }
 		if (names.isNotEmpty()) {
-			builder.setMultiChoiceItems(names.toTypedArray(), checked) { _, which, isChecked -> checked[which] = isChecked }
+			builder.setMultiChoiceItems(names.toTypedArray(), checked) { _, which, isChecked ->
+				checked[which] = isChecked
+				touched += which
+			}
 				.setPositiveButton(android.R.string.ok) { _, _ ->
-					var data = collections
-					names.forEachIndexed { i, name ->
-						data = if (checked[i]) LibraryCollections.add(data, name, key) else LibraryCollections.remove(data, name, key)
-					}
-					saveCollections(data)
+					saveCollections(LibrarySelection.applyCollections(collections, keys, names, checked.toList(), touched))
+					if (fromSelection) endSelection()
 				}
 		} else {
 			builder.setMessage(R.string.library_collection_none)
@@ -588,21 +649,26 @@ class UnifiedLibraryFragment : Fragment() {
 		builder.show()
 	}
 
-	private fun newCollection(row: Row) {
+	private fun newCollection(keys: List<String>, fromSelection: Boolean) {
 		val input = EditText(requireContext()).apply { setSingleLine(true); setHint(R.string.library_collection_name_hint) }
 		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(R.string.library_collection_new)
 			.setView(input)
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
-				saveCollections(LibraryCollections.add(collections, input.text.toString(), keyOf(row)))
+				saveCollections(keys.fold(collections) { data, key -> LibraryCollections.add(data, input.text.toString(), key) })
+				if (fromSelection) endSelection()
 			}
 			.show()
 	}
 
 	private fun openRow(row: Row) {
+		if (row.offline != null) {
+			startActivity(OfflineVideoShelf.playerIntent(requireContext(), row.offline))
+			return
+		}
 		if (row.media != null) {
-			if (row.missing) confirmRemove(row) else startActivity(LocalMediaShelf.playerIntent(requireContext(), row.media))
+			if (row.missing) confirmForgetMissing(row) else startActivity(LocalMediaShelf.playerIntent(requireContext(), row.media))
 			return
 		}
 		val intent = when {
@@ -613,7 +679,7 @@ class UnifiedLibraryFragment : Fragment() {
 		if (intent != null) startActivity(intent)
 	}
 
-	/** The same long-press menu for every kind of item: Open, Add to collection, Remove. */
+	/** The same long-press menu for every kind of item: Open, Add to collection, Select, Remove. */
 	private fun showActions(row: Row, fromContinue: Boolean) {
 		val actions = mutableListOf<Pair<String, () -> Unit>>(
 			getString(R.string.library_ov_action_open) to { openRow(row) },
@@ -623,7 +689,8 @@ class UnifiedLibraryFragment : Fragment() {
 			val manga = row.manga
 			if (manga != null) actions += getString(R.string.library_ov_action_remove_continue) to { removeFromContinue(manga) }
 		} else {
-			actions += getString(R.string.add_files_remove) to { confirmRemove(row) }
+			actions += getString(R.string.library_undo_select) to { startSelection(row) }
+			actions += getString(R.string.add_files_remove) to { requestRemove(listOf(row)) }
 		}
 		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(row.title)
@@ -632,45 +699,273 @@ class UnifiedLibraryFragment : Fragment() {
 			.show()
 	}
 
-	private fun confirmRemove(row: Row) {
-		val message = when {
-			row.missing -> R.string.add_files_missing_message
-			row.media != null -> R.string.add_files_remove_media_message
-			row.file != null -> R.string.add_files_remove_book_message
-			row.favourite && row.onDevice -> R.string.library_ov_remove_favourite_on_device_message
-			row.favourite -> R.string.library_ov_remove_favourite_message
-			else -> R.string.library_ov_remove_on_device_message
+	// ---- Multi-select ----
+
+	private fun startSelection(first: Row?) {
+		selecting = true
+		selectedKeys = if (first != null) setOf(keyOf(first)) else emptySet()
+		onSelectionChanged()
+	}
+
+	private fun endSelection() {
+		selecting = false
+		selectedKeys = emptySet()
+		onSelectionChanged()
+	}
+
+	private fun toggleSelected(row: Row) {
+		selectedKeys = LibrarySelection.toggle(selectedKeys, keyOf(row))
+		onSelectionChanged()
+	}
+
+	private fun onSelectionChanged() {
+		updateSelectionUi()
+		adapter.notifyDataSetChanged()
+	}
+
+	/** The ticked titles that are still in the library. */
+	private fun selectedRows(): List<Row> = all.filter { keyOf(it) in selectedKeys }
+
+	private fun selectionTitle(): String {
+		val count = selectedKeys.size
+		return resources.getQuantityString(R.plurals.library_undo_collection_title, count, count)
+	}
+
+	private fun updateSelectionUi() {
+		if (!::selectionBar.isInitialized) return
+		selectionBar.isVisible = selecting
+		selectionBack.isEnabled = selecting
+		val count = selectedKeys.size
+		selectionCount.text = resources.getQuantityString(R.plurals.library_undo_selected, count, count)
+		for (button in listOf(selectionCollection, selectionRemove)) {
+			button.isEnabled = count > 0
+			button.alpha = if (count > 0) 1f else 0.38f
 		}
+	}
+
+	// ---- Remove with Undo ----
+
+	/** What the Undo snackbar can bring back: favourites with their categories, hidden media, books in the trash. */
+	private class PendingUndo(
+		val context: Context,
+		val titles: List<String>,
+		val favourites: List<Pair<Manga, List<Long>>>,
+		val mediaUris: List<String>,
+		val books: List<LibraryUndo.TrashedBook>,
+	) {
+		val isEmpty: Boolean get() = titles.isEmpty()
+	}
+
+	private class Removal {
+		val titles = ArrayList<String>()
+		val favourites = ArrayList<Pair<Manga, List<Long>>>()
+		val books = ArrayList<LibraryUndo.TrashedBook>()
+		var deleted = 0
+		var failure: String? = null
+	}
+
+	private fun trashRoot(context: Context) = File(context.cacheDir, LibraryUndo.TRASH_DIR)
+
+	/** Tapping a file that can no longer be opened offers to forget it (this can be undone too). */
+	private fun confirmForgetMissing(row: Row) {
 		MaterialAlertDialogBuilder(requireContext())
 			.setTitle(getString(R.string.add_files_remove_title, row.title))
-			.setMessage(message)
+			.setMessage(R.string.add_files_missing_message)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton(R.string.add_files_remove) { _, _ -> remove(row) }
+			.setPositiveButton(R.string.add_files_remove) { _, _ -> requestRemove(listOf(row)) }
 			.show()
 	}
 
-	private fun remove(row: Row) {
+	/** Removes at once with Undo, except downloaded comics: deleting those is permanent and asks first. */
+	private fun requestRemove(rows: List<Row>) {
+		val plan = LibraryUndo.plan(rows)
+		if (plan.isEmpty) return
+		if (plan.permanent.isEmpty()) {
+			removeRows(plan)
+			return
+		}
+		val count = plan.permanent.size
+		val note = if (plan.undoableCount > 0) "\n\n" + getString(R.string.library_undo_delete_mixed_note) else ""
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(
+				if (count == 1) {
+					getString(R.string.library_undo_delete_title_one, plan.permanent[0].title)
+				} else {
+					resources.getQuantityString(R.plurals.library_undo_delete_title_many, count, count)
+				},
+			)
+			.setMessage(
+				if (count == 1) {
+					getString(R.string.library_undo_delete_message_one) + note
+				} else {
+					resources.getQuantityString(R.plurals.library_undo_delete_message_many, count, count) + note
+				},
+			)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(R.string.library_undo_delete_confirm) { _, _ -> removeRows(plan) }
+			.show()
+	}
+
+	private fun removeRows(plan: LibraryUndo.Plan) {
 		val context = context?.applicationContext ?: return
-		viewLifecycleOwner.lifecycleScope.launch {
+		val trashRoot = trashRoot(context)
+		// One Undo at a time: the removal before this one becomes final now.
+		commitPending()
+		val mediaUris = plan.media.mapNotNull { it.media?.uri }
+		hiddenKeys = hiddenKeys + mediaUris
+		if (selecting) endSelection()
+		all = all.filter { it.key !in hiddenKeys }
+		render()
+		// Not tied to the view: a removal that has started must also leave its undo record when the screen rotates.
+		processLifecycleScope.launch {
+			val result = withContext(Dispatchers.IO) { performRemoval(context, trashRoot, plan) }
+			val record = PendingUndo(context, result.titles, result.favourites, mediaUris, result.books)
+			val deleted = result.deleted.takeIf { it > 0 }
+				?.let { context.resources.getQuantityString(R.plurals.library_undo_deleted, it, it) }
+			val extra = listOfNotNull(deleted, result.failure).joinToString("\n").takeIf { it.isNotEmpty() }
+			if (view == null) {
+				finalizeRemoval(record)
+				return@launch
+			}
+			if (!record.isEmpty) pendingUndo = record
+			refresh()
+			showRemovedSnackbar(record, extra)
+		}
+	}
+
+	private suspend fun performRemoval(context: Context, trashRoot: File, plan: LibraryUndo.Plan): Removal {
+		val result = Removal()
+		fun fail(title: String, error: Exception) {
+			if (result.failure == null) {
+				result.failure = context.getString(R.string.library_ov_remove_failed, title, error.message.orEmpty().take(160))
+			}
+		}
+		// Favourites: remember each title's categories first, then un-favourite them all.
+		val favouriteRows = plan.favourites.filter { it.manga != null }
+		if (favouriteRows.isNotEmpty()) {
 			try {
-				withContext(Dispatchers.IO) {
-					when {
-						// Media is only forgotten; the file on the device is left alone.
-						row.media != null -> LocalMediaShelf.remove(context, row.media.uri)
-						// Books on the shelf are Monogatari's own copies in app storage.
-						row.file != null -> row.file.delete()
-						row.manga != null && row.favourite -> favorites.removeFromFavourites(setOf(row.manga.id))
-						row.manga != null && row.onDevice -> deleteLocalManga(row.manga)
-						else -> Unit
-					}
-					Unit
+				val remembered = favouriteRows.map { row ->
+					val manga = checkNotNull(row.manga)
+					manga to favorites.getCategoriesIds(manga.id).toList()
 				}
+				favorites.removeFromFavourites(remembered.map { it.first.id })
+				result.favourites += remembered
+				favouriteRows.mapTo(result.titles) { it.title }
 			} catch (cancel: CancellationException) {
 				throw cancel
 			} catch (error: Exception) {
-				showStatus(getString(R.string.library_ov_remove_failed, row.title, error.message.orEmpty().take(160)))
+				fail(favouriteRows.first().title, error)
 			}
+		}
+		// Media is only forgotten, and that waits until the removal is final; the file on the device is left alone.
+		plan.media.filter { it.media != null }.mapTo(result.titles) { it.title }
+		// Books on the shelf are Monogatari's own copies in app storage: moved to the trash, deleted when final.
+		val batch = System.currentTimeMillis().toString()
+		for (row in plan.books) {
+			val file = row.file ?: continue
+			val moved = LibraryUndo.moveToTrash(trashRoot, batch, file)
+			if (moved != null) {
+				result.books += moved
+				result.titles += row.title
+			} else {
+				fail(row.title, java.io.IOException(file.name))
+			}
+		}
+		// Downloaded comics: confirmed by the user, deleted for good.
+		for (row in plan.downloads) {
+			val manga = row.manga ?: continue
+			try {
+				deleteLocalManga(manga)
+				result.deleted++
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				fail(row.title, error)
+			}
+		}
+		// Saved offline videos: confirmed by the user, the cached data is deleted for good (not undoable).
+		for (row in plan.offline) {
+			val entry = row.offline ?: continue
+			try {
+				OfflineVideoStore.remove(context, entry)
+				result.deleted++
+			} catch (cancel: CancellationException) {
+				throw cancel
+			} catch (error: Exception) {
+				fail(row.title, error)
+			}
+		}
+		return result
+	}
+
+	private fun showRemovedSnackbar(record: PendingUndo, extra: String?) {
+		val summary = LibraryUndo.summarize(record.titles)
+		val base = when {
+			summary.count == 0 -> null
+			summary.title != null -> getString(R.string.library_undo_removed_one, summary.title)
+			else -> resources.getQuantityString(R.plurals.library_undo_removed_many, summary.count, summary.count)
+		}
+		val text = listOfNotNull(base, extra).joinToString("\n")
+		if (text.isEmpty()) return
+		val bar = Snackbar.make(requireView(), text, Snackbar.LENGTH_INDEFINITE)
+		bar.setDuration(if (record.isEmpty) Snackbar.LENGTH_LONG else LibraryUndo.UNDO_MILLIS)
+		(bar.context.findActivity() as? BottomNavOwner)?.bottomNav?.let { bar.anchorView = it }
+		if (!record.isEmpty) {
+			bar.setAction(R.string.undo) { undoRemoval(record) }
+			bar.addCallback(object : Snackbar.Callback() {
+				override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+					if (undoSnackbar === transientBottomBar) undoSnackbar = null
+					// Timed out or swiped away: the removal is final. (A newer removal clears pendingUndo first.)
+					if (event != BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_ACTION && pendingUndo === record) {
+						pendingUndo = null
+						finalizeRemoval(record)
+					}
+				}
+			})
+			undoSnackbar = bar
+		}
+		bar.show()
+	}
+
+	/** Makes the pending removal final (and hides its snackbar): books are deleted, media forgotten. */
+	private fun commitPending() {
+		val record = pendingUndo
+		pendingUndo = null
+		undoSnackbar?.dismiss()
+		undoSnackbar = null
+		finalizeRemoval(record)
+	}
+
+	private fun finalizeRemoval(record: PendingUndo?) {
+		if (record == null) return
+		processLifecycleScope.launch(Dispatchers.IO) {
+			for (uri in record.mediaUris) runCatching { LocalMediaShelf.remove(record.context, uri) }
+			for (book in record.books) LibraryUndo.discard(book)
+			withContext(Dispatchers.Main) { hiddenKeys = hiddenKeys - record.mediaUris.toSet() }
+		}
+	}
+
+	private fun undoRemoval(record: PendingUndo) {
+		if (pendingUndo === record) pendingUndo = null
+		undoSnackbar = null
+		hiddenKeys = hiddenKeys - record.mediaUris.toSet()
+		processLifecycleScope.launch {
+			var failed = 0
+			withContext(Dispatchers.IO) {
+				for ((manga, categories) in record.favourites) {
+					try {
+						for (categoryId in categories) favorites.addToCategory(categoryId, listOf(manga))
+					} catch (cancel: CancellationException) {
+						throw cancel
+					} catch (error: Exception) {
+						failed++
+					}
+				}
+				for (book in record.books) if (!LibraryUndo.restore(book)) failed++
+			}
+			if (view == null) return@launch
 			refresh()
+			if (failed > 0) Snackbar.make(requireView(), R.string.library_undo_restore_failed, Snackbar.LENGTH_LONG).show()
 		}
 	}
 
@@ -692,9 +987,17 @@ class UnifiedLibraryFragment : Fragment() {
 		outState.putString("selected_collection", selectedCollection)
 		outState.putString("selected_smart", selectedSmart)
 		outState.putBoolean("on_device_only", onDeviceOnly)
+		outState.putBoolean("selecting", selecting)
+		outState.putStringArrayList("selected_keys", ArrayList(selectedKeys))
 		if (::search.isInitialized) outState.putString("library_query", search.text?.toString().orEmpty())
 		paneRow?.let { outState.putString("pane_row_key", keyOf(it)) }
 		super.onSaveInstanceState(outState)
+	}
+
+	override fun onStop() {
+		// Leaving the screen ends the Undo window.
+		commitPending()
+		super.onStop()
 	}
 
 	override fun onDestroyView() {
@@ -803,6 +1106,21 @@ class UnifiedLibraryFragment : Fragment() {
 				)
 			}
 		}
+		val offlineRows = part(problems, emptyList()) {
+			val offlineLabel = context.getString(R.string.library_offline_detail)
+			OfflineVideoStore.list(context).map { entry ->
+				Row(
+					key = LibraryShelf.offlineKey(entry.id),
+					title = entry.title,
+					detail = context.getString(R.string.library_ov_detail_join, OfflineVideoShelf.detail(context, entry), offlineLabel),
+					kind = OfflineVideoShelf.mediaType(entry),
+					origin = LibraryShelf.Origin.ON_DEVICE,
+					addedAt = entry.createdAt,
+					readAt = LibraryShelf.offlineReadAt(AudioResumeStore.updatedAt(context, entry.streamUrl)),
+					offline = entry,
+				)
+			}
+		}
 		val favouriteKeys = favouriteRows.mapTo(HashSet()) { it.key }
 		val historyRows = part(problems, emptyList()) {
 			db.getHistoryDao().findAll(0, HISTORY_LIMIT).map { entry ->
@@ -823,13 +1141,14 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 		val readTimes = HashMap<String, Long>()
 		for (row in historyRows) readTimes[row.key] = maxOf(readTimes[row.key] ?: 0L, row.readAt)
-		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows).map { row ->
+		val merged = LibraryShelf.merge(favouriteRows, onDeviceRows, bookRows + mediaRows + offlineRows).map { row ->
 			if (row.favourite && row.onDevice) row.copy(detail = context.getString(R.string.library_ov_detail_join, row.detail, onDeviceLabel)) else row
 		}
 		val items = LibraryShelf.withReadTimes(merged, readTimes)
 		// Imported files keep their position outside history; those with one can be continued.
 		val resumable = items.filter { row ->
-			(row.file != null && BookShelf.hasProgress(context, row.file)) || (row.media != null && !row.missing && row.readAt > 0L)
+			(row.file != null && BookShelf.hasProgress(context, row.file)) || (row.media != null && !row.missing && row.readAt > 0L) ||
+				(row.offline != null && row.readAt > 0L)
 		}
 		return Loaded(items, historyRows, resumable, problems, recovered)
 	}
@@ -842,9 +1161,10 @@ class UnifiedLibraryFragment : Fragment() {
 		refreshJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val loaded = withContext(Dispatchers.IO) { load(context) }
-				all = loaded.items
-				recent = loaded.recent
-				resumable = loaded.resumable
+				all = loaded.items.filter { it.key !in hiddenKeys }
+				recent = loaded.recent.filter { it.key !in hiddenKeys }
+				resumable = loaded.resumable.filter { it.key !in hiddenKeys }
+				selectedKeys = LibrarySelection.prune(selectedKeys, all.map { it.key })
 				loadProblems = loaded.problems
 				render()
 				if (loaded.recovered > 0) {
@@ -892,6 +1212,7 @@ class UnifiedLibraryFragment : Fragment() {
 		}
 		val filtered = inScope.filter { LibraryShelf.matches(it, selected, "") }
 		val sections = LibraryShelf.sections(filtered, sort)
+		visibleKeys = sections.flatMap { it.items }.map { it.key }
 		val continueRows = if (selectedCollection == null && selectedSmart == null && !onDeviceOnly && q.isEmpty()) {
 			LibraryShelf.continueItems(recent, selected, resumable = resumable)
 		} else {
@@ -910,6 +1231,7 @@ class UnifiedLibraryFragment : Fragment() {
 		adapter.submit(continueRows, sections, listVisible = filtered.isNotEmpty(), searchQuery = q)
 		renderCollections()
 		renderEmpty(filtered.isEmpty(), q, continueRows.isNotEmpty())
+		updateSelectionUi()
 		val summary = resources.getQuantityString(R.plurals.library_ov_items, filtered.size, filtered.size)
 		status.text = if (loadProblems.isEmpty()) {
 			summary
@@ -1040,11 +1362,13 @@ class UnifiedLibraryFragment : Fragment() {
 			R.string.library_ov_kind_badge, row.title,
 			getString(R.string.library_ov_detail_join, kindLabel(row.kind), row.detail),
 		)
-		card.isCheckable = twoPane && !fromContinue
-		card.isChecked = card.isCheckable && paneRow?.let(::keyOf) == keyOf(row)
-		card.setOnClickListener { onClick() }
+		// In selection mode the grid cards show a ticked state and tapping toggles instead of opening.
+		val picking = selecting && !fromContinue
+		card.isCheckable = picking || (twoPane && !fromContinue)
+		card.isChecked = if (picking) keyOf(row) in selectedKeys else card.isCheckable && paneRow?.let(::keyOf) == keyOf(row)
+		card.setOnClickListener { if (picking) toggleSelected(row) else onClick() }
 		card.setOnLongClickListener {
-			showActions(row, fromContinue)
+			if (picking) toggleSelected(row) else showActions(row, fromContinue)
 			true
 		}
 	}

@@ -44,6 +44,7 @@ import org.koitharu.kotatsu.databinding.ActivityStatsBinding
 import org.koitharu.kotatsu.databinding.ItemEmptyStateBinding
 import org.koitharu.kotatsu.list.ui.adapter.ListItemType
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.stats.activity.ActivitySection
 import org.koitharu.kotatsu.stats.domain.StatsPeriod
 import org.koitharu.kotatsu.stats.domain.StatsRecord
 import org.koitharu.kotatsu.stats.ui.views.PieChartView
@@ -84,6 +85,10 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		viewBinding.chart.onSegmentClickListener = this
 		viewBinding.stubEmpty.setOnInflateListener(this)
 		viewBinding.chipPeriod.setOnClickListener(this)
+		val activitySection = ActivitySection(viewBinding.summaryHost)
+		viewModel.activitySummary.observe(this) { summary ->
+			if (summary != null) activitySection.bind(summary)
+		}
 
 		viewModel.isLoading.observe(this) {
 			viewBinding.progressBar.showOrHide(it)
@@ -145,6 +150,11 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 			bottomMargin = if (isTablet) baseMargin + bars.bottom else baseMargin
 			marginStart = baseMargin + bars.start(v)
 			marginEnd = if (isTablet) baseMargin else baseMargin + bars.end(v)
+		}
+		val summaryMargin = (16 * resources.displayMetrics.density).toInt()
+		viewBinding.summaryHost.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+			marginStart = summaryMargin + bars.start(v)
+			marginEnd = if (isTablet) summaryMargin else summaryMargin + bars.end(v)
 		}
 		return WindowInsetsCompat.Builder(insets)
 			.setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE)

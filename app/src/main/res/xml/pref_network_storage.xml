@@ -17,6 +17,27 @@
 
     </PreferenceCategory>
 
+    <!-- Rows are added at runtime by StorageAndNetworkSettingsFragment (see StorageBreakdown). -->
+    <PreferenceCategory
+        android:key="storage_breakdown"
+        android:title="@string/storage_overview_category">
+
+        <Preference
+            android:icon="@drawable/ic_usage"
+            android:key="storage_overview_header"
+            android:persistent="false"
+            android:selectable="false"
+            android:title="@string/storage_overview_header_title" />
+
+        <Preference
+            android:icon="@drawable/ic_clear_all"
+            android:key="storage_low_hint"
+            android:persistent="false"
+            android:title="@string/storage_overview_low_title"
+            app:isPreferenceVisible="false" />
+
+    </PreferenceCategory>
+
     <ListPreference
         android:defaultValue="0"
         android:entries="@array/network_policy"

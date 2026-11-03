@@ -73,6 +73,12 @@ import org.koitharu.kotatsu.core.ui.dialog.setCheckbox
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.databinding.ActivityMediaReaderBinding
+import org.koitharu.kotatsu.videodl.BackgroundAudioHandoff
+import org.koitharu.kotatsu.videodl.OfflineVideoDownloads
+import org.koitharu.kotatsu.videodl.OfflineVideoPlayback
+import org.koitharu.kotatsu.videodl.OfflineVideoRequest
+import org.koitharu.kotatsu.videodl.OfflineVideoStore
+import org.koitharu.kotatsu.videodl.PlaybackTimeReporter
 import org.koitharu.kotatsu.reader.ui.pager.ReaderUiState
 import javax.inject.Inject
 
@@ -100,10 +106,18 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	private var currentChapterId: Long? = null
 	private var currentMediaType: MediaType? = null
 	private var restorePosition = 0
+	private var currentStream: MediaStream? = null
+	private var currentOffline: OfflineVideoStore.Entry? = null
+	private var offlineChip: View? = null
+	private var timeReporter: PlaybackTimeReporter? = null
+	private var handedOff = false
+	private var skipOfflineChapterId: Long? = null
 	private var textZoom = DEFAULT_TEXT_ZOOM
 
 	override fun onCreateOptionsMenu(menu: Menu): Boolean {
 		menuInflater.inflate(R.menu.opt_media_reader, menu)
+		menu.add(Menu.NONE, MENU_DOWNLOAD_OFFLINE, Menu.NONE, R.string.offline_video_download).isVisible = false
+		menu.add(Menu.NONE, MENU_LISTEN_BACKGROUND, Menu.NONE, R.string.offline_video_listen_background).isVisible = false
 		return super.onCreateOptionsMenu(menu)
 	}
 
@@ -115,6 +129,11 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 			isVisible = isPlayable
 			isChecked = isAutoNextEnabled()
 		}
+		val stream = currentStream
+		menu.findItem(MENU_DOWNLOAD_OFFLINE)?.isVisible = isPlayable && stream != null && currentOffline == null
+		// Background audio is handed to the service, which has no custom request headers (saved copies need none).
+		menu.findItem(MENU_LISTEN_BACKGROUND)?.isVisible = isPlayable && stream != null && player is ExoPlayer &&
+			(stream.headers.isEmpty() || currentOffline != null)
 		menu.findItem(R.id.action_picture_in_picture)?.isVisible = currentMediaType == MediaType.VIDEO &&
 			Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
 			packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
@@ -136,6 +155,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 				item.isChecked = enabled
 			}
 			R.id.action_picture_in_picture -> enterPictureInPicture()
+			MENU_DOWNLOAD_OFFLINE -> downloadForOffline()
+			MENU_LISTEN_BACKGROUND -> listenInBackground()
 			else -> return super.onOptionsItemSelected(item)
 		}
 		return true
@@ -263,7 +284,7 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	override fun onStop() {
-		if (currentMediaType != MediaType.AUDIO) player?.pause()
+		if (currentMediaType != MediaType.AUDIO && !handedOff) player?.pause()
 		viewModel.onStop()
 		super.onStop()
 	}
@@ -392,9 +413,20 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		}
 	}
 
+	@OptIn(UnstableApi::class)
 	private fun loadVideo(state: ReaderUiState) {
 		viewBinding.webView.stopLoading()
 		val manga = viewModel.getMangaOrNull() ?: return
+		// A saved copy plays without asking the source (or the network) for anything.
+		val saved = if (skipOfflineChapterId == state.chapter.id) null else {
+			OfflineVideoStore.findCompletedForChapter(this, manga.source.name, state.chapter.id)
+		}
+		if (saved != null) {
+			loadJob?.cancel()
+			viewBinding.progress.isVisible = false
+			startPlayer(OfflineVideoPlayback.streamOf(saved), offline = saved)
+			return
+		}
 		val provider = repositoryFactory.create(manga.source) as? ContinuousMediaProvider ?: return showError(
 			getString(R.string.media_reader_source_unsupported),
 			reload = false,
@@ -434,7 +466,16 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		} ?: videos.firstOrNull()
 
 	@OptIn(UnstableApi::class)
-	private fun startPlayer(video: MediaStream, fallback: MediaStream? = null) {
+	private fun startPlayer(
+		video: MediaStream,
+		fallback: MediaStream? = null,
+		offline: OfflineVideoStore.Entry? = null,
+	) {
+		currentStream = video
+		currentOffline = offline
+		invalidateOptionsMenu()
+		val chip = offlineChip ?: OfflineVideoPlayback.attachChip(viewBinding.playerView).also { offlineChip = it }
+		chip.isVisible = offline != null
 		if (currentMediaType == MediaType.AUDIO && video.headers.isEmpty()) {
 			startBackgroundAudio(video)
 			return
@@ -444,7 +485,11 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		val dataSourceFactory = DefaultHttpDataSource.Factory()
 			.setAllowCrossProtocolRedirects(true)
 			.setDefaultRequestProperties(video.headers.orEmpty())
-		val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+		val mediaSourceFactory = if (offline != null) {
+			OfflineVideoPlayback.cacheOnlyMediaSourceFactory(this)
+		} else {
+			DefaultMediaSourceFactory(dataSourceFactory)
+		}
 		val exoPlayer = ExoPlayer.Builder(this)
 			.setMediaSourceFactory(mediaSourceFactory)
 			.build()
@@ -452,12 +497,22 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		val item = MediaItem.Builder()
 			.setUri(video.url)
 			.setMimeType(video.mimeType)
+			.setStreamKeys(offline?.let(OfflineVideoPlayback::streamKeys).orEmpty())
 			.setSubtitleConfigurations(subtitles)
 			.build()
+		val reporter = PlaybackTimeReporter(
+			this,
+			if (currentMediaType == MediaType.AUDIO) PlaybackTimeReporter.AUDIO else PlaybackTimeReporter.VIDEO,
+		)
+		timeReporter = reporter
 		player = exoPlayer
 		viewBinding.playerView.player = exoPlayer
 		var fallbackScheduled = false
 		exoPlayer.addListener(object : Player.Listener {
+			override fun onIsPlayingChanged(isPlaying: Boolean) {
+				if (player === exoPlayer) reporter.setPlaying(isPlaying)
+			}
+
 			override fun onPlaybackStateChanged(playbackState: Int) {
 				// Continue with the next episode or audiobook chapter when this one finishes.
 				if (playbackState == Player.STATE_ENDED && player === exoPlayer && isAutoNextEnabled() && !isFinishing) {
@@ -468,6 +523,19 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 
 			override fun onPlayerError(error: PlaybackException) {
 				if (player !== exoPlayer || fallbackScheduled) return
+				if (offline != null) {
+					// The saved copy is missing or damaged: play the online stream instead.
+					fallbackScheduled = true
+					val chapterAtFailure = currentChapterId
+					skipOfflineChapterId = chapterAtFailure
+					restorePosition = exoPlayer.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+					Snackbar.make(viewBinding.root, R.string.offline_video_fallback_online, Snackbar.LENGTH_LONG).show()
+					viewBinding.playerView.post {
+						val current = viewModel.uiState.value
+						if (!isDestroyed && current != null && currentChapterId == chapterAtFailure) loadVideo(current)
+					}
+					return
+				}
 				if (fallback != null && fallback.url != video.url) {
 					fallbackScheduled = true
 					val chapterAtFailure = currentChapterId
@@ -514,6 +582,63 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		savedPlaybackSpeed()?.let { exoPlayer.setPlaybackSpeed(it) }
 		exoPlayer.prepare()
 		exoPlayer.playWhenReady = true
+	}
+
+	@OptIn(UnstableApi::class)
+	private fun downloadForOffline() {
+		val stream = currentStream ?: return
+		val manga = viewModel.getMangaOrNull() ?: return
+		val chapter = viewModel.uiState.value?.chapter ?: return
+		val title = listOfNotNull(manga.title, supportActionBar?.subtitle?.toString()?.takeIf { it.isNotBlank() })
+			.joinToString(" - ")
+		val request = OfflineVideoRequest(
+			title = title,
+			sourceName = manga.source.name,
+			chapterId = chapter.id,
+			chapterUrl = chapter.url,
+			mediaType = (currentMediaType ?: MediaType.VIDEO).name,
+			streamUrl = stream.url,
+			audioUrl = stream.audioUrl,
+			mimeType = stream.mimeType,
+			headers = stream.headers,
+		)
+		lifecycleScope.launch {
+			val outcome = OfflineVideoDownloads.enqueue(applicationContext, request)
+			Snackbar.make(
+				viewBinding.root,
+				OfflineVideoDownloads.message(this@MediaReaderActivity, outcome, title),
+				Snackbar.LENGTH_LONG,
+			).show()
+		}
+	}
+
+	/** Moves the current stream to the background audio service at the same position and closes the video screen. */
+	@OptIn(UnstableApi::class)
+	private fun listenInBackground() {
+		val stream = currentStream ?: return
+		val local = player as? ExoPlayer ?: return
+		val offline = currentOffline
+		val manga = viewModel.getMangaOrNull()
+		val separateAudio = stream.audioUrl
+		local.pause()
+		saveProgress()
+		BackgroundAudioHandoff.start(
+			context = this,
+			url = separateAudio ?: stream.url,
+			mimeType = if (separateAudio == null) stream.mimeType else null,
+			title = supportActionBar?.subtitle?.toString() ?: manga?.title,
+			artist = manga?.title,
+			positionMs = local.currentPosition,
+			streamKeys = if (separateAudio == null) offline?.let(OfflineVideoPlayback::streamKeys).orEmpty() else emptyList(),
+		) { started ->
+			if (started) {
+				handedOff = true
+				if (!isDestroyed) finish()
+			} else if (!isDestroyed && player === local) {
+				local.play()
+				Snackbar.make(viewBinding.root, R.string.offline_video_background_unavailable, Snackbar.LENGTH_LONG).show()
+			}
+		}
 	}
 
 	private fun startBackgroundAudio(stream: MediaStream) {
@@ -600,6 +725,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 	}
 
 	private fun releasePlayer() {
+		timeReporter?.stop()
+		timeReporter = null
 		audioGeneration++
 		viewBinding.playerView.player = null
 		if (audioController != null) {
@@ -744,6 +871,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		const val TEXT_ZOOM_STEP = 10
 		const val KEY_SPEED_PREFIX = "speed_"
 		const val KEY_AUTO_NEXT = "auto_next"
+		const val MENU_DOWNLOAD_OFFLINE = 0x4D4F01
+		const val MENU_LISTEN_BACKGROUND = 0x4D4F02
 		const val SKIP_INTRO_MS = 85_000L
 		val PLAYBACK_SPEEDS = floatArrayOf(0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f).toList()
 		val QUALITY_NUMBER = Regex("(\\d{3,4})")

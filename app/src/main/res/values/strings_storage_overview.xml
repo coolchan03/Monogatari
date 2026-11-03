@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="storage_overview_category">Where your space went</string>
+	<string name="storage_overview_header_title">Monogatari storage</string>
+	<string name="storage_overview_header_summary">%1$s free of %2$s · Monogatari uses %3$s (%4$d%% of the device)</string>
+	<string name="storage_overview_header_summary_unknown_total">%1$s free · Monogatari uses %2$s</string>
+	<string name="storage_overview_low_title">Storage is almost full</string>
+	<string name="storage_overview_low_summary_clear">Only %1$s left. Tap to free up %2$s: %3$s</string>
+	<string name="storage_overview_low_summary_manual">Only %1$s left. Remove downloads or books you no longer need.</string>
+	<string name="storage_overview_entry_summary">%1$s · %2$d%% of Monogatari</string>
+	<string name="storage_overview_confirm">This frees up about %1$s.</string>
+	<string name="storage_overview_saved_manga">Downloaded manga and comics</string>
+	<string name="storage_overview_saved_manga_confirm">Delete the chapters you have already read? Unread chapters are kept.</string>
+	<string name="storage_overview_books">Imported books</string>
+	<string name="storage_overview_books_summary">%1$s · tap to open the library</string>
+	<string name="storage_overview_pages_cache">Pages cache</string>
+	<string name="storage_overview_other_cache">Thumbnails and other caches</string>
+	<string name="storage_overview_auto_downloads">Auto-downloads</string>
+	<string name="storage_overview_auto_downloads_remove">Remove auto-downloads</string>
+	<string name="storage_overview_auto_downloads_confirm">Removes only what auto-download saved for you. Your own downloads and books stay.</string>
+	<string name="storage_overview_feed_caches">News and feed caches</string>
+	<string name="storage_overview_feed_caches_confirm">Clears only the offline copies of articles and episodes. Your subscriptions and saved stories stay.</string>
+	<string name="storage_overview_extension_code">Extension code</string>
+</resources>

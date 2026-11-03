@@ -12,6 +12,8 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.model.getSummary
+import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.core.ui.BaseListAdapter
 import org.koitharu.kotatsu.core.util.ext.getQuantityStringSafe
 import org.koitharu.kotatsu.core.util.ext.setContentDescriptionAndTooltip
@@ -80,6 +82,11 @@ fun downloadItemAD(
 	bind { payloads ->
 		binding.textViewTitle.text = item.manga?.title ?: getString(R.string.unknown)
 		binding.imageViewCover.setImageAsync(item.manga?.coverUrl, item.manga)
+		val source = item.manga?.source
+		binding.textViewSource.textAndVisible = source?.let {
+			listOfNotNull(it.getTitle(context), it.getSummary(context)).joinToString(" \u00b7 ")
+		}
+		binding.textViewAuto.isVisible = item.isAuto
 		if (chaptersJob == null || payloads.isEmpty()) {
 			chaptersJob?.cancel()
 			chaptersJob = lifecycleOwner.lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {

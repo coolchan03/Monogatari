@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	Static launcher shortcuts. Order here is their order in the menu. Only three on purpose: the launcher
+	shows about four in total and lists static ones first, so more would push the recent-title shortcuts
+	(dynamic, see AppShortcutManager) out. All of them start the MainActivity with an
+	explicit component and a plain string extra that MainActivity understands.
+	The package must equal the applicationId, so debug and nightly have their own copy of this file.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+	<shortcut
+		android:shortcutId="static_continue"
+		android:enabled="true"
+		android:icon="@drawable/ic_shortcut_continue"
+		android:shortcutShortLabel="@string/shortcut_continue"
+		android:shortcutLongLabel="@string/shortcut_continue_long">
+		<intent
+			android:action="android.intent.action.MAIN"
+			android:targetPackage="io.github.coolchan03.monogatari.nightly"
+			android:targetClass="org.koitharu.kotatsu.main.ui.MainActivity">
+			<extra
+				android:name="shortcut_action"
+				android:value="continue" />
+		</intent>
+	</shortcut>
+	<shortcut
+		android:shortcutId="static_search"
+		android:enabled="true"
+		android:icon="@drawable/ic_shortcut_search"
+		android:shortcutShortLabel="@string/shortcut_search"
+		android:shortcutLongLabel="@string/shortcut_search_long">
+		<intent
+			android:action="android.intent.action.MAIN"
+			android:targetPackage="io.github.coolchan03.monogatari.nightly"
+			android:targetClass="org.koitharu.kotatsu.main.ui.MainActivity">
+			<extra
+				android:name="shortcut_action"
+				android:value="search" />
+		</intent>
+	</shortcut>
+	<shortcut
+		android:shortcutId="static_library"
+		android:enabled="true"
+		android:icon="@drawable/ic_shortcut_library"
+		android:shortcutShortLabel="@string/shortcut_library"
+		android:shortcutLongLabel="@string/shortcut_library_long">
+		<intent
+			android:action="android.intent.action.MAIN"
+			android:targetPackage="io.github.coolchan03.monogatari.nightly"
+			android:targetClass="org.koitharu.kotatsu.main.ui.MainActivity">
+			<extra
+				android:name="shortcut_action"
+				android:value="library" />
+		</intent>
+	</shortcut>
+</shortcuts>
