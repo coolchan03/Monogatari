@@ -59,6 +59,12 @@ class AppShortcutManager @Inject constructor(
 		 * How much extra history to read when adult titles are being filtered out.
 		 */
 		const val HISTORY_OVERFETCH = 4
+
+		/**
+		 * Static shortcuts in res/xml/shortcuts.xml. They count against the per-activity limit together with
+		 * the dynamic ones, so setDynamicShortcuts would throw if the recents filled the whole limit.
+		 */
+		const val STATIC_SHORTCUTS_COUNT = 3
 	}
 
 	private val iconSize by lazy {
@@ -135,7 +141,8 @@ class AppShortcutManager @Inject constructor(
 	}
 
 	private suspend fun updateShortcutsImpl() = runCatchingCancellable {
-		val maxShortcuts = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context).coerceAtLeast(5)
+		val maxShortcuts = (ShortcutManagerCompat.getMaxShortcutCountPerActivity(context) - STATIC_SHORTCUTS_COUNT)
+			.coerceAtLeast(1)
 		val skipNsfw = settings.isShortcutsNsfwDisabled || settings.isNsfwContentDisabled
 		// Over-fetch when filtering, so a run of adult titles at the top of the history does not leave
 		// the launcher with only one or two shortcuts.

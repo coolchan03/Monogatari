@@ -121,6 +121,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 		/** Optional text to prefill into the search bar. */
 		const val EXTRA_SEARCH_QUERY = "search_query"
+
+		/** Set by the static launcher shortcuts (res/xml/shortcuts.xml): one of the SHORTCUT_* values below. */
+		const val EXTRA_SHORTCUT_ACTION = "shortcut_action"
+		const val SHORTCUT_CONTINUE = "continue"
+		const val SHORTCUT_SEARCH = "search"
+		const val SHORTCUT_LIBRARY = "library"
 	}
 
 	@Inject
@@ -254,6 +260,22 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		initSearch()
 		if (savedInstanceState == null) handleRepositorySetupLink(intent)
 		if (savedInstanceState == null) handleOpenSearchIntent(intent)
+		if (savedInstanceState == null) handleShortcutIntent(intent)
+	}
+
+	/** Handles [EXTRA_SHORTCUT_ACTION] from the static launcher shortcuts; consumed so it runs only once. */
+	private fun handleShortcutIntent(incoming: Intent?) {
+		// Read as a generic extra: a hand-written shortcut may deliver it as another type.
+		val action = incoming?.extras?.get(EXTRA_SHORTCUT_ACTION)?.toString() ?: return
+		incoming.removeExtra(EXTRA_SHORTCUT_ACTION)
+		when (action) {
+			SHORTCUT_CONTINUE -> viewModel.openLastReader()
+			SHORTCUT_SEARCH -> {
+				incoming.putExtra(EXTRA_OPEN_SEARCH, true)
+				handleOpenSearchIntent(incoming)
+			}
+			SHORTCUT_LIBRARY -> navigationDelegate.openNavItem(NavItem.UNIFIED_LIBRARY.name)
+		}
 	}
 
 	/** Handles [EXTRA_OPEN_SEARCH]; the tab stays as it is, only the search bar opens. */
@@ -321,6 +343,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 		intent.getStringExtra(EXTRA_OPEN_NAV_ITEM)?.let(navigationDelegate::openNavItem)
 		handleOpenSearchIntent(intent)
+		handleShortcutIntent(intent)
 	}
 
 	/** Shows Discover as a main tab when it is on the navigation bar; returns false when it is not. */

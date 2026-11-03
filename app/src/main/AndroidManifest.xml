@@ -154,6 +154,24 @@
 			<meta-data
 				android:name="android.app.default_searchable"
 				android:value="org.koitharu.kotatsu.search.ui.multi.MultiSearchActivity" />
+			<meta-data
+				android:name="android.app.shortcuts"
+				android:resource="@xml/shortcuts" />
+		</activity>
+		<!-- Share target: routes shared text/links to existing screens, then finishes. Exported only for SEND. -->
+		<activity
+			android:name="org.koitharu.kotatsu.main.ui.ShareReceiverActivity"
+			android:exported="true"
+			android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+			android:excludeFromRecents="true"
+			android:label="@string/share_to_monogatari"
+			android:noHistory="true"
+			android:theme="@android:style/Theme.Translucent.NoTitleBar">
+			<intent-filter>
+				<action android:name="android.intent.action.SEND" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<data android:mimeType="text/plain" />
+			</intent-filter>
 		</activity>
 		<activity
 			android:name="org.koitharu.kotatsu.details.ui.DetailsActivity"
