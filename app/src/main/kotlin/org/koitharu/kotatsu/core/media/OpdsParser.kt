@@ -120,6 +120,9 @@ internal object OpdsParser {
 	fun splitCredentials(url: String): Pair<String, String?> {
 		val uri = runCatching { URI(url) }.getOrNull() ?: return url to null
 		val info = uri.rawUserInfo ?: return url to null
+		require(uri.scheme.equals("https", ignoreCase = true)) {
+			"Catalog logins require HTTPS; do not put passwords in HTTP URLs"
+		}
 		val decoded = java.net.URLDecoder.decode(info, "UTF-8")
 		val clean = URI(uri.scheme, null, uri.host, uri.port, uri.path, uri.query, uri.fragment).toString()
 		return clean to "Basic " + decoded.encodeUtf8().base64()

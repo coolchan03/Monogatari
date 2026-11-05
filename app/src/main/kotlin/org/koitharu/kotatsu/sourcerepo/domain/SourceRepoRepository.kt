@@ -65,7 +65,7 @@ class SourceRepoRepository @Inject constructor(
 
 	fun getRepos(): List<String> = store.getAll()
 
-	fun addRepo(url: String): Boolean = store.add(url)
+	fun addRepo(url: String, allowHttp: Boolean = false): Boolean = store.add(url, allowHttp)
 
 	fun removeRepo(url: String) = store.remove(url)
 
@@ -73,8 +73,8 @@ class SourceRepoRepository @Inject constructor(
 	 * Fetches and parses a repository without saving it. This keeps a bad or spoofed URL out of
 	 * persistent settings until the user has seen what the repository actually advertises.
 	 */
-	suspend fun previewRepo(url: String): RepoPreview? = withContext(Dispatchers.IO) {
-		val normalized = normalizeRepoUrl(url) ?: return@withContext null
+	suspend fun previewRepo(url: String, allowHttp: Boolean = false): RepoPreview? = withContext(Dispatchers.IO) {
+		val normalized = normalizeRepoUrl(url, allowHttp) ?: return@withContext null
 		val index = fetchIndex(normalized)
 		val runnableJs = index.jsSources.filter { it.isRunnable }
 		RepoPreview(
@@ -195,7 +195,12 @@ class SourceRepoRepository @Inject constructor(
 
 	private suspend fun fetchIndex(url: String): FetchedIndex {
 		val request = Request.Builder().get().url(url).build()
-		val text = client.newCall(request).await().use { response ->
+		if (request.url.scheme !in listOf("https", "http")) throw java.io.IOException("Unsupported repository protocol")
+		val indexClient = client.newBuilder().followSslRedirects(false).build()
+		val text = indexClient.newCall(request).await().use { response ->
+			if (response.request.url.scheme != request.url.scheme) {
+				throw java.io.IOException("Repository protocol changed during redirect")
+			}
 			if (!response.isSuccessful) {
 				throw java.io.IOException("HTTP ${response.code} from $url")
 			}

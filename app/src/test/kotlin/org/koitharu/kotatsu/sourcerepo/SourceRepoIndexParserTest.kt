@@ -71,6 +71,15 @@ class SourceRepoIndexParserTest {
 class RepoUrlTest {
 
 	@Test
+	fun allowsHttpOnlyWhenExplicitlyRequested() {
+		assertNull(org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("http://example.com/index.json"))
+		assertEquals("http://example.com/index.json", org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("http://example.com/index.json", true))
+		assertNull(org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("http://user:pass@example.com/index.json", true))
+		assertNull(org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("ftp://example.com/index.json", true))
+		assertNull(org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("http://example.com/index.json#fragment", true))
+	}
+
+	@Test
 	fun acceptsOnlyAbsoluteHttps() {
 		assertEquals("https://h/repo/index.json", org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("  https://h/repo/index.json "))
 		assertEquals("https://h/b", org.koitharu.kotatsu.sourcerepo.domain.normalizeRepoUrl("https://h/a/../b"))

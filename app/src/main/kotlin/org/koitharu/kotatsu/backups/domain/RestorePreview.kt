@@ -197,7 +197,17 @@ internal object RestorePreview {
 	}
 
 	private fun countSettings(input: InputStream?): RestorePreviewCounts? {
-		val text = (input ?: return null).use { it.readBytes().decodeToString() }
+		val text = (input ?: return null).use { source ->
+			val out = java.io.ByteArrayOutputStream()
+			val buffer = ByteArray(16 * 1024)
+			while (true) {
+				val count = source.read(buffer)
+				if (count < 0) break
+				if (out.size() + count > 2 * 1024 * 1024) throw IOException("Settings preview is too large")
+				out.write(buffer, 0, count)
+			}
+			out.toString(Charsets.UTF_8.name())
+		}
 		val keys = json.parseToJsonElement(text).jsonArray[0].jsonObject.keys
 		return RestorePreviewCounts(new = RestorePreviewRules.countSettings(keys, BackupCatalogPolicy::safePreferenceKey))
 	}

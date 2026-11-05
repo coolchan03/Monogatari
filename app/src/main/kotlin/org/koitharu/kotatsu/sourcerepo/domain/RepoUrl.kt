@@ -3,21 +3,19 @@ package org.koitharu.kotatsu.sourcerepo.domain
 import java.net.URI
 
 /**
- * Normalises a user-typed repo index URL. Returns `null` unless it is an absolute https URL with a
- * host; plaintext http is refused because the index decides what gets installed.
+ * Normalises repository URLs. HTTP requires an explicit opt-in at each add.
  */
-fun normalizeRepoUrl(input: String): String? {
+fun normalizeRepoUrl(input: String, allowHttp: Boolean = false): String? {
 	val trimmed = input.trim()
-	if (!trimmed.startsWith("https://", ignoreCase = true)) {
-		return null
-	}
+	if (!trimmed.startsWith("https://", ignoreCase = true) &&
+		!(allowHttp && trimmed.startsWith("http://", ignoreCase = true))) return null
 	val uri = try {
 		URI(trimmed)
 	} catch (e: Exception) {
 		return null
 	}
-	if (uri.host.isNullOrEmpty() || uri.userInfo != null) {
-		return null
-	}
+	if (uri.host.isNullOrEmpty() || uri.userInfo != null || uri.fragment != null) return null
+	if (uri.scheme?.lowercase() !in listOf("https", "http")) return null
+	if (uri.scheme.equals("http", true) && !allowHttp) return null
 	return uri.normalize().toString()
 }

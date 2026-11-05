@@ -21,6 +21,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.util.ext.tryLaunch
 import org.koitharu.kotatsu.local.ui.ImportService
 import java.io.File
+import java.io.IOException
 import java.util.Locale
 
 /**
@@ -113,6 +114,7 @@ object LocalFileImporter {
 		return if (ext.isEmpty()) short else "$short.$ext"
 	}
 
+	private const val MAX_BOOK_IMPORT_BYTES = 256L * 1024 * 1024
 	private const val MAX_BOOK_BASE_CHARS = 100
 	private const val MAX_BOOK_NAME_BYTES = 200
 
@@ -150,7 +152,17 @@ object LocalFileImporter {
 			var completed = false
 			try {
 				contentResolver.openInputStream(uri)?.use { input ->
-					dest.outputStream().use { input.copyTo(it) }
+					dest.outputStream().use { output ->
+						val buffer = ByteArray(64 * 1024)
+						var copied = 0L
+						while (true) {
+							val count = input.read(buffer)
+							if (count < 0) break
+							copied += count
+							if (copied > MAX_BOOK_IMPORT_BYTES) throw IOException("Book exceeds the 256 MB import limit")
+							output.write(buffer, 0, count)
+						}
+					}
 				} ?: error(context.getString(R.string.monogatari_catalog_import_read_failed))
 				require(dest.length() > 0) { "The selected book is empty" }
 				completed = true

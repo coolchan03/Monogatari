@@ -1,9 +1,13 @@
 name: Build check
 
 on:
+  pull_request:
+    branches:
+      - 'devel'
   push:
     branches:
       - 'devel'
+      - 'audit-*'
       - 'claude/**'
       - 'step-*'
       - 'batch-*'
