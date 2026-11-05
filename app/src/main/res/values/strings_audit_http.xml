@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monogatari_http_warning_title">Use an insecure HTTP repository?</string>
+    <string name="monogatari_http_warning_text">HTTP is not encrypted. Others on your network may read or change the repository index before it reaches your device. A malicious index can advertise harmful extensions. Only continue for a repository you trust and when HTTPS is unavailable. HTTPS remains recommended.</string>
+    <string name="monogatari_http_continue">Use HTTP anyway</string>
+</resources>
