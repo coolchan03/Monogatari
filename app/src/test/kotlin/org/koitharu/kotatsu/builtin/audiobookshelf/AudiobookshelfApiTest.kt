@@ -120,4 +120,15 @@ class AudiobookshelfApiTest {
 		assertTrue(AudiobookshelfApi.httpErrorMessage(502)!!.contains("502"))
 		assertNull(AudiobookshelfApi.parseDetails(JSONObject("{}")))
 	}
+
+	@Test
+	fun jsonNullFieldsAreAbsentNotTheWordNull() {
+		val item = AudiobookshelfApi.parseItem(
+			JSONObject("""{"id":"li_1","media":{"metadata":{"title":"T","authorName":null,"narratorName":null,"description":null,"genres":[null,"Fantasy"]}}}"""),
+		)!!
+		assertNull(item.author)
+		assertNull(item.narrator)
+		assertNull(item.description)
+		assertEquals(listOf("Fantasy"), item.genres)
+	}
 }

@@ -65,10 +65,10 @@ object AudiobookshelfApi {
 	fun parseLibraries(body: JSONObject): List<Library> {
 		val array = body.optJSONArray("libraries") ?: return emptyList()
 		return array.objects().mapNotNull { lib ->
-			val id = lib.optString("id").takeIf { ID.matches(it) } ?: return@mapNotNull null
-			val type = lib.optString("mediaType")
+			val id = lib.text("id").takeIf { ID.matches(it) } ?: return@mapNotNull null
+			val type = lib.text("mediaType")
 			if (type != "book" && type != "podcast") return@mapNotNull null
-			Library(id, lib.optString("name").ifBlank { id }, type == "podcast")
+			Library(id, lib.text("name").ifBlank { id }, type == "podcast")
 		}
 	}
 
@@ -88,15 +88,15 @@ object AudiobookshelfApi {
 	}
 
 	fun parseItem(item: JSONObject): Item? {
-		val id = item.optString("id").takeIf { ID.matches(it) } ?: return null
+		val id = item.text("id").takeIf { ID.matches(it) } ?: return null
 		val meta = item.optJSONObject("media")?.optJSONObject("metadata") ?: return null
-		val title = meta.optString("title").takeIf { it.isNotBlank() } ?: return null
+		val title = meta.text("title").takeIf { it.isNotBlank() } ?: return null
 		return Item(
 			id = id,
 			title = title,
-			author = (meta.optString("authorName").ifBlank { meta.optString("author") }).takeIf { it.isNotBlank() },
-			narrator = (meta.optString("narratorName")).takeIf { it.isNotBlank() },
-			description = meta.optString("description").takeIf { it.isNotBlank() },
+			author = (meta.text("authorName").ifBlank { meta.text("author") }).takeIf { it.isNotBlank() },
+			narrator = (meta.text("narratorName")).takeIf { it.isNotBlank() },
+			description = meta.text("description").takeIf { it.isNotBlank() },
 			genres = meta.optJSONArray("genres").strings(),
 		)
 	}
@@ -106,12 +106,12 @@ object AudiobookshelfApi {
 		val base = parseItem(body) ?: return null
 		val media = body.optJSONObject("media") ?: return null
 		val meta = media.optJSONObject("metadata")
-		val authors = meta?.optJSONArray("authors")?.objects()?.map { it.optString("name") }
+		val authors = meta?.optJSONArray("authors")?.objects()?.map { it.text("name") }
 			?.filter { it.isNotBlank() }.orEmpty()
 		val narrators = meta?.optJSONArray("narrators").strings()
 		val item = base.copy(narrator = base.narrator ?: narrators.joinToString().takeIf { it.isNotBlank() })
 		val episodes = media.optJSONArray("episodes")
-		if (body.optString("mediaType") == "podcast" || episodes != null) {
+		if (body.text("mediaType") == "podcast" || episodes != null) {
 			return Details(item, listOfNotNull(item.author), parseEpisodes(episodes), true)
 		}
 		return Details(item, authors.ifEmpty { listOfNotNull(item.author) }, parseAudioFiles(media.optJSONArray("audioFiles"), item.title), false)
@@ -120,11 +120,11 @@ object AudiobookshelfApi {
 	private fun parseAudioFiles(files: JSONArray?, bookTitle: String): List<Track> {
 		val usable = (files ?: return emptyList()).objects()
 			.filter { !it.optBoolean("exclude", false) && !it.optBoolean("invalid", false) }
-			.mapNotNull { file -> file.optString("ino").takeIf { ID.matches(it) }?.let { it to file } }
+			.mapNotNull { file -> file.text("ino").takeIf { ID.matches(it) }?.let { it to file } }
 			.sortedBy { it.second.optInt("index", 0) }
 		return usable.mapIndexed { i, (ino, file) ->
-			val tagTitle = file.optJSONObject("metaTags")?.optString("tagTitle").orEmpty()
-			val filename = file.optJSONObject("metadata")?.optString("filename").orEmpty().substringBeforeLast('.')
+			val tagTitle = file.optJSONObject("metaTags")?.text("tagTitle").orEmpty()
+			val filename = file.optJSONObject("metadata")?.text("filename").orEmpty().substringBeforeLast('.')
 			val title = when {
 				usable.size == 1 -> bookTitle
 				tagTitle.isNotBlank() -> tagTitle
@@ -138,8 +138,8 @@ object AudiobookshelfApi {
 	/** Podcast episodes, oldest first so chapter numbers grow with time. */
 	private fun parseEpisodes(episodes: JSONArray?): List<Track> {
 		val parsed = (episodes ?: return emptyList()).objects().mapNotNull { ep ->
-			val ino = ep.optJSONObject("audioFile")?.optString("ino")?.takeIf { ID.matches(it) } ?: return@mapNotNull null
-			Triple(ino, ep.optString("title"), ep.optLong("publishedAt", 0L))
+			val ino = ep.optJSONObject("audioFile")?.text("ino")?.takeIf { ID.matches(it) } ?: return@mapNotNull null
+			Triple(ino, ep.text("title"), ep.optLong("publishedAt", 0L))
 		}.sortedBy { it.third }
 		return parsed.mapIndexed { i, (ino, title, publishedAt) ->
 			Track(ino, title.ifBlank { "Episode ${i + 1}" }, (i + 1).toFloat(), publishedAt)
@@ -202,8 +202,11 @@ object AudiobookshelfApi {
 		}
 	}
 
+	/** Android's optString turns a JSON null into the text "null"; this gives an empty string instead. */
+	private fun JSONObject.text(name: String): String = if (isNull(name)) "" else optString(name)
+
 	private fun JSONArray.objects(): List<JSONObject> = (0 until length()).mapNotNull { optJSONObject(it) }
 
 	private fun JSONArray?.strings(): List<String> =
-		if (this == null) emptyList() else (0 until length()).map { optString(it) }.filter { it.isNotBlank() }
+		if (this == null) emptyList() else (0 until length()).filterNot { isNull(it) }.map { optString(it) }.filter { it.isNotBlank() }
 }

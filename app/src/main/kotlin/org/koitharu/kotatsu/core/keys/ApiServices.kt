@@ -98,6 +98,8 @@ internal object ApiServices {
 		for (field in service.fields) {
 			val raw = input[field.key].orEmpty().trim()
 			if (raw.isEmpty()) return Check.Problem(field.key, "${field.label} is required")
+			// A pasted line break would end up in an HTTP header (and in the error message that reports it).
+			if (raw.any { it.isISOControl() }) return Check.Problem(field.key, "${field.label} contains an invalid character")
 			out[field.key] = if (field.kind == "server") {
 				JellyfinRepository.normalizeServer(raw) ?: return Check.Problem(field.key, "${field.label} isn't a valid address")
 			} else raw

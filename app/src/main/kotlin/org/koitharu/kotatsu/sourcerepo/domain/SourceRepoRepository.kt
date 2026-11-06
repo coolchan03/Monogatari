@@ -199,6 +199,8 @@ class SourceRepoRepository @Inject constructor(
 			if (!response.isSuccessful) {
 				throw java.io.IOException("HTTP ${response.code} from $url")
 			}
+			// The index decides what gets installed, so a redirect must not downgrade it to plain http.
+			if (!response.request.url.isHttps) throw java.io.IOException("Repository index must use HTTPS")
 			response.body.readBoundedString(MAX_INDEX_BYTES)
 		}
 		return if (MangayomiIndexParser.looksLikeMangayomiIndex(text)) {

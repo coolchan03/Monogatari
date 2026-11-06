@@ -570,6 +570,7 @@ class SearchViewModel @Inject constructor(
 	private fun doSearch() {
 		// Search every catalog that is available from Books; stream each provider as it answers.
 		val runId = ++catalogRunId
+		catalogJob?.cancel()
 		if ((effectiveMediaType == null || effectiveMediaType == MediaType.BOOK) && query.isNotBlank()) {
 			val officialFictionLinks = listOf(
 				OfficialMediaSites.Site.FICTIONPRESS to "FictionPress",

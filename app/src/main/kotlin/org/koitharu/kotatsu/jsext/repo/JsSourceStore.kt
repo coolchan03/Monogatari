@@ -205,7 +205,13 @@ class JsSourceStore(private val dir: File) {
 		return Installed(entry, code.readText())
 	}
 
-	fun installedVersion(id: Long): String? = get(id)?.entry?.version
+	/** Reads only the metadata: the code file can be megabytes and this is asked for every entry of a repo. */
+	@Synchronized
+	fun installedVersion(id: Long): String? {
+		if (!File(dir, "$id.js").isFile) return null
+		val meta = File(dir, "$id.json").takeIf { it.isFile } ?: return null
+		return runCatching { fromJson(meta.readText()).version }.getOrNull()
+	}
 
 	private fun toJson(e: JsSourceEntry): JsonObject = buildJsonObject {
 		put("id", e.id)

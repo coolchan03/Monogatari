@@ -24,6 +24,7 @@ import org.koitharu.kotatsu.core.media.MediaType
 object SourceRepoIndexParser {
 
 	private val json = Json { isLenient = true }
+	private val packageRegex = Regex("[A-Za-z0-9._-]{1,200}")
 	private val sha256Regex = Regex("^[0-9a-fA-F]{64}$")
 
 	/** @throws IllegalArgumentException if [text] is not a recognisable index at all. */
@@ -45,7 +46,8 @@ object SourceRepoIndexParser {
 
 	private fun parseEntry(element: JsonElement, repoUrl: String): RepoPlugin? {
 		val obj = element as? JsonObject ?: return null
-		val pkg = obj.string("pkg", "package")?.takeIf { it.isNotBlank() } ?: return null
+		// The package name becomes part of the downloaded file name, so it must be a plain identifier.
+		val pkg = obj.string("pkg", "package")?.takeIf { packageRegex.matches(it) && ".." !in it } ?: return null
 		val apk = obj.string("apk", "url")?.takeIf { it.startsWith("https://", ignoreCase = true) } ?: return null
 		val version = obj.long("version", "versionCode") ?: return null
 		val sha = obj.string("sha256")?.takeIf { it.isNotEmpty() }

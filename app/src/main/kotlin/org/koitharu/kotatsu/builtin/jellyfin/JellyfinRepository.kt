@@ -157,13 +157,27 @@ class JellyfinRepository(
 				isLocalHost(text.substringBefore('/').substringBefore(':')) -> "http://$text"
 				else -> "https://$text"
 			}
-			val host = withScheme.substringAfter("://").substringBefore('/').substringBefore(':')
-			return if (host.isEmpty()) null else withScheme
+			val authority = withScheme.substringAfter("://").substringBefore('/')
+			// No embedded login (it would be stored and shown in clear), and plain http only for home-network hosts.
+			if ('@' in authority) return null
+			val host = authority.substringBefore(':')
+			if (host.isEmpty()) return null
+			return if (withScheme.startsWith("http://", true) && !isLocalHost(host)) null else withScheme
 		}
 
 		private fun isLocalHost(host: String): Boolean =
 			host == "localhost" || host.endsWith(".local") || host.endsWith(".lan") || '.' !in host ||
-				Regex("\\d{1,3}(\\.\\d{1,3}){3}").matches(host)
+				isPrivateIp(host)
+
+		/** RFC 1918 / loopback / link-local / CGNAT (Tailscale) IPv4 addresses. */
+		private fun isPrivateIp(host: String): Boolean {
+			val parts = host.split('.')
+			if (parts.size != 4 || parts.any { it.isEmpty() || it.length > 3 || !it.all(Char::isDigit) }) return false
+			val a = parts[0].toInt()
+			val b = parts[1].toInt()
+			return a == 10 || a == 127 || (a == 192 && b == 168) || (a == 172 && b in 16..31) ||
+				(a == 169 && b == 254) || (a == 100 && b in 64..127)
+		}
 
 		fun itemsUrl(server: String, term: String, offset: Int, newestFirst: Boolean): String {
 			val sort = if (newestFirst) "DateCreated&SortOrder=Descending" else "SortName"

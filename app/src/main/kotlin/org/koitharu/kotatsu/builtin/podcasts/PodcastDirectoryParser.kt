@@ -12,6 +12,9 @@ internal object PodcastDirectoryParser {
 		val genre: String?,
 	)
 
+	/** Android's optString turns a JSON null into the text "null"; this gives an empty string instead. */
+	private fun JSONObject.text(name: String): String = if (isNull(name)) "" else optString(name)
+
 	/** Search and lookup share one shape: {"results": [{collectionName, artistName, feedUrl, ...}]}. */
 	fun parseResults(json: String): List<Podcast> {
 		val results = JSONObject(json).optJSONArray("results") ?: return emptyList()
@@ -19,18 +22,18 @@ internal object PodcastDirectoryParser {
 		val out = ArrayList<Podcast>()
 		for (index in 0 until results.length()) {
 			val item = results.optJSONObject(index) ?: continue
-			val feed = item.optString("feedUrl").trim()
+			val feed = item.text("feedUrl").trim()
 			// Only secure feeds can be subscribed; Apple still lists some plain-http ones.
 			if (!feed.startsWith("https://") || !seen.add(feed)) continue
-			val title = item.optString("collectionName").ifBlank { item.optString("trackName") }.trim()
+			val title = item.text("collectionName").ifBlank { item.text("trackName") }.trim()
 			if (title.isEmpty()) continue
 			out += Podcast(
 				title = title,
-				author = item.optString("artistName").trim(),
+				author = item.text("artistName").trim(),
 				feedUrl = feed,
-				artworkUrl = (item.optString("artworkUrl600").ifBlank { item.optString("artworkUrl100") })
+				artworkUrl = (item.text("artworkUrl600").ifBlank { item.text("artworkUrl100") })
 					.takeIf { it.startsWith("https://") },
-				genre = item.optString("primaryGenreName").takeIf { it.isNotBlank() },
+				genre = item.text("primaryGenreName").takeIf { it.isNotBlank() },
 			)
 		}
 		return out

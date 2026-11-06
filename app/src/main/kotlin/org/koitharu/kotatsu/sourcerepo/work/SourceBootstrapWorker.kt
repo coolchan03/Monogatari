@@ -48,9 +48,9 @@ class SourceBootstrapWorker @AssistedInject constructor(
         } catch (cancel: CancellationException) {
             throw cancel
         } catch (_: Exception) {
-            return Result.retry()
+            return retryOrFail()
         }
-        if (index.jsSources.isEmpty() && index.errors.isNotEmpty()) return Result.retry()
+        if (index.jsSources.isEmpty() && index.errors.isNotEmpty()) return retryOrFail()
         val aliases = mangaSources.getEnabledSources()
             .map { it.unwrap() }
             .filterIsInstance<MangaParserSource>()
@@ -102,6 +102,9 @@ class SourceBootstrapWorker @AssistedInject constructor(
         ))
     }
 
+    /** Offline or dead repos are retried with back-off a few times, not forever. */
+    private fun retryOrFail(): Result = if (runAttemptCount >= MAX_ATTEMPTS) Result.failure() else Result.retry()
+
     @Reusable
     class Scheduler @Inject constructor(private val workManager: WorkManager) {
         /** A repeated tap does not start a second concurrent mass installation. */
@@ -127,6 +130,7 @@ class SourceBootstrapWorker @AssistedInject constructor(
     }
 
     companion object {
+        private const val MAX_ATTEMPTS = 5
         const val NAME = "monogatari_js_initial_sources"
         const val KEY_ALLOW_ADULT = "allow_adult"
         const val KEY_DONE = "done"

@@ -32,6 +32,8 @@ class SourceRepoIndexParserTest {
 			{"pkg":"nohash","version":1,"apk":"https://h/x.apk","sha256":"zzz"},
 			{"pkg":"nover","apk":"https://h/x.apk"},
 			{"version":1,"apk":"https://h/x.apk"},
+			{"pkg":"../evil","version":1,"apk":"https://h/x.apk"},
+			{"pkg":"a/b","version":1,"apk":"https://h/x.apk"},
 			"junk"
 		]"""
 		assertEquals(listOf("ok"), SourceRepoIndexParser.parse(text, "r").map { it.packageName })

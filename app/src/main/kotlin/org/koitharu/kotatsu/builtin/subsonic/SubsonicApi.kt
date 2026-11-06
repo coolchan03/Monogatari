@@ -80,9 +80,9 @@ object SubsonicApi {
 	/** Returns the "subsonic-response" object, or throws an [IOException] explaining a "failed" status. */
 	fun checkResponse(body: JSONObject): JSONObject {
 		val response = body.optJSONObject("subsonic-response") ?: throw IOException(NOT_SUBSONIC_MESSAGE)
-		if (response.optString("status") == "ok") return response
+		if (response.text("status") == "ok") return response
 		val error = response.optJSONObject("error")
-		throw IOException(errorMessage(error?.optInt("code", 0) ?: 0, error?.optString("message").orEmpty()))
+		throw IOException(errorMessage(error?.optInt("code", 0) ?: 0, error?.text("message").orEmpty()))
 	}
 
 	fun errorMessage(code: Int, message: String): String = when (code) {
@@ -104,10 +104,10 @@ object SubsonicApi {
 		val obj = response.optJSONObject("album") ?: return null
 		val album = parseAlbum(obj) ?: return null
 		val songs = (obj.optJSONArray("song")?.objects().orEmpty()).mapNotNull { s ->
-			val id = s.optString("id").takeIf { ID.matches(it) } ?: return@mapNotNull null
+			val id = s.text("id").takeIf { ID.matches(it) } ?: return@mapNotNull null
 			Song(
 				id = id,
-				title = s.optString("title").ifBlank { "Track" },
+				title = s.text("title").ifBlank { "Track" },
 				disc = s.optInt("discNumber", 0),
 				track = s.optInt("track", 0),
 				durationSeconds = s.optInt("duration", 0),
@@ -119,14 +119,14 @@ object SubsonicApi {
 	private fun parseAlbums(array: JSONArray?): List<Album> = array?.objects().orEmpty().mapNotNull(::parseAlbum)
 
 	private fun parseAlbum(obj: JSONObject): Album? {
-		val id = obj.optString("id").takeIf { ID.matches(it) } ?: return null
-		val name = obj.optString("name").ifBlank { obj.optString("title") }.takeIf { it.isNotBlank() } ?: return null
+		val id = obj.text("id").takeIf { ID.matches(it) } ?: return null
+		val name = obj.text("name").ifBlank { obj.text("title") }.takeIf { it.isNotBlank() } ?: return null
 		return Album(
 			id = id,
 			name = name,
-			artist = obj.optString("artist").takeIf { it.isNotBlank() },
+			artist = obj.text("artist").takeIf { it.isNotBlank() },
 			year = obj.optInt("year", 0).takeIf { it in 1000..2100 },
-			genre = obj.optString("genre").takeIf { it.isNotBlank() },
+			genre = obj.text("genre").takeIf { it.isNotBlank() },
 		)
 	}
 
@@ -196,11 +196,14 @@ object SubsonicApi {
 	/** "Test connection": a signed ping, so it checks the address, the API and the login together. */
 	suspend fun testConnection(client: OkHttpClient, server: String, user: String, password: String): String {
 		val response = call(withTimeout(client), server, "ping", emptyList(), user, password)
-		val type = response.optString("type").takeIf { it.isNotBlank() }
-		val version = response.optString("serverVersion").takeIf { it.isNotBlank() }
-		val name = listOfNotNull(type, version).joinToString(" ").ifBlank { "Subsonic API ${response.optString("version")}" }
+		val type = response.text("type").takeIf { it.isNotBlank() }
+		val version = response.text("serverVersion").takeIf { it.isNotBlank() }
+		val name = listOfNotNull(type, version).joinToString(" ").ifBlank { "Subsonic API ${response.text("version")}" }
 		return "Connected. The login works ($name)."
 	}
+
+	/** Android's optString turns a JSON null into the text "null"; this gives an empty string instead. */
+	private fun JSONObject.text(name: String): String = if (isNull(name)) "" else optString(name)
 
 	private fun JSONArray.objects(): List<JSONObject> = (0 until length()).mapNotNull { optJSONObject(it) }
 }

@@ -50,6 +50,9 @@ class ApiKeysActivity : AppCompatActivity() {
 
 	private lateinit var list: LinearLayout
 
+	/** The status line of each service's card, so a test started by Save can report without a re-render. */
+	private val statusViews = HashMap<String, TextView>()
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		// Keep credentials out of screenshots and the Android recent-apps preview.
@@ -65,6 +68,7 @@ class ApiKeysActivity : AppCompatActivity() {
 
 	private fun render() {
 		list.removeAllViews()
+		statusViews.clear()
 		for (service in ApiServices.all) {
 			val state = if (keys.isConfigured(service.id)) getString(R.string.api_keys_saved) else getString(R.string.api_keys_not_set)
 			val column = list.addSectionCard("${service.title} · $state")
@@ -96,6 +100,7 @@ class ApiKeysActivity : AppCompatActivity() {
 				}
 			}
 			val status = statusText()
+			statusViews[service.id] = status
 			val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
 			buttons.addView(primaryButton(getString(R.string.api_keys_save)) { save(service, inputs, status) })
 			buttons.addView(secondaryButton(getString(R.string.api_keys_remove)) {
@@ -124,9 +129,13 @@ class ApiKeysActivity : AppCompatActivity() {
 			}
 			is ApiServices.Check.Ok -> check.values
 		}
+		runTest(service, values, status)
+	}
+
+	private fun runTest(service: ApiService, values: Map<String, String>, status: TextView) {
 		status.setText(R.string.api_keys_testing)
 		lifecycleScope.launch {
-			status.text = try {
+			val message = try {
 				when (service.id) {
 					ApiServices.AUDIOBOOKSHELF ->
 						AudiobookshelfApi.testConnection(client, values.getValue("server"), values.getValue("token"))
@@ -139,6 +148,8 @@ class ApiKeysActivity : AppCompatActivity() {
 			} catch (e: Exception) {
 				getString(R.string.api_keys_test_failed, e.message ?: e.javaClass.simpleName)
 			}
+			// The card may have been re-rendered while the test ran; write to the current one.
+			statusViews[service.id]?.text = message
 		}
 	}
 
@@ -152,6 +163,8 @@ class ApiKeysActivity : AppCompatActivity() {
 			is ApiServices.Check.Ok -> {
 				keys.set(service.id, check.values)
 				render()
+				// Saving a server login immediately checks it, so a typo shows up now rather than as an empty list later.
+				if (service.id in TESTABLE) statusViews[service.id]?.let { runTest(service, check.values, it) }
 			}
 		}
 	}

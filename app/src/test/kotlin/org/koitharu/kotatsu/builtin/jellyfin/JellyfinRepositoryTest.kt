@@ -25,6 +25,17 @@ class JellyfinRepositoryTest {
 	}
 
 	@Test
+	fun plainHttpIsOnlyAcceptedOnTheHomeNetwork() {
+		assertEquals("http://10.0.0.2:8096", JellyfinRepository.normalizeServer("http://10.0.0.2:8096"))
+		assertEquals("http://100.101.102.103:4533", JellyfinRepository.normalizeServer("100.101.102.103:4533"))
+		assertEquals("http://172.16.0.1", JellyfinRepository.normalizeServer("172.16.0.1"))
+		assertNull(JellyfinRepository.normalizeServer("http://media.example.com"))
+		assertEquals("https://8.8.8.8:8096", JellyfinRepository.normalizeServer("8.8.8.8:8096"))
+		assertEquals("https://172.32.0.1", JellyfinRepository.normalizeServer("172.32.0.1"))
+		assertNull(JellyfinRepository.normalizeServer("https://user:pass@media.example.com"))
+	}
+
+	@Test
 	fun itemsUrlSearchesAndPages() {
 		val url = JellyfinRepository.itemsUrl("http://h:8096", "cowboy bebop", 30, newestFirst = false)
 		assertTrue(url.startsWith("http://h:8096/Items?"))

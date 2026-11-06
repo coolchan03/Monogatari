@@ -18,6 +18,7 @@ import org.koitharu.kotatsu.jsext.JsExtension
 import org.koitharu.kotatsu.jsext.JsPreferenceStore
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
+import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,7 +40,7 @@ class JsExtensionProvider @Inject constructor(
 	private fun prefs(id: Long) = context.getSharedPreferences("js_source_$id", Context.MODE_PRIVATE)
 
 	/** Preferences declared by the installed Mangayomi source. Most sources declare none. */
-	suspend fun getSourcePreferences(id: Long): List<JsonObject> = runCatching {
+	suspend fun getSourcePreferences(id: Long): List<JsonObject> = runCatchingCancellable {
 		(get(id).getSourcePreferences() as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
 	}.getOrDefault(emptyList())
 
