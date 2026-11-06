@@ -27,6 +27,7 @@ import androidx.core.text.HtmlCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -66,6 +67,7 @@ import org.koitharu.kotatsu.core.media.MediaType
 import org.koitharu.kotatsu.builtin.BuiltinSource
 import org.koitharu.kotatsu.core.media.asJsSource
 import org.koitharu.kotatsu.core.media.mediaType
+import org.koitharu.kotatsu.core.media.resumePositionMs
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.ui.BaseActivity
 import org.koitharu.kotatsu.core.ui.dialog.buildAlertDialog
@@ -360,7 +362,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		viewBinding.playerView.isVisible = mediaType == MediaType.VIDEO || mediaType == MediaType.AUDIO
 
 		if (currentChapterId != state.chapter.id) {
-			saveProgress()
+			// No saveProgress() here: the view model already holds the new chapter, so the old player's
+			// position would be stored on it and restored as its start. The buttons save before switching.
 			currentChapterId = state.chapter.id
 			restorePosition = viewModel.getCurrentState()?.scroll ?: 0
 			when (mediaType) {
@@ -492,6 +495,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 		}
 		val exoPlayer = ExoPlayer.Builder(this)
 			.setMediaSourceFactory(mediaSourceFactory)
+			.setAudioAttributes(AudioAttributes.DEFAULT, true)
+			.setHandleAudioBecomingNoisy(true)
 			.build()
 		val subtitles = video.subtitles.mapNotNull(::subtitleConfiguration)
 		val item = MediaItem.Builder()
@@ -766,7 +771,8 @@ class MediaReaderActivity : BaseActivity<ActivityMediaReaderBinding>() {
 				}
 				val position = current.currentPosition.coerceAtLeast(0L)
 				val progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
-				viewModel.saveContinuousState(position.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), progress)
+				// A finished episode restarts from 0 instead of resuming at its end.
+				viewModel.saveContinuousState(resumePositionMs(position, duration).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), progress)
 			}
 
 			else -> Unit

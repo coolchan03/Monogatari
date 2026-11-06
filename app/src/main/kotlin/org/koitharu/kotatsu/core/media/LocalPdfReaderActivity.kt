@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import org.koitharu.kotatsu.stats.activity.ReadingTimer
 import java.io.File
+import kotlin.math.sqrt
 
 /** Native offline PDF renderer. Saves last page for each imported file. */
 class LocalPdfReaderActivity : AppCompatActivity() {
@@ -25,6 +26,10 @@ class LocalPdfReaderActivity : AppCompatActivity() {
     private lateinit var counter: TextView
     private var fileKey = ""
     private val readingTimer by lazy { ReadingTimer(this) }
+
+    private companion object {
+        const val MAX_PAGE_PIXELS = 8_000_000f
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +70,7 @@ class LocalPdfReaderActivity : AppCompatActivity() {
             descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             renderer = PdfRenderer(descriptor!!)
             pageIndex = getSharedPreferences("pdf_progress", MODE_PRIVATE).getInt(fileKey, 0)
+                .coerceIn(0, (renderer!!.pageCount - 1).coerceAtLeast(0))
             display(pageIndex)
         } catch (error: Exception) {
             counter.text = "Unable to open PDF: ${error.message}"
@@ -85,7 +91,9 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         if (index !in 0 until pdf.pageCount) return
         pageIndex = index
         pdf.openPage(index).use { page ->
+            // Large-format pages are capped so one render cannot exhaust memory.
             val scale = (resources.displayMetrics.widthPixels.toFloat() / page.width).coerceIn(0.5f, 2.5f)
+                .coerceAtMost(sqrt(MAX_PAGE_PIXELS / (page.width.toFloat() * page.height)))
             val bitmap = Bitmap.createBitmap((page.width * scale).toInt(), (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(android.graphics.Color.WHITE)
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)

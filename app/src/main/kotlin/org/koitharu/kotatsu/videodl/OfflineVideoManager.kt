@@ -1,6 +1,8 @@
 package org.koitharu.kotatsu.videodl
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -70,8 +72,12 @@ object OfflineVideoManager {
 	/** Asks Media3 to delete the downloaded data of an entry (video part and audio part). */
 	fun removeData(context: Context, entryId: String) {
 		val downloads = manager(context)
-		downloads.removeDownload(entryId)
-		downloads.removeDownload(OfflineVideoStore.audioPartId(entryId))
+		val remove = {
+			downloads.removeDownload(entryId)
+			downloads.removeDownload(OfflineVideoStore.audioPartId(entryId))
+		}
+		// DownloadManager is not thread safe: callers on a background thread (Storage screen, Library) hop to main.
+		if (Looper.myLooper() == Looper.getMainLooper()) remove() else Handler(Looper.getMainLooper()).post { remove() }
 	}
 
 	/** Keeps [OfflineVideoStore] in step with what Media3 finished, failed or removed. */

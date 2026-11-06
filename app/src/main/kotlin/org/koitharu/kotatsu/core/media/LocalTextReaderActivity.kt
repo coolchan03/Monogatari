@@ -4,12 +4,10 @@ import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
 import android.text.Html
-import android.speech.tts.TextToSpeech
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.View
 import android.view.MenuItem
-import java.util.Locale
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -21,12 +19,8 @@ class LocalTextReaderActivity : AppCompatActivity() {
     companion object { const val EXTRA_FILE = "local_book_file" }
     private lateinit var scroll: ScrollView
     private var book: File? = null
-    private var tts: TextToSpeech? = null
+    private var narrator: ParagraphNarrator? = null
     private var spokenParagraphs = emptyList<String>()
-    private var paragraphIndex = 0
-    private var ttsReady = false
-    private var speechGeneration = 0
-    private var sleepEndAt = Long.MAX_VALUE
     private val readingTimer by lazy { ReadingTimer(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,10 +47,6 @@ class LocalTextReaderActivity : AppCompatActivity() {
                 Html.fromHtml(contents, Html.FROM_HTML_MODE_COMPACT).toString() else contents
             spokenParagraphs = readable.split(Regex("\\n\\s*\\n")).map { it.trim() }
                 .filter { it.isNotEmpty() }.take(2000)
-            tts = TextToSpeech(this) { status ->
-                ttsReady = status == TextToSpeech.SUCCESS
-                if (ttsReady) tts?.language = Locale.getDefault()
-            }
             text.text = readable
             val prefs = getSharedPreferences("book_scroll", MODE_PRIVATE)
             val y = prefs.getInt(file.name, 0)
@@ -86,45 +76,22 @@ class LocalTextReaderActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == 6702) {
-            sleepEndAt = android.os.SystemClock.elapsedRealtime() + 15L * 60_000L
-            return true
-        }
-        if (item.itemId == 6703) {
-            sleepEndAt = Long.MAX_VALUE
-            return true
-        }
-        if (item.itemId != 6701) return super.onOptionsItemSelected(item)
-        val engine = tts ?: return true
-        if (engine.isSpeaking) { speechGeneration++; engine.stop(); return true }
-        if (!ttsReady || spokenParagraphs.isEmpty()) return true
-        paragraphIndex = 0
-        val generation = ++speechGeneration
-        engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) = Unit
-            override fun onError(utteranceId: String?) = Unit
-            override fun onDone(utteranceId: String?) {
-                runOnUiThread {
-                    if (generation != speechGeneration || isFinishing || isDestroyed) return@runOnUiThread
-                    paragraphIndex++
-                    if (paragraphIndex < spokenParagraphs.size &&
-                        android.os.SystemClock.elapsedRealtime() < sleepEndAt) speakNext()
-                }
+        when (item.itemId) {
+            6701 -> {
+                // The speech engine is only started once the user asks for it.
+                val engine = narrator ?: ParagraphNarrator(this).also { narrator = it }
+                if (engine.isSpeaking) engine.stop() else engine.speak(spokenParagraphs)
             }
-        })
-        speakNext()
+            6702 -> (narrator ?: ParagraphNarrator(this).also { narrator = it }).sleepAfterMinutes(15)
+            6703 -> narrator?.sleepAfterMinutes(0)
+            else -> return super.onOptionsItemSelected(item)
+        }
         return true
     }
 
-    private fun speakNext() {
-        if (android.os.SystemClock.elapsedRealtime() >= sleepEndAt) return
-        tts?.speak(spokenParagraphs[paragraphIndex], TextToSpeech.QUEUE_FLUSH, null, "text-$paragraphIndex")
-    }
-
     override fun onDestroy() {
-        speechGeneration++
-        tts?.stop()
-        tts?.shutdown()
+        narrator?.shutdown()
+        narrator = null
         super.onDestroy()
     }
 

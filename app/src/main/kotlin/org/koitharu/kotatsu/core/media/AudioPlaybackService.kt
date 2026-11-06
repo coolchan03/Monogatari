@@ -20,7 +20,8 @@ class AudioPlaybackService : MediaSessionService() {
     private val listenTime by lazy { PlaybackTimeReporter(this, PlaybackTimeReporter.AUDIO) }
     private val checkpoint = object : Runnable {
         override fun run() {
-            savePosition()
+            // Nothing changes while paused, so do not rewrite the stored position.
+            if (session?.player?.isPlaying == true) savePosition()
             handler.postDelayed(this, 15_000L)
         }
     }
@@ -28,7 +29,7 @@ class AudioPlaybackService : MediaSessionService() {
     private fun savePosition() {
         val player = session?.player ?: return
         val url = player.currentMediaItem?.localConfiguration?.uri?.toString() ?: return
-        AudioResumeStore.write(this, url, player.currentPosition.coerceAtLeast(0L))
+        AudioResumeStore.write(this, url, resumePositionMs(player.currentPosition, player.duration.coerceAtLeast(0L)))
     }
 
     override fun onCreate() {
@@ -44,7 +45,7 @@ class AudioPlaybackService : MediaSessionService() {
                     .setUsage(C.USAGE_MEDIA)
                     .build(),
                 true,
-            ).build()
+            ).setHandleAudioBecomingNoisy(true).build()
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) = listenTime.setPlaying(isPlaying)
         })

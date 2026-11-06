@@ -36,3 +36,12 @@ internal object AudioResumeStore {
             .digest(uri.toByteArray(Charsets.UTF_8))
             .take(12).joinToString("") { "%02x".format(it) }
 }
+
+private const val RESTART_WINDOW_MS = 5_000L
+
+/** Where to resume: a finished item (last 5 s) starts again from 0 instead of ending at once. */
+internal fun resumePositionMs(positionMs: Long, durationMs: Long): Long = when {
+    positionMs <= 0L -> 0L
+    durationMs > 0L && positionMs >= durationMs - RESTART_WINDOW_MS -> 0L
+    else -> positionMs
+}

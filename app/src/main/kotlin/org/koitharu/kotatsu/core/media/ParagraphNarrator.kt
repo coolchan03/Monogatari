@@ -14,6 +14,8 @@ internal class ParagraphNarrator(context: Context, private val onFinished: () ->
 
 	private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 	private var ready = false
+	/** Text asked for before the engine finished starting; read as soon as it is ready. */
+	private var pending: List<String>? = null
 	private var paragraphs = emptyList<String>()
 	private var index = 0
 	private var generation = 0
@@ -21,6 +23,7 @@ internal class ParagraphNarrator(context: Context, private val onFinished: () ->
 	private val tts = TextToSpeech(context.applicationContext) { status ->
 		ready = status == TextToSpeech.SUCCESS
 		if (ready) engine()?.language = Locale.getDefault()
+		pending?.takeIf { ready }?.let { pending = null; speak(it) }
 	}
 
 	private fun engine(): TextToSpeech? = tts
@@ -28,7 +31,10 @@ internal class ParagraphNarrator(context: Context, private val onFinished: () ->
 	val isSpeaking: Boolean get() = tts.isSpeaking
 
 	fun speak(text: List<String>) {
-		if (!ready) return
+		if (!ready) {
+			pending = text
+			return
+		}
 		paragraphs = text.map { it.trim() }.filter { it.isNotEmpty() }.take(2000)
 		if (paragraphs.isEmpty()) return
 		index = 0
@@ -55,6 +61,7 @@ internal class ParagraphNarrator(context: Context, private val onFinished: () ->
 	}
 
 	fun stop() {
+		pending = null
 		generation++
 		tts.stop()
 	}
