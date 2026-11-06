@@ -39,11 +39,11 @@ internal class SubscriptionImportFlow(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				reading.dialog.dismiss()
 				showMessage(context.getString(R.string.sub_import_read_failed, e.message.orEmpty()))
 				return@launch
+			} finally {
+				reading.close()
 			}
-			reading.dialog.dismiss()
 			if (parsed.channels.isEmpty()) {
 				showMessage(context.getString(R.string.sub_import_none_found))
 			} else {
@@ -82,11 +82,11 @@ internal class SubscriptionImportFlow(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				progress.dialog.dismiss()
 				showMessage(context.getString(R.string.sub_import_read_failed, e.message.orEmpty()))
 				return@launch
+			} finally {
+				progress.close()
 			}
-			progress.dialog.dismiss()
 			val summary = listOf(
 				context.getString(R.string.sub_import_done_imported, result.imported),
 				context.getString(R.string.sub_import_done_present, result.alreadyPresent),
@@ -109,7 +109,13 @@ internal class SubscriptionImportFlow(
 			.show()
 	}
 
-	private class Progress(val dialog: Dialog, val bar: LinearProgressIndicator)
+	private class Progress(val dialog: Dialog, val bar: LinearProgressIndicator) {
+
+		/** Also runs when the screen is left mid-way, where the window may already be gone. */
+		fun close() {
+			runCatching { dialog.dismiss() }
+		}
+	}
 
 	private fun showProgress(message: String, indeterminate: Boolean): Progress {
 		val context = fragment.requireContext()

@@ -70,6 +70,8 @@ class MediaFeedFragment : Fragment(), RecyclerViewOwner {
 	private var entries = emptyList<MediaFeedParser.Episode>()
 	private var filter: MediaFeedParser.Kind? = null
 	private var loadJob: Job? = null
+	/** Counts loads, so a load cancelled by a newer one does not hide the newer one's progress bar. */
+	private var loadGeneration = 0
 	private var playlistOnly = false
 	private lateinit var emptyHost: LinearLayout
 	private var loadError: String? = null
@@ -307,6 +309,7 @@ class MediaFeedFragment : Fragment(), RecyclerViewOwner {
 	private fun load(url: String, subscribe: Boolean = false) {
 		playlistOnly = false
 		loadJob?.cancel()
+		val generation = ++loadGeneration
 		retryButton.isVisible = false
 		loadError = null
 		loading.isVisible = true
@@ -342,7 +345,7 @@ class MediaFeedFragment : Fragment(), RecyclerViewOwner {
 				status.text = if (cached.isNotEmpty()) getString(R.string.mono_feeds_showing_saved_episodes, reason)
 					else "Feed unavailable: $reason"
 			} finally {
-				loading.isVisible = false
+				if (generation == loadGeneration) loading.isVisible = false
 			}
 		}
 	}

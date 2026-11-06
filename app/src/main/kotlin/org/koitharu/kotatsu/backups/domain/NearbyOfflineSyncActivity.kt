@@ -30,6 +30,7 @@ import com.google.android.gms.nearby.connection.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -205,7 +206,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         queueControls.addSecondaryButton(getString(R.string.nearby_multi_cancel_rest)) { skipCurrent(true) }
         transfer.addView(queueControls)
         transfer.addSecondaryButton(getString(R.string.nearby_multi_forget_folder)) {
-            trust.setSaveFolder(null)
+            forgetSaveFolder()
             say(getString(R.string.nearby_multi_folder_forgotten))
         }
         transfer.addSecondaryButton(getString(R.string.mono_nearby_stop_and_disconnect)) { stop(); say("Nearby transfer stopped.") }
@@ -400,7 +401,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 if (known != null) {
                     handshakes[id] = NearbyTrustHandshake(
                         NearbyTrust.fromHex(known.secret), trust.localId(), known.id,
-                        initiator = !info.isIncomingConnection)
+                        initiator = !info.isIncomingConnection, binding = info.authenticationDigits)
                     handshakeDevices[id] = known
                     say(getString(R.string.nearby_trust_verifying, known.name))
                     client.acceptConnection(id, payloadEvents)
@@ -1061,12 +1062,24 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
         return if (granted) uri else null
     }
 
+    /** Clears the remembered folder and gives its Android write grant back, so old choices do not pile up. */
+    private fun forgetSaveFolder() {
+        trust.saveFolder()?.let { raw ->
+            runCatching {
+                contentResolver.releasePersistableUriPermission(Uri.parse(raw),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+        }
+        trust.setSaveFolder(null)
+    }
+
     private fun onFolderChosen(uri: Uri?) {
         val granted = uri != null && runCatching {
             contentResolver.takePersistableUriPermission(uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }.isSuccess
         if (uri != null && granted) {
+            if (trust.saveFolder() != uri.toString()) forgetSaveFolder()
             trust.setSaveFolder(uri.toString())
             batchFolder = uri
             folderDecision = FolderDecision.FOLDER
@@ -1123,7 +1136,7 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
                 file.delete()
                 receiveTally.sent++
             }.onFailure {
-                trust.setSaveFolder(null)
+                forgetSaveFolder()
                 batchFolder = null
                 folderDecision = FolderDecision.ONE_BY_ONE
                 say("Save to folder failed: " + it.message)
@@ -1313,7 +1326,8 @@ class NearbyOfflineSyncActivity : AppCompatActivity() {
     ) {
         say("Merging selected backup sections...")
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
+            // Once started, a merge runs to the end even if the screen is closed: stopping halfway leaves a mixed library.
+            val result = withContext(Dispatchers.IO + NonCancellable) {
                 try {
                     runCatching { ZipInputStream(file.inputStream()).use {
                         backups.restoreBackup(it, sections, null, groups,

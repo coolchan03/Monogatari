@@ -70,12 +70,21 @@ class BackupReminderWorker @AssistedInject constructor(
 			0,
 			false,
 		)
+		// Same screen, but it goes straight to the "save backup" file picker.
+		val backUpNowIntent = PendingIntentCompat.getActivity(
+			context,
+			1,
+			AppRouter.historySettingsIntent(context).putExtra(EXTRA_BACKUP_NOW, true),
+			0,
+			false,
+		)
 		val notification = NotificationCompat.Builder(context, CHANNEL_ID)
 			.setSmallIcon(android.R.drawable.stat_sys_upload)
 			.setContentTitle(context.getString(R.string.backup_reminder_title))
 			.setContentText(text)
 			.setStyle(NotificationCompat.BigTextStyle().bigText(text))
 			.setContentIntent(pendingIntent)
+			.addAction(0, context.getString(R.string.backup_reminder_action_back_up), backUpNowIntent)
 			.setAutoCancel(true)
 			.setSilent(true)
 			.setPriority(NotificationCompat.PRIORITY_LOW)
@@ -111,6 +120,9 @@ class BackupReminderWorker @AssistedInject constructor(
 	companion object {
 
 		const val CHANNEL_ID = "backup_reminders"
+
+		/** Boolean extra on the settings intent: open the manual backup file picker straight away. */
+		const val EXTRA_BACKUP_NOW = "org.koitharu.kotatsu.extra.BACKUP_NOW"
 		private const val NOTIFICATION_ID = 0xBAC0
 		private const val WORK_NAME = "monogatari_backup_reminder"
 

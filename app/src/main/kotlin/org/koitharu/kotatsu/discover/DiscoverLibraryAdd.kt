@@ -81,8 +81,12 @@ internal fun Fragment.addDiscoverItemToLibrary(
 	val progress = Snackbar.make(root, getString(R.string.discover_library_finding, item.title), Snackbar.LENGTH_INDEFINITE)
 	progress.show()
 	viewLifecycleOwner.lifecycleScope.launch {
-		val manga = runCatchingCancellable { finder.find(item.title, item.alternativeTitle, type) }.getOrNull()
-		progress.dismiss()
+		// finally: leaving the screen cancels the lookup, and the progress snackbar must not outlive it.
+		val manga = try {
+			runCatchingCancellable { finder.find(item.title, item.alternativeTitle, type) }.getOrNull()
+		} finally {
+			progress.dismiss()
+		}
 		if (manga != null) {
 			router.showFavoriteDialog(manga)
 		} else {

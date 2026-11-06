@@ -54,13 +54,18 @@ internal object NearbyTrust {
         }
     }
 
-    /** HMAC-SHA256(secret, role || nonceA || nonceB); nonceA belongs to the side that asked for the connection. */
-    fun proof(secret: ByteArray, role: String, nonceA: ByteArray, nonceB: ByteArray): ByteArray {
+    /**
+     * HMAC-SHA256(secret, role || nonceA || nonceB || binding); nonceA belongs to the side that asked for the
+     * connection. [binding] ties the proof to this one encrypted link (its pairing digits), so a device that merely
+     * relays the challenge between two separate links cannot pass it on.
+     */
+    fun proof(secret: ByteArray, role: String, nonceA: ByteArray, nonceB: ByteArray, binding: String = ""): ByteArray {
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(secret, "HmacSHA256"))
         mac.update(role.toByteArray(Charsets.UTF_8))
         mac.update(nonceA)
         mac.update(nonceB)
+        mac.update(binding.toByteArray(Charsets.UTF_8))
         return mac.doFinal()
     }
 
@@ -159,7 +164,7 @@ internal class NearbyTrustStore(context: Context) {
  * One challenge-response with a remembered device. Both sides send a fresh nonce, then prove knowledge of the secret
  * with HMAC-SHA256(secret, role || nonceA || nonceB), where role is "A" for the side that requested the connection and
  * "B" for the side that advertised, and nonceA / nonceB are those sides' nonces. The role makes a reflected proof
- * useless. Only [State.VERIFIED] unlocks transfers; any malformed, repeated or out-of-order message fails the session.
+ * useless, and [binding] (the link's authentication digits) makes a relayed one useless. Only [State.VERIFIED] unlocks transfers; any malformed, repeated or out-of-order message fails the session.
  */
 internal class NearbyTrustHandshake(
     private val secret: ByteArray,
@@ -167,6 +172,7 @@ internal class NearbyTrustHandshake(
     private val peerId: String,
     private val initiator: Boolean,
     private val localNonce: ByteArray = NearbyTrust.randomBytes(NearbyTrust.NONCE_BYTES),
+    private val binding: String = "",
 ) {
     enum class State { PENDING, VERIFIED, FAILED }
 
@@ -215,6 +221,6 @@ internal class NearbyTrustHandshake(
     private fun proof(role: String, other: ByteArray): ByteArray {
         val a = if (initiator) localNonce else other
         val b = if (initiator) other else localNonce
-        return NearbyTrust.proof(secret, role, a, b)
+        return NearbyTrust.proof(secret, role, a, b, binding)
     }
 }

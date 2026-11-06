@@ -24,12 +24,18 @@ internal object BookShelf {
 
     /**
      * Older versions cut long imported names before their extension, so those books never showed up.
-     * Gives such files their extension back (from the file's first bytes); call off the main thread.
+     * Gives such files their extension back (from the file's first bytes) and clears abandoned .partial files;
+     * call off the main thread.
      */
     fun recoverUnlisted(context: Context): Int {
         var recovered = 0
         for (file in dir(context).listFiles().orEmpty()) {
-            if (!file.isFile || isShelfFile(file.name) || file.name.endsWith(".partial", ignoreCase = true)) continue
+            if (!file.isFile || isShelfFile(file.name)) continue
+            if (file.name.endsWith(".partial", ignoreCase = true)) {
+                // A download or copy that was killed halfway; one this old is no longer running.
+                if (System.currentTimeMillis() - file.lastModified() > STALE_PARTIAL_MILLIS) file.delete()
+                continue
+            }
             val header = runCatching {
                 file.inputStream().use { input ->
                     val buffer = ByteArray(HEADER_BYTES)
@@ -66,6 +72,7 @@ internal object BookShelf {
         return "$stem.$ext"
     }
 
+    private const val STALE_PARTIAL_MILLIS = 60L * 60L * 1000L
     private const val NOT_STARTED = "Not started"
     private const val HEADER_BYTES = 96
     private const val COVER_DIR = "library-covers"

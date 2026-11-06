@@ -24,5 +24,4 @@
 	<string name="sync_conflict_apply">Merge with these choices</string>
 	<string name="sync_conflict_cancel">Cancel import</string>
 	<string name="sync_conflict_checking">Checking for reading progress conflicts…</string>
-	<string name="sync_conflict_check_failed">Could not compare reading progress; merging newest-first as usual.</string>
 </resources>

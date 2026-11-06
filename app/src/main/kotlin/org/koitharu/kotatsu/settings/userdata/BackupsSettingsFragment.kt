@@ -75,6 +75,11 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
         backupReminderScheduler.schedule()
         BackupStatus.prefs(requireContext()).registerOnSharedPreferenceChangeListener(backupStatusListener)
         viewModel.onError.observeEvent(viewLifecycleOwner, SnackbarErrorObserver(listView, this))
+        val hostIntent = requireActivity().intent
+        if (savedInstanceState == null && hostIntent.getBooleanExtra(BackupReminderWorker.EXTRA_BACKUP_NOW, false)) {
+            hostIntent.removeExtra(BackupReminderWorker.EXTRA_BACKUP_NOW)
+            startManualBackup()
+        }
     }
 
     override fun onDestroyView() {
@@ -85,11 +90,7 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         return when (preference.key) {
             AppSettings.KEY_BACKUP -> {
-                if (!backupCreateCall.tryLaunch(BackupUtils.generateFileName(preference.context))) {
-                    Snackbar.make(
-                        listView, R.string.operation_not_supported, Snackbar.LENGTH_SHORT,
-                    ).show()
-                }
+                startManualBackup()
                 true
             }
 
@@ -118,6 +119,14 @@ class BackupsSettingsFragment : BasePreferenceFragment(R.string.backup_restore),
             }
 
             else -> super.onPreferenceTreeClick(preference)
+        }
+    }
+
+    private fun startManualBackup() {
+        if (!backupCreateCall.tryLaunch(BackupUtils.generateFileName(requireContext()))) {
+            Snackbar.make(
+                listView, R.string.operation_not_supported, Snackbar.LENGTH_SHORT,
+            ).show()
         }
     }
 

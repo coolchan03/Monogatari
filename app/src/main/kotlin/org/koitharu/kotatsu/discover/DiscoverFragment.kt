@@ -150,6 +150,8 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 	private var nextPage = 1
 	private var hasNextPage = true
 	private var loadJob: Job? = null
+	/** Bumped whenever a load starts, so a cancelled load cannot hide the progress bar of the one that replaced it. */
+	private var loadGeneration = 0
 
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
 		ActivityDiscoverBinding.inflate(inflater, container, false).also { _binding = it }.root
@@ -484,7 +486,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 				val term = input.text?.toString()?.trim().orEmpty()
 				if (term.isBlank()) return@setPositiveButton
 				viewLifecycleOwner.lifecycleScope.launch {
-					val videos = runCatching { publicCatalog.searchInternetArchiveVideos(term) }
+					val videos = runCatchingCancellable { publicCatalog.searchInternetArchiveVideos(term) }
 					videos.onSuccess { results ->
 						if (results.isEmpty()) {
 							showMessage(getString(R.string.mono_discover_no_public_archive_videos_matched_that))
@@ -515,6 +517,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 		binding.swipeRefresh.isEnabled = section != MediaSection.NEWS
 		loadJob?.cancel()
 		loadJob = null
+		loadGeneration++
 		adapter.items = emptyList()
 		nextPage = 1
 		shelfOffsets.clear()
@@ -539,6 +542,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 	private fun loadAll() {
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
+		val generation = ++loadGeneration
 		loadJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val picks = recommendations.load(null, settings.isNsfwContentDisabled)
@@ -552,7 +556,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 			} catch (e: Exception) {
 				if (adapter.itemCount == 0) showMessage(getString(R.string.discover_load_failed, e.message.orEmpty()))
 			} finally {
-				_binding?.progress?.isVisible = false
+				if (generation == loadGeneration) _binding?.progress?.isVisible = false
 			}
 		}
 	}
@@ -568,6 +572,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 		val page = nextPage
 		binding.progress.isVisible = true
 		binding.textMessage.isVisible = false
+		val generation = ++loadGeneration
 		loadJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
 				val result = when {
@@ -584,7 +589,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 				val known = adapter.items.mapTo(HashSet()) { it.uniqueKey }
 				val unseen = result.items.filter { it.uniqueKey !in known }
 				val additions = AniListDiscover.visibleItems(unseen, settings.isNsfwContentDisabled)
-				adapter.items = adapter.items + additions
+				adapter.append(additions)
 				hasNextPage = result.hasNextPage && unseen.isNotEmpty()
 				nextPage = page + 1
 				if (adapter.itemCount == 0) {
@@ -597,8 +602,9 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 					showMessage(getString(R.string.discover_load_failed, e.message.orEmpty()))
 				}
 			} finally {
-				// Also runs after onDestroyView cancelled the load, when the view is already gone.
-				_binding?.progress?.isVisible = false
+				// Also runs after onDestroyView cancelled the load, when the view is already gone, and after a
+				// reload replaced this load (whose own progress bar must stay).
+				if (generation == loadGeneration) _binding?.progress?.isVisible = false
 			}
 		}
 	}
@@ -780,6 +786,14 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 				@Suppress("NotifyDataSetChanged")
 				notifyDataSetChanged()
 			}
+
+		/** Adds the next page without rebinding the cards that are already there. */
+		fun append(more: List<AniListDiscover.Item>) {
+			if (more.isEmpty()) return
+			val start = items.size
+			items = items + more
+			notifyItemRangeInserted(start, more.size)
+		}
 
 		/** AniList ids of shows with airing reminders; their cards get a bell in the badge. */
 		var followedIds: Set<Int> = emptySet()

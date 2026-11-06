@@ -38,6 +38,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
 import okhttp3.OkHttpClient
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.builtin.opds.OpdsPresets
@@ -96,13 +97,14 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 	/** Copies picked or drag-and-dropped files into the local library. */
 	private fun importBooks(uris: List<Uri>) {
 		if (uris.isEmpty()) return
-		val context = requireContext()
-		viewLifecycleOwner.lifecycleScope.launch {
+		val context = requireContext().applicationContext
+		// Not tied to the view: rotating the phone must not abort a copy that has started.
+		processLifecycleScope.launch {
 			val report = withContext(Dispatchers.IO) {
 				// Shared with Add files, so both import books the same way.
 				uris.map { uri -> LocalFileImporter.importBook(context, uri).message }
 			}
-			showLines(report)
+			if (view != null) showLines(report)
 		}
 	}
 

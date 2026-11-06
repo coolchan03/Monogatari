@@ -66,6 +66,30 @@ class NearbyTrustTest {
         assertEquals(State.VERIFIED, b.state)
     }
 
+    @Test fun proofDependsOnLinkBinding() {
+        val base = NearbyTrust.proof(secret, "A", nonceA, nonceB, "1234")
+        assertTrue(NearbyTrust.verify(base, NearbyTrust.proof(secret, "A", nonceA, nonceB, "1234")))
+        assertFalse(NearbyTrust.verify(base, NearbyTrust.proof(secret, "A", nonceA, nonceB, "4321")))
+        assertFalse(NearbyTrust.verify(base, NearbyTrust.proof(secret, "A", nonceA, nonceB)))
+    }
+
+    @Test fun relayedHandshakeOverTwoLinksFails() {
+        // A relay between two links sees different digits on each, so the proofs it forwards do not verify.
+        val a = NearbyTrustHandshake(secret, idA, idB, initiator = true, localNonce = nonceA, binding = "1111")
+        val b = NearbyTrustHandshake(secret, idB, idA, initiator = false, localNonce = nonceB, binding = "2222")
+        run(a, b)
+        assertEquals(State.FAILED, a.state)
+        assertEquals(State.FAILED, b.state)
+    }
+
+    @Test fun sameLinkBindingVerifiesBothSides() {
+        val a = NearbyTrustHandshake(secret, idA, idB, initiator = true, localNonce = nonceA, binding = "1111")
+        val b = NearbyTrustHandshake(secret, idB, idA, initiator = false, localNonce = nonceB, binding = "1111")
+        run(a, b)
+        assertEquals(State.VERIFIED, a.state)
+        assertEquals(State.VERIFIED, b.state)
+    }
+
     @Test fun differentSecretsFailBothSides() {
         val (a, b) = pair(secretB = ByteArray(32) { 9 })
         run(a, b)

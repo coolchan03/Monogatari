@@ -94,6 +94,7 @@ class NewsFeedFragment : Fragment(), RecyclerViewOwner, ScrollToTopOwner {
 	private var noticeText: String? = null
 	private val isBottomTab: Boolean
 		get() = arguments?.getBoolean(AppRouter.KEY_IS_BOTTOMTAB, false) == true
+	private val renderFromSearch = Runnable { if (view != null) render() }
 	private val prefs by lazy { requireContext().getSharedPreferences("monogatari_news", Context.MODE_PRIVATE) }
 
 	override fun onCreateView(
@@ -151,7 +152,13 @@ class NewsFeedFragment : Fragment(), RecyclerViewOwner, ScrollToTopOwner {
 			hint = getString(R.string.mono_news_filter_articles_by_title_or_topic)
 			setSingleLine(true)
 			setText(savedInstanceState?.getString("news_search").orEmpty())
-			doAfterTextChanged { if (::entries.isInitialized) render() }
+			// Typing rebuilds every card, so wait for a short pause.
+			doAfterTextChanged {
+				if (::entries.isInitialized) {
+					removeCallbacks(renderFromSearch)
+					postDelayed(renderFromSearch, SEARCH_DEBOUNCE_MS)
+				}
+			}
 		}
 		root.addView(searchInput, LinearLayout.LayoutParams(-1, -2))
 		chipsRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -621,6 +628,7 @@ class NewsFeedFragment : Fragment(), RecyclerViewOwner, ScrollToTopOwner {
 		const val ALL_FEEDS = "all_feeds"
 		const val MAX_PARALLEL_FEEDS = 4
 		const val MAX_MERGED_ENTRIES = 200
+		const val SEARCH_DEBOUNCE_MS = 250L
 		const val MENU_ADD = 8201
 		const val MENU_INCLUDED = 8202
 		const val MENU_REMOVE = 8203

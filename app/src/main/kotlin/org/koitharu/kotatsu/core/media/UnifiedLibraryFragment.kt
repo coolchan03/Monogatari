@@ -108,6 +108,8 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 		private const val MENU_COMPACT = 7503
 		private const val HISTORY_LIMIT = 300
 		private const val KEY_SORT = "sort"
+		private const val KEY_KIND = "last_kind"
+		private const val SEARCH_DEBOUNCE_MS = 250L
 
 		/** Shows only this [MediaType] (by name) and hides the type chips; used by the Books tab. */
 		const val ARG_LOCKED_KIND = "monogatari_library_locked_kind"
@@ -157,6 +159,9 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 	private var lockedKind: MediaType? = null
 	private var sort = LibraryShelf.Sort.RECENTLY_ADDED
 	private var refreshJob: Job? = null
+	/** Counts refreshes, so one cancelled by a newer refresh does not hide the newer one's progress bar. */
+	private var refreshGeneration = 0
+	private val renderFromSearch = Runnable { if (view != null) render() }
 	/** "On this device" toggle: only imported files and downloads. */
 	private var onDeviceOnly = false
 	/** Recommended cards per type chip (null key is All), kept for the fragment's lifetime; an empty list hides the strip. */
@@ -164,7 +169,6 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 	private var recJob: Job? = null
 	private var recType: MediaType? = null
 	private var recLoading = false
-	private var listStrip: RecommendedStrip? = null
 	private lateinit var emptyStrip: RecommendedStrip
 	private lateinit var search: EditText
 	private lateinit var status: TextView
@@ -214,7 +218,9 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 		selected = when {
 			lockedKind != null -> lockedKind
 			savedInstanceState?.containsKey("selected_kind") == true -> parseKind(savedInstanceState?.getString("selected_kind"))
-			else -> requestedKind
+			// Opened with a chosen type (from Discover, the book catalog...) or else the chip used last.
+			arguments?.containsKey(UnifiedLibraryActivity.EXTRA_MEDIA_KIND) == true -> requestedKind
+			else -> parseKind(uiPrefs.getString(KEY_KIND, null))
 		}
 		sort = runCatching { LibraryShelf.Sort.valueOf(uiPrefs.getString(KEY_SORT, null).orEmpty()) }
 			.getOrDefault(LibraryShelf.Sort.RECENTLY_ADDED)
@@ -249,7 +255,11 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 		val context = root.context
 		search = root.findViewById(R.id.library_search)
 		search.setText(savedInstanceState?.getString("library_query") ?: arguments?.getString(UnifiedLibraryActivity.EXTRA_FILTER).orEmpty())
-		search.doAfterTextChanged { render() }
+		// Every render rebuilds the chips and the list, so wait for a short pause in typing.
+		search.doAfterTextChanged {
+			search.removeCallbacks(renderFromSearch)
+			search.postDelayed(renderFromSearch, SEARCH_DEBOUNCE_MS)
+		}
 		// Books, comics, videos and audio from the device (also in the overflow menu).
 		root.findViewById<MaterialButton>(R.id.library_add_files).setOnClickListener { fileImporter.launchOrToast() }
 		root.findViewById<MaterialButton>(R.id.library_empty_add).setOnClickListener { fileImporter.launchOrToast() }
@@ -270,7 +280,12 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 					text = kindLabel(type)
 					isCheckable = true
 					if (type != null) MediaAccents.tintChip(context, type.name, this)
-					setOnClickListener { selected = type; followSearchScope(); render() }
+					setOnClickListener {
+						selected = type
+						uiPrefs.edit().putString(KEY_KIND, type?.name ?: "ALL").apply()
+						followSearchScope()
+						render()
+					}
 				}
 				buttons += type to chip
 				tabs.addView(chip)
@@ -1037,7 +1052,6 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 		recJob?.cancel()
 		recJob = null
 		recLoading = false
-		listStrip = null
 		super.onDestroyView()
 	}
 
@@ -1190,6 +1204,7 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 		if (view == null || !::status.isInitialized) return
 		loading.visibility = View.VISIBLE
 		refreshJob?.cancel()
+		val generation = ++refreshGeneration
 		val context = requireContext().applicationContext
 		refreshJob = viewLifecycleOwner.lifecycleScope.launch {
 			try {
@@ -1210,17 +1225,19 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 				// Keep the previous library visible and explain an I/O or database problem.
 				showStatus(getString(R.string.library_load_failed, error.message.orEmpty().take(160)))
 			} finally {
-				loading.visibility = View.GONE
+				if (generation == refreshGeneration) loading.visibility = View.GONE
 			}
 		}
 	}
 
 	/** Extracts EPUB covers not seen before (once per book), then shows them. */
 	private suspend fun loadCovers(context: Context) {
-		val pending = all.mapNotNull { row -> row.file?.takeIf { row.coverFile == null && BookShelf.needsCoverLookup(context, it) } }
-		if (pending.isEmpty()) return
+		val books = all.mapNotNull { row -> row.file?.takeIf { row.coverFile == null } }
+		if (books.isEmpty()) return
+		// The lookups stat files and open EPUBs, so all of it stays off the main thread.
 		val covers = withContext(Dispatchers.IO) {
-			pending.mapNotNull { file -> BookShelf.extractCover(context, file)?.let { file.absolutePath to it } }.toMap()
+			books.filter { BookShelf.needsCoverLookup(context, it) }
+				.mapNotNull { file -> BookShelf.extractCover(context, file)?.let { file.absolutePath to it } }.toMap()
 		}
 		if (covers.isEmpty()) return
 		all = all.map { row -> covers[row.file?.absolutePath]?.let { row.copy(coverFile = it) } ?: row }
@@ -1487,7 +1504,7 @@ class UnifiedLibraryFragment : Fragment(), RecyclerViewOwner {
 			}
 			R.layout.item_library_recommended -> RecommendedHolder(
 				RecommendedStrip(LayoutInflater.from(parent.context).inflate(viewType, parent, false)),
-			).also { listStrip = it.strip }
+			)
 			R.layout.item_library_search_all -> object : RecyclerView.ViewHolder(
 				LayoutInflater.from(parent.context).inflate(viewType, parent, false),
 			) {}
