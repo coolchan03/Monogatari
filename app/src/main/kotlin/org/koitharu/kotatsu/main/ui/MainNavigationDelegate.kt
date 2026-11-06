@@ -134,7 +134,7 @@ class MainNavigationDelegate(
 	}
 
 	override fun handleOnBackPressed() {
-		navBar.selectedItemId = firstItem()?.itemId ?: return
+		navBar.selectedItemId = backTargetId() ?: return
 	}
 
 	fun onCreate(lifecycleOwner: LifecycleOwner, savedInstanceState: Bundle?) {
@@ -329,13 +329,13 @@ class MainNavigationDelegate(
 			return false
 		}
 		val fragment = instantiateFragment(fragmentClass)
-		val args = buildBundle(1) {
+		fragment.arguments = buildBundle(1) {
 			putBoolean(AppRouter.KEY_IS_BOTTOMTAB, true)
 		}
 		fragment.enterTransition = MaterialFadeThrough()
 		fragmentManager.beginTransaction()
 			.setReorderingAllowed(true)
-			.replace(R.id.container, fragmentClass, args, TAG_PRIMARY)
+			.replace(R.id.container, fragment, TAG_PRIMARY)
 			.runOnCommit { onFragmentChanged(fragment, fromUser = true) }
 			.commit()
 		return true
@@ -351,7 +351,8 @@ class MainNavigationDelegate(
 	}
 
 	private fun onFragmentChanged(fragment: Fragment, fromUser: Boolean) {
-		isEnabled = getItemId(fragment) != firstItem()?.itemId
+		val backTarget = backTargetId()
+		isEnabled = backTarget != null && getItemId(fragment) != backTarget
 		if (fromUser) {
 			val itemId = getItemId(fragment)
 			NavItem.entries.firstOrNull { it.id == itemId && !it.isShortcut }?.let { settings.lastTab = it.name }
@@ -409,6 +410,13 @@ class MainNavigationDelegate(
 		barItems = shownItems,
 		isAvailable = { it.isAvailable(settings) },
 	)?.id?.takeIf { navBar.menu.findItem(it) != null }
+
+	/** Where Back goes from any other tab: the start page tab, or the first tab when that is not on the bar. */
+	private fun backTargetId(): Int? = StartPageResolver.backTarget(
+		startPage = settings.startPage,
+		barItems = shownItems,
+		isAvailable = { it.isAvailable(settings) },
+	)?.id?.takeIf { navBar.menu.findItem(it)?.isVisible == true } ?: firstItem()?.itemId
 
 	private fun firstItem(): MenuItem? {
 		val menu = navBar.menu

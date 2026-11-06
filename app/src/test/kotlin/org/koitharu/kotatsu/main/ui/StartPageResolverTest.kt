@@ -68,4 +68,12 @@ class StartPageResolverTest {
 		assertTrue(StartPageResolver.tabsOf(bar).none { it.isShortcut })
 		assertEquals(4, StartPageResolver.tabsOf(bar).size)
 	}
+
+	@Test
+	fun backTargetIsStartPageAndLastCountsAsFirst() {
+		assertEquals(NavItem.DISCOVER, StartPageResolver.backTarget("DISCOVER", bar, all))
+		assertEquals(NavItem.UNIFIED_LIBRARY, StartPageResolver.backTarget("LAST", bar, all))
+		assertEquals(NavItem.UNIFIED_LIBRARY, StartPageResolver.backTarget(null, bar, all))
+		assertEquals(NavItem.UNIFIED_LIBRARY, StartPageResolver.backTarget("FAVORITES", bar, all))
+	}
 }

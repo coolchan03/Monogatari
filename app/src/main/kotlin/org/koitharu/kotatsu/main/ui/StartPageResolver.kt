@@ -33,4 +33,8 @@ object StartPageResolver {
 		}
 		return candidates.firstOrNull { it.name == wanted } ?: first
 	}
+
+	/** The tab Back returns to from any other tab: the chosen start page ("Last used" counts as the first tab). */
+	fun backTarget(startPage: String?, barItems: List<NavItem>, isAvailable: (NavItem) -> Boolean): NavItem? =
+		resolve(startPage.takeUnless { it == LAST }, null, barItems, isAvailable)
 }

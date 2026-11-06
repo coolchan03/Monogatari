@@ -207,7 +207,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		addMenuProvider(MainMenuProvider(router, viewModel))
 		addMenuProvider(object : MenuProvider {
 			override fun onCreateMenu(menu: android.view.Menu, menuInflater: android.view.MenuInflater) {
-				menu.add(0, 4901, 100, "More destinations")
+				menu.add(0, 4901, 100, R.string.screen_title_more)
 			}
 			override fun onMenuItemSelected(item: android.view.MenuItem): Boolean {
 				if (item.itemId != 4901) return false
