@@ -148,7 +148,9 @@ class WebViewExecutor @Inject constructor(
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                             val url = request?.url ?: return false
                             val requestHost = url.host
-                            if (originalHost != null && requestHost != null && requestHost.contains(originalHost)) {
+                            if (org.koitharu.kotatsu.core.network.HostMatcher.isWebScheme(url.scheme) &&
+                                org.koitharu.kotatsu.core.network.HostMatcher.isSameSite(requestHost, originalHost)
+                            ) {
                                 return false
                             }
                             println("DEBUG: Blocked redirect to external domain: $url")
