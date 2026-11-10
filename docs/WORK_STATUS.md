@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
+- Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
+- ACTIVE operation: baseline `./gradlew :app:testDebugUnitTest` (Linux container, Android SDK in /home/user/android-sdk, outside repo). Result recorded below when finished.
+- Note: no "Tunnel to Surface" tool exists in this session; work is local commits only, no push.
+
 ## 2026-11-04 — v1.7.0 released (public)
 - https://github.com/coolchan03/Monogatari/releases/tag/v1.7.0 built from `devel` `1868824` (drafts merged; build check run 41646355333 green; release run 41649543431 started by one owner-approved connector workflow dispatch; not draft, not prerelease). APK SHA-256 `54fbaa39aa06c73a81a9515b14a27b8713da6fe6cbea6060716229972f742324`.
 - Sources and integrations: Audiobookshelf and Subsonic/Navidrome (API keys & accounts, Test connection; built from docs, never tested against a real server), media.ccc.de + Bandcamp via NewPipe, podcast directory search, OPDS presets (Gutenberg, Unglue.it). Sync and safety: Nearby trusted devices (HMAC challenge), multi-file transfers, favourites conflict sheet, backup reminders + Last backup line, restore preview. Not device-verified yet.
