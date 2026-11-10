@@ -103,3 +103,17 @@ Method: a handful of GET requests per site, one request per endpoint, browser-li
 2. `SKYMANGAS` rewrite (clean public JSON API, lowest risk).
 3. `ROCKSMANGA` rewrite (Next.js + `api.rocksmanga.com`).
 4. Re-check `SOULSCANS`, `HWAGO`, `NATSU` from a normal network before deciding they are dead.
+
+
+## Fixes shipped from this repo (2026-11-10)
+
+The parser library cannot be changed from here, so working replacements were written as Mangayomi JavaScript extensions (`extensions/`, index seeded as a recommended manga repository). They are served from the `devel` branch, so users only get them once this work is merged into `devel`.
+
+| Source | Status | Evidence | Limits |
+|---|---|---|---|
+| `SKYMANGAS` | **extension written** (`extensions/javascript/manga/src/es/skymangas.js`) | `extensions/tools/run-extension.mjs` against the live API: popular (20), latest, search (`availability=readable` hides the many catalog-only entries), details + chapters (paginated, 100 per page), pages, real image download (200, image/webp) | Node host, not the app's QuickJS runtime; page image URLs carry a short-lived token, fetched fresh on every chapter open; status mapping only knows `statusId 1` = ongoing; no filters |
+| `ROCKSMANGA` | **extension written** (`extensions/javascript/manga/src/ar/rocksmanga.js`) | same harness: list, `search=`, details, 40 chapters, 21 pages, image download (200, image/webp) | API ignores every sort parameter tried, so popular = latest (site default order); no filters |
+| `SOFTKOMIK` | **NOT fixed** | Detail data decryption verified: `pageProps._stk` is CryptoJS passphrase-mode AES (OpenSSL `Salted__`, MD5 key derivation) with the key the site ships in its client bundle; decrypting a saved page gave title, genres and chapter data. Domain moved to `softkomik.app`. Session endpoints were renamed in the client (`/api/session/aksjkas`, `/api/session/chapter/oaisos`, sign now split on `|oiq&`), but they returned 404 for plain requests and further probing was stopped (a request was blocked by the session's safety classifier and was not retried or worked around) | The list page is plain JSON; details need the decryption; the full chapter list and chapter images need the token session, which was not established. Not shipped. |
+| `COMIX` | JS alternative already in seeded repos (`m2k3a`, `sugoi`, v0.1.0) | not run here | library parser stays disabled |
+
+Still broken upstream and not replaced: Temple Scan, Catharsis World, MangaCloud (guarded), and every Cloudflare-challenged site listed above.

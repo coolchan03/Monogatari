@@ -18,6 +18,7 @@
 `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 942 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. The branch is pushed but no CI run on it has been checked.
 
 ## C. Remaining technical work
+- Softkomik extension (decryption procedure known; token session not established), the other broken/challenged sites, extension checks inside the real QuickJS host (device), merge to `devel` so the seeded `extensions/index.json` URL resolves.
 Everything not marked in MODERNIZATION_PLAN.md as IMPLEMENTED/TESTED: Parts 2.2-2.5 (individual site repairs), 3, 4, 5.2-5.4, 6.2-6.3, 7.2, 7.3, 8, and 9 beyond unit tests. Specific gaps in finished items: no update-history record; publisher UI never run on a device; workflow job split and APK provenance not done; pinned action SHAs unverified by a real CI run.
 
 ## D. Manual review needed
