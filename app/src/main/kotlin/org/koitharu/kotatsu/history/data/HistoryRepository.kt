@@ -258,8 +258,17 @@ class HistoryRepository @Inject constructor(
 			percent = estimateRecoveredPercent(chapters.size),
 			chaptersCount = chapters.size,
 		)
-		db.getHistoryDao().update(newEntity)
-		return newEntity
+		// Optimistic update: if the user read on (or the row changed) since we read it, keep theirs.
+		val dao = db.getHistoryDao()
+		val changed = dao.recoverChapterIfUnchanged(
+			mangaId = mangaId,
+			expectedChapterId = chapterId,
+			expectedUpdatedAt = updatedAt,
+			newChapterId = newEntity.chapterId,
+			percent = newEntity.percent,
+			chapters = newEntity.chaptersCount,
+		)
+		return if (changed > 0) newEntity else dao.find(mangaId) ?: this
 	}
 
 	private fun Manga.findRecoveryChapters(history: HistoryEntity): List<MangaChapter>? {

@@ -171,6 +171,24 @@ abstract class HistoryDao : MangaQueryBuilder.ConditionCallback {
 		updatedAt: Long,
 	): Int
 
+	/**
+	 * Re-points a history row at a recovered chapter, but only if it still holds the snapshot the
+	 * caller read ([expectedChapterId] and [expectedUpdatedAt]). Never touches page, scroll,
+	 * timestamps or deletion state, so a concurrent reading update always wins.
+	 */
+	@Query(
+		"UPDATE history SET chapter_id = :newChapterId, percent = :percent, chapters = :chapters " +
+			"WHERE manga_id = :mangaId AND chapter_id = :expectedChapterId AND updated_at = :expectedUpdatedAt",
+	)
+	abstract suspend fun recoverChapterIfUnchanged(
+		mangaId: Long,
+		expectedChapterId: Long,
+		expectedUpdatedAt: Long,
+		newChapterId: Long,
+		percent: Float,
+		chapters: Int,
+	): Int
+
 	suspend fun delete(mangaId: Long) = setDeletedAt(mangaId, System.currentTimeMillis())
 
 	suspend fun recover(mangaId: Long) = setDeletedAt(mangaId, 0L)
