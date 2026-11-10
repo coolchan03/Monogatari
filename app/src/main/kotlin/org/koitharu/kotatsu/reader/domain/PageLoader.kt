@@ -105,6 +105,7 @@ class PageLoader @Inject constructor(
 	private val oniSagaPrefetchSemaphore = Semaphore(ONISAGA_PREFETCH_LIMIT)
 	private val convertLock = Mutex()
 	private val prefetchLock = Mutex()
+	private val prefetchTracker = PrefetchTracker()
 
 	@Volatile
 	private var repository: MangaRepository? = null
@@ -123,6 +124,19 @@ class PageLoader @Inject constructor(
 	@AnyThread
 	fun prefetch(pages: List<ReaderPage>) = loaderScope.launch {
 		prefetchLock.withLock {
+			// The window moved (seek, chapter jump): queued and in-flight speculative work for
+			// pages outside it is obsolete and must not compete with what the user is reading.
+			val window = pages.map { it.id }
+			prefetchQueue.removeAll { it.id !in window }
+			val stale = prefetchTracker.takeObsolete(window)
+			if (stale.isNotEmpty()) {
+				synchronized(tasks) {
+					for (id in stale) {
+						tasks[id]?.takeIf { it.isValid() }?.cancel()
+						tasks.remove(id)
+					}
+				}
+			}
 			for (page in pages.asReversed()) {
 				val isLoading = synchronized(tasks) {
 					tasks[page.id]?.takeIf { it.isValid() }?.isCancelled == false
@@ -182,6 +196,7 @@ class PageLoader @Inject constructor(
 	}
 
 	fun loadPageAsync(page: MangaPage, force: Boolean): ProgressDeferred<Uri, Float> = synchronized(tasks) {
+		prefetchTracker.markDemanded(page.id)
 		val task = tasks[page.id]?.takeIf { it.isValid() }
 		if (force) {
 			task?.cancel()
@@ -250,6 +265,7 @@ class PageLoader @Inject constructor(
 				synchronized(tasks) {
 					val task = tasks[page.id]?.takeIf { it.isValid() }
 					if (task?.isCancelled != false) {
+						prefetchTracker.markPrefetching(page.id)
 						tasks[page.id] = loadPageAsyncImpl(page, skipCache = false, isPrefetch = true)
 					}
 				}
@@ -275,6 +291,7 @@ class PageLoader @Inject constructor(
 					skipCache = skipCache,
 				)
 			} finally {
+				if (isPrefetch) prefetchTracker.markFinished(page.id)
 				if (counter.decrementAndGet() == 0) {
 					onIdle()
 				}
