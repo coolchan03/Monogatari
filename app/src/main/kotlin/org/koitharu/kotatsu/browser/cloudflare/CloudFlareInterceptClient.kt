@@ -35,7 +35,7 @@ class CloudFlareInterceptClient(
 
 	override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
 		super.onPageStarted(view, url, favicon)
-		Log.d(TAG, "Page started with interception enabled: $url")
+		Log.d(TAG, "Page started with interception enabled: ${org.koitharu.kotatsu.core.util.LogRedactor.url(url)}")
 	}
 
 	override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
@@ -46,7 +46,7 @@ class CloudFlareInterceptClient(
 				return super.shouldInterceptRequest(view, request)
 			}
 
-			Log.d(TAG, "Intercepting request: ${request.url}")
+			Log.d(TAG, "Intercepting request: ${org.koitharu.kotatsu.core.util.LogRedactor.url(request.url)}")
 
 			val client = OkHttpClient.Builder()
 				.cookieJar(cookieJar)
@@ -94,14 +94,14 @@ class CloudFlareInterceptClient(
 				responseHeaders = headers
 			}
 		} catch (e: Exception) {
-			Log.e(TAG, "Error intercepting request: ${request.url}", e)
+			Log.e(TAG, "Error intercepting request: ${org.koitharu.kotatsu.core.util.LogRedactor.url(request.url)}", e)
 			return null
 		}
 	}
 
 	private fun shouldReplayRequest(request: WebResourceRequest): Boolean {
 		if (request.method != "GET") {
-			Log.d(TAG, "Skipping non-GET request: ${request.method} ${request.url}")
+			Log.d(TAG, "Skipping non-GET request: ${request.method} ${org.koitharu.kotatsu.core.util.LogRedactor.url(request.url)}")
 			return false
 		}
 		if (!request.isForMainFrame) {
@@ -115,7 +115,7 @@ class CloudFlareInterceptClient(
 			&& requestUri.host.equals(targetUri?.host, ignoreCase = true)
 			&& normalizedPort(requestUri) == normalizedPort(targetUri)
 		if (!sameOrigin) {
-			Log.d(TAG, "Skipping off-origin main frame request: ${request.url}")
+			Log.d(TAG, "Skipping off-origin main frame request: ${org.koitharu.kotatsu.core.util.LogRedactor.url(request.url)}")
 		}
 		return sameOrigin
 	}

@@ -14,6 +14,9 @@ on:
       - 'ccr-*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: build-check-${{ github.ref }}
   cancel-in-progress: true
@@ -23,8 +26,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961  # v5
         with:
           distribution: temurin
           java-version: 21
@@ -33,28 +38,28 @@ jobs:
           MONOGATARI_REPOS: ${{ secrets.MONOGATARI_REPOS }}
         shell: bash
         run: printf 'monogatari.repos=%s\n' "$MONOGATARI_REPOS" >> local.properties
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c  # v5
       - name: Validate responsive UI and touch targets
         run: python3 scripts/validate-ui-a11y.py
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
       - name: Preserve failing JVM test report
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
         with:
           name: jvm-test-failures
           path: app/build/test-results/testDebugUnitTest/
           if-no-files-found: warn
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Build release (unsigned, R8)
         run: ./gradlew assembleRelease --stacktrace
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
         with:
           name: monogatari-release-unsigned
           path: app/build/outputs/apk/release/*.apk
@@ -66,8 +71,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v7
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7
         with:
           name: debug-apk
           path: smoke-apk
@@ -76,7 +83,7 @@ jobs:
       - name: Launch on clean Android 15 emulator
         id: startup_first
         continue-on-error: true
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d  # v2
         with:
           api-level: 35
           target: google_apis
@@ -91,7 +98,7 @@ jobs:
         run: exit 1
       - name: Retry after transient cloud emulator provisioning failure
         if: steps.startup_first.outcome == 'failure' && hashFiles('smoke-start-output.txt') == ''
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d  # v2
         with:
           api-level: 35
           target: google_apis
@@ -101,7 +108,7 @@ jobs:
           script: bash scripts/ci-smoke-startup.sh
       - name: Preserve startup crash logs
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
         with:
           name: cold-start-logs
           path: |

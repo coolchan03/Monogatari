@@ -5,6 +5,8 @@ on:
     branches:
       - '**'
 
+permissions: {}
+
 jobs:
   discordNotification:
     runs-on: ubuntu-latest
@@ -27,7 +29,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
       - name: Send commit embed to Discord
         if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
-        uses: tsickert/discord-webhook@v7.0.0
+        uses: tsickert/discord-webhook@b217a69502f52803de774ded2b1ab7c282e99645  # v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
           embed-title: "New Commit: ${{ github.event.repository.name }}"

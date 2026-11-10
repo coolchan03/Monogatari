@@ -75,7 +75,7 @@ abstract class BaseImageProxyInterceptor : ImageProxyInterceptor {
 
 	private fun logDebug(e: Throwable, url: Any) {
 		if (BuildConfig.DEBUG) {
-			Log.w("ImageProxy", "${e.message}: $url", e)
+			Log.w("ImageProxy", "${org.koitharu.kotatsu.core.util.LogRedactor.redact(e.message.orEmpty())}: ${org.koitharu.kotatsu.core.util.LogRedactor.url(url)}", e)
 		}
 	}
 
