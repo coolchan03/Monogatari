@@ -49,7 +49,7 @@ class RepoSeedingTest {
 	@Test fun recommendedReposAreValidHttpsAndUnique() {
 		assertEquals(RecommendedRepos.all.size, RecommendedRepos.all.toSet().size)
 		assertTrue(RecommendedRepos.all.all { normalizeRepoUrl(it) == it })
-		assertEquals(12, RecommendedRepos.all.size)
+		assertEquals(13, RecommendedRepos.all.size)
 		assertEquals(3, RecommendedRepos.byType.size)
 		assertTrue(RecommendedRepos.byType.getValue(JsItemType.NOVEL).size == 4)
 	}

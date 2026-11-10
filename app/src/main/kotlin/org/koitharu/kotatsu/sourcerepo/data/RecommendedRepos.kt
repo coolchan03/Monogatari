@@ -15,6 +15,8 @@ object RecommendedRepos {
 		"https://m2k3a.github.io/mangayomi-extensions/index.json",
 		"https://raw.githubusercontent.com/Swakshan/mangayomi-swak-extensions/refs/heads/main/index.json",
 		"https://raw.githubusercontent.com/Schnitzel5/sugoi-modules/refs/heads/main/index.json",
+		// Monogatari-maintained replacements for sites whose built-in parsers broke (see extensions/README.md).
+		"https://raw.githubusercontent.com/coolchan03/Monogatari/devel/extensions/index.json",
 	)
 
 	val anime: List<String> = listOf(
