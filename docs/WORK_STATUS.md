@@ -2,7 +2,8 @@
 
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
-- ACTIVE operation: baseline `./gradlew :app:testDebugUnitTest` (Linux container, Android SDK in /home/user/android-sdk, outside repo). Result recorded below when finished.
+- Done (local commits, not pushed): baseline 891 tests green; parsers -> 68f3fed395; OkHttp 5.5.1; NewPipeExtractor v0.27.0; JS extension publisher pinning (13 tests). Latest full run: 904 tests, 0 failures. No operation currently active.
+- Next: see docs/MODERNIZATION_HANDOFF.md.
 - Note: no "Tunnel to Surface" tool exists in this session; work is local commits only, no push.
 
 ## 2026-11-04 — v1.7.0 released (public)
