@@ -9,6 +9,7 @@ import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
 import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
+import org.koitharu.kotatsu.jsext.repo.PublisherChangeOffer
 import org.koitharu.kotatsu.sourcerepo.domain.JsSourceItem
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.sourcerepo.domain.PluginEntry
@@ -31,6 +32,7 @@ class SourceReposViewModel @Inject constructor(
 		val dartSources: List<JsSourceEntry>,
 		val skippedDartCount: Int,
 		val errors: Map<String, Throwable>,
+		val publisherChanges: List<PublisherChangeOffer> = emptyList(),
 	)
 
 	val state = MutableStateFlow(State(repository.getRepos(), emptyList(), emptyList(), emptyList(), 0, emptyMap()))
@@ -63,6 +65,7 @@ class SourceReposViewModel @Inject constructor(
 				dartSources = result.dartSources,
 				skippedDartCount = result.skippedDartCount,
 				errors = result.errors,
+				publisherChanges = result.publisherChanges,
 			)
 		}
 	}
@@ -90,9 +93,10 @@ class SourceReposViewModel @Inject constructor(
 		refresh()
 	}
 
-	fun installJs(entry: JsSourceEntry) {
+	/** [approvePublisherChange] must only be true after the user confirmed the new publisher. */
+	fun installJs(entry: JsSourceEntry, approvePublisherChange: Boolean = false) {
 		launchLoadingJob(Dispatchers.Default) {
-			repository.installJsSource(entry)
+			repository.installJsSource(entry, approvePublisherChange)
 			onMessage.call(R.string.js_source_installed)
 			refresh()
 		}

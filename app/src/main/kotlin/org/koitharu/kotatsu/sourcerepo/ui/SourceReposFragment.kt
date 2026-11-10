@@ -49,7 +49,9 @@ import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.jsext.JsItemType
+import org.koitharu.kotatsu.jsext.repo.JsPublisherPolicy
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
+import org.koitharu.kotatsu.jsext.repo.PublisherChangeOffer
 import org.koitharu.kotatsu.jsext.repo.JsSourceDisclosure
 import org.koitharu.kotatsu.jsext.source.JsExtensionProvider
 import org.koitharu.kotatsu.jsext.source.JsMangaSource
@@ -428,6 +430,21 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				}
 			})
 		}
+		for (offer in state.publisherChanges) {
+			pluginsCategory.addPreference(Preference(context).apply {
+				isPersistent = false
+				title = getString(R.string.publisher_change_title, offer.installed.name)
+				summary = getString(
+					R.string.publisher_change_summary,
+					JsPublisherPolicy.publisherKey(offer.installed.repoUrl),
+					JsPublisherPolicy.publisherKey(offer.candidate.repoUrl),
+				)
+				setOnPreferenceClickListener {
+					confirmPublisherChange(offer)
+					true
+				}
+			})
+		}
 		val groups = mapOf(
 			JsItemType.MANGA to mangaCategory,
 			JsItemType.NOVEL to novelCategory,
@@ -694,6 +711,26 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		}
 		else dialog.setPositiveButton(android.R.string.ok, null)
 		dialog.show()
+	}
+
+	/** Never switches silently: the installed code stays untouched unless the user confirms here. */
+	private fun confirmPublisherChange(offer: PublisherChangeOffer) {
+		MaterialAlertDialogBuilder(requireContext())
+			.setTitle(getString(R.string.publisher_change_title, offer.installed.name))
+			.setMessage(
+				getString(
+					R.string.publisher_change_message,
+					offer.installed.version,
+					JsPublisherPolicy.publisherKey(offer.installed.repoUrl),
+					offer.candidate.version,
+					JsPublisherPolicy.publisherKey(offer.candidate.repoUrl),
+				),
+			)
+			.setNegativeButton(android.R.string.cancel, null)
+			.setPositiveButton(R.string.publisher_change_confirm) { _, _ ->
+				viewModel.installJs(offer.candidate, approvePublisherChange = true)
+			}
+			.show()
 	}
 
 	private fun confirmJsSourceRemove(entry: JsSourceEntry) {

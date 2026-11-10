@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="publisher_change_title">Publisher changed: %1$s</string>
+	<string name="publisher_change_summary">Installed from %1$s. Now offered only by %2$s. Not updated automatically; tap to review.</string>
+	<string name="publisher_change_message">This extension was installed from %2$s (version %1$s). Only %4$s now offers it (version %3$s).\n\nSwitching runs code from a different publisher. Only continue if you trust %4$s. Your settings for this source are kept.</string>
+	<string name="publisher_change_confirm">Switch publisher</string>
+</resources>
