@@ -95,6 +95,20 @@ object JsPublisherPolicy {
 	}
 
 	/**
+	 * The newest runnable entry from another publisher that is strictly newer than the installed
+	 * version, or null. Offered to the user for explicit approval even when the installed
+	 * publisher still lists the source (for example a stale upstream and its maintained fork), so a
+	 * pinned install is never silently stuck on an old version.
+	 */
+	fun offerFor(installed: JsSourceEntry, selection: Selection): PublisherChangeOffer? {
+		val candidate = selection.foreign
+			.filter { compareVersions(it.version, installed.version) > 0 }
+			.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
+			?: return null
+		return PublisherChangeOffer(installed, candidate)
+	}
+
+	/**
 	 * Same id advertised by several publishers. Not an error by itself (mirrors are common), but a
 	 * conflict when versions or content hashes disagree, which is what an impersonation looks like.
 	 */

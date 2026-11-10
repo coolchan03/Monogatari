@@ -114,13 +114,9 @@ class SourceRepoRepository @Inject constructor(
 			JsPublisherPolicy.select(group, jsStore.get(id)?.entry)
 		}
 		val runnable = selections.values.mapNotNull { it.entry }.sortedBy { it.name.lowercase() }
-		val publisherChanges = groupedSources.mapNotNull { (id, group) ->
-			val selection = selections.getValue(id)
+		val publisherChanges = groupedSources.mapNotNull { (id, _) ->
 			val installed = jsStore.get(id)?.entry ?: return@mapNotNull null
-			if (selection.entry != null) return@mapNotNull null
-			val candidate = selection.foreign.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
-				?: return@mapNotNull null
-			PublisherChangeOffer(installed, candidate)
+			JsPublisherPolicy.offerFor(installed, selections.getValue(id))
 		}
 		val conflictingIds = groupedSources.filterValues(JsPublisherPolicy::hasSuspiciousConflict).keys
 		val dartSources = groupedSources.values.mapNotNull { group ->
@@ -131,7 +127,7 @@ class SourceRepoRepository @Inject constructor(
 			plugins = plugins.mergeNewest().map { PluginEntry(it, it.stateFor(installedVersionCode(it.packageName))) },
 			jsSources = runnable.map { JsSourceItem(it, jsStateOf(it)) },
 			dartSources = dartSources,
-			skippedDartCount = groupedSources.size - runnable.size - publisherChanges.size,
+			skippedDartCount = groupedSources.size - runnable.size - publisherChanges.count { offer -> selections.getValue(offer.installed.id).entry == null },
 			errors = errors,
 			publisherChanges = publisherChanges,
 			conflictingIds = conflictingIds,

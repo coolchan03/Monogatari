@@ -83,6 +83,23 @@ class JsPublisherPolicyTest {
 	}
 
 	@Test
+	fun newerForeignVersionIsOfferedEvenWhenOwnPublisherStillListsTheSource() {
+		val installed = entry("0.1.25", original)
+		val selection = JsPublisherPolicy.select(listOf(entry("0.1.25", original), entry("0.2.20", impostor)), installed)
+		assertEquals("0.1.25", selection.entry?.version) // never auto-updated from the other publisher
+		val offer = JsPublisherPolicy.offerFor(installed, selection)
+		assertEquals("0.2.20", offer?.candidate?.version)
+		assertEquals(impostor, offer?.candidate?.repoUrl)
+	}
+
+	@Test
+	fun noOfferWhenForeignVersionIsNotNewer() {
+		val installed = entry("2.0", original)
+		val selection = JsPublisherPolicy.select(listOf(entry("2.0", original), entry("2.0", impostor), entry("1.0", impostor)), installed)
+		assertNull(JsPublisherPolicy.offerFor(installed, selection))
+	}
+
+	@Test
 	fun notInstalledStillPicksNewestRunnable() {
 		val dart = entry("100.0", impostor, language = SourceCodeLanguage.DART)
 		val selection = JsPublisherPolicy.select(listOf(entry("1.0", original), entry("2.0", impostor), dart), null)

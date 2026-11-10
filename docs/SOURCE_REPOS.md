@@ -80,3 +80,22 @@ screen, and failures are written to the Source log.
 - **Find podcasts** (Podcasts screen, overflow menu): searches the free Apple iTunes Search API
   (`itunes.apple.com/search`) and the top-podcasts chart, and subscribes through the normal feed
   loader. Only https feeds are offered.
+
+## Verification 2026-11-10 (live fetch of every seeded index)
+
+All 12 URLs in `RecommendedRepos` returned HTTP 200 and parsed. `sourceCodeLanguage` 1 = JavaScript (runs in Monogatari), 0 = Dart (does not).
+
+| Repository | Last commit | JS manga / anime / novel entries |
+|---|---|---|
+| `m2k3a/mangayomi-extensions` (+ GitHub Pages mirror) | 2026-11-03 | 84 / 24 / 8 |
+| `Swakshan/mangayomi-swak-extensions` | 2026-10-24 | 7 / 14 / 4 |
+| `Schnitzel5/sugoi-modules` | 2026-04-08 | 76 / 22 / 7 |
+| `kodjodevf/mangayomi-extensions` | **2025-10-01 (stale)** | 114 / 0 / 5 |
+| `gato404/kegareta-sauces` (anime only seeded) | **2025-06-14 (stale)** | - / 2 / - |
+
+Observations:
+- The maintained repos are already seeded. No repo was added: the only other recently updated hits found by search were unvetted personal repos with 0 stars, and adding unreviewed code publishers as defaults would contradict the publisher-provenance rules.
+- No seeded repo was removed: removing a default only affects fresh installs and could hide sources that still work. `kodjodevf` still has 41 JS sources found nowhere else but its versions of shared sources are old (Mangafire 0.1.25 vs 0.2.20 in `m2k3a`, Asura Scans 0.1.7 vs 0.2.15).
+- Swakshan alone provides JS `Atsumaru`, `Mangafire`, `Mangapark`, `WeLoMa`, and the anime/novel sources `AnimeGG`, `Animetsu`, `KickAssAnime`, `RoyalRoad`, `NovelFire`, ... (`m2k3a` lists Atsumaru as Dart only).
+- No JavaScript replacement exists in any seeded repo for the library parsers that are broken (Softkomik absent; SkyMangas, Rocks Manga, MG Komik, Natsu, Hwago are Dart-only). `Comix` (JS 0.1.0, `m2k3a`/`sugoi`) and Baozi (JS 0.0.1) are available as JS alternatives to the library parsers.
+- Consequence of publisher pinning: an install made from the stale `kodjodevf` repo stays pinned to it. A newer version of the same source from `m2k3a`/`sugoi` is now shown as a "Publisher changed" offer that needs approval (fixed 2026-11-10; before that fix such an install could be left stuck without any offer).
