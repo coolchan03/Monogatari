@@ -67,11 +67,11 @@ class SourceReposViewModel @Inject constructor(
 		}
 	}
 
-	/** @return `false` if [url] is not a valid https URL. */
-	fun previewRepo(url: String): Boolean {
-		val normalized = normalizeRepoUrl(url) ?: return false
+	/** HTTP must be confirmed by the UI before allowHttp is passed. */
+	fun previewRepo(url: String, allowHttp: Boolean = false): Boolean {
+		val normalized = normalizeRepoUrl(url, allowHttp) ?: return false
 		launchLoadingJob(Dispatchers.Default) {
-			runCatchingCancellable { repository.previewRepo(normalized) }
+			runCatchingCancellable { repository.previewRepo(normalized, allowHttp) }
 				.onSuccess { preview -> if (preview != null) onRepoPreview.call(preview) }
 				.onFailure { onRepoPreviewError.call(it) }
 		}
@@ -79,8 +79,8 @@ class SourceReposViewModel @Inject constructor(
 	}
 
 	/** Saves only a repository that has already passed [previewRepo]. */
-	fun addRepo(url: String) {
-		if (repository.addRepo(url)) {
+	fun addRepo(url: String, allowHttp: Boolean = false) {
+		if (repository.addRepo(url, allowHttp)) {
 			refresh()
 		}
 	}

@@ -35,10 +35,10 @@ class SourceRepoStore @Inject constructor(
 		return result.urls.sorted()
 	}
 
-	/** @return `false` if [url] is not a valid https URL. Adding an existing one is a no-op success. */
+	/** Accept HTTP only from an explicitly confirmed repository-add flow. */
 	@Synchronized
-	fun add(url: String): Boolean {
-		val normalized = normalizeRepoUrl(url) ?: return false
+	fun add(url: String, allowHttp: Boolean = false): Boolean {
+		val normalized = normalizeRepoUrl(url, allowHttp) ?: return false
 		val urls = getAll().toSet() + normalized
 		prefs.edit { putStringSet(KEY_URLS, urls) }
 		return true

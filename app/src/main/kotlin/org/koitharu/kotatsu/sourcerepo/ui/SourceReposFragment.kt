@@ -897,7 +897,18 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			.setView(container)
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(R.string.add) { _, _ ->
-				if (!viewModel.previewRepo(input.text.toString())) {
+				val entered = input.text.toString().trim()
+				if (entered.startsWith("http://", ignoreCase = true)) {
+					MaterialAlertDialogBuilder(context)
+						.setTitle(R.string.monogatari_http_warning_title)
+						.setMessage(R.string.monogatari_http_warning_text)
+						.setNegativeButton(android.R.string.cancel, null)
+						.setPositiveButton(R.string.monogatari_http_continue) { _, _ ->
+							if (!viewModel.previewRepo(entered, allowHttp = true)) {
+								Toast.makeText(context, R.string.repository_invalid_url, Toast.LENGTH_SHORT).show()
+							}
+						}.show()
+				} else if (!viewModel.previewRepo(entered)) {
 					Toast.makeText(context, R.string.repository_invalid_url, Toast.LENGTH_SHORT).show()
 				}
 			}
@@ -911,6 +922,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		val remaining = names.size - shown.size
 		val message = buildString {
 			append(getString(R.string.repository_preview_url, preview.url))
+			if (preview.url.startsWith("http://")) {
+				append("\n\n").append(getString(R.string.monogatari_http_warning_text))
+			}
 			append("\n\n")
 			append(getString(R.string.repository_preview_counts, preview.jsSourceNames.size, preview.pluginNames.size))
 			if (preview.skippedDartCount > 0) {
@@ -936,7 +950,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			.setTitle(R.string.repository_preview_title)
 			.setView(scroll)
 			.setNegativeButton(android.R.string.cancel, null)
-			.setPositiveButton(R.string.add) { _, _ -> viewModel.addRepo(preview.url) }
+			.setPositiveButton(R.string.add) { _, _ ->
+				viewModel.addRepo(preview.url, allowHttp = preview.url.startsWith("http://"))
+			}
 			.show()
 	}
 
