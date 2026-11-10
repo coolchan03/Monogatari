@@ -14,6 +14,7 @@ All runs: `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` wit
 | 2026-11-10 | + RetryAfterParser (5 tests), download backoff | PASS: 919 tests, 0 failures; `assembleDebug` OK |
 | 2026-11-10 | + HostMatcher (5), PrefetchTracker (5) | PASS: 929 tests, 0 failures; `assembleDebug` OK |
 | 2026-11-10 | + source search timeout (5), ChapterNavigator (8) | PASS: 942 tests, 0 failures; `assembleDebug` OK |
+| 2026-11-10 | + Mihon Local-source summary (3 tests) | PASS: 945 tests, 0 failures; `assembleDebug` OK |
 
 Lint: `:app:lintDebug` was started twice (a 580 s run, then a run left going for 40+ minutes with 2 workers); it never got past `lintAnalyzeDebug` and was stopped. NO lint result exists. Needs a longer window or CI.
 

@@ -14,15 +14,24 @@ internal data class MihonImportSummary(
 	val matchedSources: Map<String, String>,
 	val unmatchedSources: List<String>,
 	val matchedTitles: Int,
+	/**
+	 * Titles from Mihon's built-in Local source (id 0). The backup holds only their metadata, never the CBZ/ZIP
+	 * files, so they are not imported and the user must add the files separately.
+	 */
+	val localTitles: Int = 0,
 ) {
 	companion object {
+
+		/** Mihon/Tachiyomi's LocalSource id. */
+		const val LOCAL_SOURCE_ID = 0L
 
 		/** @param available Monogatari source display name -> source key (parser name or `js:<id>`). */
 		fun of(backup: MihonBackup.Backup, available: Map<String, String>): MihonImportSummary {
 			val byName = available.entries.groupBy { normalize(it.key) }
 				.filterValues { it.size == 1 }
 				.mapValues { it.value.single().value }
-			val usedSourceNames = backup.manga.map { backup.sources[it.sourceId] ?: "Source ${it.sourceId}" }.distinct()
+			val remote = backup.manga.filterNot { it.sourceId == LOCAL_SOURCE_ID }
+			val usedSourceNames = remote.map { backup.sources[it.sourceId] ?: "Source ${it.sourceId}" }.distinct()
 			val matched = LinkedHashMap<String, String>()
 			val unmatched = ArrayList<String>()
 			for (name in usedSourceNames) {
@@ -36,7 +45,8 @@ internal data class MihonImportSummary(
 				categories = backup.categories.size,
 				matchedSources = matched,
 				unmatchedSources = unmatched.sorted(),
-				matchedTitles = backup.manga.count { (backup.sources[it.sourceId] ?: "") in matched },
+				matchedTitles = remote.count { (backup.sources[it.sourceId] ?: "") in matched },
+				localTitles = backup.manga.size - remote.size,
 			)
 		}
 

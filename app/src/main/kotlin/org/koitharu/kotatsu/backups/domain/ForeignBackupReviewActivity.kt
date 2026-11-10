@@ -206,6 +206,10 @@ class ForeignBackupReviewActivity : AppCompatActivity() {
 						append("\n\n")
 						append(getString(R.string.foreign_backup_mangayomi_unmatched, preview.unmatchedSources.joinToString(", ")))
 					}
+					if (preview.localTitles > 0) {
+						append("\n\n")
+						append(getString(R.string.foreign_backup_mihon_local, preview.localTitles))
+					}
 					append("\n\n")
 					append(getString(R.string.foreign_backup_mihon_how))
 				}

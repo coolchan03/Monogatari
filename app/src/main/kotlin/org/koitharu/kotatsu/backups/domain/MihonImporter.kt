@@ -56,6 +56,7 @@ class MihonImporter @Inject constructor(
 		val withProgress: Int get() = summary.withProgress
 		val matchedTitles: Int get() = summary.matchedTitles
 		val unmatchedSources: List<String> get() = summary.unmatchedSources
+		val localTitles: Int get() = summary.localTitles
 	}
 
 	class Result(val imported: Int, val notFound: List<String>, val unsupported: Int, val withProgress: Int = 0)

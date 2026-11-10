@@ -31,4 +31,5 @@
     <string name="foreign_backup_mihon_not_found">Not found by exact title (add these by hand): %1$s</string>
     <string name="foreign_backup_mihon_unsupported">%1$d favourites are on sources Monogatari doesn\'t have.</string>
     <string name="foreign_backup_mihon_progress_done">Reading position carried over for %1$d titles.</string>
+    <string name="foreign_backup_mihon_local">%1$d titles come from Mihon\'s Local source. The backup contains only their details, not the CBZ/ZIP files, so they are not imported. Import those files into Monogatari separately.</string>
 </resources>
