@@ -75,6 +75,7 @@ import org.koitharu.kotatsu.parsers.model.MangaPage
 import org.koitharu.kotatsu.parsers.util.ifNullOrEmpty
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.parsers.util.sizeOrZero
+import org.koitharu.kotatsu.reader.domain.ChapterNavigator
 import org.koitharu.kotatsu.reader.domain.ChaptersLoader
 import org.koitharu.kotatsu.reader.domain.DetectReaderModeUseCase
 import org.koitharu.kotatsu.reader.domain.PageLoader
@@ -456,12 +457,8 @@ class ReaderViewModel @Inject constructor(
             val prevState = readingState.requireValue()
             val newChapterId = if (delta != 0) {
                 val allChapters = mangaDetails.requireValue().allChapters
-                var index = allChapters.indexOfFirst { x -> x.id == prevState.chapterId }
-                if (index < 0) {
-                    return@launchLoadingJob
-                }
-                index += delta
-                (allChapters.getOrNull(index) ?: return@launchLoadingJob).id
+                // Stays within the current scanlator group; see ChapterNavigator.
+                (ChapterNavigator.target(allChapters, prevState.chapterId, delta) ?: return@launchLoadingJob).id
             } else {
                 prevState.chapterId
             }

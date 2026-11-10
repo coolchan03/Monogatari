@@ -726,7 +726,9 @@ class SearchViewModel @Inject constructor(
 
 	private suspend fun searchSource(source: MangaSource): SearchResultsListModel? = runCatchingCancellable {
 		val searchHelper = searchHelperFactory.create(source)
-		searchHelper(if (isVideoModeSearch) videoResultMode.queryFor(source, query) else query, kind, yearFrom.value, yearTo.value)
+		withSourceTimeout {
+			searchHelper(if (isVideoModeSearch) videoResultMode.queryFor(source, query) else query, kind, yearFrom.value, yearTo.value)
+		}
 	}.fold(
 		onSuccess = { result ->
 			if (result == null || result.manga.isEmpty()) {

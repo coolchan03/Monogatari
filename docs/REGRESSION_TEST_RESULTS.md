@@ -13,5 +13,6 @@ All runs: `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` wit
 | 2026-11-10 | + publisher-change UI | PASS: tests + `assembleDebug` |
 | 2026-11-10 | + RetryAfterParser (5 tests), download backoff | PASS: 919 tests, 0 failures; `assembleDebug` OK |
 | 2026-11-10 | + HostMatcher (5), PrefetchTracker (5) | PASS: 929 tests, 0 failures; `assembleDebug` OK |
+| 2026-11-10 | + source search timeout (5), ChapterNavigator (8) | PASS: 942 tests, 0 failures; `assembleDebug` OK |
 
 Not run: lint, `assembleRelease`/R8, instrumentation tests, cold-start smoke test, any live-site or playback check, any performance measurement. Compiler warnings were not compared with the baseline.
