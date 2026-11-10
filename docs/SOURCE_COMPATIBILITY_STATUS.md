@@ -76,3 +76,30 @@ Findings worth acting on upstream:
 - Cloudflare challenge (interactive verification needed): `TOPMANHUA`, `MGKOMIK`, `KAGANE`, `MANGAGO`, `SHINIGAMI`.
 
 These are inputs for parser-library fixes (a separate repository this session cannot modify). No Monogatari code was changed for them: swapping a default domain in the app on the strength of a home-page redirect could break a source that still works through the redirect.
+
+## Deeper live checks (2026-11-10)
+
+Method: a handful of GET requests per site, one request per endpoint, browser-like User-Agent, no challenge bypass, no login. Compared against the parser source at kotatsu-parsers-redo `68f3fed395`. These are diagnoses for fixes in the parser library (separate repository); no Monogatari code changed because of them.
+
+### Verified working (matches the parser)
+- **`ATSUMOE`**: every endpoint the parser uses answered with the expected shape: `api/explore/availableFilters`, `api/home2/popular` and `recentlyUpdated`, `api/manga/page`, `api/manga/allChapters` (350 chapters for the sample title, with per-group `scanlationMangaId` and `scanlators`), `api/read/chapter` (17 pages), and the page image on `cdn.atsu.moe` (HTTP 200, `image/avif`). The same path on the main domain returns 410, confirming the parser's CDN rewrite. Not tested: the typesense-style search endpoint, filters, adult content. Note: page images are **AVIF**, so this source depends on the app's AVIF decoding.
+
+### Confirmed broken or changed (needs a parser change)
+- **`SOFTKOMIK`**: three separate problems.
+  1. `softkomik.co` 301-redirects every path to `softkomik.app`.
+  2. The parser's token endpoint `/api/session/amsnuy` returns **404** on both hosts (search and chapter-image requests need that token).
+  3. Detail pages (`/<slug>`) no longer carry `pageProps.data`; `pageProps` is `{{_stk: "U2FsdGVk...", isAuthenticated, isPremium}}`, a base64 CryptoJS-style `Salted__` AES blob, so details/chapters parse to nothing. The library list page `/komik/library?...` still carries plain `libData` and `genre`, so browsing the list should work once the domain is `softkomik.app`.
+  Fix needs the site's decryption routine (lives in its client JS) and the new session endpoint. Not attempted here.
+- **`SKYMANGAS`**: the site is no longer a MangaReader WordPress theme. Home page loads `https://api.skymangas.com/api/v1/...` (`manhuas/featured`, `manhuas/trending`, `releases/latest`, covers under `/uploads/covers/`). `releases/latest` returned HTTP 200 JSON: `{{success, data: {{items[], meta: {{page, perPage, total: 5641, totalPages: 283}}}}, timestamp, requestId}}`. The library class (`MangaReaderParser`, `@Broken`) needs a rewrite against this API.
+- **`ROCKSMANGA`**: home page is a Next.js app (`/_next/static`); images and data come from `api.rocksmanga.com/storage/manga/<id>/cover.*`. The library class is Madara-based, so it matches neither. Needs a rewrite.
+- **`MANGACLOUD`**: `api.mangacloud.org` answered **429 with an in-page JavaScript guard** on the first request (tag list and library). Consistent with the parser's existing guard/verification flow; needs interactive verification, not probed further.
+- **`COMIX`**: parser comments say `/api/v1/manga` is request-signed and the implementation is WebView-driven; it is `@Broken("Disabled until updates are made faster")`. Not probed.
+
+### Not checked in depth
+`MANHWAINDO`, `WESTMANGA`, `ACOMICS`, `YONABAR`, `MANHUAPLUSORG`, `MGKOMIK`, `TOPMANHUA`, `BAOZIMH`, `SHINIGAMI`, `KAGANE`, `MANGAGO` (all but the first five also return a Cloudflare challenge or 403 to this client), plus the sites that gave no connection. Their home pages answered or were challenged; selectors, chapter lists and images were not compared.
+
+### Suggested order for upstream fixes
+1. `SOFTKOMIK` domain (`softkomik.app`) is a one-line change; the session endpoint and `_stk` decryption are the real work.
+2. `SKYMANGAS` rewrite (clean public JSON API, lowest risk).
+3. `ROCKSMANGA` rewrite (Next.js + `api.rocksmanga.com`).
+4. Re-check `SOULSCANS`, `HWAGO`, `NATSU` from a normal network before deciding they are dead.
