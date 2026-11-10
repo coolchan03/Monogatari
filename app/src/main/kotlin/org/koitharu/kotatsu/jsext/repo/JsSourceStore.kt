@@ -85,8 +85,9 @@ class JsSourceStore(private val dir: File) {
      * the store lock, so overlapping installs cannot commit in the opposite order of their checks.
      */
     @Synchronized
-    fun installValidated(entry: JsSourceEntry, code: String) {
+    fun installValidated(entry: JsSourceEntry, code: String, approvePublisherChange: Boolean = false) {
         val installed = get(entry.id)
+        JsPublisherPolicy.requireSamePublisher(installed?.entry, entry, approvePublisherChange)
         JsSourceIntegrity.validate(
             version = entry.version,
             contentHash = JsSourceIntegrity.sha256(code),

@@ -13,7 +13,9 @@ import okhttp3.Request
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.parsers.util.await
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
+import org.koitharu.kotatsu.jsext.repo.JsPublisherPolicy
 import org.koitharu.kotatsu.jsext.repo.JsSourceEntry
+import org.koitharu.kotatsu.jsext.repo.PublisherChangeOffer
 import org.koitharu.kotatsu.jsext.repo.JsSourceStore
 import org.koitharu.kotatsu.jsext.repo.MangayomiIndexParser
 import org.koitharu.kotatsu.jsext.repo.compareVersions
@@ -42,6 +44,13 @@ data class RepoFetchResult(
 	val skippedDartCount: Int,
 	/** Repo URL -> failure, so one dead repo does not hide the others. */
 	val errors: Map<String, Throwable>,
+	/**
+	 * Installed sources for which only a *different* publisher advertises a runnable copy. These are
+	 * never auto-updated; installing one needs [SourceRepoRepository.installJsSource] with approval.
+	 */
+	val publisherChanges: List<PublisherChangeOffer> = emptyList(),
+	/** Ids advertised by several publishers with conflicting names, domains or hashes. */
+	val conflictingIds: Set<Long> = emptySet(),
 )
 
 /** Safe, non-persistent inspection of a repository before the user decides to trust it. */
@@ -99,11 +108,21 @@ class SourceRepoRepository @Inject constructor(
 		}
 		val groupedSources = jsEntries.groupBy { it.id }
 		// A newer Dart entry must not hide a runnable JavaScript implementation of the same
-		// source advertised by another repository. Choose the newest JavaScript version first.
-		val runnable = groupedSources.values.mapNotNull { group ->
-			group.filter { it.isRunnable }
-				.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
-		}.sortedBy { it.name.lowercase() }
+		// source advertised by another repository. Choose the newest JavaScript version first, but
+		// never let another publisher's higher version displace an installed source's own publisher.
+		val selections = groupedSources.mapValues { (id, group) ->
+			JsPublisherPolicy.select(group, jsStore.get(id)?.entry)
+		}
+		val runnable = selections.values.mapNotNull { it.entry }.sortedBy { it.name.lowercase() }
+		val publisherChanges = groupedSources.mapNotNull { (id, group) ->
+			val selection = selections.getValue(id)
+			val installed = jsStore.get(id)?.entry ?: return@mapNotNull null
+			if (selection.entry != null) return@mapNotNull null
+			val candidate = selection.foreign.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
+				?: return@mapNotNull null
+			PublisherChangeOffer(installed, candidate)
+		}
+		val conflictingIds = groupedSources.filterValues(JsPublisherPolicy::hasSuspiciousConflict).keys
 		val dartSources = groupedSources.values.mapNotNull { group ->
 			group.filter { it.language == org.koitharu.kotatsu.jsext.repo.SourceCodeLanguage.DART }
 				.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
@@ -112,8 +131,10 @@ class SourceRepoRepository @Inject constructor(
 			plugins = plugins.mergeNewest().map { PluginEntry(it, it.stateFor(installedVersionCode(it.packageName))) },
 			jsSources = runnable.map { JsSourceItem(it, jsStateOf(it)) },
 			dartSources = dartSources,
-			skippedDartCount = groupedSources.size - runnable.size,
+			skippedDartCount = groupedSources.size - runnable.size - publisherChanges.size,
 			errors = errors,
+			publisherChanges = publisherChanges,
+			conflictingIds = conflictingIds,
 		)
 	}
 
@@ -167,7 +188,10 @@ class SourceRepoRepository @Inject constructor(
 	}
 
 	/** Downloads a JS source and stores it. The code only ever runs sandboxed inside QuickJS. */
-	suspend fun installJsSource(entry: JsSourceEntry) = withContext(Dispatchers.IO) {
+	suspend fun installJsSource(
+		entry: JsSourceEntry,
+		approvePublisherChange: Boolean = false,
+	) = withContext(Dispatchers.IO) {
 		// Some third-party indexes accidentally point at the src/ directory rather than a .js file.
 		// Try the predictable language/name path only for that malformed GitHub raw URL shape.
 		val sourceUrl = sourceCodeDownloadUrl(entry)
@@ -188,7 +212,7 @@ class SourceRepoRepository @Inject constructor(
 			throw java.io.IOException("Not a Mangayomi JavaScript source: ${entry.name}")
 		}
 		// Downgrade/hash checks run inside the store's lock, against the entry installed at commit time.
-		jsStore.installValidated(entry, code)
+		jsStore.installValidated(entry, code, approvePublisherChange)
 	}
 
 	fun uninstallJsSource(entry: JsSourceEntry) = jsStore.uninstall(entry.id)
