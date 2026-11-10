@@ -11,6 +11,8 @@
 - Retry-After bug fix (`RetryAfterParser`) and bounded download backoff
 - docs commits: plan, regression results, source status, ledger
 
+- later commits (see `git log`): WebView `HostMatcher`, `PrefetchTracker`, history recovery race fix, SOURCE_COMPATIBILITY_STATUS audit
+
 ## B. Tested
 `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 919 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. No CI run exists for these commits (nothing pushed).
 
