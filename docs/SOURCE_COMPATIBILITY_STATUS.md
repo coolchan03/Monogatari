@@ -46,7 +46,7 @@ Method: a single HTTPS GET of `/` per domain, domains taken from the parser libr
 | `MILFTOON` | milftoon.xxx | not probed (adult or no single domain) |
 | `SOFTKOMIK` | softkomik.co | HTTP 200 but redirected to `https://softkomik.app/`: domain/site moved |
 | `SKYMANGAS` | skymangas.com | HTTP 200 on the home page (reachable; says nothing about search, chapters or images) |
-| `TEMPLESCAN` | templetoons.com | HTTP 200 on the home page (reachable; says nothing about search, chapters or images) |
+| `TEMPLESCAN` | templetoons.com | HTTP 200 only after redirecting to `/challenge?redirect=%2F` (a verification page), so the real home page was not reached |
 | `CATHARSISWORLD` | catharsisworld.dig-it.info | HTTP 522: site or origin down at probe time |
 | `ACOMICS` | acomics.ru | HTTP 200 on the home page (reachable; says nothing about search, chapters or images) |
 | `WESTMANGA` | v1.westmanga.my | HTTP 200 on the home page (reachable; says nothing about search, chapters or images) |
