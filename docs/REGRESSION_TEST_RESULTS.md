@@ -11,5 +11,6 @@ All runs: `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` wit
 | 2026-11-10 | + JsPublisherPolicy and 13 new tests | PASS: 904 tests, 0 failures |
 | 2026-11-10 | + LogRedactor (10 tests), workflow hardening | PASS: 914 tests, 0 failures; `:app:assembleDebug` OK (82 MB debug APK) |
 | 2026-11-10 | + publisher-change UI | PASS: tests + `assembleDebug` |
+| 2026-11-10 | + RetryAfterParser (5 tests), download backoff | PASS: 919 tests, 0 failures; `assembleDebug` OK |
 
 Not run: lint, `assembleRelease`/R8, instrumentation tests, cold-start smoke test, any live-site or playback check, any performance measurement. Compiler warnings were not compared with the baseline.

@@ -318,7 +318,9 @@ class DownloadWorker @AssistedInject constructor(
 				val retryDelay = if (e is TooManyRequestExceptions) {
 					e.getRetryDelay()
 				} else {
-					DOWNLOAD_ERROR_DELAY
+					// Bounded exponential backoff: base, 2x, 4x ... capped, so repeated failures back off.
+					val attempt = (MAX_FAILSAFE_ATTEMPTS - countDown).coerceIn(0, 4)
+					(DOWNLOAD_ERROR_DELAY shl attempt).coerceAtMost(MAX_BACKOFF_DELAY)
 				}
 				if (countDown <= 0 || retryDelay < 0 || retryDelay > MAX_RETRY_DELAY) {
 					val pausingHandle = PausingHandle.current()
@@ -591,6 +593,7 @@ class DownloadWorker @AssistedInject constructor(
 		const val MAX_PAGES_PARALLELISM = 4
 		const val DOWNLOAD_ERROR_DELAY = 2_000L
 		const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
+		const val MAX_BACKOFF_DELAY = 60_000L
 		const val TAG = "download"
 	}
 }

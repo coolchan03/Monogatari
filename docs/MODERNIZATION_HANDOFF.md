@@ -8,10 +8,11 @@
 - `571833268` JS extension publisher pinning (`JsPublisherPolicy`, enforced in `JsSourceStore`)
 - `216359184` LogRedactor + GitHub workflow hardening (pinned actions, least privilege)
 - publisher-change approval UI (Sources screen)
+- Retry-After bug fix (`RetryAfterParser`) and bounded download backoff
 - docs commits: plan, regression results, source status, ledger
 
 ## B. Tested
-`./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 914 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. No CI run exists for these commits (nothing pushed).
+`./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 919 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. No CI run exists for these commits (nothing pushed).
 
 ## C. Remaining technical work
 Everything not marked in MODERNIZATION_PLAN.md as IMPLEMENTED/TESTED: Parts 2.2-2.5 (individual site repairs), 3, 4, 5.2-5.4, 6.2-6.3, 7.2, 7.3, 8, and 9 beyond unit tests. Specific gaps in finished items: no update-history record; publisher UI never run on a device; workflow job split and APK provenance not done; pinned action SHAs unverified by a real CI run.
