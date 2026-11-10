@@ -1,6 +1,6 @@
 # Modernization handoff (2026-11-10)
 
-## A. Completed engineering (local commits on `ccr-c0c4a160-e5p0d2`, unpushed)
+## A. Completed engineering (commits on `ccr-c0c4a160-e5p0d2`, pushed)
 - `a30cf50f0` merge of v1.8.1 (security fixes missing from devel)
 - `aca6fd651` parsers `b3c0000245` -> `68f3fed395`
 - `8cf2a4052` OkHttp 5.3.2 -> 5.5.1
@@ -11,10 +11,11 @@
 - Retry-After bug fix (`RetryAfterParser`) and bounded download backoff
 - docs commits: plan, regression results, source status, ledger
 
-- later commits (see `git log`): WebView `HostMatcher`, `PrefetchTracker`, history recovery race fix, SOURCE_COMPATIBILITY_STATUS audit
+- later commits (see `git log`): WebView `HostMatcher`, `PrefetchTracker`, history recovery race fix, SOURCE_COMPATIBILITY_STATUS audit, `ChapterNavigator`, per-source search timeout
+- Branch `ccr-c0c4a160-e5p0d2` was pushed with the owner's explicit approval (no PR, `devel` untouched)
 
 ## B. Tested
-`./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 919 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. No CI run exists for these commits (nothing pushed).
+`./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` (ANDROID_HOME=/home/user/android-sdk): 942 tests, 0 failures and `assembleDebug` OK after the last change. See REGRESSION_TEST_RESULTS.md. The branch is pushed but no CI run on it has been checked.
 
 ## C. Remaining technical work
 Everything not marked in MODERNIZATION_PLAN.md as IMPLEMENTED/TESTED: Parts 2.2-2.5 (individual site repairs), 3, 4, 5.2-5.4, 6.2-6.3, 7.2, 7.3, 8, and 9 beyond unit tests. Specific gaps in finished items: no update-history record; publisher UI never run on a device; workflow job split and APK provenance not done; pinned action SHAs unverified by a real CI run.
@@ -23,6 +24,8 @@ Everything not marked in MODERNIZATION_PLAN.md as IMPLEMENTED/TESTED: Parts 2.2-
 Playback on NewPipe 0.27.0 (YouTube search/stream/subtitles/live), HTTPS and Cloudflare sources on OkHttp 5.5.1, a library/history sanity check after installing a build over existing data (backup first), and any of the 15 newly added sources you want enabled.
 
 ## E. Release readiness
+(Lint did NOT complete in this session: `lintAnalyzeDebug` ran 40+ minutes and was stopped; see REGRESSION_TEST_RESULTS.md.)
+
 Not ready for a signed release. Lint, release/R8 build, instrumentation and cold-start smoke tests have not been run; nothing is device-verified.
 
 ## F. Next steps for another session

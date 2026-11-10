@@ -15,4 +15,6 @@ All runs: `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` wit
 | 2026-11-10 | + HostMatcher (5), PrefetchTracker (5) | PASS: 929 tests, 0 failures; `assembleDebug` OK |
 | 2026-11-10 | + source search timeout (5), ChapterNavigator (8) | PASS: 942 tests, 0 failures; `assembleDebug` OK |
 
-Not run: lint, `assembleRelease`/R8, instrumentation tests, cold-start smoke test, any live-site or playback check, any performance measurement. Compiler warnings were not compared with the baseline.
+Lint: `:app:lintDebug` was started twice (a 580 s run, then a run left going for 40+ minutes with 2 workers); it never got past `lintAnalyzeDebug` and was stopped. NO lint result exists. Needs a longer window or CI.
+
+Not run: lint results, `assembleRelease`/R8, instrumentation tests, cold-start smoke test, any live-site or playback check, any performance measurement. Compiler warnings were not compared with the baseline.

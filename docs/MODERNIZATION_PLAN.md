@@ -1,6 +1,6 @@
 # Modernization plan (started 2026-11-10)
 
-Branch: `ccr-c0c4a160-e5p0d2` (local commits only; nothing pushed, merged remotely or released).
+Branch: `ccr-c0c4a160-e5p0d2` (pushed with owner approval; no PR, no merge, `devel` untouched, nothing released).
 Status vocabulary: NOT STARTED, IN PROGRESS, IMPLEMENTED, TESTED, BLOCKED, DEFERRED FOR HUMAN REVIEW.
 "TESTED" means automated unit tests, not device verification. Update this file as work lands.
 
@@ -30,4 +30,4 @@ Status vocabulary: NOT STARTED, IN PROGRESS, IMPLEMENTED, TESTED, BLOCKED, DEFER
 ## Environment notes
 - Work ran in a Linux cloud container, not on the P: drive; the C:/P: restriction does not apply here. Android SDK is in `/home/user/android-sdk` (outside the repo); `local.properties` is git-ignored.
 - Maven Central rate-limits the egress proxy (HTTP 429); retrying with `--max-workers=2` succeeds.
-- No "Tunnel to Surface" tool was available (AGENTS.md workflow), so nothing was pushed via any route.
+- No "Tunnel to Surface" tool was available (AGENTS.md workflow). The branch was pushed with plain git after the owner explicitly authorized it.
