@@ -40,3 +40,14 @@ Before any upstream change is merged, fill in this table in the pull request des
 `ThemeOverlay`/`strings.xml` additions marked Monogatari.
 
 Ported components and their licences are listed in `PORTED_COMPONENTS.md`.
+
+## Modernization pass 2026-11-10
+
+| Upstream | Checked | Integrated | Notes |
+|---|---|---|---|
+| Monogatari v1.8.1 | `57cd30b0a` | merged (`a30cf50f0`) | `devel` was still `773883694` |
+| kotatsu-parsers-redo | master `68f3fed395` | pinned `68f3fed395` | JitPack artifact exists; no API breaks |
+| OkHttp | 5.5.1 (Maven Central latest) | yes | |
+| NewPipeExtractor | v0.27.0 (JitPack ok) | yes, compile + unit tests only | dev-only SoundCloud/Bandcamp fixes not evaluated |
+| Mangayomi `fdc74ea5` provenance fix | concept | re-implemented natively as `JsPublisherPolicy` | no Dart/Flutter code ported |
+| Kotatsu-Redo app, Keiyoushi, Mangayomi v0.9.95 other items | not yet reviewed | no | |

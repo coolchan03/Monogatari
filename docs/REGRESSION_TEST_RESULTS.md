@@ -1,0 +1,13 @@
+# Regression test results
+
+All runs: `./gradlew :app:testDebugUnitTest --console=plain --max-workers=2` with `ANDROID_HOME=/home/user/android-sdk`, JDK from the container, Gradle 9.0.0.
+
+| Date | Tree | Result |
+|---|---|---|
+| 2026-11-10 | v1.8.1 merged into branch, parsers `b3c0000245`, OkHttp 5.3.2, NewPipe 0.26.5 | PASS: 891 tests, 10 skipped, 0 failures (baseline) |
+| 2026-11-10 | + parsers `68f3fed395` | PASS (`:app:compileDebugKotlin` clean, unit tests green) |
+| 2026-11-10 | + OkHttp 5.5.1 | PASS |
+| 2026-11-10 | + NewPipeExtractor v0.27.0 | PASS |
+| 2026-11-10 | + JsPublisherPolicy and 13 new tests | PASS: 904 tests, 0 failures |
+
+Not run: lint, `assembleRelease`/R8, instrumentation tests, cold-start smoke test, any live-site or playback check, any performance measurement. Compiler warnings were not compared with the baseline.
