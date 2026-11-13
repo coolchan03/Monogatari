@@ -66,6 +66,14 @@
 					android:id="@+id/action_filter_metadata"
 					android:title="@string/search_metadata_filters" />
 
+				<item
+					android:id="@+id/action_pane_layout"
+					android:title="@string/search_pane_layout" />
+
+				<item
+					android:id="@+id/action_toggle_preview"
+					android:title="@string/search_preview_collapse" />
+
 			</group>
 		</menu>
 

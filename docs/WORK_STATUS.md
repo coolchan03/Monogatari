@@ -201,3 +201,10 @@
 - Implemented explicit Search > filter menu for available result tags/demographics, normalized source language, public catalog formats, and actual local history (opened/not opened), preserving choices via SavedStateHandle.
 - Unsupported reading-direction metadata is deliberately not fabricated; controls appear only when at least one result exposes relevant metadata. Public external catalogs are excluded from local-history selection and genre selection when no genre metadata is supplied.
 - Added `SearchMetadataFiltersTest`; still awaiting exact-commit GitHub-hosted unit tests, R8 APK and cold start. Do not count #32 fully DONE until those checks and unsupported direction behavior are reviewed.
+
+## 2026-11-13 - Audit implementation Batch A (search UX) - A1 COMMITTED
+- Base: devel `4ce6770ee16d5fbd08da604a279beabc43986487` (v1.9.0, still the newest `devel` when work started). Branch: `ccr-206cf2cb-3oxtfw`.
+- Environment: cloud container, Android SDK 37.0 / build-tools 35.0.0 installed under /opt/android-sdk. "Tunnel to Surface" is not a tool in this session, so work is local git only; no GitHub-connector writes.
+- Baseline `:app:testDebugUnitTest` on v1.9.0: 964 passed, 0 failed, 10 skipped (the only failure was in a new test of mine, fixed).
+- A1 (UI-01/02/03/04/05): pure SearchPaneLayoutPolicy, SearchPaneController (drag/DPAD/a11y divider), one adaptive activity_search.xml (removed the forced-horizontal w600dp/w840dp copies), richer SearchTabletPreview driven by SearchPreviewState with lazy details via LatestSelectionLoader (stale requests cancelled), SearchContentFormat facet (Manga/Webtoon/Comics/Manhwa/Manhua + Include unclassified), in-place search-kind switching.
+- A1 result: `:app:testDebugUnitTest` 975 passed / 0 failed / 10 skipped; scripts/validate-ui-a11y.py PASS. Not run: emulator/device UI, lint, release build.

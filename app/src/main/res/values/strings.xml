@@ -1525,4 +1525,41 @@ Optional — skip it and you appear as anon.</string>
     <string name="nearby_settings_network">Network (DNS, proxy, downloads)</string>
     <string name="nearby_settings_tracking">Updates, tracking and notifications</string>
     <string name="nearby_settings_other">Everything else</string>
+
+    <!-- Adaptive search preview and format facet (audit batch A) -->
+    <string name="search_pane_divider">Resize preview. Drag, or use the arrow keys.</string>
+    <string name="search_preview_collapse">Hide preview</string>
+    <string name="search_preview_expand">Show preview</string>
+    <string name="search_preview_show_more">Show more</string>
+    <string name="search_preview_show_less">Show less</string>
+    <string name="search_preview_add_library">Add to library</string>
+    <string name="search_preview_in_library">In library</string>
+    <string name="search_preview_choose_source">Choose source</string>
+    <string name="search_preview_continue">Continue</string>
+    <string name="search_preview_watch">Watch</string>
+    <string name="search_preview_continue_watching">Continue watching</string>
+    <string name="search_preview_listen">Listen</string>
+    <string name="search_preview_continue_listening">Continue listening</string>
+    <string name="search_preview_progress_chapter">Chapter %1$d of %2$d · %3$d%%</string>
+    <string name="search_preview_progress_percent">%1$d%% read</string>
+    <string name="search_preview_chapters">%1$d chapters</string>
+    <string name="search_preview_loading_details">Loading details…</string>
+    <string name="search_preview_details_unavailable">Full details could not be loaded. What the search returned is shown.</string>
+    <string name="search_preview_rating">★ %1$.1f / 5</string>
+    <string name="search_preview_selected">%1$s selected</string>
+    <string name="search_pane_layout">Preview layout</string>
+    <string name="search_pane_layout_auto">Automatic</string>
+    <string name="search_pane_layout_list_only">List only</string>
+    <string name="search_pane_layout_split">List and preview</string>
+    <string name="search_format_all">All formats</string>
+    <string name="search_format_manga">Manga</string>
+    <string name="search_format_webtoon">Webtoons</string>
+    <string name="search_format_comics">Comics</string>
+    <string name="search_format_manhwa">Manhwa</string>
+    <string name="search_format_manhua">Manhua</string>
+    <string name="search_format_include_unclassified">Include format unknown</string>
+    <string name="search_format_hint">Format is taken from the source or the title\'s own tags. Titles without that information are marked unknown.</string>
+    <string name="search_preview_larger">Larger preview</string>
+    <string name="search_preview_smaller">Smaller preview</string>
+    <string name="search_pane_split_state">Preview takes %1$d percent</string>
 </resources>

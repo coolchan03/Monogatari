@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:id="@+id/search_preview_scroll"
+	android:layout_width="match_parent"
+	android:layout_height="0dp"
+	android:layout_weight="1"
+	android:background="?attr/colorSurfaceContainerLow"
+	android:fillViewport="true">
+
+	<LinearLayout
+		android:id="@+id/search_preview_pane"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:padding="12dp">
+
+		<FrameLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+
+			<TextView
+				android:id="@+id/search_preview_hint"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:gravity="center"
+				android:minHeight="48dp"
+				android:paddingStart="48dp"
+				android:paddingEnd="48dp"
+				android:text="@string/tablet_search_select"
+				android:textAppearance="?attr/textAppearanceBodyLarge"
+				android:textColor="?android:attr/textColorSecondary" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/search_preview_collapse"
+				style="@style/Widget.Material3.Button.IconButton"
+				android:layout_width="48dp"
+				android:layout_height="48dp"
+				android:layout_gravity="end|top"
+				android:contentDescription="@string/search_preview_collapse"
+				app:icon="@drawable/ic_expand_more"
+				app:iconGravity="textStart"
+				app:iconPadding="0dp" />
+
+		</FrameLayout>
+
+		<LinearLayout
+			android:id="@+id/search_preview_header"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:visibility="gone">
+
+			<org.koitharu.kotatsu.image.ui.CoverImageView
+				android:id="@+id/search_preview_cover"
+				android:layout_width="132dp"
+				android:layout_height="188dp"
+				android:contentDescription="@string/tablet_search_cover"
+				android:scaleType="fitCenter" />
+
+			<LinearLayout
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="16dp"
+				android:layout_weight="1"
+				android:orientation="vertical">
+
+				<TextView
+					android:id="@+id/search_preview_title"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+
+				<TextView
+					android:id="@+id/search_preview_alt_title"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="2dp"
+					android:textAppearance="?attr/textAppearanceBodyMedium"
+					android:textColor="?android:attr/textColorSecondary"
+					android:visibility="gone" />
+
+				<TextView
+					android:id="@+id/search_preview_author"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="6dp"
+					android:textAppearance="?attr/textAppearanceTitleSmall"
+					android:visibility="gone" />
+
+				<TextView
+					android:id="@+id/search_preview_source"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="6dp"
+					android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+				<TextView
+					android:id="@+id/search_preview_facts"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:textAppearance="?attr/textAppearanceBodyMedium"
+					android:textColor="?android:attr/textColorSecondary"
+					android:visibility="gone" />
+
+				<TextView
+					android:id="@+id/search_preview_progress"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:textAppearance="?attr/textAppearanceLabelLarge"
+					android:visibility="gone" />
+
+				<com.google.android.material.progressindicator.LinearProgressIndicator
+					android:id="@+id/search_preview_loading"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:indeterminate="true"
+					android:visibility="gone" />
+
+			</LinearLayout>
+
+		</LinearLayout>
+
+		<com.google.android.material.chip.ChipGroup
+			android:id="@+id/search_preview_tags"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:visibility="gone" />
+
+		<TextView
+			android:id="@+id/search_preview_description"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="12dp"
+			android:ellipsize="end"
+			android:maxLines="6"
+			android:textAppearance="?attr/textAppearanceBodyMedium"
+			android:textIsSelectable="true"
+			android:visibility="gone" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/search_preview_more"
+			style="@style/Widget.Material3.Button.TextButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:minHeight="48dp"
+			android:text="@string/search_preview_show_more"
+			android:visibility="gone" />
+
+		<TextView
+			android:id="@+id/search_preview_notice"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			android:textAppearance="?attr/textAppearanceBodySmall"
+			android:textColor="?android:attr/textColorSecondary"
+			android:visibility="gone" />
+
+		<com.google.android.material.button.MaterialButton
+			android:id="@+id/search_preview_read"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="16dp"
+			android:minHeight="48dp"
+			android:text="@string/tablet_search_read"
+			android:visibility="gone" />
+
+		<LinearLayout
+			android:id="@+id/search_preview_secondary_row"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			android:orientation="horizontal"
+			android:visibility="gone">
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/search_preview_open"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:minHeight="48dp"
+				android:text="@string/tablet_search_open" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/search_preview_library"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="8dp"
+				android:layout_weight="1"
+				android:minHeight="48dp"
+				android:text="@string/search_preview_add_library" />
+
+		</LinearLayout>
+
+		<com.google.android.material.chip.ChipGroup
+			android:id="@+id/search_preview_more_actions"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="4dp"
+			android:visibility="gone">
+
+			<com.google.android.material.chip.Chip
+				android:id="@+id/search_preview_download"
+				style="@style/Widget.Material3.Chip.Assist"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/download" />
+
+			<com.google.android.material.chip.Chip
+				android:id="@+id/search_preview_choose_source"
+				style="@style/Widget.Material3.Chip.Assist"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/search_preview_choose_source" />
+
+			<com.google.android.material.chip.Chip
+				android:id="@+id/search_preview_browser"
+				style="@style/Widget.Material3.Chip.Assist"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/open_in_browser" />
+
+			<com.google.android.material.chip.Chip
+				android:id="@+id/search_preview_share"
+				style="@style/Widget.Material3.Chip.Assist"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/share" />
+
+		</com.google.android.material.chip.ChipGroup>
+
+	</LinearLayout>
+
+</ScrollView>

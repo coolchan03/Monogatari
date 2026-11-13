@@ -41,6 +41,10 @@ class SearchMenuProvider(
 		)?.isChecked = true
 		menu.findItem(R.id.action_filter_hide_empty)?.isChecked = viewModel.isHideEmptyEnabled
 		menu.findItem(R.id.action_filter_pinned_only)?.isChecked = viewModel.isPinnedOnly
+		menu.findItem(R.id.action_search_kind)?.subMenu?.findItem(R.id.action_toggle_preview)?.apply {
+			isVisible = activity.canTogglePreview()
+			setTitle(if (activity.isPreviewCollapsed()) R.string.search_preview_expand else R.string.search_preview_collapse)
+		}
         menu.findItem(R.id.action_search_kind)?.subMenu
             ?.setGroupVisible(R.id.group_video_search_modes, viewModel.isVideoModeSearch)
         menu.findItem(
@@ -86,6 +90,16 @@ class SearchMenuProvider(
 				SearchMetadataFilterDialog.show(activity, viewModel)
 				return true
 			}
+
+			R.id.action_toggle_preview -> {
+				activity.togglePreview()
+				return true
+			}
+
+			R.id.action_pane_layout -> {
+				activity.showPaneLayoutDialog()
+				return true
+			}
             R.id.action_filter_media -> {
                 showMediaScopeDialog()
                 return true
@@ -100,16 +114,9 @@ class SearchMenuProvider(
 			else -> return false
 		}
 		if (newKind != viewModel.kind) {
-			activity.startActivity(Intent(activity, SearchActivity::class.java)
-				.putExtra(AppRouter.KEY_QUERY, viewModel.query)
-				.putExtra(AppRouter.KEY_KIND, newKind)
-				.putExtra(SearchActivity.EXTRA_MEDIA_TYPE, viewModel.searchMediaScope))
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-				activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out, 0)
-			} else {
-				activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-			}
-			activity.finishAfterTransition()
+			// In place: the query, filters, media type and the selected preview all stay.
+			viewModel.setKind(newKind)
+			activity.onSearchKindChanged()
 		}
 		return true
 	}

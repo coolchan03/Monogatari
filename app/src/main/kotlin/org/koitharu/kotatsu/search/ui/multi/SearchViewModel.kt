@@ -42,6 +42,8 @@ import org.koitharu.kotatsu.core.media.filterByMediaType
 import org.koitharu.kotatsu.core.media.mediaType
 import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.model.UnknownMangaSource
+import org.koitharu.kotatsu.core.model.getPreferredBranch
+import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.core.model.getLocale
 import org.koitharu.kotatsu.core.ui.model.MangaOverride
 import org.koitharu.kotatsu.list.ui.model.MangaCompactListModel
@@ -85,6 +87,9 @@ import javax.inject.Inject
 
 private const val MAX_PARALLELISM = 8
 
+/** A slow source must not hold the preview in its loading state forever. */
+private const val PREVIEW_DETAILS_TIMEOUT_MS = 20_000L
+
 /** Highest value [SearchViewModel.priority] returns: +2 for a locale match. */
 private const val MAX_LOCALE_PRIORITY = 2.0
 
@@ -109,7 +114,20 @@ class SearchViewModel @Inject constructor(
 ) : BaseViewModel() {
 
 	val query = savedStateHandle.get<String>(AppRouter.KEY_QUERY).orEmpty()
-	val kind = savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE
+	private val kindState = MutableStateFlow(savedStateHandle.get<SearchKind>(AppRouter.KEY_KIND) ?: SearchKind.SIMPLE)
+	val kind: SearchKind
+		get() = kindState.value
+
+	/** Changes how the query is matched without leaving the screen; filters, type and selected preview are kept. */
+	fun setKind(value: SearchKind) {
+		if (value == kindState.value) return
+		kindState.value = value
+		savedStateHandle[AppRouter.KEY_KIND] = value
+		viewedJob?.cancel()
+		viewedIds.value = null
+		if (progressFilter.value != SearchMetadataFilters.History.ANY) loadViewedIds()
+		retry()
+	}
 	/**
 	 * The media type of this search: an explicit EXTRA_MEDIA_TYPE (or the one the user last picked here,
 	 * which survives process death), else the shared main search type. Explore's own filter is not used.
@@ -160,12 +178,20 @@ class SearchViewModel @Inject constructor(
 	private val readingModeFilter = MutableStateFlow<String?>(savedStateHandle.get<String>("reading_mode_filter"))
 	private val savedReadingModes = MutableStateFlow<Map<Long, ReaderMode>>(emptyMap())
 	private var directionJob: Job? = null
+	private val formatFacetState = MutableStateFlow(FormatFacet.fromName(savedStateHandle.get<String>("format_facet")))
+	private val includeUnclassified = MutableStateFlow(savedStateHandle.get<Boolean>("format_include_unclassified") ?: false)
+	/** The facet only applies while the Manga type is selected; other types ignore it. */
+	private data class FormatSelection(val facet: FormatFacet, val includeUnclassified: Boolean)
+	private val formatSelection = combine(formatFacetState, includeUnclassified, mediaScopeState) { facet, include, scope ->
+		FormatSelection(if (scope == MediaType.MANGA.name) facet else FormatFacet.ALL, include)
+	}
 	private data class MetadataSelection(val genre: String?, val progress: SearchMetadataFilters.History,
-		val viewed: Set<Long>?, val readingMode: String?, val knownModes: Map<Long, ReaderMode>)
+		val viewed: Set<Long>?, val readingMode: String?, val knownModes: Map<Long, ReaderMode>,
+		val format: FormatSelection)
 	private val metadataSelection = combine(
 		combine(genreFilter, progressFilter, viewedIds) { genre, progress, ids -> Triple(genre, progress, ids) },
-		readingModeFilter, savedReadingModes,
-	) { simple, direction, modes -> MetadataSelection(simple.first, simple.second, simple.third, direction, modes) }
+		readingModeFilter, savedReadingModes, formatSelection,
+	) { simple, direction, modes, format -> MetadataSelection(simple.first, simple.second, simple.third, direction, modes, format) }
 	private val includeUnknownYears = MutableStateFlow(savedStateHandle.get<Boolean>("include_unknown_years") ?: true)
     val isVideoModeSearch: Boolean
         get() = effectiveMediaType == MediaType.VIDEO
@@ -198,7 +224,14 @@ class SearchViewModel @Inject constructor(
 				// Parser sections match a format only through their source's declared content type.
 				val eligible = (format == null || SearchMetadataFilters.formatMatches(sectionFormat(section), format)) && (language == null ||
 					SearchMetadataFilters.languageMatches(section.source.getLocale()?.language, language))
-				section.copy(list = if (!eligible) emptyList() else section.list.filter { row ->
+				val facet = selection.format.facet
+				val facetEligible = facet == FormatFacet.ALL || section.source.mediaType() == MediaType.MANGA
+				val sourceType = (section.source.unwrap() as? MangaParserSource)?.contentType
+				section.copy(list = if (!eligible || !facetEligible) emptyList() else section.list.filter { row ->
+					SearchContentFormat.matches(
+						facet, selection.format.includeUnclassified,
+						SearchContentFormat.classify(sourceType, row.manga.tags.map { it.title }),
+					) &&
 					SearchMetadataFilters.tagMatches(row.manga.tags.map { it.title }, selection.genre) &&
 						SearchMetadataFilters.historyMatches(row.manga.id, selection.progress, selection.viewed) &&
 						SearchMetadataFilters.directionMatches(selection.knownModes[row.manga.id], selection.readingMode)
@@ -262,6 +295,93 @@ class SearchViewModel @Inject constructor(
 
 	val selectedLanguage: String?
 		get() = languageFilter.value
+
+	val formatFacet: StateFlow<FormatFacet> = formatFacetState
+	val includesUnclassifiedFormats: StateFlow<Boolean> = includeUnclassified
+
+	fun setFormatFacet(facet: FormatFacet) {
+		formatFacetState.value = facet
+		savedStateHandle["format_facet"] = facet.name
+	}
+
+	fun setIncludeUnclassifiedFormats(value: Boolean) {
+		includeUnclassified.value = value
+		savedStateHandle["format_include_unclassified"] = value
+	}
+
+	private val previewStateFlow = MutableStateFlow<SearchPreviewState?>(null)
+	/** The selected title in the preview pane. Survives rotation because the view model does. */
+	val previewState: StateFlow<SearchPreviewState?> = previewStateFlow
+
+	private val previewLoader = LatestSelectionLoader<Manga, SearchPreviewDetails>(
+		scope = viewModelScope,
+		keyOf = { it.id },
+		load = { base -> loadPreviewDetails(base) },
+		cacheable = { it.detailsLoaded },
+		onResult = { base, result ->
+			val details = result.getOrNull()
+			previewStateFlow.value = if (details == null) {
+				SearchPreviewState(base, detailsFailed = true)
+			} else SearchPreviewState(
+				manga = details.manga, detailsFailed = !details.detailsLoaded, progress = details.progress,
+				currentChapter = details.currentChapter, totalChapters = details.totalChapters,
+				inLibrary = details.inLibrary,
+			)
+		},
+	)
+
+	/** Shows [manga] at once from the search result and then loads its real details, cancelling any older request. */
+	fun selectPreview(manga: Manga) {
+		if (previewStateFlow.value?.manga?.id == manga.id && previewStateFlow.value?.detailsFailed == false) return
+		previewStateFlow.value = SearchPreviewState(manga, loading = true)
+		previewLoader.select(manga)
+	}
+
+	fun retryPreview() {
+		val current = previewStateFlow.value?.manga ?: return
+		previewLoader.invalidate(current)
+		previewStateFlow.value = SearchPreviewState(current, loading = true)
+		previewLoader.select(current)
+	}
+
+	fun clearPreview() {
+		previewLoader.clear()
+		previewStateFlow.value = null
+	}
+
+	/** Re-reads library membership, e.g. after the user returns from the favourites dialog. */
+	fun refreshPreviewLibraryState() {
+		val current = previewStateFlow.value ?: return
+		viewModelScope.launch {
+			val inLibrary = runCatchingCancellable { favouritesRepository.isFavorite(current.manga.id) }.getOrNull() ?: return@launch
+			previewStateFlow.update { state -> state?.takeIf { it.manga.id == current.manga.id }?.copy(inLibrary = inLibrary) ?: state }
+		}
+	}
+
+	private suspend fun loadPreviewDetails(base: Manga): SearchPreviewDetails = withContext(Dispatchers.Default) {
+		val detailed = try {
+			withTimeout(PREVIEW_DETAILS_TIMEOUT_MS) { repositoryFactory.create(base.source).getDetails(base) }
+		} catch (e: TimeoutCancellationException) {
+			null
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			e.printStackTraceDebug()
+			null
+		}
+		val manga = detailed ?: base
+		val history = runCatchingCancellable { historyRepository.getOne(manga) }.getOrNull()
+		val chapters = if (detailed?.chapters != null) manga.getChapters(manga.getPreferredBranch(history)) else emptyList()
+		val inLibrary = runCatchingCancellable { favouritesRepository.isFavorite(manga.id) }.getOrDefault(false)
+		SearchPreviewDetails(
+			manga = manga,
+			detailsLoaded = detailed != null,
+			progress = history?.percent?.takeIf { it > 0f },
+			currentChapter = history?.chapterId?.let { id -> chapters.indexOfFirst { it.id == id } } ?: -1,
+			totalChapters = chapters.size,
+			inLibrary = inLibrary,
+		)
+	}
 
 	fun setLanguageFilter(language: String?) {
 		languageFilter.value = language
@@ -372,7 +492,11 @@ class SearchViewModel @Inject constructor(
 		val expected: Int = 0,
 	)
 	private val catalogState = MutableStateFlow(CatalogState(loading = effectiveMediaType == null || effectiveMediaType == MediaType.BOOK))
-	private val filteredCatalog = combine(catalogState, bookFormatFilter, progressFilter, genreFilter, languageFilter) {
+	/** Books and other catalogs have no illustrated format, so a restrictive format facet leaves them out. */
+	private val facetCatalog = combine(catalogState, formatSelection) { catalog, selection ->
+		if (selection.facet == FormatFacet.ALL) catalog else catalog.copy(items = emptyList(), failures = emptyList())
+	}
+	private val filteredCatalog = combine(facetCatalog, bookFormatFilter, progressFilter, genreFilter, languageFilter) {
 		catalog, format, progress, genre, language ->
 		catalog.copy(items = if (progress != SearchMetadataFilters.History.ANY) emptyList()
 			else catalog.items.filter { SearchMetadataFilters.formatMatches(it.format, format) &&

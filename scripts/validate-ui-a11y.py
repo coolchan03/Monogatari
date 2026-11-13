@@ -51,13 +51,25 @@ for item_id in ("monogatari_catalog_item_title", "monogatari_catalog_item_summar
     assert text.get(android + "maxLines") is None, f"{item_id}: truncated at 200% font size"
     assert text.get(android + "ellipsize") is None, f"{item_id}: ellipsized at 200% font size"
     assert text.get(android + "textAppearance"), f"{item_id}: missing scalable typography"
-for name in ("layout-w600dp", "layout-w840dp"):
-    preview = res / name / "activity_search.xml"
-    element_by_id(preview, "search_preview_scroll")
-    element_by_id(preview, "search_preview_pane")
-    for action_id in ("search_preview_open", "search_preview_read"):
-        button = element_by_id(preview, action_id)
-        assert button.get(android + "layout_height") in ("wrap_content", "48dp"), "fixed-size preview action"
+# One adaptive search layout: the live window (SearchPaneLayoutPolicy) decides where the preview goes, so no
+# width-qualified copy may force a horizontal split on a portrait tablet again.
+for name in ("layout-w600dp", "layout-w840dp", "layout-w600dp-land"):
+    assert not (res / name / "activity_search.xml").exists(), f"{name}/activity_search.xml would bypass the pane policy"
+search = res / "layout" / "activity_search.xml"
+element_by_id(search, "search_panes")
+divider = element_by_id(search, "search_pane_divider")
+assert divider.get(android + "layout_height") == "48dp", "divider touch target"
+assert divider.get(android + "contentDescription") and divider.get(android + "focusable") == "true"
+preview = res / "layout" / "include_search_preview.xml"
+element_by_id(preview, "search_preview_scroll")
+element_by_id(preview, "search_preview_pane")
+for action_id in ("search_preview_open", "search_preview_read", "search_preview_library", "search_preview_collapse"):
+    button = element_by_id(preview, action_id)
+    assert button.get(android + "layout_height") in ("wrap_content", "48dp"), "fixed-size preview action"
+for text_id in ("search_preview_title", "search_preview_description", "search_preview_facts"):
+    text = element_by_id(preview, text_id)
+    assert not text.get(android + "textSize"), f"{text_id}: must support dynamic font scale"
+    assert text.get(android + "textAppearance")
 assert "SearchMetadataFilterDialog" in (src / "search" / "ui" / "multi" / "SearchMenuProvider.kt").read_text(encoding="utf-8")
 assert "contentDescription" in (src / "search" / "ui" / "multi" / "SearchMetadataFilterDialog.kt").read_text(encoding="utf-8")
 qa = res / "layout" / "activity_monogatari_test_center.xml"
