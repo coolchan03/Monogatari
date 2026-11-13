@@ -8,9 +8,9 @@ Monogatari is an Android reader built on Kotatsu-Redo with Mangayomi-style JavaS
 
 ## Latest official release
 
-**[Monogatari v1.8.0 — signed Android release](https://github.com/coolchan03/Monogatari/releases/tag/v1.8.0)**
+**[Monogatari v1.9.0 — signed Android release](https://github.com/coolchan03/Monogatari/releases/tag/v1.9.0)**
 
-[Release notes](docs/RELEASE_1_8_0_NOTES.md) | [Latest development source (devel)](https://github.com/coolchan03/Monogatari/tree/devel) | [83-feature completion tracker](docs/ROADMAP_83_TRACKER.md) | [New-chat handoff](docs/MONOGATARI_NEXT_CHAT_HANDOFF.md)
+[Release notes](docs/RELEASE_1_9_0_NOTES.md) | [Latest development source (devel)](https://github.com/coolchan03/Monogatari/tree/devel) | [83-feature completion tracker](docs/ROADMAP_83_TRACKER.md) | [New-chat handoff](docs/MONOGATARI_NEXT_CHAT_HANDOFF.md)
 
 The official 1.x line is published. Back up your library before changing APK signing certificates or package variants. Newer builds require Android/device verification; successful CI alone does not prove every provider works.
 

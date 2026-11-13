@@ -1,32 +1,45 @@
 {
-  "checkedAt": "2026-10-09T02:20:00Z",
+  "checkedAt": "2026-11-13T21:00:00Z",
+  "schema": "Observing an upstream commit does not mean Monogatari adopted it. 'integrated' is what the app actually builds against or ported; 'status' says why.",
   "upstreams": {
     "Kotatsu-Redo/Kotatsu-Redo": {
       "ref": "devel",
-      "sha": "6e0cfdc55dac5f27873f2e3634e1191eeb07132d",
-      "note": "Selective sync only; do not wholesale-merge the divergent app history."
+      "observed": { "sha": "9ef70777557e96c136c767b136a3022f7aff9dc4", "version": "9.8.7", "date": "2026-11-13" },
+      "integrated": { "sha": "6e0cfdc55dac5f27873f2e3634e1191eeb07132d", "note": "Selective ports only; see docs/UPSTREAM_REVIEW_20261113.md" },
+      "status": "REVIEWED_NOT_INTEGRATED",
+      "link": "https://github.com/Kotatsu-Redo/Kotatsu-Redo/releases/tag/9.8.7",
+      "note": "Selective sync only; do not wholesale-merge the divergent app history. 9.8.7 adds signed runtime parser bundles, a community dismissal uploader and a reader animation player: each needs an explicit owner decision."
     },
     "Kotatsu-Redo/kotatsu-parsers-redo": {
       "ref": "master",
-      "sha": "b3c000024563920d3eecde5816f2e9d3734fa467",
-      "note": "Manga Reader already pins this exact parser revision."
+      "observed": { "sha": "c429dceb0a8232dbffe150c6b94ad95fd7ef544a", "date": "2026-11-13" },
+      "integrated": { "sha": "68f3fed395", "note": "gradle/libs.versions.toml pin, JitPack coordinate com.github.clquwu" },
+      "status": "BLOCKED_OWNER_DECISION",
+      "link": "https://github.com/Kotatsu-Redo/kotatsu-parsers-redo/compare/68f3fed395...c429dceb0a8232dbffe150c6b94ad95fd7ef544a",
+      "note": "Newer commits move the parser contract classes out of this artifact and publish parsers as a signed runtime bundle; no JitPack build exists for them under the pinned coordinate."
     },
     "kodjodevf/mangayomi": {
       "ref": "main",
-      "sha": "fc5c4e91ab90646e2c5f0a4f4c0d517441ce24c0",
-      "note": "Ported the relevant repository-trust and request-header redaction ideas; tracker-cache and Flutter-only changes do not map to this Android/Kotlin architecture."
+      "observed": { "sha": "45730ec92c81bf1402316efdf2eb7624132aea74", "version": "v0.9.95 + 29 commits", "date": "2026-11-13" },
+      "integrated": { "sha": "fc5c4e91ab90646e2c5f0a4f4c0d517441ce24c0", "note": "JS contract/runtime port, not the Flutter app" },
+      "status": "REVIEWED_NO_PORT_NEEDED",
+      "link": "https://github.com/kodjodevf/mangayomi",
+      "note": "JS Client PUT/DELETE/PATCH routing is already covered by JsHttpShimMethodsTest; the malformed-filter fix concerns Dart-side filter parsing that Monogatari does not perform."
     },
     "m2k3a/mangayomi-extensions": {
       "ref": "main",
-      "sha": "ad469866c97bddea4a002063a19a4bbfe1a17653"
+      "integrated": { "sha": "ad469866c97bddea4a002063a19a4bbfe1a17653" },
+      "status": "NOT_RECHECKED"
     },
     "Swakshan/mangayomi-swak-extensions": {
       "ref": "main",
-      "sha": "1148914eedf925d2eea6ccc4a24f08a4f9b08445"
+      "integrated": { "sha": "1148914eedf925d2eea6ccc4a24f08a4f9b08445" },
+      "status": "NOT_RECHECKED"
     },
     "gato404/kegareta-sauces": {
       "ref": "main",
-      "sha": "f8708d3ceba8c04b862a78bfbcd5f46e0e4b0215"
+      "integrated": { "sha": "f8708d3ceba8c04b862a78bfbcd5f46e0e4b0215" },
+      "status": "NOT_RECHECKED"
     }
   }
 }

@@ -117,3 +117,21 @@ The parser library cannot be changed from here, so working replacements were wri
 | `COMIX` | JS alternative already in seeded repos (`m2k3a`, `sugoi`, v0.1.0) | not run here | library parser stays disabled |
 
 Still broken upstream and not replaced: Temple Scan, Catharsis World, MangaCloud (guarded), and every Cloudflare-challenged site listed above.
+
+## Update 2026-11-13: QuickJS runtime evidence (audit batch B)
+
+Evidence labels: **WORKS END-TO-END** (live, on a device) / **QUICKJS FIXTURE** (real QuickJS host, canned API responses) / INDEX ONLY / PARSER BROKEN / ACCESS RESTRICTED / NOT TESTED. Skipped is never reported as failed.
+
+- Until this update the JVM unit tests never ran the JS engine: all 8 `JsExtensionTest` cases were **skipped** because the Android QuickJS artifact has no desktop library. `testImplementation libs.quickjs.kt.jvm` (`io.github.dokar3:quickjs-kt-jvm`, same version as the app's QuickJS) now makes them run: 8 passed, 0 skipped.
+- New `MaintainedExtensionsQuickJsTest` (6 cases) runs `skymangas.js` and `rocksmanga.js` through search -> details -> chapters -> pages in that host, plus error paths (HTML challenge page, `success:false`, HTTP 429 must surface as errors, not as an empty list).
+
+| Source | Evidence now | What it does and does not prove |
+|---|---|---|
+| SKYMANGAS (`js:4720001001`) | QUICKJS FIXTURE | extension logic and host bridge work; the fixtures follow the endpoint notes in the script and were **not recorded live**, so the website itself is still NOT TESTED from a device |
+| ROCKSMANGA (`js:4720001002`) | QUICKJS FIXTURE | same |
+| SOFTKOMIK | PARSER BROKEN / NOT TESTED | host change alone cannot repair a missing session token and encrypted data; no change made |
+| TEMPLESCAN, CATHARSISWORLD, MANGACLOUD | ACCESS RESTRICTED / NOT TESTED | challenge and rate-limit cases; nothing bypassed |
+| ATSUMOE | NOT TESTED | AVIF decode still needs a device check |
+| Others in the table above | unchanged | re-sweep after any parser change, from the owner's device |
+
+Not done in this batch: a live per-source smoke runner and a quiet "Working / Limited / Unavailable" status in the source list (specified in the audit, section 5.2). They need either network access to the sites or UI work that is not started.

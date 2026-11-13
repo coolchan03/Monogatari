@@ -305,6 +305,8 @@ dependencies {
 	testImplementation libs.junit
 	testImplementation libs.json
 	testImplementation libs.kotlinx.coroutines.test
+	// Desktop QuickJS so the JS extension runtime tests execute on the JVM instead of skipping (test-only).
+	testImplementation libs.quickjs.kt.jvm
 
 	androidTestImplementation libs.androidx.runner
 	androidTestImplementation libs.androidx.rules
