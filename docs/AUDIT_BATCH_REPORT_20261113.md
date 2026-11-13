@@ -19,7 +19,8 @@ Base: `devel` `4ce6770ee16d5fbd08da604a279beabc43986487` (v1.9.0), the newest `d
 | `JsExtensionTest` with desktop QuickJS on the test classpath | 8 PASS, 0 SKIP (previously 8 SKIP) |
 | `MaintainedExtensionsQuickJsTest` (new) | 6 PASS |
 | `scripts/validate-ui-a11y.py` | PASS (updated for the new layout) |
-| `:app:lintDebug` | see "Lint" below |
+| Final `:app:testDebugUnitTest` + `:app:assembleDebug` on the finished branch | 981 PASS, 0 FAIL, 2 SKIP; debug APK built (sha256 `7c92e84a507e6077b0e556c4f0ad902971d2eca37a2d9cf425b70a0ef4ba1ca9`, unsigned-for-release debug build, not a release artifact) |
+| `:app:lintDebug` | **INCOMPLETE**: `lintAnalyzeDebug` was still running when the 55-minute limit stopped it (exit 124). Same outcome as v1.9.0; no result, not a pass. Next step: run on a larger CI runner with a lint baseline, or split by module |
 | `:app:assembleRelease` (R8) | NOT RUN in this session |
 | Emulator / device UI (phone portrait, tablet portrait/landscape, fold, 200% font, TalkBack) | NOT RUN: no emulator available. Owner step. |
 
@@ -46,7 +47,7 @@ New unit tests: `SearchPaneLayoutPolicyTest` (9), `SearchContentFormatTest` (9),
 | SRC-06 re-sweep | NOT RUN | owner's device |
 | SRC-07 upstream-watch | COMPLETED | observed vs integrated fields, links, status |
 | DOC-01 README | COMPLETED | latest release link now v1.9.0; changelog entry for this work is NOT added because nothing is released |
-| QA-01 lint | see "Lint" | |
+| QA-01 lint | INCOMPLETE (see above) | no CI step added, since an unbounded lint job would only fail the build without information; needs a baseline decision |
 | ARCH-01 refactors | NOT STARTED | the audit says to refactor only after profiling; none done, no behaviour risk taken |
 | ARCH-02 App Links | NOT STARTED | needs `assetlinks.json` evidence |
 | ARCH-03 lint suppressions | NOT STARTED | |
