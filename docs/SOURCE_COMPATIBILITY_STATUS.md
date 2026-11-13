@@ -135,3 +135,13 @@ Evidence labels: **WORKS END-TO-END** (live, on a device) / **QUICKJS FIXTURE** 
 | Others in the table above | unchanged | re-sweep after any parser change, from the owner's device |
 
 Not done in this batch: a live per-source smoke runner and a quiet "Working / Limited / Unavailable" status in the source list (specified in the audit, section 5.2). They need either network access to the sites or UI work that is not started.
+
+### Live list-endpoint probe, 2026-11-13 (one request each, from a datacenter IP)
+
+- SkyMangas `GET /api/v1/manhuas/trending?page=1&perPage=2` with Origin/Referer set: HTTP 200, `{"success":true,"data":[{id,title,slug,coverUrl,coverThumbUrl,...}]}`. Field names match what `skymangas.js` reads. Search, details, chapters and page endpoints were **not** requested.
+- Rocks Manga `GET /manga?page=1`: JSON `{"items":[{id,slug,title,cover_url,type,status,...}]}`. Matches `rocksmanga.js`. Other endpoints not requested.
+- This confirms the list shape only, not that reading works on a phone.
+
+### Android App Links (ARCH-02), verified 2026-11-13
+
+`https://kotatsuredo.app/.well-known/assetlinks.json` lists only the upstream packages (`io.github.kotatsuredo.kotatsu`, `.nightly`, `.debug`, ...) and their certificate. It does **not** list `io.github.coolchan03.monogatari`, so link verification cannot succeed for Monogatari: such links open through the normal chooser rather than straight into the app. Nothing was changed (the host is upstream's, and removing the filter could break existing links); fixing it needs a domain Monogatari controls.

@@ -21,7 +21,7 @@ Base: `devel` `4ce6770ee16d5fbd08da604a279beabc43986487` (v1.9.0), the newest `d
 | `scripts/validate-ui-a11y.py` | PASS (updated for the new layout) |
 | Final `:app:testDebugUnitTest` + `:app:assembleDebug` on the finished branch | 981 PASS, 0 FAIL, 2 SKIP; debug APK built (sha256 `7c92e84a507e6077b0e556c4f0ad902971d2eca37a2d9cf425b70a0ef4ba1ca9`, unsigned-for-release debug build, not a release artifact) |
 | `:app:lintDebug` | **INCOMPLETE**: `lintAnalyzeDebug` was still running when the 55-minute limit stopped it (exit 124). Same outcome as v1.9.0; no result, not a pass. Next step: run on a larger CI runner with a lint baseline, or split by module |
-| `:app:assembleRelease` (R8) | NOT RUN in this session |
+| `:app:assembleRelease` (R8, version 1.10.0 / code 34) | BUILD SUCCESSFUL (16m50s). The artifact is not signed with the release key and was not published |
 | Emulator / device UI (phone portrait, tablet portrait/landscape, fold, 200% font, TalkBack) | NOT RUN: no emulator available. Owner step. |
 
 New unit tests: `SearchPaneLayoutPolicyTest` (9), `SearchContentFormatTest` (9), `SearchPreviewActionsTest` (6), `LatestSelectionLoaderTest` (4), `MaintainedExtensionsQuickJsTest` (6).

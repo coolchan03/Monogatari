@@ -1,5 +1,11 @@
 # Monogatari changelog
 
+## v1.10.0 - Adaptive search preview (2026-11-13)
+- Search preview below the results on tablet portrait, beside them in landscape, adjustable and hideable; richer preview with lazy details.
+- Manga/Webtoon/Comics/Manhwa/Manhua format filter; in-place search-kind switching; Material filter dropdowns.
+- JS extension tests now run QuickJS on the JVM; SkyMangas and Rocks Manga flow tests.
+- Device verification and lint still outstanding. See docs/RELEASE_1_10_0_NOTES.md.
+
 ## v0.12.0 - Source Setup and Website Fallback
 - First-run JS source onboarding, background install progress and manual retry.
 - Targeted extension repair after repeated failures; safe website grouping and search fallback.
