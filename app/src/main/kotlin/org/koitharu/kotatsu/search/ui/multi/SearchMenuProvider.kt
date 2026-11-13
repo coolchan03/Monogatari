@@ -7,8 +7,6 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.EditText
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.MenuProvider
@@ -165,37 +163,25 @@ class SearchMenuProvider(
 		}
 		container.addView(unknownBox)
 		val languages = listOf<String?>(null) + viewModel.languagesInResults()
-		container.addView(TextView(activity).apply {
-			setText(R.string.search_language_label)
-			setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
-		})
-		val languagePicker = Spinner(activity).apply {
-			adapter = ArrayAdapter(
-				activity, android.R.layout.simple_spinner_item,
-				languages.map { code -> code?.let { java.util.Locale(it).getDisplayLanguage() } ?: activity.getString(R.string.search_language_any) },
-			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-			setSelection(languages.indexOf(viewModel.selectedLanguage).coerceAtLeast(0))
-		}
-		container.addView(languagePicker)
+		val languagePicker = SearchDropdownField(
+			activity, R.string.search_language_label,
+			languages.map { code -> code?.let { java.util.Locale(it).getDisplayLanguage() } ?: activity.getString(R.string.search_language_any) },
+			languages.indexOf(viewModel.selectedLanguage).coerceAtLeast(0),
+		)
+		container.addView(languagePicker.view)
 		val ordering = PublicationYearOrder.entries.toList()
-		container.addView(TextView(activity).apply {
-			setText(R.string.publication_year_sort_label)
-			setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
-		})
-		val sortPicker = Spinner(activity).apply {
-			adapter = ArrayAdapter(
-				activity, android.R.layout.simple_spinner_item,
-				listOf(
-					activity.getString(R.string.publication_year_sort_relevance),
-					activity.getString(R.string.publication_year_sort_ascending),
-					activity.getString(R.string.publication_year_sort_descending),
-					activity.getString(R.string.publication_year_sort_ascending_global),
-					activity.getString(R.string.publication_year_sort_descending_global),
-				),
-			).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-			setSelection(ordering.indexOf(viewModel.publicationYearOrder).coerceAtLeast(0))
-		}
-		container.addView(sortPicker)
+		val sortPicker = SearchDropdownField(
+			activity, R.string.publication_year_sort_label,
+			listOf(
+				activity.getString(R.string.publication_year_sort_relevance),
+				activity.getString(R.string.publication_year_sort_ascending),
+				activity.getString(R.string.publication_year_sort_descending),
+				activity.getString(R.string.publication_year_sort_ascending_global),
+				activity.getString(R.string.publication_year_sort_descending_global),
+			),
+			ordering.indexOf(viewModel.publicationYearOrder).coerceAtLeast(0),
+		)
+		container.addView(sortPicker.view)
 		container.addView(TextView(activity).apply {
 			setText(R.string.publication_year_sort_hint)
 			setPadding(0, (6 * density).toInt(), 0, 0)
@@ -212,8 +198,8 @@ class SearchMenuProvider(
 			.setNegativeButton(android.R.string.cancel, null)
 			.setPositiveButton(android.R.string.ok) { _, _ ->
 				viewModel.setIncludeUnknownYears(unknownBox.isChecked)
-				viewModel.setLanguageFilter(languages[languagePicker.selectedItemPosition])
-				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedItemPosition])
+				viewModel.setLanguageFilter(languages[languagePicker.selectedIndex])
+				viewModel.setPublicationYearOrder(ordering[sortPicker.selectedIndex])
 				viewModel.setPublicationYearRange(
 					from.text?.toString()?.trim()?.toIntOrNull(),
 					to.text?.toString()?.trim()?.toIntOrNull(),

@@ -5,7 +5,6 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Spinner
 import android.widget.TextView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.koitharu.kotatsu.R
@@ -28,16 +27,8 @@ internal object SearchMetadataFilterDialog {
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
             })
         }
-        fun spinner(res: Int, labels: List<String>, selectedIndex: Int): Spinner {
-            label(res)
-            return Spinner(activity).apply {
-                adapter = ArrayAdapter(activity, android.R.layout.simple_spinner_item, labels)
-                    .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-                minimumHeight = (48 * dp).toInt()
-                setSelection(selectedIndex.coerceIn(0, labels.lastIndex))
-                contentDescription = activity.getString(res)
-            }.also { content.addView(it) }
-        }
+        fun spinner(res: Int, labels: List<String>, selectedIndex: Int): SearchDropdownField =
+            SearchDropdownField(activity, res, labels, selectedIndex).also { content.addView(it.view) }
         val availableTags = viewModel.availableGenres()
         val genre = if (availableTags.isNotEmpty() || viewModel.selectedGenre != null) {
             label(R.string.search_genre_tag_label)
@@ -112,10 +103,10 @@ internal object SearchMetadataFilterDialog {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 genre?.let { viewModel.setGenreFilter(it.text?.toString()) }
-                languagePicker?.let { viewModel.setLanguageFilter(languageOptions[it.selectedItemPosition]) }
-                formatPicker?.let { viewModel.setBookFormatFilter(formatOptions[it.selectedItemPosition]) }
-                historyPicker?.let { viewModel.setHistoryFilter(historyModes[it.selectedItemPosition]) }
-                directionPicker?.let { viewModel.setReadingModeFilter(directionOptions[it.selectedItemPosition]) }
+                languagePicker?.let { viewModel.setLanguageFilter(languageOptions[it.selectedIndex]) }
+                formatPicker?.let { viewModel.setBookFormatFilter(formatOptions[it.selectedIndex]) }
+                historyPicker?.let { viewModel.setHistoryFilter(historyModes[it.selectedIndex]) }
+                directionPicker?.let { viewModel.setReadingModeFilter(directionOptions[it.selectedIndex]) }
             }
             .show()
     }
