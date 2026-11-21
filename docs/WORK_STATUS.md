@@ -1,5 +1,15 @@
 # Monogatari work checkpoint
 
+## 2026-11-21 - Post-1.10.0 modernization checklist (branch `ccr-bf323bfe-6yd048`, local only, nothing pushed)
+- Active step: checklist section 1 / phase 1-2 (parser upgrade `68f3fed395` -> `b049587f96`). Owner waived the Tunnel to Surface requirement for this session; no push or merge without authorization.
+- Finding: the JitPack artifact `com.github.clquwu:kotatsu-parsers-redo:b049587f96` now exists (9.9 MB jar). It still bundles the contract classes and all parsers; `MangaParserSource` is now a class (companion `entries`/`find`/`valueOf`) extending `ParserMangaSource`, `MangaLoaderContext` gains abstract `parsers: ParsersBundle`, `MangaParser.source` is `ParserMangaSource`. Static linking works without any remote bundle download.
+- Done: parsers bumped to `b049587f96`; `:app:compileDebugKotlin` is green (0 errors) after adapting MangaLoaderContextImpl (`parsers = ParsersBundleImpl`), MangaLinkResolver (`resolveLink`), Migration16To17 (index instead of `ordinal`), MirrorSwitcher, MangaSourcesRepository, WelcomeViewModel (no EnumSet over parser sources), and the `DirectParsersAccess` opt-in in app/build.gradle.
+- ID diff old vs new jar: 1385 -> 1376 source names; 39 removed (retired), 30 added. Retired-ID handling is still to do.
+- First full test run after the bump: 981 tests, 1 failure (`SourceIndexHealthTest.mangayomiParserFiltersOnlyRecentConfirmedBroken`, a time bomb: fixed `now` of 2027-01-15 vs the real clock; test fixed, unrelated to the parser).
+- Added `core/model/RetiredMangaSource.kt` (39 retired ids kept verbatim, shown as "<title> (retired)", adult flag kept, NetTruyen replacement hints only) and `RetiredSourcesTest` with a 1385-id baseline snapshot.
+- Verified: `:app:testDebugUnitTest` = 990 tests, 0 failures, 0 errors, 2 skipped (includes 9 new RetiredSourcesTest). Debug Kotlin compile green. Not verified: parser behaviour against live sites, device run, migrations on a real DB, release/R8 build.
+- No operation currently active.
+
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
 - Done (local commits, not pushed): baseline 891 tests green; parsers -> 68f3fed395; OkHttp 5.5.1; NewPipeExtractor v0.27.0; JS extension publisher pinning (13 tests). Latest full run: 904 tests, 0 failures. No operation currently active.

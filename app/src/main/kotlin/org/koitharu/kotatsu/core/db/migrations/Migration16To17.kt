@@ -16,13 +16,13 @@ class Migration16To17(context: Context) : Migration(16, 17) {
 		val hiddenSources = prefs.getStringSet("sources_hidden", null).orEmpty()
 		val order = prefs.getString("sources_order_2", null)?.split('|').orEmpty()
 		val sources = MangaParserSource.entries
-		for (source in sources) {
+		for ((index, source) in sources.withIndex()) {
 			val name = source.name
 			val isHidden = name in hiddenSources
 			var sortKey = order.indexOf(name)
 			if (sortKey == -1) {
 				if (isHidden) {
-					sortKey = order.size + source.ordinal
+					sortKey = order.size + index
 				} else {
 					continue
 				}

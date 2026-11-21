@@ -130,6 +130,10 @@ android {
 			'-opt-in=coil3.annotation.ExperimentalCoilApi',
 			'-opt-in=coil3.annotation.InternalCoilApi',
 			'-opt-in=kotlinx.serialization.ExperimentalSerializationApi',
+			// Parsers are linked into the APK and ParsersBundleImpl is the only bundle ever used
+			// (MangaLoaderContextImpl.parsers). No bundle is downloaded at runtime, so the compiled-in copy of
+			// MangaParserSource is always the one in use. Revisit this if signed parser bundles are ever adopted.
+			'-opt-in=org.koitharu.kotatsu.parsers.DirectParsersAccess',
 			'-Xjspecify-annotations=strict',
 			'-Xannotation-default-target=first-only',
 			'-Xtype-enhancement-improvements-strict-mode'

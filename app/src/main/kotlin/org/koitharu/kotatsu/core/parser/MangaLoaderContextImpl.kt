@@ -25,8 +25,10 @@ import org.koitharu.kotatsu.core.util.ext.toMimeType
 import org.koitharu.kotatsu.core.util.ext.use
 import org.koitharu.kotatsu.parsers.MangaLoaderContext
 import org.koitharu.kotatsu.parsers.MangaParser
+import org.koitharu.kotatsu.parsers.ParsersBundle
 import org.koitharu.kotatsu.parsers.bitmap.Bitmap
 import org.koitharu.kotatsu.parsers.config.MangaSourceConfig
+import org.koitharu.kotatsu.parsers.core.ParsersBundleImpl
 import org.koitharu.kotatsu.parsers.model.MangaParserSource
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.core.network.webview.WebViewRequestInterceptorExecutor
@@ -49,6 +51,9 @@ class MangaLoaderContextImpl @Inject constructor(
     private val webViewExecutor: WebViewExecutor,
     private val webViewRequestInterceptorExecutor: WebViewRequestInterceptorExecutor,
 ) : MangaLoaderContext() {
+
+    /** The parsers compiled into this APK. No remote bundle is ever loaded (see the opt-in note in app/build.gradle). */
+    override val parsers: ParsersBundle = ParsersBundleImpl
 
     private val webViewUserAgent by lazy { obtainWebViewUserAgent() }
 
