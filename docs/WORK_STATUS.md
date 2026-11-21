@@ -8,7 +8,9 @@
 - First full test run after the bump: 981 tests, 1 failure (`SourceIndexHealthTest.mangayomiParserFiltersOnlyRecentConfirmedBroken`, a time bomb: fixed `now` of 2027-01-15 vs the real clock; test fixed, unrelated to the parser).
 - Added `core/model/RetiredMangaSource.kt` (39 retired ids kept verbatim, shown as "<title> (retired)", adult flag kept, NetTruyen replacement hints only) and `RetiredSourcesTest` with a 1385-id baseline snapshot.
 - Verified: `:app:testDebugUnitTest` = 990 tests, 0 failures, 0 errors, 2 skipped (includes 9 new RetiredSourcesTest). Debug Kotlin compile green. Not verified: parser behaviour against live sites, device run, migrations on a real DB, release/R8 build.
-- No operation currently active.
+- Committed locally as f9307ea (not pushed).
+- NewPipeExtractor v0.27.0 -> v0.27.1 (only POM change: jsoup 1.23.2 -> 1.24.1): `:app:testDebugUnitTest` 990 tests, 0 failures. Committed locally. Compile/unit tests only; SoundCloud/Bandcamp/YouTube behaviour not tested (needs live network + device).
+- Operation in progress: `./gradlew :app:minifyReleaseWithR8` (checks the new parser jar's bundled proguard rules; release signing not involved).
 
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
