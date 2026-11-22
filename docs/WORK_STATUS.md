@@ -3,7 +3,7 @@
 ## 2026-11-22 (later) - v1.11.1-rc1 prerelease prep
 - Done locally: ported Kotatsu-Redo sync merge fix + tests; MissingExtensionSource for MANGAYOMI_* names; opt-in live smoke tests (parsers + JS host) and their results; workflow `prerelease` input; version 1.11.1-rc1 (code 36); notes/changelog/status docs.
 - Verified: `:app:testDebugUnitTest` 1021 tests, 0 failures (before the live-test classes were added; they skip unless MONOGATARI_LIVE_TESTS=1). Not verified: sync server round trip, device behaviour.
-- Operation in progress: final test run, then commit/push and dispatch publish-release.yml (prerelease=true, tag v1.11.1-rc1).
+- Final suite: 1023 tests, 0 failures (4 skipped incl. the 2 opt-in live classes). Pushed 6df91a1; run 44971496623 succeeded; https://github.com/coolchan03/Monogatari/releases/tag/v1.11.1-rc1 published 2026-11-22 01:42 UTC as a PRERELEASE (latest remains v1.11.0), APK sha256 2c8f03a8753cd868e15d0b95867d0501c506738534edd826311311144fc1c599. Not merged into devel. No operation currently active.
 
 ## 2026-11-22 - v1.11.0 preparation (branch `ccr-bf323bfe-6yd048`, pushed through f52e913; newer work local until pushed)
 - Step: owner asked to address the remaining checklist items and publish a new version. Added: stats + per-title prefs move in MigrateUseCase, ChapterGapDetector + chapters-tab note, Continue hidden for finished last-read title, Library last category restore, Suggestions "Not interested" + Undo (local only), version 1.11.0 / code 35, CHANGELOG and docs/RELEASE_1_11_0_NOTES.md.
