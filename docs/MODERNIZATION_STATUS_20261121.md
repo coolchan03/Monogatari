@@ -9,7 +9,7 @@ checked), **DEFERRED** (not started this session). Live-provider checks and devi
 | Check | Result |
 |---|---|
 | `:app:compileDebugKotlin` against parsers `b049587f96` | 0 errors |
-| `:app:testDebugUnitTest` (parser bump, NewPipe 0.27.1, then the 1.11.0 work) | 1004 tests, 0 failures, 0 errors, 2 skipped |
+| `:app:testDebugUnitTest` (parser bump, NewPipe 0.27.1, then the 1.11.0 work) | 1010 tests, 0 failures, 0 errors, 2 skipped |
 | `:app:minifyReleaseWithR8` (new parser jar ships its own keep rules) | passes |
 | Device / emulator run, Room migrations on a real database, backup restore, live site requests | **not run** |
 
@@ -65,7 +65,7 @@ Not implemented. HoneyManga, ZeistManga, DoujinDesu (410 refresh), Merlin Scans,
 
 ## 4-5. Mangayomi / Kotatsu-Redo app improvements (updated for 1.11.0)
 
-Checks run for these: 1004 unit tests pass (14 new for chapter gaps), Room validated the new SQL at compile time, UI static checks and the R8 shrink pass. **None of the UI changes were seen on a device.**
+Checks run for these: 1010 unit tests pass (14 new for chapter gaps, 6 for genre labels), Room validated the new SQL at compile time, UI static checks and the R8 shrink pass. **None of the UI changes were seen on a device.**
 
 | Item | Status |
 |---|---|
@@ -85,7 +85,11 @@ Checks run for these: 1004 unit tests pass (14 new for chapter gaps), Room valid
 | Source-migration UX (progressive dialog, long titles, confirm uncertain matches) | NOT DONE |
 | Device sync via QR / LAN / Tailscale | NOT DONE (not started; extend the existing Nearby transfer if pursued) |
 | GIF/WebP playback in the reader; sync reconciliation; deleted favourites reappearing | NOT DONE |
-| Genre-label normalization, Explore grid size, hidden-image/repetitive-page controls | NOT DONE |
+| Genre-label normalization for recommendations (P2) | DONE (`GenreLabels`, 6 tests): Sci-Fi / Science Fiction, Shonen / Shounen, Humor / Comedy etc. match in suggestions and in the tag blacklist; related genres such as Shounen vs Shounen Ai stay apart |
+| Explore grid size, hidden-image/repetitive-page controls | NOT DONE |
+| Section 7: removed repositories vs installed JS sources / stale listings | ALREADY SATISFIED by design: listings are fetched live from the stored repo URLs (no listing cache), removing a repo drops its listings and never touches installed source code; publisher pinning (`JsPublisherPolicy`) unchanged. Read, not exercised |
+| Sync: deleted favourites reappearing, concurrent changes | NOT CHANGED: sync already uses `deleted_at` tombstones and a conflict planner; no defect found by reading; a real fix needs a sync server to test against |
+| Reduce Motion (P3) | NOT DONE: no custom animator code added; platform animator-duration scale applies, not verified |
 | Mangayomi P3 ideas (Reduce Motion etc.) | NOT DONE |
 
 ## 6. NewPipeExtractor

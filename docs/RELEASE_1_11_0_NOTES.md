@@ -9,13 +9,14 @@
 - **Continue** is no longer offered when the last-read title is finished. A new chapter brings it back.
 - **Library** reopens on the last category tab you used.
 - **Suggestions: Not interested.** Select titles in Suggestions and choose Not interested; Undo is offered. Kept on this device only and not included in backups.
+- **Recommendations match equivalent genre labels** (Sci-Fi / Science Fiction, Shonen / Shounen, Humor / Comedy), including in the tag blacklist.
 - **NewPipeExtractor v0.27.1.**
 - **MangaPark is now classed as adult** by its parser, so it is hidden when "hide adult sources" is on.
 
 ## Under the hood
 
 - The new parser contract is linked into the app; no parser bundle is downloaded at runtime and no upstream signing key is trusted.
-- Unit tests: 990+ pass, including guards for all 1385 historical source ids and the missing-chapter rules. R8 release shrink passes.
+- Unit tests: 1010 pass, including guards for all 1385 historical source ids, the missing-chapter rules and genre matching. R8 release shrink passes.
 
 ## Known limitations
 
