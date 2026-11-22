@@ -657,6 +657,10 @@ Optional — skip it and you appear as anon.</string>
     <string name="content_type_comics">Comics</string>
     <string name="content_type_other">Other</string>
     <string name="source_summary_pattern" translatable="false">%1$s, %2$s</string>
+    <string name="source_retired_title">%1$s (retired)</string>
+    <string name="source_retired_summary">No longer maintained upstream. Your saved titles are kept, but this source cannot load new content.</string>
+    <string name="source_missing_extension_title">%1$s (extension not installed)</string>
+    <string name="source_missing_extension_summary">Imported from Mangayomi, but its extension is not installed here. Your saved titles are kept; use Alternatives to find them on another source.</string>
     <string name="sources_catalog">Sources catalog</string>
     <string name="source_enabled">Source enabled</string>
     <string name="no_manga_sources_catalog_text">There are no sources available in this section, or all of it might have been already added.\nStay tuned</string>
@@ -709,6 +713,9 @@ Optional — skip it and you appear as anon.</string>
     <string name="remaining_time_pattern" translatable="false">%1$s %2$s</string>
     <string name="volume_">Volume %d</string>
     <string name="volume_unknown">Unknown volume</string>
+    <string name="missing_chapters_note">Possibly missing chapters (%1$d): %2$s</string>
+    <string name="not_interested">Not interested</string>
+    <string name="suggestion_dismissed">Hidden from suggestions</string>
     <string name="incognito_mode_hint">Your reading progress will not be saved</string>
     <string name="vertical">Vertical</string>
     <string name="last_read">Last read</string>

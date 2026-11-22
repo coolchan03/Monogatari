@@ -82,6 +82,18 @@ class HistoryRepository @Inject constructor(
 		}
 	}
 
+	/**
+	 * The last-read title, or null when there is none or when it is already finished, so "Continue" is not offered
+	 * for a title with nothing left to read. A newly released chapter lowers the stored percent again, which brings
+	 * the button back.
+	 */
+	fun observeLastUnfinished(): Flow<Manga?> {
+		return db.getHistoryDao().observeAll(1).map {
+			val first = it.firstOrNull() ?: return@map null
+			if (ReadingProgress.isCompleted(first.history.percent)) null else first.toManga()
+		}
+	}
+
 	fun observeAll(): Flow<List<Manga>> {
 		return db.getHistoryDao().observeAll().mapItems {
 			it.toManga()

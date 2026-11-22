@@ -8,6 +8,7 @@ import org.koitharu.kotatsu.core.db.entity.toEntity
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.db.entity.toMangaTagsList
 import org.koitharu.kotatsu.core.model.toMangaSources
+import org.koitharu.kotatsu.core.ui.util.ReversibleHandle
 import org.koitharu.kotatsu.core.util.ext.mapItems
 import org.koitharu.kotatsu.list.domain.ListFilterOption
 import org.koitharu.kotatsu.parsers.model.Manga
@@ -19,6 +20,7 @@ import javax.inject.Inject
 
 class SuggestionRepository @Inject constructor(
 	private val db: MangaDatabase,
+	private val dismissed: DismissedSuggestions,
 ) {
 
 	fun observeAll(): Flow<List<Manga>> {
@@ -57,10 +59,24 @@ class SuggestionRepository @Inject constructor(
 			.toMangaSources()
 	}
 
+	/** Hides titles from the suggestions and keeps them hidden across refreshes. Reversing the handle restores them. */
+	suspend fun dismiss(ids: Set<Long>): ReversibleHandle {
+		val previous = db.getSuggestionDao().findByIds(ids)
+		dismissed.add(ids)
+		db.getSuggestionDao().delete(ids)
+		return ReversibleHandle {
+			dismissed.remove(ids)
+			db.withTransaction {
+				previous.forEach { db.getSuggestionDao().upsert(it) }
+			}
+		}
+	}
+
 	suspend fun replace(suggestions: Iterable<MangaSuggestion>) {
+		val blocked = dismissed.ids()
 		db.withTransaction {
 			db.getSuggestionDao().deleteAll()
-			suggestions.forEach { (manga, relevance) ->
+			suggestions.filterNot { it.manga.id in blocked }.forEach { (manga, relevance) ->
 				val tags = manga.tags.toEntities()
 				db.getTagsDao().upsert(tags)
 				db.getMangaDao().upsert(manga.toEntity(), tags)

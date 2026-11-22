@@ -64,7 +64,6 @@ import org.koitharu.kotatsu.core.util.ext.getQuantityStringSafe
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.sanitize
-import org.koitharu.kotatsu.core.util.ext.takeMostFrequent
 import org.koitharu.kotatsu.core.util.ext.toBitmapOrNull
 import org.koitharu.kotatsu.core.util.ext.trySetForeground
 import org.koitharu.kotatsu.explore.data.MangaSourcesRepository
@@ -75,12 +74,12 @@ import org.koitharu.kotatsu.parsers.model.MangaListFilter
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.parsers.model.SortOrder
-import org.koitharu.kotatsu.parsers.util.almostEquals
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.parsers.util.sizeOrZero
 import org.koitharu.kotatsu.settings.work.PeriodicWorkScheduler
 import org.koitharu.kotatsu.suggestions.domain.MangaSuggestion
 import org.koitharu.kotatsu.suggestions.domain.SuggestionRepository
+import org.koitharu.kotatsu.suggestions.domain.GenreLabels
 import org.koitharu.kotatsu.suggestions.domain.TagsBlacklist
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -187,7 +186,10 @@ class SuggestionsWorker @AssistedInject constructor(
 			return 0
 		}
 		val tagsBlacklist = TagsBlacklist(appSettings.suggestionsTagsBlacklist, TAG_EQ_THRESHOLD)
-		val tags = seed.flatMap { it.tags.map { x -> x.title } }.takeMostFrequent(10)
+		// Equivalent spellings of one genre are counted together before picking the most frequent.
+		val tags = seed.flatMap { it.tags.map { x -> x.title } }.groupBy { GenreLabels.canonical(it) }
+			.values.map { group -> group.first() to group.size }
+			.sortedByDescending { it.second }.take(10).map { it.first }
 
 		val semaphore = Semaphore(MAX_PARALLELISM)
 		val producer = channelFlow {
@@ -268,7 +270,7 @@ class SuggestionsWorker @AssistedInject constructor(
 		val order = preferredSortOrders.first { it in availableOrders }
 		val availableTags = repository.getFilterOptions().availableTags
 		val tag = tags.firstNotNullOfOrNull { title ->
-			availableTags.find { x -> x !in blacklist && x.title.almostEquals(title, TAG_EQ_THRESHOLD) }
+			availableTags.find { x -> x !in blacklist && GenreLabels.matches(x.title, title, TAG_EQ_THRESHOLD) }
 		}
 		val list = repository.getList(
 			offset = 0,
@@ -398,7 +400,7 @@ class SuggestionsWorker @AssistedInject constructor(
 
 	private fun Iterable<String>.inexactIndexOf(element: String, threshold: Float): Int {
 		forEachIndexed { i, t ->
-			if (t.almostEquals(element, threshold)) {
+			if (GenreLabels.matches(t, element, threshold)) {
 				return i
 			}
 		}

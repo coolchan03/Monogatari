@@ -44,7 +44,6 @@ import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.parsers.util.mapToSet
 import org.koitharu.kotatsu.sourcescore.domain.SourceRanker
 import java.util.Collections
-import java.util.EnumSet
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,10 +67,9 @@ class MangaSourcesRepository @Inject constructor(
 	private val dao: MangaSourcesDao
 		get() = db.getSourcesDao()
 
+	// Insertion-ordered (registry order); MangaParserSource is no longer an enum so EnumSet cannot be used.
 	val allMangaSources: Set<MangaParserSource> = Collections.unmodifiableSet(
-		EnumSet.noneOf<MangaParserSource>(MangaParserSource::class.java).also {
-            MangaParserSource.entries.filterNotTo(it, MangaParserSource::isBroken)
-        }
+		MangaParserSource.entries.filterNotTo(LinkedHashSet()) { it.isBroken }
 	)
 
 	suspend fun getEnabledSources(): List<MangaSource> {
@@ -115,7 +113,7 @@ class MangaSourcesRepository @Inject constructor(
 		if (settings.isAllSourcesEnabled) {
 			return emptySet()
 		}
-		val result = EnumSet.copyOf(allMangaSources)
+		val result = LinkedHashSet<MangaSource>(allMangaSources)
 		val enabled = dao.findAllEnabledNames()
 		for (name in enabled) {
 			val source = name.toMangaSourceOrNull() ?: continue
@@ -339,7 +337,7 @@ class MangaSourcesRepository @Inject constructor(
 
 	private suspend fun getNewSources(): MutableSet<out MangaSource> {
 		val entities = dao.findAll()
-		val result = EnumSet.copyOf(allMangaSources)
+		val result = LinkedHashSet<MangaSource>(allMangaSources)
 		for (e in entities) {
 			result.remove(e.source.toMangaSourceOrNull() ?: continue)
 		}

@@ -51,6 +51,13 @@ class FavouritesContainerViewModel @Inject constructor(
 
 	data class PrivacyState(val hasPrivate: Boolean, val isUnlocked: Boolean)
 
+	/** Last category tab the user opened; restored when the Library is opened again. */
+	var lastCategoryId: Long
+		get() = settings.lastFavouritesCategoryId
+		set(value) {
+			settings.lastFavouritesCategoryId = value
+		}
+
 	fun isPrivate(categoryId: Long) = privateCategories.isPrivate(categoryId)
 
 	fun togglePrivate(categoryId: Long) {
