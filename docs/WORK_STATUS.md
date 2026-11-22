@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-22 (later) - v1.11.1-rc1 prerelease prep
+- Done locally: ported Kotatsu-Redo sync merge fix + tests; MissingExtensionSource for MANGAYOMI_* names; opt-in live smoke tests (parsers + JS host) and their results; workflow `prerelease` input; version 1.11.1-rc1 (code 36); notes/changelog/status docs.
+- Verified: `:app:testDebugUnitTest` 1021 tests, 0 failures (before the live-test classes were added; they skip unless MONOGATARI_LIVE_TESTS=1). Not verified: sync server round trip, device behaviour.
+- Operation in progress: final test run, then commit/push and dispatch publish-release.yml (prerelease=true, tag v1.11.1-rc1).
+
 ## 2026-11-22 - v1.11.0 preparation (branch `ccr-bf323bfe-6yd048`, pushed through f52e913; newer work local until pushed)
 - Step: owner asked to address the remaining checklist items and publish a new version. Added: stats + per-title prefs move in MigrateUseCase, ChapterGapDetector + chapters-tab note, Continue hidden for finished last-read title, Library last category restore, Suggestions "Not interested" + Undo (local only), version 1.11.0 / code 35, CHANGELOG and docs/RELEASE_1_11_0_NOTES.md.
 - Verified: `:app:testDebugUnitTest` 1004 tests, 0 failures (14 new ChapterGapDetectorTest); `scripts/validate-ui-a11y.py` passes; `:app:minifyReleaseWithR8` passes. Not device-verified. Item-by-item status in docs/MODERNIZATION_STATUS_20261121.md.

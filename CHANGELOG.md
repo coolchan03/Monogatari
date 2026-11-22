@@ -1,5 +1,11 @@
 # Monogatari changelog
 
+## v1.11.1-rc1 - Prerelease: sync merge fix and import safety (2026-11-22)
+- Sync: a favourite removed on one device no longer returns from another; rows changed during a sync are kept (ported from Kotatsu-Redo).
+- Titles imported from Mangayomi without their extension keep their source name instead of becoming "unknown".
+- Opt-in live smoke tests for parser sources and JS extensions; live results recorded in the release notes.
+- Prerelease; see docs/RELEASE_1_11_1-rc1_NOTES.md.
+
 ## v1.11.0 - Parser update and library safety (2026-11-22)
 - Parser library updated to kotatsu-parsers-redo `b049587f96` (source repairs, new sources). Not tested against the live sites; some sources may still need attention.
 - Sources dropped by the new parsers keep working as saved titles: your favourites and history stay, shown as "(retired)", and can be moved with Alternatives.

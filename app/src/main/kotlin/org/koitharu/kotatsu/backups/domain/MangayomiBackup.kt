@@ -567,7 +567,7 @@ internal object MangayomiImportPlanner {
 
 	/** Name the importer stores for a title whose source isn't available, so it still shows up for migration. */
 	fun fallbackSourceName(manga: MangayomiBackup.Manga): String =
-		"MANGAYOMI_" + manga.source.uppercase(Locale.ROOT).replace(Regex("[^A-Z0-9]+"), "_").trim('_')
+		org.koitharu.kotatsu.core.model.MissingExtensionSource.PREFIX + manga.source.uppercase(Locale.ROOT).replace(Regex("[^A-Z0-9]+"), "_").trim('_')
 
 	/**
 	 * Reading position for one title: the chapter Mangayomi last opened (or, without history, the latest

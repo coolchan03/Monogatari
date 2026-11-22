@@ -58,6 +58,8 @@ fun MangaSource(name: String?): MangaSource {
 	// A parser that shipped before but was removed upstream: keep the stored id instead of losing it.
 	// Checked after the live parsers so a reintroduced source wins over its retired entry.
 	if (RetiredSources.isRetired(name)) return RetiredMangaSource(name)
+	// Imported from Mangayomi without its extension: keep the name so the title can still be moved later.
+	if (MissingExtensionSource.isMissingExtensionName(name)) return MissingExtensionSource(name)
 	return UnknownMangaSource
 }
 
@@ -111,6 +113,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 	}
 
 	is RetiredMangaSource -> context.getString(R.string.source_retired_summary)
+	is MissingExtensionSource -> context.getString(R.string.source_missing_extension_summary)
 	is OpdsSource -> context.getString(R.string.media_type_book)
 	is BuiltinSource -> context.getString(when (source.type) {
 		MediaType.MANGA -> R.string.media_type_manga
@@ -139,6 +142,7 @@ fun MangaSource.getSummary(context: Context): String? = when (val source = unwra
 fun MangaSource.getTitle(context: Context): String = when (val source = unwrap()) {
 	is MangaParserSource -> source.title
 	is RetiredMangaSource -> context.getString(R.string.source_retired_title, source.formerTitle)
+	is MissingExtensionSource -> context.getString(R.string.source_missing_extension_title, source.displayName)
 	is OpdsSource -> source.url
 	is BuiltinSource -> source.title
 	LocalMangaSource -> context.getString(R.string.local_storage)

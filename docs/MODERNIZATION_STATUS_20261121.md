@@ -120,3 +120,13 @@ Only the deterministic unit suite and the R8 build were run. Source functionalit
 4. Connect retired sources to the Alternatives/migration flow with explicit per-title confirmation.
 5. Per-source check of the Keiyoushi list against the new jar before writing any new parser code.
 6. Then phases 6-8 of the recommended order (downloads, reader, migration UX, sync).
+
+## Update 2026-11-22 (after 1.11.0): live checks, upstream port, import safety
+
+- **Live checks (opt-in `livetest/`, counts only, datacenter network, no WebView):** list -> details -> chapters -> pages OK for MangaPark, BatoTo (XBatCat), Naver Webtoon, Comizy.io, Shinigami, SoulScans, AinzScans, LegionScans, KomikLokal, HoneyManga, Ikiru, Raw1001, MangaKatana, MangaPill, MangaKio, AtsuMoe, MangaTaro, PariteHaber, MangaGo, MangaGG, VyManga, ManhuaHot. JS host: Weeb Central and MangaDex extensions OK.
+- **Failures:** Softkomik (list ok; details/pages 404 on `/api/session/...`, the site/API change the Keiyoushi item describes; upstream parser HEAD is still `b049587f96` so no newer fix exists; porting its encrypted Next.js + bearer-session flow is a large separate job). MangaDotNet: numeric chapter `id` read with `getString` (present in both the old and new parser, so not a regression; needs an upstream fix).
+- **Inconclusive:** VoraToon and MerlinScans (HTTP 403 without browser verification), ManhuaScan (proxy 502), parser MangaDex (non-JSON reply).
+- **Ported from upstream:** Kotatsu-Redo sync merge fix (`isRemoteCopyNewer`, `takeNewer`, `unchanged_since` guard) with its 6 tests. Server round trip not run.
+- **Import safety:** `MANGAYOMI_*` fallback source names now resolve to `MissingExtensionSource` instead of `UnknownMangaSource`, so re-saving a title can no longer overwrite its stored source name.
+- **Real library backup (structure only, not stored in the repo):** no favourite or history entry used a retired parser id; three retired sources were enabled in the source list and are skipped silently; most favourites came from a Mangayomi import whose extensions are not published in any known repository (the matching extension sites were unreachable or parked), so they can only be moved via Alternatives.
+- **Release channel:** the publish workflow gained a `prerelease` input; 1.11.1-rc1 is published as a prerelease.
