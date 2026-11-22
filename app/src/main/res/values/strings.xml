@@ -711,6 +711,9 @@ Optional — skip it and you appear as anon.</string>
     <string name="remaining_time_pattern" translatable="false">%1$s %2$s</string>
     <string name="volume_">Volume %d</string>
     <string name="volume_unknown">Unknown volume</string>
+    <string name="missing_chapters_note">Possibly missing chapters (%1$d): %2$s</string>
+    <string name="not_interested">Not interested</string>
+    <string name="suggestion_dismissed">Hidden from suggestions</string>
     <string name="incognito_mode_hint">Your reading progress will not be saved</string>
     <string name="vertical">Vertical</string>
     <string name="last_read">Last read</string>

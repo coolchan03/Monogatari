@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.favourites.ui.container
 
 import android.os.Bundle
 import android.content.Intent
+import kotlinx.coroutines.flow.FlowCollector
 import org.koitharu.kotatsu.core.media.LocalFileImportLauncher
 import org.koitharu.kotatsu.core.media.UnifiedLibraryActivity
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
@@ -67,7 +69,24 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 		).attach()
 		binding.stubEmpty.setOnInflateListener(this)
 		actionModeDelegate.addListener(this)
-		viewModel.categories.observe(viewLifecycleOwner, pagerAdapter)
+		// Selection is saved only after the saved tab has been restored, otherwise the tab mediator's initial
+		// selection of the first tab would overwrite it.
+		isSelectionRestored = false
+		binding.tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+			override fun onTabSelected(tab: TabLayout.Tab) {
+				if (isSelectionRestored && tab.position in 0 until pagerAdapter.itemCount) {
+					viewModel.lastCategoryId = pagerAdapter.getItem(tab.position).id
+				}
+			}
+
+			override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+			override fun onTabReselected(tab: TabLayout.Tab) = Unit
+		})
+		viewModel.categories.observe(viewLifecycleOwner, FlowCollector { list ->
+			pagerAdapter.emit(list)
+			restoreSelectedCategory(binding, list, savedInstanceState != null)
+		})
 		viewModel.isEmpty.observe(viewLifecycleOwner, ::onEmptyStateChanged)
 		addMenuProvider(FavouritesContainerMenuProvider(router, this, viewModel))
 		addMenuProvider(fileImporter.menuProvider())
@@ -116,6 +135,27 @@ class FavouritesContainerFragment : BaseFragment<FragmentFavouritesContainerBind
 			pager.isGone = isEmpty
 			tabs.isGone = isEmpty
 			stubEmpty.isVisible = isEmpty
+		}
+	}
+
+	private var isSelectionRestored = false
+
+	/** Re-opens the category tab the user last used. A recreated view restores its own page, so that case is left alone. */
+	private fun restoreSelectedCategory(
+		binding: FragmentFavouritesContainerBinding,
+		list: List<FavouriteTabModel>,
+		isViewStateRestored: Boolean,
+	) {
+		if (isSelectionRestored || list.isEmpty()) {
+			return
+		}
+		isSelectionRestored = true
+		if (isViewStateRestored) {
+			return
+		}
+		val index = list.indexOfFirst { it.id == viewModel.lastCategoryId }
+		if (index > 0) {
+			binding.pager.setCurrentItem(index, false)
 		}
 	}
 

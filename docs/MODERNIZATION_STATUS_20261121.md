@@ -9,7 +9,7 @@ checked), **DEFERRED** (not started this session). Live-provider checks and devi
 | Check | Result |
 |---|---|
 | `:app:compileDebugKotlin` against parsers `b049587f96` | 0 errors |
-| `:app:testDebugUnitTest` (after parser bump, and again after NewPipeExtractor 0.27.1) | 990 tests, 0 failures, 0 errors, 2 skipped |
+| `:app:testDebugUnitTest` (parser bump, NewPipe 0.27.1, then the 1.11.0 work) | 1004 tests, 0 failures, 0 errors, 2 skipped |
 | `:app:minifyReleaseWithR8` (new parser jar ships its own keep rules) | passes |
 | Device / emulator run, Room migrations on a real database, backup restore, live site requests | **not run** |
 
@@ -63,9 +63,30 @@ Live non-broken retired sources (the ones users may have enabled): `ZINCHANMANGA
 
 Not implemented. HoneyManga, ZeistManga, DoujinDesu (410 refresh), Merlin Scans, Softkomik, Ikiru, Madara alternate titles and Raw1001 all exist in the new parser jar and their classes changed, but I could not read the upstream commits from this environment, so whether each fix is already included is **unknown**. Next step: fixture or live check per source, then implement only what is still missing. Comix: stays disabled pending functionality and performance checks.
 
-## 4-5. Mangayomi / Kotatsu-Redo app improvements
+## 4-5. Mangayomi / Kotatsu-Redo app improvements (updated for 1.11.0)
 
-DEFERRED, not started: download-queue persistence, reader responsiveness, missing-chapter detection, library and migration improvements, device sync, GIF/WebP playback, sync reconciliation, Not Interested, and the rest of those lists.
+Checks run for these: 1004 unit tests pass (14 new for chapter gaps), Room validated the new SQL at compile time, UI static checks and the R8 shrink pass. **None of the UI changes were seen on a device.**
+
+| Item | Status |
+|---|---|
+| Missing-chapter detection (P2) | DONE (logic, 14 tests) + shown as a header line on the chapters tab; hidden while searching / downloaded-only. "Warn before jumping across gaps" NOT done |
+| Preserve reading statistics during source migration (P1) | DONE in `MigrateUseCase` (`StatsDao.moveSessions`); not run against a real database |
+| Preserve custom cover / title / reader mode / colour filter on migration | DONE (per-title prefs copied unless the target already has some); not run against a real database |
+| Avoid Continue Reading when nothing is left (P2) | DONE for the last-read title being finished (history percent); not seen on a device |
+| Restore last selected library category (P2) | DONE (new pref `last_favourites_category`); not seen on a device |
+| Recommendations "Not interested" + Undo (P2-P3) | DONE, local only (not uploaded, not in backups); not seen on a device |
+| Invalid website addresses | ALREADY PRESENT: `SourceSettings` validates a stored domain and falls back to the default |
+| Source migration: limited parallel searches, failed sources not blocking, keeps favourites/history/tracking/scrobbling | ALREADY PRESENT (semaphore-limited `AlternativesUseCase`, `MigrateUseCase`); read, not exercised |
+| Migrate titles off a retired source | ALREADY REACHABLE: opening such a title raises the unsupported-source error with Alternatives offered; migration falls back to the cached manga when the old source cannot load |
+| Reader: blocking I/O on the main thread | AUDITED, no clear violation found (prefetch and page load run on Default / worker threads); not exhaustive, no profiling |
+| Download queue persistence, move to top/bottom, whole-series moves | NOT DONE: downloads are independent WorkManager jobs; needs a new queue model and device testing |
+| Lock-screen/state restoration, navigation-bar insets, next-page preparation | NOT DONE (need a device) |
+| Library: floating-controls overlap, faster category editing, swipe read-status, extension filter/repo recheck, stale extension listings | NOT DONE |
+| Source-migration UX (progressive dialog, long titles, confirm uncertain matches) | NOT DONE |
+| Device sync via QR / LAN / Tailscale | NOT DONE (not started; extend the existing Nearby transfer if pursued) |
+| GIF/WebP playback in the reader; sync reconciliation; deleted favourites reappearing | NOT DONE |
+| Genre-label normalization, Explore grid size, hidden-image/repetitive-page controls | NOT DONE |
+| Mangayomi P3 ideas (Reduce Motion etc.) | NOT DONE |
 
 ## 6. NewPipeExtractor
 

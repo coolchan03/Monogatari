@@ -1,5 +1,10 @@
 # Monogatari work checkpoint
 
+## 2026-11-22 - v1.11.0 preparation (branch `ccr-bf323bfe-6yd048`, pushed through f52e913; newer work local until pushed)
+- Step: owner asked to address the remaining checklist items and publish a new version. Added: stats + per-title prefs move in MigrateUseCase, ChapterGapDetector + chapters-tab note, Continue hidden for finished last-read title, Library last category restore, Suggestions "Not interested" + Undo (local only), version 1.11.0 / code 35, CHANGELOG and docs/RELEASE_1_11_0_NOTES.md.
+- Verified: `:app:testDebugUnitTest` 1004 tests, 0 failures (14 new ChapterGapDetectorTest); `scripts/validate-ui-a11y.py` passes; `:app:minifyReleaseWithR8` passes. Not device-verified. Item-by-item status in docs/MODERNIZATION_STATUS_20261121.md.
+- Next: commit + push to the session branch, then the signed release workflow (dry run first).
+
 ## 2026-11-21 - Post-1.10.0 modernization checklist (branch `ccr-bf323bfe-6yd048`, local only, nothing pushed)
 - Active step: checklist section 1 / phase 1-2 (parser upgrade `68f3fed395` -> `b049587f96`). Owner waived the Tunnel to Surface requirement for this session; no push or merge without authorization.
 - Finding: the JitPack artifact `com.github.clquwu:kotatsu-parsers-redo:b049587f96` now exists (9.9 MB jar). It still bundles the contract classes and all parsers; `MangaParserSource` is now a class (companion `entries`/`find`/`valueOf`) extending `ParserMangaSource`, `MangaLoaderContext` gains abstract `parsers: ParsersBundle`, `MangaParser.source` is `ParserMangaSource`. Static linking works without any remote bundle download.

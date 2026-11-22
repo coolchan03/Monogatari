@@ -25,6 +25,13 @@ abstract class StatsDao {
 	@Query("SELECT * FROM stats WHERE started_at >= :fromDate ORDER BY started_at")
 	abstract suspend fun findSince(fromDate: Long): List<StatsEntity>
 
+	/**
+	 * Re-attaches reading sessions to another manga id (source migration). IGNORE keeps the target's own session
+	 * if both happen to share a start time; the rest stay with the old id rather than being dropped.
+	 */
+	@Query("UPDATE OR IGNORE stats SET manga_id = :newMangaId WHERE manga_id = :oldMangaId")
+	abstract suspend fun moveSessions(oldMangaId: Long, newMangaId: Long)
+
 	@Query("""
 		SELECT s.started_at AS startedAt, s.duration AS duration, m.source AS source
 		FROM stats s INNER JOIN manga m ON m.manga_id = s.manga_id
