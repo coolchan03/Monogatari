@@ -4,7 +4,7 @@
 - Step: owner asked to address the remaining checklist items and publish a new version. Added: stats + per-title prefs move in MigrateUseCase, ChapterGapDetector + chapters-tab note, Continue hidden for finished last-read title, Library last category restore, Suggestions "Not interested" + Undo (local only), version 1.11.0 / code 35, CHANGELOG and docs/RELEASE_1_11_0_NOTES.md.
 - Verified: `:app:testDebugUnitTest` 1004 tests, 0 failures (14 new ChapterGapDetectorTest); `scripts/validate-ui-a11y.py` passes; `:app:minifyReleaseWithR8` passes. Not device-verified. Item-by-item status in docs/MODERNIZATION_STATUS_20261121.md.
 - Added GenreLabels (6 tests); full suite now 1010 tests, 0 failures. Dry run of ef5f9a2 (run 44965729250): CI validation + unit tests passed, release build in progress when last checked.
-- Next: commit + push, then the real publish.
+- Dry run of ef5f9a2 (run 44965729250) succeeded. Pushed dcc529d. Operation in progress: real publish dispatched for tag v1.11.0 from branch ccr-bf323bfe-6yd048 at dcc529d (not merged into devel). Result not yet known.
 
 ## 2026-11-21 - Post-1.10.0 modernization checklist (branch `ccr-bf323bfe-6yd048`, local only, nothing pushed)
 - Active step: checklist section 1 / phase 1-2 (parser upgrade `68f3fed395` -> `b049587f96`). Owner waived the Tunnel to Surface requirement for this session; no push or merge without authorization.
