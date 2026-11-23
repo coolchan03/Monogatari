@@ -46,6 +46,19 @@ abstract class TracksDao : MangaQueryBuilder.ConditionCallback {
 	@Query("SELECT manga_id FROM tracks")
 	abstract suspend fun findAllIds(): LongArray
 
+	/** When new chapters were found for tracked titles since [since]; input for the release forecast. */
+	@Query(
+		"""
+		SELECT track_logs.manga_id AS manga_id, manga.title AS title, track_logs.created_at AS created_at
+		FROM track_logs
+		INNER JOIN manga ON manga.manga_id = track_logs.manga_id
+		WHERE track_logs.created_at >= :since
+			AND track_logs.manga_id IN (SELECT manga_id FROM tracks)
+		ORDER BY track_logs.created_at
+		""",
+	)
+	abstract suspend fun findReleaseLogs(since: Long): List<ReleaseLogRow>
+
 	@Query("SELECT * FROM tracks WHERE manga_id = :mangaId")
 	abstract suspend fun find(mangaId: Long): TrackEntity?
 

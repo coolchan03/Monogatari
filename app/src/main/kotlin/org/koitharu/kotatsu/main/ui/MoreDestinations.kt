@@ -22,6 +22,7 @@ import org.koitharu.kotatsu.core.qa.MonogatariTestCenterActivity
 import org.koitharu.kotatsu.core.qa.NewsFeedActivity
 import org.koitharu.kotatsu.settings.SettingsActivity
 import org.koitharu.kotatsu.stats.ui.StatsActivity
+import org.koitharu.kotatsu.tracker.ui.forecast.ReleaseForecastActivity
 
 /** One destination catalogue for the full-screen More hub, in clear groups with Settings first and no duplicates. */
 internal object MoreDestinations {
@@ -71,6 +72,8 @@ internal object MoreDestinations {
             R.drawable.ic_monogatari_nav_local, ApiKeysActivity::class.java, Group.SOURCES),
         Page("news", R.string.more_page_news, R.string.more_page_news_summary,
             R.drawable.ic_monogatari_nav_feed, NewsFeedActivity::class.java, Group.FEEDS, media = "NEWS"),
+        Page("release_forecast", R.string.more_page_forecast, R.string.more_page_forecast_summary,
+            R.drawable.ic_monogatari_nav_updated, ReleaseForecastActivity::class.java, Group.FEEDS),
         Page("media_feeds", R.string.more_page_media_feeds, R.string.more_page_media_feeds_summary,
             R.drawable.ic_monogatari_nav_feed, MediaFeedActivity::class.java, Group.FEEDS, media = "VIDEO"),
         Page("backup", R.string.more_page_backup, R.string.more_page_backup_summary,
