@@ -191,33 +191,33 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 
 	private fun installDiagnosticBatch() {
 		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Download test sources?")
-			.setMessage("Install the next 10 sources, or select All to install every remaining runnable JavaScript source. Sources remain installed until removed. Large batches use data and may take a long time.")
-			.setNegativeButton("Cancel", null)
+			.setTitle(getString(R.string.srcrepo_download_title))
+			.setMessage(getString(R.string.srcrepo_download_message))
+			.setNegativeButton(getString(android.R.string.cancel), null)
 			.setNeutralButton("All") { _, _ -> installDiagnosticSources(1000) }
-			.setPositiveButton("Next 10") { _, _ -> installDiagnosticSources(10) }
+			.setPositiveButton(getString(R.string.srcrepo_next_10)) { _, _ -> installDiagnosticSources(10) }
 			.show()
 	}
 
 	private fun installDiagnosticSources(maxSources: Int) {
 		viewLifecycleOwner.lifecycleScope.launch {
 					val progress = MaterialAlertDialogBuilder(requireContext())
-						.setTitle("Installing JS sources").setMessage("Preparing source list...")
-						.setNegativeButton("Hide progress", null).create()
+						.setTitle(getString(R.string.srcrepo_installing_title)).setMessage(getString(R.string.srcrepo_preparing))
+						.setNegativeButton(getString(R.string.srcrepo_hide_progress), null).create()
 					progress.show()
 					val report = try { diagnostics.installBatch({ done, total ->
-						progress.setMessage("Installed or attempted $done of $total sources")
+						progress.setMessage(getString(R.string.srcrepo_progress, done, total))
 					}, maxSources) }
 					catch (error: Exception) { "Batch failed: ${error.message}" }
 					if (progress.isShowing) progress.dismiss()
 					MaterialAlertDialogBuilder(requireContext())
-						.setTitle("Download report")
+						.setTitle(getString(R.string.srcrepo_download_report))
 						.setMessage(report.take(2000))
-						.setPositiveButton("Copy report") { _, _ ->
+						.setPositiveButton(getString(R.string.srcrepo_copy_report)) { _, _ ->
 							val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 							clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari batch", report))
 						}
-						.setNegativeButton("Close", null).show()
+						.setNegativeButton(getString(R.string.close), null).show()
 				}
 	}
 
@@ -231,11 +231,11 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			return
 		}
 		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Saved source diagnostics")
-			.setMessage("Previous results are saved. Resume skips sources already checked. Start new discards only the saved test results, not your extensions or library.")
-			.setPositiveButton("Resume") { _, _ -> launchScan(allSources, restart = false) }
-			.setNeutralButton("Start new") { _, _ -> launchScan(allSources, restart = true) }
-			.setNegativeButton("View report") { _, _ -> showSavedScanReport(allSources) }
+			.setTitle(getString(R.string.srcrepo_saved_title))
+			.setMessage(getString(R.string.srcrepo_saved_message))
+			.setPositiveButton(getString(R.string.resume)) { _, _ -> launchScan(allSources, restart = false) }
+			.setNeutralButton(getString(R.string.srcrepo_start_new)) { _, _ -> launchScan(allSources, restart = true) }
+			.setNegativeButton(getString(R.string.srcrepo_view_report)) { _, _ -> showSavedScanReport(allSources) }
 			.show()
 	}
 
@@ -251,13 +251,13 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		scanProgressDialog?.dismiss()
 		val current = scanManager.status.value
 		val dialog = MaterialAlertDialogBuilder(requireContext())
-			.setTitle(if (current.mode == "all") "All-source diagnostics" else "JS-source diagnostics")
+			.setTitle(if (current.mode == "all") getString(R.string.srcrepo_diag_all) else getString(R.string.srcrepo_diag_js))
 			.setMessage(current.message)
-			.setPositiveButton("Copy report") { _, _ ->
+			.setPositiveButton(getString(R.string.srcrepo_copy_report)) { _, _ ->
 				copyScanReport(current.mode == "all")
 			}
-			.setNeutralButton("Stop scan") { _, _ -> scanManager.stop() }
-			.setNegativeButton("Hide", null)
+			.setNeutralButton(getString(R.string.srcrepo_stop_scan)) { _, _ -> scanManager.stop() }
+			.setNegativeButton(getString(R.string.hide), null)
 			.create()
 		scanProgressDialog = dialog
 		dialog.setOnDismissListener { if (scanProgressDialog === dialog) scanProgressDialog = null }
@@ -267,17 +267,17 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	private fun showSavedScanReport(allSources: Boolean) {
 		val report = scanManager.report(allSources)
 		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Saved diagnostic report")
+			.setTitle(getString(R.string.srcrepo_saved_report))
 			.setMessage(report.take(1800) + if (report.length > 1800) "\n(Full report available via Copy)" else "")
-			.setPositiveButton("Copy report") { _, _ -> copyScanReport(allSources) }
-			.setNegativeButton("Close", null)
+			.setPositiveButton(getString(R.string.srcrepo_copy_report)) { _, _ -> copyScanReport(allSources) }
+			.setNegativeButton(getString(R.string.close), null)
 			.show()
 	}
 
 	private fun copyScanReport(allSources: Boolean) {
 		val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 		clipboard.setPrimaryClip(ClipData.newPlainText("Monogatari diagnostics", scanManager.report(allSources)))
-		Toast.makeText(requireContext(), "Diagnostic report copied", Toast.LENGTH_SHORT).show()
+		Toast.makeText(requireContext(), getString(R.string.srcrepo_report_copied), Toast.LENGTH_SHORT).show()
 	}
 
 	override fun onDestroyView() {
@@ -347,7 +347,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
             isPersistent = false
             setOnPreferenceClickListener {
                 sourceUpdateScheduler.checkNow()
-                Toast.makeText(context, "Update check queued; refresh this screen after it finishes", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, getString(R.string.srcrepo_update_queued), Toast.LENGTH_LONG).show()
                 true
             }
         })
@@ -367,8 +367,8 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				viewLifecycleOwner.lifecycleScope.launch {
 					val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { healthChecks.run() }
 					MaterialAlertDialogBuilder(requireContext())
-						.setTitle("Monogatari device checks")
-						.setMessage(result.summary() + "\n\nFull source checks are available below. Neither test verifies actual video playback.")
+						.setTitle(getString(R.string.srcrepo_device_checks))
+						.setMessage(result.summary() + getString(R.string.srcrepo_device_checks_footer))
 						.setPositiveButton(android.R.string.ok, null)
 						.show()
 				}
@@ -584,8 +584,8 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 	) {
 		val display = alternatives.take(75)
 		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Dart compatibility candidates")
-			.setMessage("These are alternatives for the same named website, not converted Dart parsers. Availability and reading must still be tested.")
+			.setTitle(getString(R.string.srcrepo_dart_title))
+			.setMessage(getString(R.string.srcrepo_dart_message))
 			.setItems(display.map { (dart, alternative) ->
 				"${dart.name} → ${alternative.description}"
 			}.toTypedArray()) { _, position ->
@@ -594,9 +594,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 				if (target != null) {
 					MaterialAlertDialogBuilder(requireContext())
 						.setTitle(dart.name)
-						.setMessage("Open the existing Kotatsu parser ${target.name}? This does not run the Dart extension.")
+						.setMessage(getString(R.string.srcrepo_dart_open_parser, target.name))
 						.setNegativeButton(android.R.string.cancel, null)
-						.setPositiveButton("Open") { _, _ -> router.openList(target, null, null) }
+						.setPositiveButton(getString(R.string.srcrepo_open)) { _, _ -> router.openList(target, null, null) }
 						.show()
 				} else {
 					val js = alternative.js ?: return@setItems
@@ -605,9 +605,9 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 					}
 					MaterialAlertDialogBuilder(requireContext())
 						.setTitle(dart.name)
-						.setMessage("A matching JavaScript source exists: ${js.name}. This does not execute Dart.")
+						.setMessage(getString(R.string.srcrepo_dart_js_match, js.name))
 						.setNegativeButton(android.R.string.cancel, null)
-						.setPositiveButton(if (isInstalled) "Open" else "Install") { _, _ ->
+						.setPositiveButton(if (isInstalled) getString(R.string.srcrepo_open) else getString(R.string.srcrepo_install)) { _, _ ->
 							if (isInstalled) router.openList(JsMangaSource(js.id), null, null)
 							else viewModel.installJs(js)
 						}
@@ -706,7 +706,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 			.setTitle(entry.name)
 			.setMessage(JsSourceDisclosure.details(entry))
 			.setNegativeButton(android.R.string.cancel, null)
-		if (offerInstall) dialog.setPositiveButton("Install source") { _, _ ->
+		if (offerInstall) dialog.setPositiveButton(getString(R.string.srcrepo_install_source)) { _, _ ->
 			viewModel.installJs(entry)
 		}
 		else dialog.setPositiveButton(android.R.string.ok, null)

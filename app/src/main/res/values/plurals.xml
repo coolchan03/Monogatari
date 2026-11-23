@@ -64,4 +64,8 @@
 		<item quantity="one">Usually every day · next around %2$s</item>
 		<item quantity="other">Usually every %1$d days · next around %2$s</item>
 	</plurals>
+	<plurals name="archive_results_title">
+		<item quantity="one">Internet Archive · %1$d result</item>
+		<item quantity="other">Internet Archive · %1$d results</item>
+	</plurals>
 </resources>

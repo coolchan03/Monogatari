@@ -490,7 +490,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 							showMessage(getString(R.string.mono_discover_no_public_archive_videos_matched_that))
 						} else {
 							MaterialAlertDialogBuilder(requireContext())
-								.setTitle("Internet Archive · ${results.size} results")
+								.setTitle(resources.getQuantityString(R.plurals.archive_results_title, results.size, results.size))
 								.setItems(results.map { it.title }.toTypedArray()) { _, position ->
 									if (!ExternalLinks.open(requireContext(), results[position].url)) {
 										showMessage(getString(R.string.link_cannot_open))

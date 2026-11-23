@@ -390,13 +390,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			withResumed {
 				if (isFinishing || isDestroyed) return@withResumed
 				com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
-					.setTitle("Monogatari setup & testing")
-					.setMessage(quick + "\n\nWould you like to test the app feature by feature? " +
-						"You can mark what looks right, describe any problems, then copy a report " +
-						"to share. Full website testing is optional.")
-					.setNegativeButton("Later", null)
-					.setNeutralButton("Sources only") { _, _ -> openSourceDiagnosticsSettings() }
-					.setPositiveButton("Open Test Center") { _, _ ->
+					.setTitle(getString(R.string.setup_testing_title))
+					.setMessage(quick + getString(R.string.setup_testing_message))
+					.setNegativeButton(getString(R.string.setup_testing_later), null)
+					.setNeutralButton(getString(R.string.setup_testing_sources_only)) { _, _ -> openSourceDiagnosticsSettings() }
+					.setPositiveButton(getString(R.string.setup_testing_open)) { _, _ ->
 						startActivity(Intent(this@MainActivity, MonogatariTestCenterActivity::class.java))
 					}
 					.show()
