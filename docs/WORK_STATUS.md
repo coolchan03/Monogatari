@@ -2,7 +2,9 @@
 
 ## 2026-11-23 — Review / design-system / features session (branch `claude/code-review-design-system-5wqlrl`)
 - Owner decision: work in the container, commit locally and push to this dev branch (overrides the Tunnel-to-Surface-only rule for this session; no Tunnel tool exists here).
-- Active operation: baseline `:app:compileDebugKotlin` with a freshly installed Android SDK (platform 37.0, build-tools 35.0.0). Result recorded below once verified.
+- Done and pushed: PDF reader fixes (page clamp, no progress overwrite on failed open), ~20 hardcoded UI strings moved to resources, Release forecast screen (More > Feeds; ReleaseForecast + TracksDao.findReleaseLogs, no schema change), date-dependent SourceIndexHealthTest fixed (used a fixed clock against a real-clock parser).
+- Test outcome: 986 tests, 0 failures, 1 skipped (`:app:testDebugUnitTest`). Compiled and tested against platform 36 with a temporary, uncommitted `compileSdk = 36` plus `-x checkDebugAarMetadata`: AGP 8.13 cannot resolve the SDK 37 platform in this container. CommunityPerformanceBenchmarkTest (`Files.writeString` unresolved here) was moved aside for these local runs and is unchanged in git. Not device-verified.
+- Open: ~20 remaining hardcoded strings (mostly SourceReposFragment), dp-math / plain AlertDialog drift in ~30 code-built screens, more features from docs/FUTURE_VERSION_ROADMAP.md. No operation currently active.
 
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.

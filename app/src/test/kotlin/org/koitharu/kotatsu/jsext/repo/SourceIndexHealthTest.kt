@@ -34,6 +34,6 @@ class SourceIndexHealthTest {
         val repo = "https://example.org/index.json"
         assertEquals(0, MangayomiIndexParser.parse(index("broken", checkedAt), repo).size)
         assertEquals(1, MangayomiIndexParser.parse(index("unverified", checkedAt), repo).size)
-        assertEquals(1, MangayomiIndexParser.parse(index("broken", date(now - 60L * 86_400_000)), repo).size)
+        assertEquals(1, MangayomiIndexParser.parse(index("broken", date(System.currentTimeMillis() - 60L * 86_400_000)), repo).size)
     }
 }
