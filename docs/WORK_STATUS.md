@@ -4,7 +4,8 @@
 - Owner decision: work in the container, commit locally and push to this dev branch (overrides the Tunnel-to-Surface-only rule for this session; no Tunnel tool exists here).
 - Done and pushed: PDF reader fixes (page clamp, no progress overwrite on failed open), ~20 hardcoded UI strings moved to resources, Release forecast screen (More > Feeds; ReleaseForecast + TracksDao.findReleaseLogs, no schema change), date-dependent SourceIndexHealthTest fixed (used a fixed clock against a real-clock parser).
 - Test outcome: 986 tests, 0 failures, 1 skipped (`:app:testDebugUnitTest`). Compiled and tested against platform 36 with a temporary, uncommitted `compileSdk = 36` plus `-x checkDebugAarMetadata`: AGP 8.13 cannot resolve the SDK 37 platform in this container. CommunityPerformanceBenchmarkTest (`Files.writeString` unresolved here) was moved aside for these local runs and is unchanged in git. Not device-verified.
-- Open: ~20 remaining hardcoded strings (mostly SourceReposFragment), dp-math / plain AlertDialog drift in ~30 code-built screens, more features from docs/FUTURE_VERSION_ROADMAP.md. No operation currently active.
+- Follow-up (same session): remaining hardcoded UI strings moved to resources (SourceReposFragment, setup dialog, Discover archive results); hand-rolled dp math replaced by the shared `dp()` helper in 12 code-built screens (986 tests, 0 failures). Left on purpose: `density`-local math in SearchMenuProvider, TestSpotlight, Mascot and adapters; plain AlertDialog.Builder sites (already themed via alertDialogTheme).
+- Open: more features from docs/FUTURE_VERSION_ROADMAP.md. No operation currently active.
 
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.

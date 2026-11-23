@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.backups.domain
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.app.Dialog
 import android.net.Uri
 import android.view.ViewGroup
@@ -113,7 +115,7 @@ internal class SubscriptionImportFlow(
 
 	private fun showProgress(message: String, indeterminate: Boolean): Progress {
 		val context = fragment.requireContext()
-		val pad = (24 * context.resources.displayMetrics.density).toInt()
+		val pad = context.dp(24)
 		val bar = LinearProgressIndicator(context).apply { isIndeterminate = indeterminate }
 		val column = LinearLayout(context).apply {
 			orientation = LinearLayout.VERTICAL

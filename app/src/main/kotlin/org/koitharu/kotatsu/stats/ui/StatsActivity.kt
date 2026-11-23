@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.stats.ui
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import org.koitharu.kotatsu.core.qa.CsvExportFormatter
@@ -151,7 +153,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 			marginStart = baseMargin + bars.start(v)
 			marginEnd = if (isTablet) baseMargin else baseMargin + bars.end(v)
 		}
-		val summaryMargin = (16 * resources.displayMetrics.density).toInt()
+		val summaryMargin = dp(16)
 		viewBinding.summaryHost.updateLayoutParams<ViewGroup.MarginLayoutParams> {
 			marginStart = summaryMargin + bars.start(v)
 			marginEnd = if (isTablet) summaryMargin else summaryMargin + bars.end(v)

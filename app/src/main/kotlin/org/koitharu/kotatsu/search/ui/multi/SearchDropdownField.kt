@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.search.ui.multi
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.content.Context
 import android.text.InputType
 import android.view.ViewGroup
@@ -28,7 +30,7 @@ internal class SearchDropdownField(
 		hint = context.getString(label)
 		layoutParams = ViewGroup.MarginLayoutParams(
 			ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-		).apply { topMargin = (8 * context.resources.displayMetrics.density).toInt() }
+		).apply { topMargin = context.dp(8) }
 	}
 
 	init {
@@ -37,7 +39,7 @@ internal class SearchDropdownField(
 			setSimpleItems(options.toTypedArray())
 			options.getOrNull(this@SearchDropdownField.selectedIndex)?.let { setText(it, false) }
 			setOnItemClickListener { _, _, position, _ -> this@SearchDropdownField.selectedIndex = position }
-			minimumHeight = (48 * context.resources.displayMetrics.density).toInt()
+			minimumHeight = context.dp(48)
 			contentDescription = context.getString(label)
 		}
 		view.addView(field, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

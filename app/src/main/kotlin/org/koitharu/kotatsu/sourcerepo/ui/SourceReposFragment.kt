@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.sourcerepo.ui
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.app.DownloadManager
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -531,7 +533,7 @@ class SourceReposFragment : BasePreferenceFragment(R.string.source_repos) {
 		val catalog = state.jsSources.map { it.entry }
 		val installed = state.jsSources.filter { it.state != PluginState.NOT_INSTALLED }.map { it.entry }
 		val adultAllowed = !appSettings.isNsfwContentDisabled && !appSettings.hideAdultOnlySources
-		val padding = (16 * resources.displayMetrics.density).toInt()
+		val padding = requireContext().dp(16)
 		val box = LinearLayout(context).apply {
 			orientation = LinearLayout.VERTICAL
 			setPadding(padding, padding / 2, padding, 0)

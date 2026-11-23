@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.settings
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.content.Context
 import android.text.InputType
 import android.widget.EditText
@@ -22,7 +24,7 @@ import com.google.android.material.R as materialR
 internal object AccentColorDialog {
 
 	fun show(context: Context, settings: AppSettings) {
-		val pad = (16 * context.resources.displayMetrics.density).toInt()
+		val pad = context.dp(16)
 		val root = LinearLayout(context).apply {
 			orientation = LinearLayout.VERTICAL
 			setPadding(pad, pad / 2, pad, 0)

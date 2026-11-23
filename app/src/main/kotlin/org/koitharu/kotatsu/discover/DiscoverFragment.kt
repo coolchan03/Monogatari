@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.discover
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.discover.taste.TasteProfile
 import org.koitharu.kotatsu.discover.reminders.AiringReminderWorker
 import org.koitharu.kotatsu.discover.reminders.AiringReminders
@@ -413,7 +415,7 @@ class DiscoverFragment : Fragment(), RecyclerViewOwner {
 				MediaAccents.tintChip(requireContext(), section.name, this)
 				setOnClickListener { run() }
 			}, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-				marginEnd = (8 * resources.displayMetrics.density).toInt()
+				marginEnd = requireContext().dp(8)
 			})
 		}
 		when (section) {

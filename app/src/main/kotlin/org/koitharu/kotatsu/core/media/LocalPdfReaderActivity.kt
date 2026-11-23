@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
@@ -37,7 +39,6 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         title = file.name.substringAfter('-', file.name)
         fileKey = file.name
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val d = resources.displayMetrics.density
         counter = TextView(this).apply {
             gravity = android.view.Gravity.CENTER
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelMedium)
@@ -47,12 +48,12 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         val navigation = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding((8 * d).toInt(), 0, (8 * d).toInt(), 0)
+            setPadding(dp(8), 0, dp(8), 0)
         }
         fun navButton(label: Int, onClick: () -> Unit) = MaterialButton(this, null,
             androidx.appcompat.R.attr.borderlessButtonStyle).apply {
             setText(label)
-            minHeight = (48 * d).toInt()
+            minHeight = dp(48)
             setOnClickListener { onClick() }
         }
         navigation.addView(navButton(R.string.pdf_previous_page) { display(pageIndex - 1) }, LinearLayout.LayoutParams(-2, -2))

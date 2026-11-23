@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
@@ -48,7 +50,6 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         }
         fileKey = file.name
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val d = resources.displayMetrics.density
         position = TextView(this).apply {
             gravity = android.view.Gravity.CENTER
             maxLines = 2
@@ -56,7 +57,7 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         }
         body = TextView(this).apply {
             textSize = 18f
-            setPadding((20 * d).toInt(), (12 * d).toInt(), (20 * d).toInt(), (24 * d).toInt())
+            setPadding(dp(20), dp(12), dp(20), dp(24))
             setTextIsSelectable(true)
         }
         scroll = ScrollView(this).apply { addView(body) }
@@ -65,12 +66,12 @@ class LocalEpubReaderActivity : AppCompatActivity() {
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding((8 * d).toInt(), 0, (8 * d).toInt(), 0)
+            setPadding(dp(8), 0, dp(8), 0)
         }
         fun navButton(label: Int, onClick: () -> Unit) = MaterialButton(this, null,
             androidx.appcompat.R.attr.borderlessButtonStyle).apply {
             setText(label)
-            minHeight = (48 * d).toInt()
+            minHeight = dp(48)
             setOnClickListener { onClick() }
         }
         nav.addView(navButton(R.string.epub_previous_chapter) { showChapter(index - 1) }, LinearLayout.LayoutParams(-2, -2))

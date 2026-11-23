@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.qa
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.core.ui.util.ScrollToTopOwner
 import android.content.Context
 import android.os.Bundle
@@ -581,7 +583,7 @@ class NewsFeedFragment : Fragment(), RecyclerViewOwner, ScrollToTopOwner {
 			emptyState.addView(state)
 		}
 		val showSite = currentFeed == ALL_FEEDS
-		val pad = (12 * resources.displayMetrics.density).toInt()
+		val pad = requireContext().dp(12)
 		visible.forEach { entry ->
 			val savedNow = entry.link in saved
 			val card = MaterialCardView(requireContext()).apply {

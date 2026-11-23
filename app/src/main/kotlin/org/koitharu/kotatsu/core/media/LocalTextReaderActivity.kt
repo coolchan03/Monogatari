@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.R
 
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
@@ -40,8 +42,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
         book = file
         title = file.name.substringAfter('-', file.name)
         val text = TextView(this).apply {
-            val d = resources.displayMetrics.density
-            setPadding((20 * d).toInt(), (16 * d).toInt(), (20 * d).toInt(), (32 * d).toInt())
+            setPadding(dp(20), dp(16), dp(20), dp(32))
             textSize = 18f
             setTextIsSelectable(true)
         }

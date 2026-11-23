@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -230,7 +232,7 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 			adapter = resultsAdapter
 			if (isBottomTab) {
 				// Room for the floating navigation bar, which is drawn over the main screen's content.
-				setPadding(paddingLeft, paddingTop, paddingRight, (96 * resources.displayMetrics.density).toInt())
+				setPadding(paddingLeft, paddingTop, paddingRight, requireContext().dp(96))
 			}
 		}
 		findViewById<View>(R.id.monogatari_catalog_search_sources)

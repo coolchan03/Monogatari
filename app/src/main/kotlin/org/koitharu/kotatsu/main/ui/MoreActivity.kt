@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.main.ui
 
+import org.koitharu.kotatsu.core.ui.dp
+
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.content.Intent
@@ -54,7 +56,7 @@ class MoreActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.screen_title_more)
-        val margin = (16 * resources.displayMetrics.density).toInt()
+        val margin = dp(16)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(margin, margin, margin, margin)
@@ -75,7 +77,7 @@ class MoreActivity : AppCompatActivity() {
                 if (tapCounter.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@MoreActivity)
             }
         }
-        header.addView(mascot, LinearLayout.LayoutParams((72 * resources.displayMetrics.density).toInt(), (72 * resources.displayMetrics.density).toInt()))
+        header.addView(mascot, LinearLayout.LayoutParams(dp(72), dp(72)))
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
         root.addView(RecyclerView(this).apply {
             // Settings-style rows stay one column on phones; two on wide tablets/foldables.
