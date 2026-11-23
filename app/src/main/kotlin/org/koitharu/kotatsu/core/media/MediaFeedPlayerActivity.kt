@@ -96,7 +96,7 @@ class MediaFeedPlayerActivity : AppCompatActivity() {
         playerView = PlayerView(this).apply {
             useController = true
             keepScreenOn = false
-            contentDescription = "Playback controls for $episodeTitle"
+            contentDescription = getString(R.string.playback_controls_for, episodeTitle)
             if (isAudio) setDefaultArtwork(
                 GeneratedCoverDrawable(episodeTitle, mediaKind = MediaType.AUDIO)
             )

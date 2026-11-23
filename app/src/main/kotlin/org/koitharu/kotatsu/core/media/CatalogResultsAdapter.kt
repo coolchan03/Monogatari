@@ -80,7 +80,7 @@ internal class CatalogResultsAdapter : RecyclerView.Adapter<CatalogResultsAdapte
             holder.subtitle.background = skeleton()
             holder.action.isVisible = false
             holder.action.setOnClickListener(null)
-            holder.card.contentDescription = "Loading book results"
+            holder.card.contentDescription = holder.card.context.getString(R.string.book_results_loading)
             holder.card.setOnClickListener(null)
             holder.card.setOnLongClickListener(null)
             holder.card.isClickable = false

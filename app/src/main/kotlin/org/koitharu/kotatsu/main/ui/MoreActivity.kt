@@ -70,7 +70,7 @@ class MoreActivity : AppCompatActivity() {
         val mascot = ImageView(this).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             Mascot.bind(this, MascotForm.DEFAULT)
-            contentDescription = "Kitsune, the Monogatari mascot"
+            contentDescription = getString(R.string.mascot_description)
             setOnClickListener {
                 if (tapCounter.tap(android.os.SystemClock.uptimeMillis())) Mascot.showEasterEgg(this@MoreActivity)
             }

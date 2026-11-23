@@ -204,7 +204,7 @@ class MonogatariTestCenterActivity : AppCompatActivity() {
         val problem = cases.count { finding(it).result == CheckResult.FAIL }
         ui.qaProgress.max = cases.size
         ui.qaProgress.progress = completed
-        ui.qaProgressText.text = "Feature ${index + 1} of ${cases.size}"
+        ui.qaProgressText.text = getString(R.string.qa_feature_progress, index + 1, cases.size)
         ui.qaCompletionText.text = "$completed reviewed · $problem need fixing · ${cases.size - completed} not tested"
     }
 

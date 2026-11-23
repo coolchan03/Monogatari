@@ -101,7 +101,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		viewModel.insights.observeEvent(this, ::showInsightsDialog)
 		viewModel.dailyTotals.observeEvent(this) { summary ->
 			androidx.appcompat.app.AlertDialog.Builder(this)
-				.setTitle("Reading activity and insights")
+				.setTitle(getString(R.string.stats_activity_insights_title))
 				.setMessage(summary)
 				.setPositiveButton(android.R.string.ok, null)
 				.show()
@@ -186,7 +186,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 		menu?.add(0, 7201, 0, "Export reading statistics (CSV)")
 		menu?.add(0, 7202, 1, "Daily reading totals")
 		menu?.add(0, 7204, 2, "Reading insights and streaks")
-		menu?.add(0, 7205, 3, "Daily reading goal")
+		menu?.add(0, 7205, 3, getString(R.string.stats_daily_goal_title))
 		return super.onCreateOptionsMenu(menu)
 	}
 
@@ -301,7 +301,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
         addText("Reading by time of day — last 400 days", 18f)
         body.addView(ReadingHeatmapView(this).apply {
             setData(detail.hourMs, 12)
-            contentDescription = "Activity from midnight through 11 PM. Darker tiles indicate more reading."
+            contentDescription = getString(R.string.stats_heatmap_description)
         }, LinearLayout.LayoutParams(-1, -2))
         addText("00:00–11:59 (top row)  ·  12:00–23:59 (bottom row)")
         addText("Time by media type", 18f)
@@ -330,7 +330,7 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
         }
         val scroll = ScrollView(this).apply { addView(body) }
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Reading insights")
+            .setTitle(getString(R.string.stats_insights_title))
             .setView(scroll)
             .setPositiveButton(android.R.string.ok, null)
             .show()
@@ -338,10 +338,10 @@ class StatsActivity : BaseActivity<ActivityStatsBinding>(),
 
 	private fun showDailyGoalSelector() {
 		val options = intArrayOf(5, 10, 15, 20, 30, 45, 60, 90, 120)
-		val labels = options.map { "$it minutes" }.toTypedArray()
+		val labels = options.map { resources.getQuantityString(R.plurals.stats_goal_minutes, it, it) }.toTypedArray()
 		val checked = options.indexOf(viewModel.currentGoalMinutes())
 		androidx.appcompat.app.AlertDialog.Builder(this)
-			.setTitle("Daily reading goal")
+			.setTitle(getString(R.string.stats_daily_goal_title))
 			.setSingleChoiceItems(labels, checked) { dialog, index ->
 				viewModel.setDailyGoal(options[index])
 				dialog.dismiss()

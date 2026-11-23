@@ -116,7 +116,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 runCatching { accountStore.save(fields[0].text.toString().trim(),
                     fields[1].text.toString(), fields[2].text.toString()) }
                     .onSuccess { status.text = getString(R.string.mono_webdav_credentials_encrypted_using_android_keystore) }
-                    .onFailure { status.text = "Configuration failed: ${it.message}" }
+                    .onFailure { status.text = getString(R.string.webdav_configuration_failed, it.message.orEmpty()) }
             }.show()
     }
 
@@ -143,7 +143,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                 BackupStatus.markBackedUp(this@WebDavManualSyncActivity)
                 status.text = getString(R.string.mono_webdav_backup_zip_uploaded_for_this_device)
             }
-                .onFailure { status.text = "Upload failed: ${it.message}" }
+                .onFailure { status.text = getString(R.string.webdav_upload_failed, it.message.orEmpty()) }
         }
     }
 
@@ -164,7 +164,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
                         downloadPicker.launch("monogatari-${ids[index]}.zip")
                     }.setNegativeButton(android.R.string.cancel, null).show()
                 status.text = "${ids.size} backup archives available"
-            }.onFailure { status.text = "Listing failed: ${it.message}" }
+            }.onFailure { status.text = getString(R.string.webdav_listing_failed, it.message.orEmpty()) }
         }
     }
 
@@ -188,7 +188,7 @@ class WebDavManualSyncActivity : AppCompatActivity() {
             } }
             busy = false
             result.onSuccess { status.text = getString(R.string.mono_webdav_backup_zip_saved_restore_it_only) }
-                .onFailure { status.text = "Download failed: ${it.message}" }
+                .onFailure { status.text = getString(R.string.webdav_download_failed, it.message.orEmpty()) }
         }
     }
 }

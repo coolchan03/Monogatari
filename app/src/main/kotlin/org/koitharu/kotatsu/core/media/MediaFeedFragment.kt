@@ -461,7 +461,7 @@ class MediaFeedFragment : Fragment(), RecyclerViewOwner {
 			} catch (cancel: CancellationException) {
 				throw cancel
 			} catch (error: Exception) {
-				status.text = "Chapters unavailable: ${error.message.orEmpty().take(120)}"
+				status.text = getString(R.string.chapters_unavailable, error.message.orEmpty().take(120))
 			}
 		}
 	}

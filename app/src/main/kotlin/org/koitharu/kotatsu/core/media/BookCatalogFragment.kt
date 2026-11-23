@@ -430,7 +430,7 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 		currentProviderErrors = emptyList()
 		resultsAdapter.showLoading()
 		catalogStatus.visibility = View.VISIBLE
-		catalogStatus.text = "Searching ${if (source == "All") "all catalogs" else source}..."
+		catalogStatus.text = if (source == "All") getString(R.string.catalog_searching_all) else getString(R.string.catalog_searching, source)
 		catalogJob = viewLifecycleOwner.lifecycleScope.launch {
 			val providers = if (source == "All")
 				PublicCatalogProvider.entries.map { it.label }
@@ -455,7 +455,7 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				catalogStatus.text = "Catalog search failed: ${e.message.orEmpty().take(120)}"
+				catalogStatus.text = getString(R.string.catalog_search_failed, e.message.orEmpty().take(120))
 				resultsAdapter.show(emptyList())
 				showCatalogEmpty(requireContext().emptyState(
 					MascotForm.SAD, getString(R.string.first_run_catalog_failed_title),
@@ -530,7 +530,7 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 		}
 		val preferred = catalogPrefs.getString("preferred:${group.identity}", null)
 		MaterialAlertDialogBuilder(requireContext())
-			.setTitle("Choose a source for ${group.primary.title}")
+			.setTitle(getString(R.string.catalog_choose_source, group.primary.title))
 			.setItems(group.entries.map {
 				"${if (it.catalog == preferred) "★ " else ""}${it.catalog} · ${it.format ?: "Source listing"}"
 			}.toTypedArray()) { _, position ->
@@ -547,7 +547,7 @@ class BookCatalogFragment : Fragment(), RecyclerViewOwner {
 			catalogStatus.text = getString(R.string.mono_books_invalid_standard_ebooks_link)
 			return
 		}
-		catalogStatus.text = "Finding the compatible EPUB for ${book.title}..."
+		catalogStatus.text = getString(R.string.catalog_finding_epub, book.title)
 		viewLifecycleOwner.lifecycleScope.launch {
 			// Resolve only after a user click; no bulk scraping or invented download links.
 			val link = withContext(Dispatchers.IO) {

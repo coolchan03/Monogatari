@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.core.media
 
+import org.koitharu.kotatsu.R
+
 import org.koitharu.kotatsu.core.ui.MonogatariChrome
 import org.koitharu.kotatsu.core.ui.setMonogatariContent
 import android.os.Bundle
@@ -66,7 +68,7 @@ class LocalTextReaderActivity : AppCompatActivity() {
                 scroll.scrollTo(0, if (fraction >= 0f) ReadingScrollPosition.offset(fraction, text.height, scroll.height) else y)
             }
         } catch (error: Exception) {
-            text.text = "Unable to read book: ${error.message}"
+            text.text = getString(R.string.book_read_failed, error.message.orEmpty())
         }
     }
 

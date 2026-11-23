@@ -37,7 +37,7 @@ class CrashReportActivity : CrashReportDialog() {
 			try {
 				startActivity(Intent(Intent.ACTION_VIEW, uri))
 			} catch (_: ActivityNotFoundException) {
-				android.widget.Toast.makeText(this, "No browser available", android.widget.Toast.LENGTH_SHORT).show()
+				android.widget.Toast.makeText(this, getString(org.koitharu.kotatsu.R.string.no_browser_available), android.widget.Toast.LENGTH_SHORT).show()
 			}
 		}
 		binding.button1.setOnClickListener { complete(alertDialog, DialogInterface.BUTTON_POSITIVE) }

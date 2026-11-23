@@ -96,7 +96,7 @@ object TestSpotlight {
 		prefs.apply()
 		detach(activity)
 		disarm(activity.application)
-		Toast.makeText(activity, "Saved: ${result.label}", Toast.LENGTH_SHORT).show()
+		Toast.makeText(activity, activity.getString(org.koitharu.kotatsu.R.string.qa_saved, result.label), Toast.LENGTH_SHORT).show()
 	}
 
 	@SuppressLint("ViewConstructor")

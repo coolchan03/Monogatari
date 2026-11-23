@@ -63,11 +63,17 @@ class LocalPdfReaderActivity : AppCompatActivity() {
         setMonogatariContent(layout)
         try {
             descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            renderer = PdfRenderer(descriptor!!)
-            pageIndex = getSharedPreferences("pdf_progress", MODE_PRIVATE).getInt(fileKey, 0)
+            renderer = PdfRenderer(requireNotNull(descriptor))
+            val saved = getSharedPreferences("pdf_progress", MODE_PRIVATE).getInt(fileKey, 0)
+            // The file may have been replaced by a shorter one since progress was saved.
+            pageIndex = saved.coerceIn(0, (renderer?.pageCount ?: 1).minus(1).coerceAtLeast(0))
             display(pageIndex)
         } catch (error: Exception) {
-            counter.text = "Unable to open PDF: ${error.message}"
+            renderer?.close()
+            renderer = null
+            descriptor?.close()
+            descriptor = null
+            counter.text = getString(R.string.pdf_open_failed, error.message ?: error.javaClass.simpleName)
         }
     }
 
@@ -91,8 +97,9 @@ class LocalPdfReaderActivity : AppCompatActivity() {
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
             image.setImageBitmap(bitmap)
         }
-        counter.text = "Page ${index + 1} of ${pdf.pageCount}"
-        image.contentDescription = "PDF page ${index + 1} of ${pdf.pageCount}"
+        val label = getString(R.string.pdf_page_counter, index + 1, pdf.pageCount)
+        counter.text = label
+        image.contentDescription = label
     }
 
     override fun onResume() {
@@ -108,7 +115,8 @@ class LocalPdfReaderActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         readingTimer.pause()
-        if (fileKey.isNotEmpty()) getSharedPreferences("pdf_progress", MODE_PRIVATE)
+        // Never overwrite saved progress when the file failed to open.
+        if (fileKey.isNotEmpty() && renderer != null) getSharedPreferences("pdf_progress", MODE_PRIVATE)
             .edit().putInt(fileKey, pageIndex).apply()
     }
 
