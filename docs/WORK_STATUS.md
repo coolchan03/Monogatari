@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-11-23 — Review / design-system / features session (branch `claude/code-review-design-system-5wqlrl`)
+- Owner decision: work in the container, commit locally and push to this dev branch (overrides the Tunnel-to-Surface-only rule for this session; no Tunnel tool exists here).
+- Active operation: baseline `:app:compileDebugKotlin` with a freshly installed Android SDK (platform 37.0, build-tools 35.0.0). Result recorded below once verified.
+
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
 - Done (local commits, not pushed): baseline 891 tests green; parsers -> 68f3fed395; OkHttp 5.5.1; NewPipeExtractor v0.27.0; JS extension publisher pinning (13 tests). Latest full run: 904 tests, 0 failures. No operation currently active.
