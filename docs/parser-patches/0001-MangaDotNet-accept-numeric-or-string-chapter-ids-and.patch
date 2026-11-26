@@ -1,0 +1,120 @@
+From 27336a8d29e7823ee2d55a99653fc09fea9f169d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 26 Nov 2026 22:23:49 +0000
+Subject: [PATCH 1/2] MangaDotNet: accept numeric or string chapter ids and
+ /manga/<id> urls; add live regression test
+
+---
+ .../parsers/site/en/MangadotnetParser.kt      | 22 +++++++++--
+ .../regression/MangadotnetChaptersTest.kt     | 38 +++++++++++++++++++
+ 2 files changed, 56 insertions(+), 4 deletions(-)
+ create mode 100644 src/test/kotlin/org/koitharu/kotatsu/parsers/regression/MangadotnetChaptersTest.kt
+
+diff --git a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/en/MangadotnetParser.kt b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/en/MangadotnetParser.kt
+index 8b52331..13fe957 100644
+--- a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/en/MangadotnetParser.kt
++++ b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/en/MangadotnetParser.kt
+@@ -315,7 +315,8 @@ internal class Mangadotnet(context: MangaLoaderContext) :
+ 	 */
+ 	@Suppress("UNCHECKED_CAST")
+ 	override suspend fun getDetails(manga: Manga): Manga {
+-		val url = "$baseUrl/manga/${manga.url}.data?_routes=pages/MangaDetailPage"
++		val mangaId = manga.url.toMangaId()
++		val url = "$baseUrl/manga/$mangaId.data?_routes=pages/MangaDetailPage"
+ 		val mangaData = fetchRscData(url, "pages/MangaDetailPage") ?: return manga
+ 
+ 		val mangaInfo = mangaData
+@@ -389,7 +390,7 @@ internal class Mangadotnet(context: MangaLoaderContext) :
+ 			}
+ 		}.trim()
+ 
+-		val chapters = fetchChapters(manga.url)
++		val chapters = fetchChapters(mangaId)
+ 
+ 		return manga.copy(
+ 			title = title,
+@@ -455,7 +456,7 @@ internal class Mangadotnet(context: MangaLoaderContext) :
+ 					?: allChapters.find { it.optDouble("chapter_number", 0.0).toFloat() == chapterNumber }
+ 					?: continue
+ 
+-				val chapterId = chapterData.getString("id")
++				val chapterId = chapterData.requireIdString()
+ 				val chapterSource = chapterData.optString("source", "scraper")
+ 				val number = chapterData.optDouble("chapter_number", 0.0).toFloat()
+ 				val name = chapterData.optString("chapter_title", "").nullIfEmpty()
+@@ -504,7 +505,7 @@ internal class Mangadotnet(context: MangaLoaderContext) :
+ 
+ 	override suspend fun getPages(chapter: MangaChapter): List<MangaPage> {
+ 		val chapterData = JSONObject(chapter.url)
+-		val chapterId = chapterData.getString("id")
++		val chapterId = chapterData.requireIdString()
+ 		val chapterSource = chapterData.optString("source", "scraper")
+ 
+ 		val segment = if (chapterSource == "user") "uploads" else "chapters"
+@@ -539,6 +540,19 @@ internal class Mangadotnet(context: MangaLoaderContext) :
+ 
+ 	// region Helpers
+ 
++	/**
++	 * The site returns chapter ids as JSON numbers, older stored urls hold them as strings. Strict JSON parsers
++	 * (org.json on the JVM) throw on getString for a number, so accept both and keep the id text unchanged.
++	 */
++	private fun JSONObject.requireIdString(): String = when (val raw = opt("id")) {
++		is String -> raw.trim().nullIfEmpty()
++		is Number -> if (raw.toDouble() % 1.0 == 0.0) raw.toLong().toString() else raw.toString()
++		else -> null
++	} ?: throw org.json.JSONException("Chapter id is missing")
++
++	/** Stored urls are bare ids; links resolved from the website arrive as `/manga/<id>`. Accept both. */
++	private fun String.toMangaId(): String = substringBefore('?').trimEnd('/').substringAfterLast('/')
++
+ 	private fun String.toCoverUrl(): String? = when {
+ 		startsWith("/") -> "$baseUrl$this"
+ 		startsWith("http") -> this
+diff --git a/src/test/kotlin/org/koitharu/kotatsu/parsers/regression/MangadotnetChaptersTest.kt b/src/test/kotlin/org/koitharu/kotatsu/parsers/regression/MangadotnetChaptersTest.kt
+new file mode 100644
+index 0000000..31428e1
+--- /dev/null
++++ b/src/test/kotlin/org/koitharu/kotatsu/parsers/regression/MangadotnetChaptersTest.kt
+@@ -0,0 +1,38 @@
++package org.koitharu.kotatsu.parsers.regression
++
++import kotlinx.coroutines.test.runTest
++import org.junit.jupiter.api.Assertions.assertTrue
++import org.junit.jupiter.api.Test
++import org.koitharu.kotatsu.parsers.model.Manga
++import org.koitharu.kotatsu.parsers.model.MangaParserSource
++import org.koitharu.kotatsu.parsers.MangaLoaderContextMock
++import kotlin.time.Duration.Companion.minutes
++
++/**
++ * Live regression test: MangaDotNet returns chapter ids as JSON numbers and accepts stored (bare id) and resolved
++ * (`/manga/<id>`) urls. Uses a long-running series that always has chapters.
++ */
++internal class MangadotnetChaptersTest {
++
++	private val parser = MangaLoaderContextMock.newParserInstance(MangaParserSource.MANGADOTNET)
++
++	private fun stub(url: String) = Manga(
++		id = 1L, title = "", altTitles = emptySet(), url = url, publicUrl = "", rating = -1f, contentRating = null,
++		coverUrl = null, tags = emptySet(), state = null, authors = emptySet(), source = MangaParserSource.MANGADOTNET,
++	)
++
++	@Test
++	fun chaptersAndPagesWithNumericIds() = runTest(timeout = 2.minutes) {
++		val details = parser.getDetails(stub("41"))
++		val chapters = details.chapters.orEmpty()
++		assertTrue(chapters.isNotEmpty(), "no chapters returned")
++		val pages = parser.getPages(chapters.first())
++		assertTrue(pages.isNotEmpty(), "no pages returned")
++	}
++
++	@Test
++	fun resolvedUrlFormIsAccepted() = runTest(timeout = 2.minutes) {
++		val details = parser.getDetails(stub("/manga/41"))
++		assertTrue(details.chapters.orEmpty().isNotEmpty(), "no chapters for /manga/<id> url")
++	}
++}
+-- 
+2.43.0
+

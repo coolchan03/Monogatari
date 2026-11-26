@@ -1,0 +1,276 @@
+From 772e3bdc5318b7b401b14e71ac2720073035fc51 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 26 Nov 2026 22:31:35 +0000
+Subject: [PATCH 2/2] Softkomik: softkomik.app domain, v2.softkomik.org API,
+ decrypt _stk page data, session-optional API calls, new search endpoint,
+ image id param, fix decimal chapters
+
+---
+ .../kotatsu/parsers/site/id/SoftKomik.kt      | 143 ++++++++++++------
+ 1 file changed, 97 insertions(+), 46 deletions(-)
+
+diff --git a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/id/SoftKomik.kt b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/id/SoftKomik.kt
+index 21abacb..3bbca42 100644
+--- a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/id/SoftKomik.kt
++++ b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/id/SoftKomik.kt
+@@ -9,16 +9,21 @@ import org.koitharu.kotatsu.parsers.config.ConfigKey
+ import org.koitharu.kotatsu.parsers.core.PagedMangaParser
+ import org.koitharu.kotatsu.parsers.model.*
+ import org.koitharu.kotatsu.parsers.util.*
++import java.io.ByteArrayOutputStream
++import java.security.MessageDigest
+ import java.util.*
+ import java.util.concurrent.ConcurrentHashMap
++import javax.crypto.Cipher
++import javax.crypto.spec.IvParameterSpec
++import javax.crypto.spec.SecretKeySpec
+ 
+ @MangaSourceParser("SOFTKOMIK", "Softkomik", "id")
+ internal class Softkomik(context: MangaLoaderContext) :
+     PagedMangaParser(context, MangaParserSource.SOFTKOMIK, pageSize = 24) {
+ 
+-    override val configKeyDomain = ConfigKey.Domain("softkomik.co")
++    override val configKeyDomain = ConfigKey.Domain("softkomik.app", "softkomik.online", "softkomik.co")
+ 
+-    private val apiUrl = "https://v2.softdevices.my.id"
++    private val apiUrl = "https://v2.softkomik.org"
+     private val coverUrl = "https://cover.softdevices.my.id/softkomik-cover"
+ 
+     private val cdnUrls = listOf(
+@@ -63,7 +68,7 @@ internal class Softkomik(context: MangaLoaderContext) :
+                 val value = jo.optString("value", "").ifEmpty { jo.optString("label", "") }
+                 val label = jo.optString("label", "").ifEmpty { value }
+                 if (value.isNotEmpty() && label.isNotEmpty()) {
+-                    tags.add(MangaTag(title = label, key = value, source = source))
++                    tags.add(MangaTag(title = label.titleCase(), key = value, source = source))
+                 }
+             }
+             tags
+@@ -87,15 +92,35 @@ internal class Softkomik(context: MangaLoaderContext) :
+         val rawSign = res.optString("sign", "")
+         val session = SessionDto(
+             ex = res.optLong("ex", System.currentTimeMillis() + 60_000L),
+-            token = res.optString("token", ""),
+-            sign = rawSign.substringBefore('|'),
++            token = res.optString("token", "").cleanB64(),
++            sign = rawSign.substringBefore('|').take(64),
+         )
+         sessionCache[endpoint] = session
+         return session
+     }
+ 
+-    private suspend fun getListSession(): SessionDto = getSession("/api/session/amsnuy")
+-    private suspend fun getChapterImageSession(): SessionDto = getSession("/api/session/chapter/iuisxs")
++    private suspend fun getListSession(): SessionDto = getSession("/api/session/aksjkas")
++    private suspend fun getChapterImageSession(): SessionDto = getSession("/api/session/chapter/oaisos")
++
++    /**
++     * The API answers without a session for now, while the site's own scripts still request one. Try the plain call
++     * first and fall back to a session when the server asks for it. Throws the original error if both fail.
++     */
++    private suspend fun apiJson(url: String, referer: String, session: suspend () -> SessionDto): JSONObject {
++        val plain = Headers.Builder()
++            .add("Accept", "application/json")
++            .add("Referer", referer)
++            .add("Origin", "https://$domain")
++            .build()
++        val first = runCatchingCancellable { webClient.httpGet(url, plain).parseJson() }
++        first.getOrNull()?.let { return it }
++        val withSession = runCatchingCancellable {
++            val s = session()
++            val headers = plain.newBuilder().add("X-Token", s.token).add("X-Sign", s.sign).build()
++            webClient.httpGet(url, headers).parseJson()
++        }
++        return withSession.getOrNull() ?: throw first.exceptionOrNull()!!
++    }
+ 
+     // ── LIST PAGE ─────────────────────────────────────────────────────────────
+ 
+@@ -124,16 +149,10 @@ internal class Softkomik(context: MangaLoaderContext) :
+     }
+ 
+     private suspend fun searchByQuery(query: String, page: Int): List<Manga> {
+-        val session = getListSession()
+-        val url = "$apiUrl/komik?name=${query.urlEncoded()}&search=true&limit=24&page=$page"
+-        val headers = Headers.Builder()
+-            .add("X-Token", session.token)
+-            .add("X-Sign", session.sign)
+-            .add("Accept", "application/json")
+-            .add("Referer", "https://$domain/")
+-            .add("Origin", "https://$domain")
+-            .build()
+-        val json = webClient.httpGet(url, headers).parseJson()
++        // The site's search returns at most 30 titles at once, without covers and without paging.
++        if (page > 1) return emptyList()
++        val url = "https://$domain/api/content/search?name=${query.trim().take(100).urlEncoded()}"
++        val json = apiJson(url, "https://$domain/") { getListSession() }
+         val dataArray = json.optJSONArray("data") ?: return emptyList()
+         return parseListData(dataArray)
+     }
+@@ -154,7 +173,7 @@ internal class Softkomik(context: MangaLoaderContext) :
+                     publicUrl = "https://$domain/$slug",
+                     rating = RATING_UNKNOWN,
+                     contentRating = ContentRating.SAFE,
+-                    coverUrl = if (gambar.isNotEmpty()) "$coverUrl/$gambar" else "",
++                    coverUrl = if (gambar.isNotEmpty()) "$coverUrl/$gambar" else null,
+                     tags = emptySet(),
+                     state = parseStatus(jo.optString("status")),
+                     authors = emptySet(),
+@@ -187,7 +206,7 @@ internal class Softkomik(context: MangaLoaderContext) :
+         detail?.optJSONArray("Genre")?.let { arr ->
+             for (i in 0 until arr.length()) {
+                 val name = arr.optString(i, "").trim()
+-                if (name.isNotEmpty()) tags.add(MangaTag(name, name.lowercase(), source))
++                if (name.isNotEmpty()) tags.add(MangaTag(name.titleCase(), name.lowercase(), source))
+             }
+         }
+ 
+@@ -206,17 +225,8 @@ internal class Softkomik(context: MangaLoaderContext) :
+     }
+ 
+     private suspend fun fetchChapterList(slug: String, mangaUrl: String): List<MangaChapter> {
+-        val session = getListSession()
+         val url = "$apiUrl/komik/$slug/chapter?limit=9999999"
+-        val headers = Headers.Builder()
+-            .add("X-Token", session.token)
+-            .add("X-Sign", session.sign)
+-            .add("Accept", "application/json")
+-            .add("Referer", "https://$domain/")
+-            .add("Origin", "https://$domain")
+-            .build()
+-
+-        val json = webClient.httpGet(url, headers).parseJson()
++        val json = apiJson(url, "https://$domain/$slug") { getListSession() }
+         val chapterArray = json.optJSONArray("chapter") ?: return emptyList()
+ 
+         val chapters = ArrayList<MangaChapter>(chapterArray.length())
+@@ -224,7 +234,7 @@ internal class Softkomik(context: MangaLoaderContext) :
+             val ch = chapterArray.optJSONObject(i) ?: continue
+             val chStr = ch.optString("chapter", "")
+             if (chStr.isEmpty()) continue
+-            val number = chStr.substringBefore(".").toFloatOrNull() ?: continue
++            val number = chStr.toFloatOrNull() ?: chStr.substringBefore(".").toFloatOrNull() ?: continue
+             val chapterUrl = "/${slug}/chapter/$chStr"
+             chapters.add(
+                 MangaChapter(
+@@ -240,8 +250,10 @@ internal class Softkomik(context: MangaLoaderContext) :
+                 ),
+             )
+         }
+-        chapters.sortBy { it.number }
+-        return chapters
++        // The list can repeat a chapter number; ids come from the chapter url, so keep the first of each.
++        val unique = chapters.distinctBy { it.id }.toMutableList()
++        unique.sortBy { it.number }
++        return unique
+     }
+ 
+     // ── PAGES ─────────────────────────────────────────────────────────────────
+@@ -260,8 +272,12 @@ internal class Softkomik(context: MangaLoaderContext) :
+         val slug = chapter.url.trim('/').substringBefore("/chapter/")
+         val chNum = chapter.url.substringAfterLast("/chapter/").trim('/')
+ 
+-        var imageSrc = chapterData?.optJSONArray("imageSrc") ?: JSONArray()
++        // softkomik.app puts the image list next to the encrypted page data, older mirrors inside it.
++        var imageSrc = pageProps?.optJSONArray("imgList")?.takeIf { it.length() > 0 }
++            ?: chapterData?.optJSONArray("imageSrc")
++            ?: JSONArray()
+         val isInter2 = chapterData?.optBoolean("storageInter2", false) ?: false
++        val isBackBs3 = chapterData?.optBoolean("backBS3", false) ?: false
+ 
+         if (imageSrc.length() == 0) {
+             val id = chapterData?.optString("_id")
+@@ -272,14 +288,14 @@ internal class Softkomik(context: MangaLoaderContext) :
+ 
+         if (imageSrc.length() == 0) return emptyList()
+ 
+-        val host = if (isInter2) cdnUrls[1] else cdnUrls[0]
++        val host = if (!isBackBs3 && isInter2) cdnUrls[1] else cdnUrls[0]
+ 
+         return (0 until imageSrc.length()).mapNotNull { i ->
+             val path = imageSrc.optString(i, "").removePrefix("/")
+             if (path.isEmpty()) return@mapNotNull null
+             MangaPage(
+                 id = generateUid(path),
+-                url = "$host/$path",
++                url = "$host/$path?id=$IMAGE_ID_PARAM",
+                 preview = null,
+                 source = source,
+             )
+@@ -288,17 +304,11 @@ internal class Softkomik(context: MangaLoaderContext) :
+ 
+     private suspend fun fetchChapterImages(slug: String, chapter: String, id: String): JSONArray {
+         return try {
+-            val session = getChapterImageSession()
+             val url = "$apiUrl/komik/$slug/chapter/$chapter/imgs/$id"
+-            val headers = Headers.Builder()
+-                .add("X-Token", session.token)
+-                .add("X-Sign", session.sign)
+-                .add("Accept", "application/json")
+-                .add("Referer", "https://$domain/$slug/chapter/$chapter")
+-                .add("Origin", "https://$domain")
+-                .build()
+-            val json = webClient.httpGet(url, headers).parseJson()
+-            json.optJSONArray("imageSrc") ?: JSONArray()
++            val json = apiJson(url, "https://$domain/$slug/chapter/$chapter") { getChapterImageSession() }
++            json.optJSONArray("imageSrc") ?: json.optJSONObject("_doc")?.optJSONArray("imageSrc") ?: JSONArray()
++        } catch (e: kotlinx.coroutines.CancellationException) {
++            throw e
+         } catch (_: Exception) {
+             JSONArray()
+         }
+@@ -330,9 +340,50 @@ internal class Softkomik(context: MangaLoaderContext) :
+     private fun extractPageProps(doc: org.jsoup.nodes.Document): JSONObject? {
+         val raw = doc.selectFirst("script#__NEXT_DATA__")?.data() ?: return null
+         return runCatching {
+-            JSONObject(raw).optJSONObject("props")?.optJSONObject("pageProps")
++            val props = JSONObject(raw).optJSONObject("props")?.optJSONObject("pageProps") ?: return@runCatching null
++            // softkomik.app CryptoJS-encrypts the details and chapter data in `_stk`; older mirrors send it as is.
++            val stk = props.optString("_stk", "")
++            if (stk.isEmpty()) props else JSONObject(decryptStk(stk))
+         }.getOrNull()
+     }
++
++    /** CryptoJS.AES.decrypt(payload, passphrase): OpenSSL "Salted__" container, MD5 EVP_BytesToKey, AES-256-CBC. */
++    private fun decryptStk(payload: String): String {
++        val raw = Base64.getMimeDecoder().decode(payload.trim())
++        require(raw.size > 16 && String(raw, 0, 8, Charsets.ISO_8859_1) == "Salted__") { "Missing Salted__ header" }
++        val salt = raw.copyOfRange(8, 16)
++        val pass = PAGE_PROPS_KEY.toByteArray(Charsets.UTF_8)
++        val md = MessageDigest.getInstance("MD5")
++        val keyIv = ByteArrayOutputStream()
++        var block = ByteArray(0)
++        while (keyIv.size() < 48) {
++            md.reset()
++            md.update(block)
++            md.update(pass)
++            md.update(salt)
++            block = md.digest()
++            keyIv.write(block)
++        }
++        val kd = keyIv.toByteArray()
++        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
++        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(kd, 0, 32, "AES"), IvParameterSpec(kd, 32, 16))
++        return String(cipher.doFinal(raw, 16, raw.size - 16), Charsets.UTF_8)
++    }
++
++    private fun String.titleCase(): String = split(' ').joinToString(" ") { w ->
++        w.replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase(Locale.ROOT) else c.toString() }
++    }
++
++    private fun String.cleanB64(): String =
++        substringBefore('=').let { it + "=".repeat((4 - (it.length % 4)) % 4) }
++
++    private companion object {
++        // NEXT_PUBLIC_ENCRYPTION_KEY from the site's JS bundle (also used by the Keiyoushi extension).
++        const val PAGE_PROPS_KEY = "nYTInq9MwR4pWa8yeXtu/2iO3t9nGP65WHpWEvqpEdU="
++
++        // Inlined in the site's chapter chunk and appended to every image URL.
++        const val IMAGE_ID_PARAM = "T4Kmwztku"
++    }
+ }
+ 
+ private data class SessionDto(
+-- 
+2.43.0
+
