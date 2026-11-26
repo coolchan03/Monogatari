@@ -1,0 +1,75 @@
+# Builds the Windows desktop app (Electron): an installer (NSIS) and a portable single .exe.
+#  - manual run / pull request: artifacts are attached to the workflow run
+#  - push a tag named win-v<version> (for example win-v1.10.0): the same files are attached to a GitHub release
+name: Windows app (.exe)
+
+on:
+  push:
+    tags: ['win-v*']
+  pull_request:
+    branches: [devel]
+    paths:
+      - 'web/**'
+      - 'app/src/main/resources/jsext/**'
+      - '.github/workflows/windows-exe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+        shell: bash
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build the installer and the portable exe
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$GITHUB_REF" == refs/tags/win-v* ]]; then VERSION="${GITHUB_REF_NAME#win-v}"; fi
+          npx --no-install electron-builder --win --publish never --config.extraMetadata.version="$VERSION"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: Monogatari-windows
+          path: |
+            web/release/*.exe
+            web/release/latest.yml
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/win-v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: Monogatari-windows
+          path: dist
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" --repo "$REPO" --title "Monogatari for Windows ${TAG#win-v}" --notes "Windows build of the Monogatari web app. Install with the setup .exe, or run the portable .exe without installing. Your library lives in the app's own data folder; use Settings → Backup to move it between devices."
+          gh release upload "$TAG" dist/*.exe --repo "$REPO" --clobber

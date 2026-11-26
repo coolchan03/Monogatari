@@ -1,0 +1,46 @@
+# Type-checks, unit-tests and end-to-end tests the web/desktop app on every change.
+name: Web app CI
+
+on:
+  pull_request:
+    branches: [devel]
+    paths:
+      - 'web/**'
+      - 'app/src/main/resources/jsext/**'
+      - '.github/workflows/web-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Install Chromium for the end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Browser end-to-end tests (real extensions in the sandbox)
+        run: |
+          node e2e/smoke.mjs
+          node e2e/manga.mjs
+      - name: Electron shell test
+        run: xvfb-run -a node e2e/electron.mjs

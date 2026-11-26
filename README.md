@@ -14,6 +14,12 @@ Monogatari is an Android reader built on Kotatsu-Redo with Mangayomi-style JavaS
 
 The official 1.x line is published. Back up your library before changing APK signing certificates or package variants. Newer builds require Android/device verification; successful CI alone does not prove every provider works.
 
+## Web app (PWA) and Windows program
+
+The same stories are available outside Android: a **browser/PWA** version (GitHub Pages) and a **Windows `.exe`** (installer and
+portable). They are a new front end that runs the same unmodified Mangayomi JavaScript extensions. See
+[web/README.md](web/README.md) for what carries over, what does not, and how to publish both from GitHub Actions.
+
 ## Features
 
 - Unified search across built-in and custom sources
