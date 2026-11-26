@@ -1,5 +1,9 @@
 # Monogatari work checkpoint
 
+## 2026-11-26 — Modernization session (local branch `ccr-42ef8621-bz8mn3`, nothing pushed)
+- Start: devel d155582 (PWA + Windows merged, Android still 1.10.0). No "Tunnel to Surface" tool and no attached computer folder exist in this session; local commits only, no push.
+- ACTIVE operation: Part 2 — merging tag v1.11.1-rc1 (6df91a1, contains v1.11.0 dcc529d) into this branch (`git merge`, web/ untouched). Release metadata note: GitHub release v1.11.1-rc1 is listed as a normal release though notes say prerelease (remote metadata not edited).
+
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
 - Done (local commits, not pushed): baseline 891 tests green; parsers -> 68f3fed395; OkHttp 5.5.1; NewPipeExtractor v0.27.0; JS extension publisher pinning (13 tests). Latest full run: 904 tests, 0 failures. No operation currently active.
