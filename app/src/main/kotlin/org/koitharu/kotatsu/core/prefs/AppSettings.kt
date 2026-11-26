@@ -142,6 +142,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getString(KEY_LAST_TAB, null)
 		set(value) = prefs.edit { putString(KEY_LAST_TAB, value) }
 
+	/** Id of the favourites category tab last opened in the Library, or [Long.MIN_VALUE] when none was saved. */
+	var lastFavouritesCategoryId: Long
+		get() = prefs.getLong(KEY_LAST_FAVOURITES_CATEGORY, Long.MIN_VALUE)
+		set(value) = prefs.edit { putLong(KEY_LAST_FAVOURITES_CATEGORY, value) }
+
 	val isNavLabelsVisible: Boolean
 		get() = prefs.getBoolean(KEY_NAV_LABELS, true)
 
@@ -1021,6 +1026,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_NAV_LAYOUT_V3 = "nav_layout_v3"
 		const val KEY_START_PAGE = "start_page"
 		const val KEY_LAST_TAB = "last_tab"
+		const val KEY_LAST_FAVOURITES_CATEGORY = "last_favourites_category"
 
 		val DEFAULT_NAV_ITEMS = listOf(NavItem.UNIFIED_LIBRARY, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)
 		private val LEGACY_DEFAULT_NAV_ITEMS = listOf(NavItem.FAVORITES, NavItem.UPDATED, NavItem.HISTORY, NavItem.DISCOVER, NavItem.MORE)

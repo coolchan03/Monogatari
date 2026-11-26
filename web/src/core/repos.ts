@@ -134,7 +134,45 @@ async function sha256Hex(text: string): Promise<string> {
 	return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function installSource(entry: SourceEntry): Promise<InstalledSource> {
+const GITHUB_HOSTS = new Set(['raw.githubusercontent.com', 'github.com', 'gist.githubusercontent.com']);
+
+/**
+ * Stable identity of a repository index URL (same rules as the Android JsPublisherPolicy): lowercase host plus the repository
+ * path. For GitHub hosts only owner/repo count, so a branch or index file rename is not a new publisher.
+ */
+export function publisherKey(repoUrl: string): string {
+	let u: URL;
+	try {
+		u = new URL(repoUrl.trim());
+	} catch {
+		return repoUrl.trim().toLowerCase();
+	}
+	const host = u.hostname.toLowerCase().replace(/\.$/, '');
+	let segs = u.pathname.split('/').filter(Boolean);
+	if (GITHUB_HOSTS.has(host)) segs = segs.slice(0, 2).map((x) => x.toLowerCase());
+	else while (segs.length && segs[segs.length - 1].includes('.')) segs.pop();
+	return host + segs.map((x) => '/' + x).join('');
+}
+
+/** A blank installed repo (legacy or local-file install) has no known publisher and adopts the next one. */
+export function isSamePublisher(installedRepoUrl: string, candidateRepoUrl: string): boolean {
+	if (!installedRepoUrl) return true;
+	if (!candidateRepoUrl) return false;
+	return publisherKey(installedRepoUrl) === publisherKey(candidateRepoUrl);
+}
+
+export class PublisherChangeError extends Error {
+	constructor(
+		readonly sourceId: number,
+		readonly installedPublisher: string,
+		readonly candidatePublisher: string,
+	) {
+		super(`Extension ${sourceId} is published by ${installedPublisher}; refusing code from ${candidatePublisher} without approval`);
+		this.name = 'PublisherChangeError';
+	}
+}
+
+export async function installSource(entry: SourceEntry, opts: { approvePublisherChange?: boolean } = {}): Promise<InstalledSource> {
 	if (!entry.isJs) throw new Error('Only JavaScript extensions can run here (Dart extensions need Mangayomi itself).');
 	const res = await execute({ method: 'GET', url: entry.sourceCodeUrl, headers: {} });
 	if (res.statusCode >= 400) throw new Error(`Download failed: HTTP ${res.statusCode}`);
@@ -145,6 +183,9 @@ export async function installSource(entry: SourceEntry): Promise<InstalledSource
 		if ((await sha256Hex(code)).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error('Source file SHA-256 does not match its index');
 	}
 	const installed = await db.get<InstalledSource>('sources', entry.id);
+	if (installed && !opts.approvePublisherChange && !isSamePublisher(installed.entry.repoUrl, entry.repoUrl)) {
+		throw new PublisherChangeError(entry.id, publisherKey(installed.entry.repoUrl), publisherKey(entry.repoUrl));
+	}
 	if (installed && compareVersions(entry.version, installed.entry.version) < 0) throw new Error('Refusing extension version downgrade');
 	const rec: InstalledSource = { id: entry.id, entry, code, installedAt: Date.now(), pinned: installed?.pinned, enabled: installed?.enabled ?? true };
 	await db.put('sources', rec);
@@ -184,15 +225,43 @@ export async function installFromCode(code: string, meta: Partial<SourceEntry> &
 	return rec;
 }
 
-/** Entries from [repos] with a newer version than what is installed. */
+/** Newest runnable entry per installed source from the SAME publisher that is newer than what is installed. */
 export function updatesAvailable(installed: InstalledSource[], repos: RepoRecord[]): SourceEntry[] {
 	const out: SourceEntry[] = [];
 	for (const inst of installed) {
 		let best: SourceEntry | undefined;
 		for (const r of repos)
 			for (const e of r.entries ?? [])
-				if (e.id === inst.id && e.isJs && compareVersions(e.version, inst.entry.version) > 0 && (!best || compareVersions(e.version, best.version) > 0)) best = e;
+				if (
+					e.id === inst.id &&
+					e.isJs &&
+					isSamePublisher(inst.entry.repoUrl, e.repoUrl) &&
+					compareVersions(e.version, inst.entry.version) > 0 &&
+					(!best || compareVersions(e.version, best.version) > 0)
+				)
+					best = e;
 		if (best) out.push(best);
+	}
+	return out;
+}
+
+/** Newer versions of installed sources offered only by a different publisher; each needs explicit approval. */
+export function publisherChangeOffers(installed: InstalledSource[], repos: RepoRecord[]): Array<{ installed: InstalledSource; candidate: SourceEntry }> {
+	const out: Array<{ installed: InstalledSource; candidate: SourceEntry }> = [];
+	for (const inst of installed) {
+		if (!inst.entry.repoUrl) continue;
+		let best: SourceEntry | undefined;
+		for (const r of repos)
+			for (const e of r.entries ?? [])
+				if (
+					e.id === inst.id &&
+					e.isJs &&
+					!isSamePublisher(inst.entry.repoUrl, e.repoUrl) &&
+					compareVersions(e.version, inst.entry.version) > 0 &&
+					(!best || compareVersions(e.version, best.version) > 0)
+				)
+					best = e;
+		if (best) out.push({ installed: inst, candidate: best });
 	}
 	return out;
 }

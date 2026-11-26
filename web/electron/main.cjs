@@ -15,6 +15,15 @@ const { pathToFileURL } = require('node:url');
 
 const DIST = path.join(__dirname, '..', 'dist');
 const ORIGIN = 'app://monogatari';
+/** True only for the app's own pages. (URL.origin is the string "null" for custom schemes, so compare scheme and host.) */
+const isAppUrl = (url) => {
+	try {
+		const u = new URL(url);
+		return u.protocol === 'app:' && u.host === 'monogatari';
+	} catch {
+		return false;
+	}
+};
 
 protocol.registerSchemesAsPrivileged([
 	{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -62,7 +71,7 @@ function createWindow() {
 		return { action: 'deny' };
 	});
 	mainWindow.webContents.on('will-navigate', (e, url) => {
-		if (!url.startsWith(ORIGIN)) {
+		if (!isAppUrl(url)) {
 			e.preventDefault();
 			if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
 		}
@@ -282,7 +291,13 @@ function solveChallenge(url) {
 	});
 }
 
-ipcMain.handle('http:request', async (_e, req) => {
+/** Only the app's own page may call the privileged IPC handlers (not a challenge window or a stray frame). */
+function fromApp(e) {
+	return isAppUrl(e && e.senderFrame && e.senderFrame.url);
+}
+
+ipcMain.handle('http:request', async (e, req) => {
+	if (!fromApp(e)) throw new Error('Untrusted sender');
 	if (!req || !/^https?:\/\//i.test(req.url)) throw new Error('Unsupported URL');
 	let res = await rawRequest(req);
 	if (looksLikeChallenge(res)) {
@@ -295,13 +310,14 @@ ipcMain.handle('http:request', async (_e, req) => {
 	return res;
 });
 
-ipcMain.handle('media:headers', (_e, url, headers) => {
+ipcMain.handle('media:headers', (e, url, headers) => {
+	if (!fromApp(e)) return;
 	if (typeof url !== 'string' || !/^https?:\/\//i.test(url) || !headers || typeof headers !== 'object') return;
 	if (mediaHeaders.size > 5000) mediaHeaders.clear();
 	mediaHeaders.set(url, headers);
 });
 
-ipcMain.handle('app:info', () => ({ version: app.getVersion(), platform: process.platform }));
+ipcMain.handle('app:info', (e) => (fromApp(e) ? { version: app.getVersion(), platform: process.platform } : null));
 
 // ---------------------------------------------------------------- startup
 
@@ -314,7 +330,7 @@ app.whenReady().then(() => {
 		let rel = decodeURIComponent(url.pathname);
 		if (rel === '/' || rel === '') rel = '/index.html';
 		const file = path.normalize(path.join(DIST, rel));
-		if (!file.startsWith(DIST)) return new Response('Forbidden', { status: 403 });
+		if (file !== DIST && !file.startsWith(DIST + path.sep)) return new Response('Forbidden', { status: 403 });
 		return net.fetch(pathToFileURL(file).toString());
 	});
 

@@ -1,5 +1,37 @@
 # Monogatari work checkpoint
 
+## 2026-11-26 — Modernization session (local branch `ccr-42ef8621-bz8mn3`, nothing pushed)
+- Start: devel d155582 (PWA + Windows merged, Android still 1.10.0). No "Tunnel to Surface" tool and no attached computer folder exist in this session; local commits only, no push.
+- Done (local commits, not pushed): merged v1.11.1-rc1 (68428f8; conflict only in this file; web/ untouched, Android now 1.11.1-rc1, parsers b049587f96, NewPipeExtractor v0.27.1, OkHttp 5.5.1). Web: `npm ci`, `npm test` (36 tests incl. 21 new relay tests), `npm run build` pass. Relay hardened (Origin required when ALLOWED_ORIGIN set, per-hop redirect validation, CGNAT/IPv4-mapped IPv6 blocked, body cap); Electron path-prefix, navigation-origin and IPC sender checks (ae0b1b8).
+- Later in session (no SDK): web publisher pinning + approval UI (cecd5c6; 42 web tests, tsc, build pass); parser pin -> 8e4b04f3df with manifest hosts (UNCOMPILED), see docs/SOURCE_FIX_TRACKER.md.
+- BLOCKED: no Android SDK in this container; installing it was denied by the permission classifier, so no Gradle compile/test/R8/lint was run. The 1.11 reference of 1,010 tests is NOT re-verified. Parser bump to 8e4b04f3df and all native/Keiyoushi source fixes (Softkomik, MangaDotNet, Ikiru, ...) live in the external kotatsu-parsers-redo library and need a compile environment plus a parser fork; not started. Download queue, reader, animated images, sync not started.
+- Release metadata: GitHub release v1.11.1-rc1 is listed as a normal release though its notes say prerelease (remote not edited).
+- No operation currently active.
+
+## 2026-11-22 (later) - v1.11.1-rc1 prerelease prep
+- Done locally: ported Kotatsu-Redo sync merge fix + tests; MissingExtensionSource for MANGAYOMI_* names; opt-in live smoke tests (parsers + JS host) and their results; workflow `prerelease` input; version 1.11.1-rc1 (code 36); notes/changelog/status docs.
+- Verified: `:app:testDebugUnitTest` 1021 tests, 0 failures (before the live-test classes were added; they skip unless MONOGATARI_LIVE_TESTS=1). Not verified: sync server round trip, device behaviour.
+- Operation in progress: final test run, then commit/push and dispatch publish-release.yml (prerelease=true, tag v1.11.1-rc1).
+
+## 2026-11-22 - v1.11.0 preparation (branch `ccr-bf323bfe-6yd048`, pushed through f52e913; newer work local until pushed)
+- Step: owner asked to address the remaining checklist items and publish a new version. Added: stats + per-title prefs move in MigrateUseCase, ChapterGapDetector + chapters-tab note, Continue hidden for finished last-read title, Library last category restore, Suggestions "Not interested" + Undo (local only), version 1.11.0 / code 35, CHANGELOG and docs/RELEASE_1_11_0_NOTES.md.
+- Verified: `:app:testDebugUnitTest` 1004 tests, 0 failures (14 new ChapterGapDetectorTest); `scripts/validate-ui-a11y.py` passes; `:app:minifyReleaseWithR8` passes. Not device-verified. Item-by-item status in docs/MODERNIZATION_STATUS_20261121.md.
+- Added GenreLabels (6 tests); full suite now 1010 tests, 0 failures. Dry run of ef5f9a2 (run 44965729250): CI validation + unit tests passed, release build in progress when last checked.
+- Dry run of ef5f9a2 (run 44965729250) succeeded. Pushed dcc529d. Operation in progress: real publish dispatched for tag v1.11.0 from branch ccr-bf323bfe-6yd048 at dcc529d (not merged into devel). Result: run 44967056938 succeeded; https://github.com/coolchan03/Monogatari/releases/tag/v1.11.0 published 2026-11-22 00:44 UTC (not draft, not prerelease), built from dcc529d, APK sha256 c1b9abe039b9f129b316661c37eef142a3044a00233df24e1c92f5a18149d248. devel not updated; not device-verified.
+
+## 2026-11-21 - Post-1.10.0 modernization checklist (branch `ccr-bf323bfe-6yd048`, local only, nothing pushed)
+- Active step: checklist section 1 / phase 1-2 (parser upgrade `68f3fed395` -> `b049587f96`). Owner waived the Tunnel to Surface requirement for this session; no push or merge without authorization.
+- Finding: the JitPack artifact `com.github.clquwu:kotatsu-parsers-redo:b049587f96` now exists (9.9 MB jar). It still bundles the contract classes and all parsers; `MangaParserSource` is now a class (companion `entries`/`find`/`valueOf`) extending `ParserMangaSource`, `MangaLoaderContext` gains abstract `parsers: ParsersBundle`, `MangaParser.source` is `ParserMangaSource`. Static linking works without any remote bundle download.
+- Done: parsers bumped to `b049587f96`; `:app:compileDebugKotlin` is green (0 errors) after adapting MangaLoaderContextImpl (`parsers = ParsersBundleImpl`), MangaLinkResolver (`resolveLink`), Migration16To17 (index instead of `ordinal`), MirrorSwitcher, MangaSourcesRepository, WelcomeViewModel (no EnumSet over parser sources), and the `DirectParsersAccess` opt-in in app/build.gradle.
+- ID diff old vs new jar: 1385 -> 1376 source names; 39 removed (retired), 30 added. Retired-ID handling is still to do.
+- First full test run after the bump: 981 tests, 1 failure (`SourceIndexHealthTest.mangayomiParserFiltersOnlyRecentConfirmedBroken`, a time bomb: fixed `now` of 2027-01-15 vs the real clock; test fixed, unrelated to the parser).
+- Added `core/model/RetiredMangaSource.kt` (39 retired ids kept verbatim, shown as "<title> (retired)", adult flag kept, NetTruyen replacement hints only) and `RetiredSourcesTest` with a 1385-id baseline snapshot.
+- Verified: `:app:testDebugUnitTest` = 990 tests, 0 failures, 0 errors, 2 skipped (includes 9 new RetiredSourcesTest). Debug Kotlin compile green. Not verified: parser behaviour against live sites, device run, migrations on a real DB, release/R8 build.
+- Committed locally as f9307ea (not pushed).
+- NewPipeExtractor v0.27.0 -> v0.27.1 (only POM change: jsoup 1.23.2 -> 1.24.1): `:app:testDebugUnitTest` 990 tests, 0 failures. Committed locally. Compile/unit tests only; SoundCloud/Bandcamp/YouTube behaviour not tested (needs live network + device).
+- `:app:minifyReleaseWithR8` passes. Full per-item status (done / partial / unverified / deferred): docs/MODERNIZATION_STATUS_20261121.md.
+- Committed locally (not pushed): f9307ea parsers, 662f215 NewPipe. No operation currently active.
+
 ## 2026-11-10 — Modernization session (local branch `ccr-c0c4a160-e5p0d2`, nothing pushed)
 - Step: Part 1 baseline. v1.8.1 (57cd30b) merged into the branch (`a30cf50f0`), devel was still 7738836.
 - Done (local commits, not pushed): baseline 891 tests green; parsers -> 68f3fed395; OkHttp 5.5.1; NewPipeExtractor v0.27.0; JS extension publisher pinning (13 tests). Latest full run: 904 tests, 0 failures. No operation currently active.

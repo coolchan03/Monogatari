@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'preact/hooks';
-import { addRepo, installSource, listRepos, RECOMMENDED_REPOS, refreshRepo, removeRepo, uninstallSource, updatesAvailable, installFromCode, type RepoRecord } from '../../core/repos';
+import { addRepo, installSource, listRepos, publisherChangeOffers, publisherKey, RECOMMENDED_REPOS, refreshRepo, removeRepo, uninstallSource, updatesAvailable, installFromCode, type RepoRecord } from '../../core/repos';
 import { getInstalled, useStore } from '../../core/store';
 import type { InstalledSource, SourceEntry } from '../../core/types';
 import { Empty, ErrorBox, Page, SearchBox, Spinner, Tabs, toast } from '../components';
@@ -17,6 +17,7 @@ export function ReposPage() {
 
 	const have = new Map(installed.map((s) => [s.id, s]));
 	const updates = useMemo(() => updatesAvailable(installed, repos), [installed, repos]);
+	const offers = useMemo(() => publisherChangeOffers(installed, repos), [installed, repos]);
 
 	const all = useMemo(() => {
 		const best = new Map<number, SourceEntry>();
@@ -126,6 +127,24 @@ export function ReposPage() {
 					</button>
 				</div>
 			)}
+
+			{offers.map(({ installed: inst, candidate }) => (
+				<div class="banner" key={'offer' + inst.id}>
+					<span class="grow">
+						{candidate.name} v{candidate.version} is offered by a different publisher ({publisherKey(candidate.repoUrl)}); you installed it from {publisherKey(inst.entry.repoUrl)}.
+					</span>
+					<button
+						class="btn small"
+						disabled={!!busy}
+						onClick={() => {
+							if (confirm(`Replace ${inst.entry.name} with code from ${publisherKey(candidate.repoUrl)}? That publisher will be able to run code in this app.`))
+								void run('o' + inst.id, () => installSource(candidate, { approvePublisherChange: true }), 'Updated');
+						}}
+					>
+						Review and switch
+					</button>
+				</div>
+			))}
 
 			<h2>Available sources</h2>
 			{loading ? (

@@ -2,7 +2,6 @@ package org.koitharu.kotatsu.suggestions.domain
 
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaTag
-import org.koitharu.kotatsu.parsers.util.almostEquals
 
 class TagsBlacklist(
 	private val tags: Set<String>,
@@ -17,7 +16,7 @@ class TagsBlacklist(
 		}
 		for (mangaTag in manga.tags) {
 			for (tagTitle in tags) {
-				if (mangaTag.title.almostEquals(tagTitle, threshold)) {
+				if (GenreLabels.matches(mangaTag.title, tagTitle, threshold)) {
 					return true
 				}
 			}
@@ -26,6 +25,6 @@ class TagsBlacklist(
 	}
 
 	operator fun contains(tag: MangaTag): Boolean = tags.any {
-		it.almostEquals(tag.title, threshold)
+		GenreLabels.matches(it, tag.title, threshold)
 	}
 }

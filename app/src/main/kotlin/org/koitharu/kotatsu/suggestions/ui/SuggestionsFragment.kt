@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import androidx.appcompat.view.ActionMode
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.viewModels
 import com.google.android.material.snackbar.Snackbar
@@ -32,7 +33,18 @@ class SuggestionsFragment : MangaListFragment() {
 		menu: Menu,
 	): Boolean {
 		menuInflater.inflate(R.menu.mode_remote, menu)
+		menuInflater.inflate(R.menu.mode_suggestions, menu)
 		return super.onCreateActionMode(controller, menuInflater, menu)
+	}
+
+	override fun onActionItemClicked(controller: ListSelectionController, mode: ActionMode?, item: MenuItem): Boolean {
+		return if (item.itemId == R.id.action_not_interested) {
+			viewModel.dismiss(selectedItemsIds)
+			mode?.finish()
+			true
+		} else {
+			super.onActionItemClicked(controller, mode, item)
+		}
 	}
 
 	private inner class SuggestionMenuProvider : MenuProvider {

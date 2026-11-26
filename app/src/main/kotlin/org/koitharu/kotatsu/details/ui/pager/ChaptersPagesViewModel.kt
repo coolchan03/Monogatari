@@ -32,6 +32,7 @@ import org.koitharu.kotatsu.core.util.ext.combine
 import org.koitharu.kotatsu.core.util.ext.requireValue
 import org.koitharu.kotatsu.core.util.ext.sortedWithSafe
 import org.koitharu.kotatsu.details.data.MangaDetails
+import org.koitharu.kotatsu.details.domain.ChapterGapDetector
 import org.koitharu.kotatsu.details.domain.DetailsInteractor
 import org.koitharu.kotatsu.details.ui.DetailsActivity
 import org.koitharu.kotatsu.details.ui.DetailsViewModel
@@ -144,6 +145,23 @@ abstract class ChaptersPagesViewModel(
 		chaptersQuery,
 	) { list, reversed, query ->
 		(if (reversed) list.asReversed() else list).filterSearch(query)
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, emptyList())
+
+	/**
+	 * Whole chapter numbers that look absent from the selected branch. Computed from the full branch list, never from
+	 * the searched or downloaded-only view, so filtering cannot create a false warning.
+	 */
+	val missingChapters: StateFlow<List<ChapterGapDetector.Gap>> = combine(
+		mangaDetails,
+		selectedBranch,
+		chaptersQuery,
+		isDownloadedOnly,
+	) { details, branch, query, downloadedOnly ->
+		if (details == null || query.isNotEmpty() || downloadedOnly) {
+			emptyList()
+		} else {
+			ChapterGapDetector.findGaps(details.chapters[branch].orEmpty())
+		}
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, emptyList())
 
 	val quickFilter = combine(
