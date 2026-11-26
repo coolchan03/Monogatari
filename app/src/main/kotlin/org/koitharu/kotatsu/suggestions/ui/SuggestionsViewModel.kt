@@ -14,6 +14,8 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
+import org.koitharu.kotatsu.core.ui.util.ReversibleAction
+import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.core.util.ext.onFirst
 import org.koitharu.kotatsu.list.domain.MangaListMapper
 import org.koitharu.kotatsu.list.domain.QuickFilterListener
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.SharedFlow
 
 @HiltViewModel
 class SuggestionsViewModel @Inject constructor(
-	repository: SuggestionRepository,
+	private val repository: SuggestionRepository,
 	settings: AppSettings,
 	private val mangaListMapper: MangaListMapper,
 	private val quickFilter: SuggestionsListQuickFilter,
@@ -89,6 +91,17 @@ class SuggestionsViewModel @Inject constructor(
 	fun updateSuggestions() {
 		launchJob(Dispatchers.Default) {
 			suggestionsScheduler.startNow()
+		}
+	}
+
+	/** "Not interested": hide the titles from suggestions, with Undo. Local to this device. */
+	fun dismiss(ids: Set<Long>) {
+		if (ids.isEmpty()) {
+			return
+		}
+		launchJob(Dispatchers.Default) {
+			val handle = repository.dismiss(ids)
+			onActionDone.call(ReversibleAction(R.string.suggestion_dismissed, handle))
 		}
 	}
 }

@@ -64,6 +64,12 @@ abstract class SuggestionDao : MangaQueryBuilder.ConditionCallback {
 	@Query("DELETE FROM suggestions")
 	abstract suspend fun deleteAll()
 
+	@Query("SELECT * FROM suggestions WHERE manga_id IN (:ids)")
+	abstract suspend fun findByIds(ids: Collection<Long>): List<SuggestionEntity>
+
+	@Query("DELETE FROM suggestions WHERE manga_id IN (:ids)")
+	abstract suspend fun delete(ids: Collection<Long>)
+
 	@Transaction
 	open suspend fun upsert(entity: SuggestionEntity) {
 		if (update(entity) == 0) {

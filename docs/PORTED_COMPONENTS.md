@@ -15,6 +15,7 @@ repository, not the upstream HEAD (see `UPSTREAM_REVISION_LEDGER.md` for HEADs).
 | Page translation | ML Kit text recognition (Latin, Japanese, Korean, Chinese), ML Kit Translate and Language ID (dependencies). Architecture inspired by Kototoro (Apache-2.0); **no Kototoro code is copied** (see `NOTICE`). | Google ML Kit terms; Apache-2.0 (reference) | `reader/translate/`: bubble grouping, layout, sidecar record, tap-to-correct viewer | `reader/translate/` |
 | Subsampling image view | `KotatsuApp/subsampling-scale-image-view` at `376930523c` (dependency) | Apache-2.0 | None | none (UI) |
 | Crash reporting | ACRA 5.13.1 (dependency, guarded lifecycle callbacks) | Apache-2.0 | Startup-safe guards | `core/util/SentryStackTraceParserTest` |
+| Sync merge fix (deleted favourites no longer reappear; rows changed during a sync are not overwritten) | Kotatsu-Redo `master` (app 9.8.7), files `sync/domain/SyncHelper.kt`, `sync/ui/SyncProvider.kt`, `sync/domain/SyncMergeTest.kt`, fetched 2026-11-22. Exact commit not recorded (GitHub API is out of this session's scope). Diffed first: Monogatari's copies differed from upstream only by this fix, so nothing local was overwritten. | GPL-3.0 | None | `sync/domain/SyncMergeTest` (6 tests, upstream's); server paths not exercised |
 | Foreign backup import | Kotatsu and Mangayomi backup formats (read-only parsers) | n/a (file formats) | `backups/domain/ForeignBackup*`, `MangayomiBackup` | `backups/` |
 
 ## What to do when you port something new

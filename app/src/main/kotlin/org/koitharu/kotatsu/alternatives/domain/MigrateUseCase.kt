@@ -98,6 +98,16 @@ constructor(
 				} else {
 					null
 				}
+			// reading statistics: sessions are keyed by manga id and would otherwise stay with the old title
+			Log.d(TAG, "Migration stage=stats oldId=${oldDetails.id} targetId=${newDetails.id}")
+			database.getStatsDao().moveSessions(oldDetails.id, newDetails.id)
+			// per-title settings: custom cover, title override, content rating, reader mode and colour filter
+			Log.d(TAG, "Migration stage=preferences oldId=${oldDetails.id} targetId=${newDetails.id}")
+			val prefsDao = database.getPreferencesDao()
+			val oldPrefs = prefsDao.find(oldDetails.id)
+			if (oldPrefs != null && prefsDao.find(newDetails.id) == null) {
+				prefsDao.upsert(oldPrefs.copy(mangaId = newDetails.id))
+			}
 			// track
 			Log.d(TAG, "Migration stage=tracking oldId=${oldDetails.id} targetId=${newDetails.id}")
 			val tracksDao = database.getTracksDao()

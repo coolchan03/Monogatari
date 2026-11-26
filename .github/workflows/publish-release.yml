@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      prerelease:
+        description: 'Publish as a GitHub prerelease (not offered as the latest release)'
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: write
 jobs:
@@ -122,6 +127,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          PRERELEASE: ${{ github.event_name != 'push' && inputs.prerelease || false }}
         shell: bash
         run: |
           set -euo pipefail
@@ -135,5 +141,7 @@ jobs:
             echo "Signed Android release." > dist/release-notes.md
           fi
           printf '\n\nCommit: %s\nSHA256SUMS.txt verifies the APK download.\n' "$SOURCE_SHA" >> dist/release-notes.md
+          EXTRA=()
+          if [[ "${PRERELEASE:-false}" == "true" ]]; then EXTRA+=(--prerelease); fi
           gh release create "$TAG" dist/Monogatari-release.apk dist/SHA256SUMS.txt \
-            --target "$SOURCE_SHA" --title "Monogatari $TAG" --notes-file dist/release-notes.md
+            --target "$SOURCE_SHA" --title "Monogatari $TAG" --notes-file dist/release-notes.md "${EXTRA[@]}"

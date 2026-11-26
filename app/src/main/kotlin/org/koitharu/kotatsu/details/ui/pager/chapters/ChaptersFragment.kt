@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import org.koitharu.kotatsu.R
@@ -36,7 +37,9 @@ import org.koitharu.kotatsu.details.ui.adapter.ChaptersAdapter
 import org.koitharu.kotatsu.details.ui.adapter.ChaptersSelectionDecoration
 import org.koitharu.kotatsu.details.ui.model.ChapterListItem
 import org.koitharu.kotatsu.details.ui.pager.ChaptersPagesViewModel
+import org.koitharu.kotatsu.details.domain.ChapterGapDetector
 import org.koitharu.kotatsu.details.ui.withVolumeHeaders
+import org.koitharu.kotatsu.list.ui.model.ListHeader
 import org.koitharu.kotatsu.list.domain.ListFilterOption
 import org.koitharu.kotatsu.list.ui.adapter.TypedListSpacingDecoration
 import org.koitharu.kotatsu.list.ui.model.ListModel
@@ -92,8 +95,18 @@ class ChaptersFragment :
 		}
 		binding.chipsFilter.onChipClickListener = this
 		viewModel.isLoading.observe(viewLifecycleOwner, this::onLoadingStateChanged)
-		viewModel.chapters
-			.map { it.withVolumeHeaders(requireContext()) }
+		val appContext = requireContext().applicationContext
+		combine(viewModel.chapters, viewModel.missingChapters) { chapters, gaps ->
+			chapters.withVolumeHeaders(appContext).also { items ->
+				if (gaps.isNotEmpty() && items.isNotEmpty()) {
+					items.add(0, ListHeader(appContext.getString(
+						R.string.missing_chapters_note,
+						ChapterGapDetector.missingCount(gaps),
+						ChapterGapDetector.format(gaps),
+					)))
+				}
+			}
+		}
 			.flowOn(Dispatchers.Default)
 			.observe(viewLifecycleOwner, this::onChaptersChanged)
 		viewModel.quickFilter.observe(viewLifecycleOwner, this::onFilterChanged)
