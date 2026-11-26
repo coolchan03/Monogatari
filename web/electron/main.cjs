@@ -15,6 +15,15 @@ const { pathToFileURL } = require('node:url');
 
 const DIST = path.join(__dirname, '..', 'dist');
 const ORIGIN = 'app://monogatari';
+/** True only for the app's own pages. (URL.origin is the string "null" for custom schemes, so compare scheme and host.) */
+const isAppUrl = (url) => {
+	try {
+		const u = new URL(url);
+		return u.protocol === 'app:' && u.host === 'monogatari';
+	} catch {
+		return false;
+	}
+};
 
 protocol.registerSchemesAsPrivileged([
 	{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -62,7 +71,7 @@ function createWindow() {
 		return { action: 'deny' };
 	});
 	mainWindow.webContents.on('will-navigate', (e, url) => {
-		if (new URL(url).origin !== ORIGIN) {
+		if (!isAppUrl(url)) {
 			e.preventDefault();
 			if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
 		}
@@ -284,11 +293,7 @@ function solveChallenge(url) {
 
 /** Only the app's own page may call the privileged IPC handlers (not a challenge window or a stray frame). */
 function fromApp(e) {
-	try {
-		return new URL(e.senderFrame.url).origin === ORIGIN;
-	} catch {
-		return false;
-	}
+	return isAppUrl(e && e.senderFrame && e.senderFrame.url);
 }
 
 ipcMain.handle('http:request', async (e, req) => {
