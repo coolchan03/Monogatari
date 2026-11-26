@@ -1,5 +1,11 @@
 # Monogatari changelog
 
+## v1.11.2-rc1 - Prerelease: parser update, web hardening (2026-11-26)
+- Includes everything in v1.11.1-rc1 (the 1.11 line is now merged with the PWA/Windows work in `devel`).
+- Parser library updated to kotatsu-parsers-redo `8e4b04f3df` (DrakeScans rewrite, MgKomik parser, AtsuMoe page ordering, MangaWorld domain updates). Deep links added for drakecomic.net, mangaworld.me and mangaworldadult.org. Not tested against the live sites.
+- Web/Windows app: relay requires an allowed Origin when configured and re-checks every redirect; Electron IPC and navigation checks; extension updates stay with the publisher they were installed from and cross-publisher switches need approval.
+- Prerelease; see docs/RELEASE_1_11_2-rc1_NOTES.md.
+
 ## v1.11.1-rc1 - Prerelease: sync merge fix and import safety (2026-11-22)
 - Sync: a favourite removed on one device no longer returns from another; rows changed during a sync are kept (ported from Kotatsu-Redo).
 - Titles imported from Mangayomi without their extension keep their source name instead of becoming "unknown".
