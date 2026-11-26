@@ -2,7 +2,10 @@
 
 ## 2026-11-26 — Modernization session (local branch `ccr-42ef8621-bz8mn3`, nothing pushed)
 - Start: devel d155582 (PWA + Windows merged, Android still 1.10.0). No "Tunnel to Surface" tool and no attached computer folder exist in this session; local commits only, no push.
-- ACTIVE operation: Part 2 — merging tag v1.11.1-rc1 (6df91a1, contains v1.11.0 dcc529d) into this branch (`git merge`, web/ untouched). Release metadata note: GitHub release v1.11.1-rc1 is listed as a normal release though notes say prerelease (remote metadata not edited).
+- Done (local commits, not pushed): merged v1.11.1-rc1 (68428f8; conflict only in this file; web/ untouched, Android now 1.11.1-rc1, parsers b049587f96, NewPipeExtractor v0.27.1, OkHttp 5.5.1). Web: `npm ci`, `npm test` (36 tests incl. 21 new relay tests), `npm run build` pass. Relay hardened (Origin required when ALLOWED_ORIGIN set, per-hop redirect validation, CGNAT/IPv4-mapped IPv6 blocked, body cap); Electron path-prefix, navigation-origin and IPC sender checks (ae0b1b8).
+- BLOCKED: no Android SDK in this container; installing it was denied by the permission classifier, so no Gradle compile/test/R8/lint was run. The 1.11 reference of 1,010 tests is NOT re-verified. Parser bump to 8e4b04f3df and all native/Keiyoushi source fixes (Softkomik, MangaDotNet, Ikiru, ...) live in the external kotatsu-parsers-redo library and need a compile environment plus a parser fork; not started. Download queue, reader, animated images, sync not started.
+- Release metadata: GitHub release v1.11.1-rc1 is listed as a normal release though its notes say prerelease (remote not edited).
+- No operation currently active.
 
 ## 2026-11-22 (later) - v1.11.1-rc1 prerelease prep
 - Done locally: ported Kotatsu-Redo sync merge fix + tests; MissingExtensionSource for MANGAYOMI_* names; opt-in live smoke tests (parsers + JS host) and their results; workflow `prerelease` input; version 1.11.1-rc1 (code 36); notes/changelog/status docs.
