@@ -24,3 +24,8 @@ These sources are implemented in the external kotatsu-parsers-redo library, not 
 Ikiru (8a7401d), Manganato (5244cf4), MangaLib (8597763, e628b38), HoneyManga (7e5d0a2), ZeistManga (afbab6c), DoujinDesu (28a8db9),
 Merlin Scans (48b0840), Catharsis World (3323a32), MadaraDex (71d3f76), AquaManga (48284e3), DuaLeoTruyen (fdb08c3), Rinko Comics (8688d9d),
 and the P2 list. Upstream commit hashes are as given in the task, not re-checked against upstream.
+
+
+## Update after live runs (see docs/parser-patches/README.md)
+Verified live in the parser library's own JVM test harness (not in the app): MangaDotNet 11/11, Ikiru 11/11, AquaManga 11/11, Softkomik 9/11.
+Patches are in docs/parser-patches and still need a parser fork to reach the APK. All other items above remain not started or inconclusive.

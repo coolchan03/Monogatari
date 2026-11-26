@@ -1,7 +1,7 @@
 From 27336a8d29e7823ee2d55a99653fc09fea9f169d Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 26 Nov 2026 22:23:49 +0000
-Subject: [PATCH 1/2] MangaDotNet: accept numeric or string chapter ids and
+Subject: [PATCH 1/4] MangaDotNet: accept numeric or string chapter ids and
  /manga/<id> urls; add live regression test
 
 ---

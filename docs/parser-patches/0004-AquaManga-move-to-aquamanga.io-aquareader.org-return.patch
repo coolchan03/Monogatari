@@ -1,0 +1,37 @@
+From 0e60832d1dc1c181c13cb618a9a9487454dde40a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 26 Nov 2026 22:36:40 +0000
+Subject: [PATCH 4/4] AquaManga: move to aquamanga.io (aquareader.org returns
+ 410), keep old domain selectable
+
+---
+ .../koitharu/kotatsu/parsers/site/madara/en/AquaManga.kt    | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/madara/en/AquaManga.kt b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/madara/en/AquaManga.kt
+index f1960f5..cdf197b 100644
+--- a/src/main/kotlin/org/koitharu/kotatsu/parsers/site/madara/en/AquaManga.kt
++++ b/src/main/kotlin/org/koitharu/kotatsu/parsers/site/madara/en/AquaManga.kt
+@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.parsers.site.madara.en
+ import okhttp3.Headers
+ import org.koitharu.kotatsu.parsers.MangaLoaderContext
+ import org.koitharu.kotatsu.parsers.MangaSourceParser
++import org.koitharu.kotatsu.parsers.config.ConfigKey
+ import org.koitharu.kotatsu.parsers.model.Manga
+ import org.koitharu.kotatsu.parsers.model.MangaParserSource
+ import org.koitharu.kotatsu.parsers.model.MangaTag
+@@ -15,7 +16,10 @@ import kotlin.random.Random
+ 
+ @MangaSourceParser("AQUAMANGA", "AquaManga", "en")
+ internal class AquaManga(context: MangaLoaderContext) :
+-	MadaraParser(context, MangaParserSource.AQUAMANGA, "aquareader.org", 20) {
++	MadaraParser(context, MangaParserSource.AQUAMANGA, "aquamanga.io", 20) {
++
++	// aquareader.org (the previous domain) now answers 410 Gone; keep it selectable for old links.
++	override val configKeyDomain = ConfigKey.Domain("aquamanga.io", "aquareader.org")
+ 
+ 	override val withoutAjax = true
+ 	override val stylePage = ""
+-- 
+2.43.0
+
